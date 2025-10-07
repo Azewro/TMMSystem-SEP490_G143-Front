@@ -1,0 +1,78 @@
+.login-container {
+  position: relative;
+  width: 1480px;
+  height: 750px;
+  background: url('/images/1.png') no-repeat center center/cover;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  font-family: Arial, sans-serif;
+  margin-left: -10%;
+}
+.login-box {
+  background: rgba(255, 255, 255, 0.6); /* nền hơi trong suốt */
+  backdrop-filter: blur(8px); /* hiệu ứng mờ */
+  padding: 40px;
+  width: 380px;
+  height: 550px;
+  margin-left: 80px;
+  border-radius: 10px;
+  margin-top: 100px;
+}
+.logo {
+  font-size: 20px;
+  font-weight: bold;
+  color: #222;
+  margin-bottom: 20px;
+}
+.login-title {
+  font-size: 32px;
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #222;
+  margin-top: -30px;
+}
+.login-subtitle {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 30px;
+}
+.login-form label {
+  font-size: 14px;
+  color: #333;
+  display: flex;
+  margin-bottom: 8px;
+}
+.login-form input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 20px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  outline: none;
+  font-size: 14px;
+}
+.password-wrapper {
+  position: relative;
+}
+.password-wrapper .eye-icon {
+  position: absolute;
+  right: 10px;
+  top: 20%;
+  cursor: pointer;
+  font-size: 16px;
+}
+.login-btn {
+  width: 100%;
+  padding: 12px;
+  background-color: #4285f4;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.3s ease;
+}
+.login-btn:hover {
+  background-color: #3273dc;
+}

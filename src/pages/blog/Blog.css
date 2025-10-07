@@ -1,0 +1,140 @@
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.handmade-page {
+  width: 100%;
+  background-color: #fff;
+  font-family: Arial, sans-serif;
+}
+.header1 {
+  background-image: url("https://bizweb.dktcdn.net/thumb/1024x1024/100/360/143/products/2-1-2f137738-7003-4812-88e3-b65054442f0d.jpg?v=1692868876333"); /* 👉 Thay ảnh của bạn tại đây */
+  background-size: cover;
+  background-position: center;
+  height: 80vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.menu {
+  position: absolute;
+  top: 25px;
+  left: 30px;
+  font-size: 26px;
+  opacity: 0.5;
+  cursor: pointer;
+}
+
+.header-content {
+  text-align: center;
+  color: black;
+}
+
+.header-content h1 {
+  font-size: 2.2rem;
+  font-weight: bold;
+}
+
+.header-content p {
+  margin-top: 10px;
+}
+
+.about {
+  text-align: center;
+  padding: 60px 20px;
+  max-width: 700px;
+  margin: auto;
+}
+
+.about h2 {
+  margin-bottom: 20px;
+}
+
+.about p {
+  color: #555;
+  line-height: 1.7;
+}
+.products {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  padding: 40px 10%;
+}
+
+.left-box, .right-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.left-box img, .right-box img {
+  width: 50%;
+  border-radius: 5px;
+  object-fit: cover;
+}
+
+.text-box {
+  width: 50%;
+}
+
+.text-box h3 {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.text-box p {
+  margin: 10px 0 15px;
+  color: #555;
+}
+
+.text-box button {
+  background-color: #5b57da;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+
+.text-box button:hover {
+  background-color: #333;
+}
+.footer {
+  background-color: #808098;
+  color: white;
+  text-align: center;
+  padding: 40px 0;
+}
+
+.footer-links {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  margin-bottom: 15px;
+}
+
+.footer-links a {
+  color: white;
+  text-decoration: none;
+}
+
+.footer-links a:hover {
+  text-decoration: underline;
+}
+
+.social span {
+  font-size: 22px;
+  margin: 0 8px;
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+.social span:hover {
+  opacity: 1;
+}
