@@ -10,6 +10,8 @@ import ChangePass from './pages/changePass/ChangePass';
 import ForgotPassword from './pages/forgot/ForgotPassword';
 import Blog from './pages/blog/Blog';
 import Register from './pages/register/Register';
+import MachineList from './pages/machine/MachineList';
+import CreateMachine from './pages/machine/CreateMachine';
 
 function App() {
 
@@ -26,6 +28,8 @@ function App() {
           <Route path="/forgot" element={<ForgotPassword />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/machinelist" element={<MachineList />} />
+          <Route path="/createmachine" element={<CreateMachine />} />
         </Routes>
         </BrowserRouter>
       </div>      

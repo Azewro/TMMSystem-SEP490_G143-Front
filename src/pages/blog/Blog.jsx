@@ -6,7 +6,10 @@ const Blog = () => {
     return (
     <div className="handmade-page">
       <header className="header1">
-        <div className="menu">☰</div>
+        <div style={{display:'flex',justifyContent:'flex-start', gap:'20px', cursor:'pointer',marginTop:'-30%',marginBottom:'100px',color:'blue'}}>
+            <a href='/'><p>Đăng nhập</p></a>
+            <a href='/register'><p>Đăng ký</p></a>
+        </div>             
         <div className="header-content">
           <h1>Khăn bông<br />Mỹ Đức</h1>          
         </div>

@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API_URL = "https://tmmsystem-sep490g143-production.up.railway.app/v1/auth";
-
+const API_URL_ = "https://tmmsystem-sep490g143-production.up.railway.app/v1/auth/customer";
 export const login = async (email, password) => {
   try {
     const response = await axios.post(`${API_URL}/login`, {
@@ -47,6 +47,14 @@ export const verifyResetCode = async (email, code) => {
     return response.data;
   } catch (error) {
     throw new Error(error.response?.data?.message || "Mã không hợp lệ");
+  }
+};
+export const registerUser = async (userData) => {
+  try {
+    const response = await axios.post(`${API_URL_}/register`, userData);
+    return response.data; 
+  } catch (error) {
+    throw error.response?.data || { message: "Đăng ký thất bại" };
   }
 };
 

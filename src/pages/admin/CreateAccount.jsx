@@ -20,7 +20,6 @@ const CreateAccount = () => {
     });
   };
   const handleCreateAccount = async () => {
-  // Kiểm tra mật khẩu nhập lại
   if (userData.password !== userData.confirmPassword) {
     alert("Passwords do not match!");
     return;
@@ -31,17 +30,15 @@ const CreateAccount = () => {
       email: userData.email,
       password: userData.password,
       name: userData.name || "New User",
-      role: { id: parseInt(userData.roleId) }  // Đúng format API yêu cầu
+      role: { id: parseInt(userData.roleId) }
     };
 
-    console.log("Payload gửi đi:", payload); // Debug xem dữ liệu gửi đúng chưa
+    console.log("Payload gửi đi:", payload);
 
     await CreateUsers(payload);
 
     alert("User created successfully!");
     navigate('/dashbroad');
-
-    // Reset form
     setUserData({
       email: '',
       phoneNumber: '',
