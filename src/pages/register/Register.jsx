@@ -3,14 +3,10 @@ import './Register.css';
 import { registerUser } from '../../services/authApi';
 
 const Register = () => {
-    const [formData, setFormData] = useState({
-    name: "",
+    const [formData, setFormData] = useState({    
     password: "",
     confirmPassword: "",
     email: "",
-    phoneNumber: "",
-    position: "",
-    customerId: 0,
   });
 
   const [loading, setLoading] = useState(false);
@@ -38,10 +34,6 @@ const Register = () => {
       const data = {
         email: formData.email,
         password: formData.password,
-        name: formData.name,
-        phoneNumber: formData.phoneNumber,
-        position: formData.position,
-        customerId: formData.customerId,
       };
 
       const res = await registerUser(data);
@@ -56,13 +48,13 @@ const Register = () => {
     return (
     <div className="signup-container">
       <div className="signup-box">
-        <h2 className="signup-title">Tạo Tài Khoản</h2>
-        <form className="signup-form" onSubmit={handleSubmit}>
+        <h2 className="signup-title">Đăng Ký</h2>
+        <form className="signup-form" onSubmit={handleSubmit}>                   
           <input
-            type="text"
-            name="name"
-            placeholder="Tên"
-            value={formData.name}
+            type="email"
+            name="email"
+            placeholder="Email"
+            value={formData.email}
             onChange={handleChange}
           />
           <input
@@ -72,29 +64,13 @@ const Register = () => {
             value={formData.password}
             onChange={handleChange}
           />
-          
           <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            value={formData.email}
+            type="password"
+            name="confirmPassword"
+            placeholder="Nhập lại mật khẩu"
+            value={formData.confirmPassword}
             onChange={handleChange}
           />
-          <input
-            type="text"
-            name="phoneNumber"
-            placeholder="Số điện thoại"
-            value={formData.phoneNumber}
-            onChange={handleChange}
-          />
-          <input
-            type="text"
-            name="position"
-            placeholder="Chức vụ"
-            value={formData.position}
-            onChange={handleChange}
-          />
-
           <button type="submit" className="signup-button" disabled={loading}>
             {loading ? "Đang tạo..." : "Tạo tài khoản"}
           </button>

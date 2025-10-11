@@ -1,0 +1,173 @@
+.quote-page-container {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+  background-color: #f9fafc;
+  font-family: "Segoe UI", sans-serif;
+}
+.sidebar2 {
+  width: 230px;
+  background-color: #f8dede;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 30px;
+}
+
+.logo-container img {
+  width: 120px;
+  height: 120px;
+  margin-bottom: 30px;
+}
+
+.menu2 {
+  list-style: none;
+  padding: 0;
+  width: 100%;
+  text-align: center;
+}
+
+.menu2 li {
+  padding: 15px 0;
+  cursor: pointer;
+  font-weight: 500;
+  color: #000;
+  transition: background 0.3s;
+}
+
+.menu2 li.active {
+  background-color: #243c84;
+  color: white;
+}
+.main-content2 {
+  flex: 1;
+  background-color: #fff;
+  padding: 0 30px 40px 30px;
+  display: flex;
+  flex-direction: column;
+}
+.header2 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.search-input {
+  width: 400px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.notification {
+  position: relative;
+}
+
+.dot {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: red;
+  color: white;
+  font-size: 10px;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.user-email {
+  font-weight: 500;
+}
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 25px 0;
+}
+
+.create-btn {
+  background-color: #244283;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+.quote-card {
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 20px;
+  background-color: #fff;
+}
+
+.quote-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 25px;
+  margin-bottom: 15px;
+}
+
+.action-btn {
+  background-color: #244283;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+.pending {
+  color: #f39c12;
+}
+
+.approved {
+  color: #2ecc71;
+}
+.quote-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 15px;
+}
+
+.quote-table th,
+.quote-table td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: left;
+}
+
+.edit {
+  margin-right: 10px;
+  cursor: pointer;
+}
+
+.delete {
+  cursor: pointer;
+}
+.quote-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.add-product {
+  background-color: #2455f2;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+}

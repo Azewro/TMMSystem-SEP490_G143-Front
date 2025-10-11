@@ -33,10 +33,10 @@ const navigate = useNavigate();
   return (
     <div className="login-container">
       <div className="login-box">
-        <h2 className="logo">SEP490</h2>
-        <h1 className="login-title">Login</h1>
-        <p className="login-subtitle">Welcome to log in.</p>
-
+        <div >
+          <img src="/images/logo.png" style={{width:'80px',height:'80px', marginBottom:'50px'}}></img>
+        </div>
+        <h1 className="login-title">Đăng nhập</h1>
         <form
           className="login-form"
           onSubmit={(e) => {
@@ -53,7 +53,7 @@ const navigate = useNavigate();
             required
           />
 
-          <label>Password</label>
+          <label>Mật khẩu</label>
           <div className="password-wrapper">
             <input
               type={showPassword ? "text" : "password"}
@@ -73,7 +73,7 @@ const navigate = useNavigate();
           {error && <p className="error-message">{error}</p>}
 
           <button type="submit" className="login-btn" disabled={loading}>
-            {loading ? "Logging in..." : "LOGIN"}
+            {loading ? "Logging in..." : "Đăng nhập"}
           </button>
 
           <p className="signup-link" style={{marginTop:'20px'}}>

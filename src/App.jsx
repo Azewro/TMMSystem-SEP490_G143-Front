@@ -12,6 +12,9 @@ import Blog from './pages/blog/Blog';
 import Register from './pages/register/Register';
 import MachineList from './pages/machine/MachineList';
 import CreateMachine from './pages/machine/CreateMachine';
+import Home from './pages/customer/home/Home';
+import QuoteRequest from './pages/customer/quoteRequest/QuoteRequest';
+import CreateQuote from './pages/customer/createquote/CreateQuote';
 
 function App() {
 
@@ -30,6 +33,9 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/machinelist" element={<MachineList />} />
           <Route path="/createmachine" element={<CreateMachine />} />
+          <Route path="/home" element={<Home />} />
+          <Route path="/quote" element={<QuoteRequest />} />
+          <Route path="/createquote" element={<CreateQuote />} />
         </Routes>
         </BrowserRouter>
       </div>      

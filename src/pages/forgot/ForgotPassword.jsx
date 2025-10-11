@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import './ForgotPassword.css';
 import { changePassword, forgotPassword, verifyResetCode } from '../../services/authApi';
+import { useNavigate } from 'react-router-dom';
 const ForgotPassword = () => {
     const [step, setStep] = useState(1);
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [message, setMessage] = useState("");
-
+  const navigate = useNavigate();
   
   const handleSendEmail = async () => {
     try {
@@ -24,7 +25,7 @@ const ForgotPassword = () => {
     try {
       await verifyResetCode(email, code);
       setMessage("Mã hợp lệ, hãy nhập mật khẩu mới");
-      setStep(3);
+      navigate('/');
     } catch (err) {
       setMessage(err.message);
     }
@@ -70,31 +71,7 @@ const ForgotPassword = () => {
           />
           <button onClick={handleVerifyCode}>Xác nhận</button>
         </div>
-      )}
-
-      {step === 3 && (
-        <div className="forgot-box">
-          <h3>Mật khẩu mới</h3>
-          <input
-            type="password"
-            placeholder="Nhập mật khẩu mới"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-          />
-          <div className="password-rules">
-            <p>Yêu cầu mật khẩu:</p>
-            <ul>
-              <li>Có ít nhất 8 ký tự</li>
-              <li>Có ít nhất 1 số</li>
-              <li>Có ít nhất 1 ký tự thường và 1 ký tự in hoa</li>
-              <li>Có ít nhất 1 ký tự đặc biệt (!@#$%^&*)</li>
-            </ul>
-          </div>
-          <button onClick={handleResetPassword}>Reset mật khẩu</button>
-        </div>
-      )}
-
-      {message && <p className="message">{message}</p>}
+      )}      
     </div>
   );
 };
