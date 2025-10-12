@@ -4,6 +4,7 @@
   min-height: 100vh;
   background-color: #f9fafc;
   font-family: "Segoe UI", sans-serif;
+  margin-left: 30px;
 }
 .sidebar2 {
   width: 230px;
@@ -45,6 +46,7 @@
   padding: 0 30px 40px 30px;
   display: flex;
   flex-direction: column;
+  
 }
 .header2 {
   display: flex;
@@ -52,6 +54,7 @@
   align-items: center;
   padding: 15px 0;
   border-bottom: 1px solid #eee;
+  width: 1000px;
 }
 
 .search-input {
@@ -110,6 +113,7 @@
   padding: 20px;
   margin-bottom: 20px;
   background-color: #fff;
+  
 }
 
 .quote-info {

@@ -53,17 +53,17 @@ const CreateMachine = () => {
           </div>
 
           <div className="button-row">
-            <button type="button" className="btn create-btn" style={{color: 'black'}}>
+            <button type="button" className="btn2 create-btn" style={{color: 'black'}}>
               Tạo Máy
             </button>
-            <button type="button" className="btn back-btn">
+            <button type="button" className="btn2 back-btn">
               Quay Lại
             </button>
           </div>
         </form>
 
         <div className="close-section">
-          <button className="btn close-btn">Đóng</button>
+          <button className="btn2 close-btn">Đóng</button>
         </div>
       </div>
     </div>

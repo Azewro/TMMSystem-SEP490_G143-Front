@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import "./AdminDashboard.css";
 import { getAllUsers, getUserByID, toggleUserActive, UpdateUsers } from "../../services/userApi";
 import Navbar from "../../components/Navbar";
-import { useNavigate } from "react-router-dom";
+import { data, useNavigate } from "react-router-dom";
 import { FaUser } from "react-icons/fa";
 const AdminDashboard = () => {
     const [users, setUsers] = useState([]);
@@ -13,6 +13,7 @@ const AdminDashboard = () => {
     const [account, setAccount] = useState({});
     const [profile, setProfile] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
+    const [name, setName] = useState("");
     const navigate = useNavigate();
     const handleActive = async (user) => {
         const newValue = !user.isActive;
@@ -62,17 +63,37 @@ const AdminDashboard = () => {
         }
     };
     const filteredUsers = users.filter((user) => {
-  const term = searchTerm.toLowerCase();
-  return (
-    user.name?.toLowerCase().includes(term) ||
-    user.email?.toLowerCase().includes(term) ||
-    user.phoneNumber?.toLowerCase().includes(term) ||
-    user.roleName?.toLowerCase().includes(term)
-  );
-});
+        const term = searchTerm.toLowerCase();
+        return (
+            user.name?.toLowerCase().includes(term) ||
+            user.email?.toLowerCase().includes(term) ||
+            user.phoneNumber?.toLowerCase().includes(term) ||
+            user.roleName?.toLowerCase().includes(term)
+        );
+    });
 
-    useEffect(() => {  
+    useEffect(() => {
         fetchUsers();
+    }, []);
+    useEffect(() => {
+        const storedUser = JSON.parse(localStorage.getItem("user"));
+        if (storedUser && storedUser.name) {
+            setName(storedUser.name);
+        } else {
+            // Nếu không có tên trong localStorage, lấy từ API
+            const fetchUserProfile = async () => {
+                try {
+                    const userData = await getUserByID(storedUser.userId);
+                    setName(userData.name);
+                } catch (error) {
+                    console.error("Error fetching user profile:", error);
+                    setName("Profile");
+                }
+            };
+            if (storedUser && storedUser.userId) {
+                fetchUserProfile();
+            }
+        }
     }, []);
 
     const openEditPopup = (user) => {
@@ -103,7 +124,7 @@ const AdminDashboard = () => {
 
     const handleSignOut = () => {
         localStorage.removeItem("user");
-
+        setName("");
         setProfile(null);
         setShowProfilePopup(false);
         navigate("/");
@@ -116,18 +137,18 @@ const AdminDashboard = () => {
 
                 <div style={{ display: "flex", gap: "10px", cursor: "pointer" }} onClick={handleShowProfile}>
                     <FaUser className="icon-dashboard" />
-                    <span className="text-dashboard">Profile</span>
+                    <span className="text-dashboard">{name ? name : "Profile"}</span>
                 </div>
 
                 <div className="header">
                     <h2>Quản Lý Tài Khoản</h2>
                     <input
-  type="text"
-  className="search"
-  placeholder="Tìm kiếm "
-  value={searchTerm}
-  onChange={(e) => setSearchTerm(e.target.value)}
-/>
+                        type="text"
+                        className="search"
+                        placeholder="Tìm kiếm "
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
                     <a href="/createuser">
                         <button className="create-btn">Tạo Tài Khoản</button>
                     </a>
@@ -155,7 +176,7 @@ const AdminDashboard = () => {
                                         <tr key={user.id}>
                                             <td>{index + 1}</td>
                                             <td className="user-info">
-                                                <img src="https://thichtrangtri.com/wp-content/uploads/2025/05/hinh-anh-con-meo-cute-1.jpg" alt={user.name} className="avatar" />
+                                                <img src={user.avatar} alt={user.name} className="avatar" />
                                                 <span>{user.name}</span>
                                             </td>
                                             <td>{user.email}</td>
@@ -189,8 +210,6 @@ const AdminDashboard = () => {
                     </div>
                 )}
             </div>
-
-
             {showEditPopup && (
                 <div className="popup-overlay">
                     <div className="popup">
@@ -227,7 +246,7 @@ const AdminDashboard = () => {
                 <div className="popup-overlay">
                     <div className="popup profile-detail" >
                         <h3>Thông tin cá nhân</h3>
-                        <img src= "https://thichtrangtri.com/wp-content/uploads/2025/05/hinh-anh-con-meo-cute-1.jpg" alt={profile.name} className="popup-avatar" />
+                        <img src="https://thichtrangtri.com/wp-content/uploads/2025/05/hinh-anh-con-meo-cute-1.jpg" alt={profile.name} className="popup-avatar" />
                         <p><b>Họ tên:</b> {profile.name}</p>
                         <p><b>Email:</b> {profile.email}</p>
                         <p><b>Số điện thoại:</b> {profile.phoneNumber}</p>
@@ -235,9 +254,10 @@ const AdminDashboard = () => {
                         <div className="popup-actions">
                             <div className="popup-menu">
                                 <div className="popup-item" onClick={() => {
-                                            openEditPopup(profile);
-                                            setShowProfilePopup(false)}}
-                                            style={{cursor: "pointer"}} >
+                                    openEditPopup(profile);
+                                    setShowProfilePopup(false)
+                                }}
+                                    style={{ cursor: "pointer" }} >
                                     <span>🔑</span>
                                     <p>Cập nhật tài khoản</p>
                                 </div>
@@ -248,11 +268,11 @@ const AdminDashboard = () => {
 
                                 <div className="popup-item">
                                     <span>🔒</span>
-                                    <a href="/changepass" style={{textDecoration:'none', color:'#008080'}}><p>Đổi mật khẩu</p></a>
+                                    <a href="/changepass" style={{ textDecoration: 'none', color: '#008080' }}><p>Đổi mật khẩu</p></a>
                                 </div>
-                                <div className="popup-actions"> 
-                                    <button className="cancel-btn" onClick={() => setShowProfilePopup(false)}>Đóng</button> 
-                                    <button className="signout-btn" onClick={handleSignOut}>🚪 Đăng xuất</button> 
+                                <div className="popup-actions">
+                                    <button className="cancel-btn" onClick={() => setShowProfilePopup(false)}>Đóng</button>
+                                    <button className="signout-btn" onClick={handleSignOut}>🚪 Đăng xuất</button>
                                 </div>
                             </div>
 

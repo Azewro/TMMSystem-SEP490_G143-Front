@@ -2,6 +2,7 @@ import React from "react";
 import "./Home.css";
 import { FiPhone, FiMail } from "react-icons/fi";
 import { FaUser } from "react-icons/fa";
+import ProfilePopup from "../../../components/ProfilePopup/ProfilePopup";
 const Home = () => {
   return (
     <div className="home-container2">
@@ -25,8 +26,8 @@ const Home = () => {
             <button className="quote-btn">Tạo yêu cầu báo giá</button>
             <div className="user">
               <i className="bell">🔔</i>
-              <FaUser />
-              <span>abc@gmail.com</span>
+              <ProfilePopup />
+              
             </div>
           </div>
         </header>
@@ -64,12 +65,10 @@ const Home = () => {
           </div>
         </section>
         <footer className="footer">
-          <div>
+          <div style={{display:'flex', flexDirection:'column', gap:'10px', alignItems:'center',marginLeft:'400px'}}>
             <FiPhone /> Hotline: 0913 522 663
-          </div>
-          <div>
             <FiMail /> Email: contact@mvductowel.com
-          </div>
+          </div>         
         </footer>
       </main>
     </div>

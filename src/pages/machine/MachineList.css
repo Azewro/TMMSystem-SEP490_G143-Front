@@ -3,12 +3,13 @@
   height: 100vh;
   font-family: "Segoe UI", sans-serif;
   background-color: #f8f9fa;
-  width: 1200px;
+  width: 1350px;
   margin-left: 8%;
 }
 .main-content {
   flex: 1;
   padding: 25px 40px;  
+  margin-left: 150px;
 }
 .header-bar {
   display: flex;

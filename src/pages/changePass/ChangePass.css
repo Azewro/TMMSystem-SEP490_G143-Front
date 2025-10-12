@@ -2,8 +2,10 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
+  min-height: 400px;
   background: #f4f6f9;
+  margin-left: 600px;
+  
 }
 
 .change-password-box {
@@ -13,6 +15,7 @@
   box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
   width: 400px;
   text-align: center;
+  
 }
 
 .change-password-box h2 {

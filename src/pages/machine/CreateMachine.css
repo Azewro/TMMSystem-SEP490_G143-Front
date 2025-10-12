@@ -6,12 +6,13 @@
   padding: 40px;
   background-color: #f8f8f8;
   min-height: 100vh;
+  margin-left: 500px;
 }
 
 .create-machine-box {
   background-color: #fff;
-  width: 100%;
-  max-width: 900px;
+  
+  height: 1277px;
   border: 1px solid #ccc;
   border-radius: 6px;
   padding: 30px;
@@ -67,7 +68,7 @@
   margin-top: 20px;
 }
 
-.btn {
+.btn2 {
   padding: 10px 20px;
   border: 1px solid #999;
   border-radius: 4px;
@@ -76,11 +77,11 @@
   font-weight: 500;
 }
 
-.create-btn:hover {
+.create-btn2:hover {
   background-color: #e0e0e0;
 }
 
-.back-btn:hover {
+.back-btn2:hover {
   background-color: #e0e0e0;
 }
 
@@ -89,10 +90,10 @@
   margin-top: 20px;
 }
 
-.close-btn {
+.close-btn2 {
   background-color: #f9f9f9;
 }
 
-.close-btn:hover {
+.close-btn2:hover {
   background-color: #e0e0e0;
 }

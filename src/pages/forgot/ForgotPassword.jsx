@@ -30,21 +30,6 @@ const ForgotPassword = () => {
       setMessage(err.message);
     }
   };
-
-  
-  const handleResetPassword = async () => {
-    try {
-      await changePassword(email, code, newPassword);
-      setMessage("Đổi mật khẩu thành công! Hãy đăng nhập lại.");
-      setStep(1);
-      setEmail("");
-      setCode("");
-      setNewPassword("");
-    } catch (err) {
-      setMessage(err.message);
-    }
-  };
-
   return (
     <div className="forgot-container">
       {step === 1 && (

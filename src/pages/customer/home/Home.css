@@ -5,6 +5,7 @@
   font-family: "Segoe UI", sans-serif;
   background-color: #f9fafc;
   overflow-x: hidden;
+  margin-left: 30px;
 }
 .sidebar2 {
   width: 240px;
@@ -47,16 +48,20 @@
   flex-direction: column;
   background: #fff;
   padding: 25px 40px;
+  margin-left: 100px;
+  
+  
 }
 .header2 {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 80px;
+  
 }
 
 .header2 input {
-  width: 340px;
+  width: 400px;
   padding: 10px 15px;
   border: 1px solid #ccc;
   border-radius: 8px;
@@ -77,6 +82,7 @@
   font-weight: 500;
   cursor: pointer;
   transition: 0.3s;
+  
 }
 
 .quote-btn:hover {
@@ -110,7 +116,7 @@
 .product-list {
   display: flex;
   gap: 25px;
-  flex-wrap: wrap;
+  flex-wrap: auto auto auto;
 }
 
 .product-card {
@@ -122,6 +128,7 @@
   text-align: center;
   box-shadow: 0 2px 6px rgba(0,0,0,0.1);
   transition: 0.3s;
+  margin-left: 30px;
 }
 
 .product-card:hover {
@@ -182,6 +189,7 @@
   padding-top: 15px;
   display: flex;
   justify-content: space-between;
-  color: #333;
+  color: #ffffff;
   font-size: 14px;
+  
 }
