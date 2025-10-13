@@ -1,7 +1,7 @@
 import React from 'react';
 import './QuoteRequest.css';
 import { FaUser } from "react-icons/fa";
-import ProfilePopup from "../../../components/ProfilePopup/ProfilePopup";
+// import ProfilePopup from "../../../components/ProfilePopup/ProfilePopup";
 const QuoteRequest = () => {
     return (
         <div className="quote-page-container">
@@ -28,7 +28,7 @@ const QuoteRequest = () => {
               <span className="dot">2</span>
               🔔
             </div>
-            <ProfilePopup />
+            {/* <ProfilePopup /> */}
           </div>
         </header>
         <div className="page-header">

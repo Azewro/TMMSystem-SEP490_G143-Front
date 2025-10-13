@@ -2,7 +2,7 @@ import React from "react";
 import "./Home.css";
 import { FiPhone, FiMail } from "react-icons/fi";
 import { FaUser } from "react-icons/fa";
-import ProfilePopup from "../../../components/ProfilePopup/ProfilePopup";
+// import ProfilePopup from "../../../components/ProfilePopup/ProfilePopup";
 const Home = () => {
   return (
     <div className="home-container2">
@@ -26,7 +26,7 @@ const Home = () => {
             <button className="quote-btn">Tạo yêu cầu báo giá</button>
             <div className="user">
               <i className="bell">🔔</i>
-              <ProfilePopup />
+              {/* <ProfilePopup /> */}
               
             </div>
           </div>
