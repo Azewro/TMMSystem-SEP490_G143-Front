@@ -1,0 +1,157 @@
+.quote-detail-container {
+  margin-left: 500px;
+  background-color: #fff;
+  font-family: "Segoe UI", sans-serif;
+  color: #333;
+  
+}
+
+.page-title2 {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.info-section2 {
+  display: flex;
+  justify-content: space-between;
+  gap: 30px;
+  margin-bottom: 30px;
+}
+
+.info-card2 {
+  flex: 1;
+  background: #f9f9ff;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.info-title2 {
+  color: #3f51b5;
+  font-weight: 600;
+  margin-bottom: 10px;
+  font-size: 18px;
+}
+
+.info-card2 p {
+  margin: 6px 0;
+  font-size: 15px;
+}
+
+.product-list2 {
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #e5e5e5;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.product-title2 {
+  background-color: #3f51b5;
+  color: white;
+  padding: 10px 15px;
+  border-radius: 6px 6px 0 0;
+  font-weight: 500;
+  margin: 0;
+}
+
+.product-table2 {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.product-table2 th,
+.product-table2 td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.product-table2 th {
+  background-color: #f2f3f5;
+  font-weight: 600;
+}
+
+.product-table2 tr:nth-child(even) {
+  background-color: #fafafa;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 25px;
+}
+
+.back-btn,
+.send-btn {
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.back-btn {
+  background-color: #f2f2f2;
+}
+
+.back-btn:hover {
+  background-color: #e0e0e0;
+  transform: translateY(-2px);
+}
+
+.send-btn {
+  background-color: #6185d9;
+  color: white;
+}
+
+.send-btn:hover {
+  background-color: #1e293b;
+  transform: translateY(-2px);
+}
+.popup-overlay3 {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.popup-box3 {
+  background: white;
+  padding: 25px 40px;
+  border-radius: 10px;
+  text-align: center;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+  width: 320px;
+}
+
+.popup-icon.success {
+  font-size: 50px;
+  color: #00c853;
+  margin-bottom: 10px;
+}
+
+.popup-title3 {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.popup-btn3 {
+  background: #007bff;
+  border: none;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-top: 15px;
+}

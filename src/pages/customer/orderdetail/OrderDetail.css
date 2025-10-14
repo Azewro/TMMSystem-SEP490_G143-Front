@@ -1,0 +1,146 @@
+.order-detail-page {
+  background-color: #fff;
+  border-radius: 10px;
+  padding: 25px;
+  font-family: 'Segoe UI', sans-serif;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  margin-left: 400px;
+}
+
+.order-header {
+  background: linear-gradient(90deg, #1976d2, #3b82f6);
+  color: #fff;
+  padding: 20px 25px;
+  border-radius: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.order-info h2 {
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+
+.order-id {
+  font-weight: bold;
+}
+
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 13px;
+}
+
+.status-badge.pending {
+  background-color: #ef4444;
+}
+
+.order-actions button {
+  margin-left: 10px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.btn-contract {
+  background-color: #3b82f6;
+  color: #fff;
+}
+
+.btn-back {
+  background-color: #fff;
+  color: #3b82f6;
+  border: 1px solid #3b82f6;
+}
+
+.btn-contract:hover,
+.btn-back:hover {
+  opacity: 0.9;
+}
+
+.order-body {
+  margin-top: 25px;
+}
+
+.section-title {
+  color: #1976d2;
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+
+.order-summary {
+  display: flex;
+  justify-content: flex-end;
+  font-size: 16px;
+  margin-bottom: 15px;
+}
+
+.total-amount {
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.order-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 25px;
+}
+
+.order-table th,
+.order-table td {
+  border-bottom: 1px solid #ddd;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.order-table th {
+  background-color: #f3f4f6;
+}
+
+.process-section {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-top: 25px;
+}
+
+.process-item {
+  text-align: center;
+  width: 150px;
+  background-color: #f9fafb;
+  border-radius: 10px;
+  padding: 15px 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.process-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin: 0 auto 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 20px;
+}
+
+.process-icon.success {
+  background-color: #dcfce7;
+  color: #16a34a;
+}
+
+.status-step {
+  background-color: #ef4444;
+  color: white;
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 13px;
+  display: inline-block;
+  margin-top: 6px;
+}

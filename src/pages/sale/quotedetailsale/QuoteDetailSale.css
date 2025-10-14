@@ -1,0 +1,100 @@
+.quote-container {
+  background-color: #fff; 
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  font-family: "Segoe UI", sans-serif;
+  margin-left: 500px;
+}
+
+.quote-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.quote-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.status-label {
+  font-weight: 600;
+}
+
+.status-pill {
+  background-color: #f7941d;
+  color: #fff;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+}
+
+.quote-date {
+  font-size: 16px;
+  margin-bottom: 25px;
+  padding-right: 410px;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.quote-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 25px;
+}
+
+.quote-table th,
+.quote-table td {
+  border: 1px solid #ddd;
+  padding: 10px 12px;
+  text-align: center;
+}
+
+.quote-table th {
+  background: linear-gradient(to right, #e6e0ff, #ffe6f7);
+  color: #333;
+  font-weight: 600;
+}
+
+.quote-table tr:nth-child(even) {
+  background-color: #fafafa;
+}
+
+.quote-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+.btn {
+  border: none;
+  padding: 8px 18px;
+  font-size: 15px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-back {
+  background-color: #eef2ff;
+  color: #3b5bdb;
+}
+
+.btn-cancel {
+  background-color: #ff4d4f;
+  color: #fff;
+}
+
+.btn-send {
+  background-color: #3b82f6;
+  color: #fff;
+}
+
+.btn:hover {
+  transform: translateY(-3px);
+  opacity: 0.9;
+}

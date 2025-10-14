@@ -1,0 +1,101 @@
+.home-container2 {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  font-family: "Segoe UI", sans-serif;
+  background-color: #f9fafc;
+  overflow-x: hidden;
+  margin-left: 30px;
+}
+.sidebar2 {
+  width: 240px;
+  background-color: #f7dfdf;
+  color: rgb(255, 253, 253);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 30px;
+    border-right: 1px solid #dddddd;
+}
+
+.logo2 img {
+  width: 120px;
+  margin-bottom: 40px;
+}
+
+.menu2 ul {
+  list-style: none;
+  padding: 0;
+  width: 100%;
+}
+
+.menu2 li {
+  padding: 15px 25px;
+  cursor: pointer;
+  color: rgb(29, 27, 27);
+  font-weight: 500;
+  transition: 0.3s;
+}
+
+.menu2 li.active,
+.menu2 li:hover {
+  background-color: #3048a1;
+  color: #fff;
+}
+.main-content2 {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  padding: 25px 40px;
+  margin-left: 100px;
+  
+  
+}
+.header2 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 80px;
+  
+}
+
+.header2 input {
+  width: 400px;
+  padding: 10px 15px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+
+
+.user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+}
+.product-section h2 {
+  font-size: 22px;
+  font-weight: 600;
+  color: #222;
+}
+
+.product-section p {
+  color: #666;
+  margin: 6px 0 15px 0;
+  
+}
+
+.filter select {
+  padding: 10px 15px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  margin-bottom: 25px;
+}

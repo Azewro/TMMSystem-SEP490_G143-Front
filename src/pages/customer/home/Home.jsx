@@ -14,7 +14,7 @@ const Home = () => {
           <ul>
             <li className="active">Sản phẩm</li>
             <a href="/quote" style={{textDecoration:'none'}}><li>Yêu cầu báo giá</li></a>
-            <li>Đơn hàng</li>
+            <a href="/order" style={{textDecoration:'none'}}><li>Đơn hàng</li></a>
             <li>Khách hàng</li>
           </ul>
         </nav>

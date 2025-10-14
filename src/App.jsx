@@ -15,6 +15,16 @@ import CreateMachine from './pages/machine/CreateMachine';
 import Home from './pages/customer/home/Home';
 import QuoteRequest from './pages/customer/quoteRequest/QuoteRequest';
 import CreateQuote from './pages/customer/createquote/CreateQuote';
+import QuoteRequestSale from './pages/sale/quoterequestsale/QuoteRequestSale';
+import QuoteRequestDetailSale from './pages/sale/quoteRequestDetailSale/QuoteRequestDetailSale';
+import QuoteSale from './pages/sale/quotesale/QuoteSale';
+import QuoteDetailSale from './pages/sale/quoteDetailSale/QuoteDetailSale';
+import OrderListSale from './pages/sale/orderlistsale/OrderListSale';
+import Order from './pages/customer/order/Order';
+import OrderDetail from './pages/customer/orderdetail/OrderDetail';
+import QuoteRequestplanRoom from './pages/planRoom/quoterequestplanRoom/QuoteRequestplanRoom';
+import QuoteRequestDetailplanRoom from './pages/planRoom/quoterequestdetailplanRoom/QuoteRequestDetailplanRoom';
+
 
 function App() {
 
@@ -36,6 +46,16 @@ function App() {
           <Route path="/home" element={<Home />} />
           <Route path="/quote" element={<QuoteRequest />} />
           <Route path="/createquote" element={<CreateQuote />} />
+          <Route path="/quoterequestsale" element={<QuoteRequestSale />} />
+          <Route path="/quoterequestdetailsale" element={<QuoteRequestDetailSale />} />
+          <Route path="/quotesale" element={<QuoteSale />} />
+          <Route path="/quotedetailsale" element={<QuoteDetailSale />} />
+          <Route path="/orderlistsale" element={<OrderListSale />} />
+          <Route path="/order" element={<Order />} />
+          <Route path="/orderdetail" element={<OrderDetail />} />
+          <Route path="/quoterequestplan" element={<QuoteRequestplanRoom />} />
+          <Route path="/quoterequestdetailplan" element={<QuoteRequestDetailplanRoom />} />
+
         </Routes>
         </BrowserRouter>
       </div>      
