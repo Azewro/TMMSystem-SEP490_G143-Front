@@ -11,9 +11,9 @@ const QuoteRequestplanRoom = () => {
                         </div>
                         <ul className="menu2">
                             <li className="active">Yêu cầu báo giá</li>
-                            <a href='/quotesale' style={{ textDecoration: 'none' }}><li >Báo giá</li></a>
-                            <li>Đơn hàng</li>
-                            <li>Lệnh sản xuất</li>
+                            
+                            <a href='/orderlistplanRoom' style={{ textDecoration: 'none' }}><li>Đơn hàng</li></a>
+                            <a href='/productionorderplan' style={{ textDecoration: 'none' }}><li>Lệnh sản xuất</li></a>
                             <li>Giải pháp rủi ro</li>
                             <li>Ảnh hưởng giao hàng</li>
                         </ul>

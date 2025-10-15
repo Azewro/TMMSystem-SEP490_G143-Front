@@ -1,0 +1,34 @@
+.sidebar2 {
+  width: 240px;
+  background-color: #f7dfdf;
+  color: rgb(255, 253, 253);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 30px;
+    border-right: 1px solid #dddddd;
+}
+.logo2 img {
+  width: 120px;
+  margin-bottom: 40px;
+}
+
+.menu2 ul {
+  list-style: none;
+  padding: 0;
+  width: 100%;
+}
+
+.menu2 li {
+  padding: 15px 25px;
+  cursor: pointer;
+  color: rgb(29, 27, 27);
+  font-weight: 500;
+  transition: 0.3s;
+}
+
+.menu2 li.active,
+.menu2 li:hover {
+  background-color: #3048a1;
+  color: #fff;
+}

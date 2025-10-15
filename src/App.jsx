@@ -24,6 +24,15 @@ import Order from './pages/customer/order/Order';
 import OrderDetail from './pages/customer/orderdetail/OrderDetail';
 import QuoteRequestplanRoom from './pages/planRoom/quoterequestplanRoom/QuoteRequestplanRoom';
 import QuoteRequestDetailplanRoom from './pages/planRoom/quoterequestdetailplanRoom/QuoteRequestDetailplanRoom';
+import OrderListplanRoom from './pages/planRoom/orderlistplanRoom/OrderListplanRoom';
+import OrderDetailplanRoom from './pages/planRoom/orderdetailplanRoom/OrderDetailplanRoom';
+import ProductionOrderplanRoom from './pages/planRoom/productionorderplanRoom/ProductionOrderplanRoom';
+import ProductionOrderDetailplanRoom from './pages/planRoom/productionorderdetailplanRoom/ProductionOrderDetailplanRoom';
+import OrderDetailSale from './pages/sale/orderdetailsale/OrderDetailSale';
+import OrderManager from './pages/manager/ordermanager/OrderManager';
+import OrderDetailManager from './pages/manager/orderdetailmanager/OrderDetailManager';
+import ProductionOrderManager from './pages/manager/productionordermanager/ProductionOrderManager';
+import ProductionOrderDetailManager from './pages/manager/productionorderdetailmanager/ProductionOrderDetailManager';
 
 
 function App() {
@@ -55,6 +64,15 @@ function App() {
           <Route path="/orderdetail" element={<OrderDetail />} />
           <Route path="/quoterequestplan" element={<QuoteRequestplanRoom />} />
           <Route path="/quoterequestdetailplan" element={<QuoteRequestDetailplanRoom />} />
+          <Route path="/orderlistplanRoom" element={<OrderListplanRoom />} />
+          <Route path="/orderdetailplan" element={<OrderDetailplanRoom />} />
+          <Route path="/productionorderplan" element={<ProductionOrderplanRoom />} />
+          <Route path="/productionorderdetailplan" element={<ProductionOrderDetailplanRoom />} />
+          <Route path="/orderdetailsale" element={<OrderDetailSale />} />
+          <Route path="/ordermanager" element={<OrderManager />} />
+          <Route path="/orderdetailmanager" element={<OrderDetailManager />} />
+          <Route path="/productionordermanager" element={<ProductionOrderManager />} />
+          <Route path="/productionorderdetailmanager" element={<ProductionOrderDetailManager />} />
 
         </Routes>
         </BrowserRouter>

@@ -1,0 +1,165 @@
+.production-detail-container5 {
+  width: 600px;
+  font-family: "Segoe UI", sans-serif;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+  margin-left: 500px;
+  margin-top: 50px;
+}
+
+.breadcrumb5 {
+  color: #6c757d;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.current5 {
+  font-weight: 600;
+  color: #000;
+}
+
+.page-title5 {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.page-title5 .highlight {
+  color: #005bff;
+}
+
+.production-card5 {
+  background: white;
+  padding: 25px 30px;
+  border-radius: 10px;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  
+  
+}
+
+.production-info5 p {
+  margin: 6px 0;
+  font-size: 16px;
+  color: #333;
+  text-align: left;
+}
+
+.total-weight5 {
+  color: #005bff;
+  font-weight: 600;
+}
+
+.action-area5 {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.edit-btn5 {
+  background-color: #005bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: 0.2s;
+  font-size: 14px;
+}
+.edit-btn5:hover {
+  background-color: #0041c4;
+}
+.popup-overlay5 {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.popup-box5 {
+  width: 600px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 0.2s ease;
+}
+
+.popup-header5 {
+  background: #007bff;
+  color: white;
+  font-weight: 600;
+  padding: 10px 15px;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.close-btn5 {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.popup-body5 {
+  padding: 20px;
+}
+
+.form-row5 {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 15px;
+}
+
+.form-row5 label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 5px;
+  color: #333;
+}
+
+.form-row5 input {
+  width: 100%;
+  padding: 8px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+.popup-footer5 {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 10px 20px 20px;
+}
+
+.cancel-btn5 {
+  background: #ccc;
+  border: none;
+  border-radius: 5px;
+  padding: 7px 15px;
+  cursor: pointer;
+}
+
+.save-btn5 {
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 7px 15px;
+  cursor: pointer;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}

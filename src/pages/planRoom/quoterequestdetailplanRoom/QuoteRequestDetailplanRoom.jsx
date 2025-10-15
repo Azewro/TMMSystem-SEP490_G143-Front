@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import './QuoteRequestDetailplanRoom.css';
 const QuoteRequestDetailplanRoom = () => {
     const [quoteTestResult, setQuoteTestResult] = useState(false);
+    const [quoteFormOpen, setQuoteFormOpen] = useState(false);
     return (
         <div className="quote-detail-container">
       <h2 className="page-title">Chi tiết Yêu cầu Báo giá</h2>
@@ -67,7 +68,7 @@ const QuoteRequestDetailplanRoom = () => {
       <div className="action-buttons">
         <a href='/quoterequestsale'><button className="back-btn">← Quay lại danh sách</button></a>
         <button className="send-btn" onClick={() => setQuoteTestResult(true)}>Kiểm tra máy & kho</button>
-        <button className="send-btn" >lập báo giá</button>
+        <button className="send-btn" onClick={() => setQuoteFormOpen(true)}>lập báo giá</button>
       </div>
       {quoteTestResult &&(
       <div className="popup-overlay3">
@@ -81,6 +82,31 @@ const QuoteRequestDetailplanRoom = () => {
           <button className="popup-btn3" onClick={() => setQuoteTestResult(false)}>Đóng</button>
         </div>
       </div>
+      )}
+      {quoteFormOpen && (
+        <div className="popup-overlay3">
+          <div className="popup-box4">
+            <div className="popup-header4">
+              <h3>Lập Báo Giá</h3>
+              <span className="close-btn" onClick={() => setQuoteFormOpen(false)}>×</span>
+            </div>
+            <div className="popup-body4">
+              <input type="text" placeholder="Giá Nguyên vật liệu" />
+              <input type="text" placeholder="Giá Cuộn mác" />
+              <input type="text" placeholder="Giá Dệt" />
+              <input type="text" placeholder="Giá Tẩy Nhuộm" />
+              <input type="text" placeholder="Giá Cắt" />
+              <input type="text" placeholder="Giá May" />
+              <input type="text" placeholder="Giá Hoàn thiện" />
+              <input type="text" placeholder="Tổng" />
+              <input type="text" placeholder="% Lợi nhuận mong muốn" />
+            </div>
+            <div className="popup-footer4">
+              <button className="cancel-btn" onClick={() => setQuoteFormOpen(false)}>Hủy</button>
+              <button className="confirm-btn">Gửi Báo Giá</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

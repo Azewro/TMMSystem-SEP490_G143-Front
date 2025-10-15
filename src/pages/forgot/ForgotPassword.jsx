@@ -5,11 +5,9 @@ import { useNavigate } from 'react-router-dom';
 const ForgotPassword = () => {
     const [step, setStep] = useState(1);
   const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
-  const [newPassword, setNewPassword] = useState("");
+  const [code, setCode] = useState("");  
   const [message, setMessage] = useState("");
-  const navigate = useNavigate();
-  
+  const navigate = useNavigate();  
   const handleSendEmail = async () => {
     try {
       const res = await forgotPassword(email);
@@ -18,9 +16,7 @@ const ForgotPassword = () => {
     } catch (err) {
       setMessage(err.message);
     }
-  };
-
-  
+  }; 
   const handleVerifyCode = async () => {
     try {
       await verifyResetCode(email, code);
@@ -30,6 +26,7 @@ const ForgotPassword = () => {
       setMessage(err.message);
     }
   };
+
   return (
     <div className="forgot-container">
       {step === 1 && (

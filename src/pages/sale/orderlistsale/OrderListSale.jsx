@@ -51,7 +51,7 @@ const OrderListSale = () => {
                                         <td>1</td>
                                         
                                         <td>
-                                          <a ><button><span>👁️</span>Chi tiết</button>  </a>                   
+                                          <a href='/orderdetailsale'><button><span>👁️</span>Chi tiết</button>  </a>                   
                                         </td>
                                       </tr>
                                     </tbody>

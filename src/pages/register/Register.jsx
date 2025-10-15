@@ -5,7 +5,7 @@ import { registerUser } from '../../services/authApi';
 const Register = () => {
     const [formData, setFormData] = useState({    
     password: "",
-    confirmPassword: "",
+    
     email: "",
   });
 
@@ -22,10 +22,7 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (formData.password !== formData.confirmPassword) {
-      setMessage("Mật khẩu nhập lại không khớp!");
-      return;
-    }
+    
 
     setLoading(true);
     setMessage("");
@@ -64,13 +61,7 @@ const Register = () => {
             value={formData.password}
             onChange={handleChange}
           />
-          <input
-            type="password"
-            name="confirmPassword"
-            placeholder="Nhập lại mật khẩu"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-          />
+          
           <button type="submit" className="signup-button" disabled={loading}>
             {loading ? "Đang tạo..." : "Tạo tài khoản"}
           </button>

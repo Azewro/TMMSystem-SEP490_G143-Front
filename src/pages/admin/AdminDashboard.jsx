@@ -80,7 +80,7 @@ const AdminDashboard = () => {
         if (storedUser && storedUser.name) {
             setName(storedUser.name);
         } else {
-            // Nếu không có tên trong localStorage, lấy từ API
+            
             const fetchUserProfile = async () => {
                 try {
                     const userData = await getUserByID(storedUser.userId);

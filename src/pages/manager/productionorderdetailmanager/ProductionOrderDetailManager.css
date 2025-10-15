@@ -1,0 +1,91 @@
+.production-page7 {
+  max-width: 900px;
+  margin: 30px auto;
+  background: #fff;
+  padding: 20px 30px;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  font-family: "Segoe UI", sans-serif;
+  margin-left: 400px;
+}
+
+.page-title7 {
+  font-size: 20px;
+  margin-bottom: 20px;
+  color: #222;
+}
+
+.order-info7 {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+}
+
+.production-section7 {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.section-header7 {
+  background: #007bff;
+  color: #fff;
+  font-weight: 600;
+  padding: 10px 15px;
+}
+
+.production-table7 {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.production-table7 th,
+.production-table7 td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #eee;
+  text-align: center;
+}
+
+.production-table7 th {
+  background: #f2f6ff;
+  font-weight: 600;
+}
+
+.action-buttons7 {
+  margin-top: 25px;
+  text-align: right;
+}
+
+.action-buttons7 button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-left: 8px;
+  transition: all 0.2s ease;
+}
+
+.approve-btn7 {
+  background-color: #28a745;
+  color: white;
+}
+
+.reject-btn7 {
+  background-color: #dc3545;
+  color: white;
+}
+
+.cancel-btn7 {
+  background-color: #6c757d;
+  color: white;
+}
+
+.action-buttons7 button:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}

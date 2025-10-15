@@ -61,10 +61,6 @@ const CreateMachine = () => {
             </button>
           </div>
         </form>
-
-        <div className="close-section">
-          <button className="btn2 close-btn">Đóng</button>
-        </div>
       </div>
     </div>
   );

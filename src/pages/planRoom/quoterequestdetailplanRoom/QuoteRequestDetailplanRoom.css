@@ -155,3 +155,77 @@
   cursor: pointer;
   margin-top: 15px;
 }
+.popup-overlay3 {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.popup-box4 {
+  background: #fff;
+  border-radius: 10px;
+  width: 400px;
+  padding: 20px 25px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.popup-header4 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.popup-header4 h3 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.close-btn {
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.popup-body4 input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.popup-footer4 {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.cancel-btn, .confirm-btn {
+  border: none;
+  border-radius: 6px;
+  padding: 8px 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cancel-btn {
+  background: #ddd;
+  color: #000;
+}
+
+.confirm-btn {
+  background: #00a550;
+  color: #fff;
+}
+
+.confirm-btn:hover {
+  background: #00863f;
+}
