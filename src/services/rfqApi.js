@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const RFQ_API_URL = "https://tmmsystem-sep490g143-production.up.railway.app/v1/rfqs";
-
+// const BASE_URL = "https://tmmsystem-sep490g143-production.up.railway.app/v1";
 export const createRFQ = async (rfqData, token) => {
   try {
     const response = await axios.post(RFQ_API_URL, rfqData, {
@@ -23,6 +23,15 @@ export const getAllRFQs = async () => {
     return response.data; 
   } catch (error) {
     console.error("Lỗi khi lấy danh sách RFQ:", error);
+    throw error;
+  }
+};
+export const getRFQDetails = async (rfqId ) => {
+  try {
+    const response = await axios.get(`${RFQ_API_URL}/rfqs/${rfqId }/details`);
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi lấy chi tiết yêu cầu báo giá:", error);
     throw error;
   }
 };

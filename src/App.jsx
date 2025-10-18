@@ -52,6 +52,8 @@ function App() {
           <Route path="/quoterequestdetailplan" element={<QuoteRequestDetailplanRoom />} />
           <Route path="/quotesale" element={<QuoteSale />} />
           <Route path="/order" element={<Order />} />
+          <Route path="/quoterequestsale" element={<QuoteRequestSale />} />
+          <Route path="/quoterequestdetailsale" element={<QuoteRequestDetailSale />} />
           {/* <Route path="/" element={<Login />} />
           <Route path="/createuser" element={<CreateAccount />} />
           <Route path="/changepass" element={<ChangePass />} />
@@ -64,8 +66,8 @@ function App() {
           <Route path="/home" element={<Home />} />
           <Route path="/quote" element={<QuoteRequest />} />
           <Route path="/createquote" element={<CreateQuote />} />
-          <Route path="/quoterequestsale" element={<QuoteRequestSale />} />
-          <Route path="/quoterequestdetailsale" element={<QuoteRequestDetailSale />} />
+          
+          
           
           
           <Route path="/orderlistsale" element={<OrderListSale />} />

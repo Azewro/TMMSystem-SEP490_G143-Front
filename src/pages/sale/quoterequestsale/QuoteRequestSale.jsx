@@ -1,8 +1,28 @@
-import React from 'react';
+import React, { useState,useEffect } from 'react';
 import { FiPhone, FiMail } from "react-icons/fi";
 import { FaUser } from "react-icons/fa";
 import './QuoteRequestSale.css';
+import { getAllRFQs } from '../../../services/rfqApi';
+
 const QuoteRequestSale = () => {
+  const [rfqs, setRfqs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  
+  useEffect(() => {
+    const fetchRfqs = async () => {
+      try {
+        const data = await getAllRFQs();
+        setRfqs(data);
+      } catch (err) {
+        setError("Không thể tải danh sách yêu cầu báo giá.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchRfqs();
+  }, []);
     return (
         <div className="quote-page-container">
             <aside className="sidebar2">
@@ -29,34 +49,63 @@ const QuoteRequestSale = () => {
                           <option>Từ chối</option>
                         </select>
                       </div>
+            {loading ? (
+            <p>Đang tải danh sách yêu cầu...</p>
+          ) : error ? (
+            <p style={{ color: 'red' }}>{error}</p>
+          ) : (
             <table className="quote-table">
-                <thead>
+              <thead>
+                <tr>
+                  <th>Mã RFQ</th>
+                  <th>Mã khách hàng</th>
+                  <th>Ngày giao dự kiến</th>
+                  <th>Ngày tạo</th>
+                  <th>Số lượng sản phẩm</th>
+                  <th>Trạng thái</th>
+                  <th>Hành động</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rfqs.length > 0 ? (
+                  rfqs.map((rfq) => (
+                    <tr key={rfq.id}>
+                      <td>{rfq.rfqNumber}</td>
+                      <td>{rfq.customerId}</td>
+                      <td>{new Date(rfq.expectedDeliveryDate).toLocaleDateString()}</td>
+                      <td>{new Date(rfq.createdAt).toLocaleDateString()}</td>
+                      <td>{rfq.details?.length || 0}</td>
+                      <td>
+                        <span
+                          style={{
+                            color:
+                              rfq.status === "Approved"
+                                ? "green"
+                                : rfq.status === "Rejected"
+                                ? "red"
+                                : "orange",
+                          }}
+                        >
+                          {rfq.status}
+                        </span>
+                      </td>
+                      <td>
+                        <a href='/quoterequestdetailsale'>
+                          <button><span>👁️</span> Chi tiết</button>
+                        </a>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
                   <tr>
-                    <th>Mã RFQ</th>
-                    <th>Người đại diện</th>
-                    <th>Công ty</th>
-                    <th>Ngày tạo đơn</th>
-                    <th>Số lượng sản phẩm</th>
-                    <th>Trạng thái</th>
-                    <th>Hành động</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>1</td>
-                    <td>1</td>
-                    <td>1</td>
-                    <td>1</td>
-                    <td>1</td>
-                    <td>1</td>
-                    <td>
-                      <a href='/quotedetailsale'><button><span>👁️</span>Chi tiết</button>  </a>                   
+                    <td colSpan="7" style={{ textAlign: "center" }}>
+                      Không có yêu cầu báo giá nào.
                     </td>
                   </tr>
-                </tbody>
-              </table>
-                      
-            
+                )}
+              </tbody>
+            </table>
+          )}
                       <div className="pagination">
                         <button>&lt;</button>
                         <button className="active">1</button>

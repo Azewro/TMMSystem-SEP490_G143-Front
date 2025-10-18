@@ -1,7 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import './QuoteRequestDetailSale.css';
+import { useParams, Link } from "react-router-dom";
+import { getRFQDetails } from '../../../services/rfqApi';
 const QuoteRequestDetailSale = () => {
-    const [showPopup, setShowPopup] = useState(false);
+     const { rfqId  } = useParams(); // ví dụ URL: /quotedetailsale/1760752582677
+  const [rfqDetails, setRfqDetails] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showPopup, setShowPopup] = useState(false);
+   
+
+  useEffect(() => {
+    const fetchDetails = async () => {
+      try {
+        const data = await getRFQDetails(rfqId );
+        setRfqDetails(data);
+      } catch (error) {
+        console.error("Lỗi khi tải chi tiết RFQ:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDetails();
+  }, [rfqId ]);
+
+  if (loading) {
+    return <div className="loading">Đang tải dữ liệu...</div>;
+  }
+
     return (
         <div className="quote-detail-container">
       <h2 className="page-title">Chi tiết Yêu cầu Báo giá</h2>
@@ -18,11 +43,11 @@ const QuoteRequestDetailSale = () => {
 
         <div className="info-card2">
           <h3 className="info-title2">Thông tin RFQ</h3>
-          <p><b>Mã RFQ:</b> RFQ-2025-001</p>
+          <p><b>Mã RFQ:</b> {rfqId }</p>
           <p><b>Ngày tạo:</b> 13/10/2025</p>
           <p><b>Trạng thái:</b> pending</p>
           <p><b>Ngày mong muốn nhận:</b> 20/10/2025</p>
-          <p><b>Số lượng sản phẩm:</b> 3</p>
+          <p><b>Số lượng sản phẩm:</b> {rfqDetails.length}</p>
         </div>
       </div>
 
@@ -39,27 +64,22 @@ const QuoteRequestDetailSale = () => {
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>1</td>
-              <td>ORD-001</td>
-              <td>Linh kiện điện tử A</td>
-              <td>10x20cm</td>
-              <td>100</td>
-            </tr>
-            <tr>
-              <td>2</td>
-              <td>ORD-002</td>
-              <td>Linh kiện điện tử B</td>
-              <td>15x25cm</td>
-              <td>200</td>
-            </tr>
-            <tr>
-              <td>3</td>
-              <td>ORD-003</td>
-              <td>Linh kiện điện tử C</td>
-              <td>20x30cm</td>
-              <td>150</td>
-            </tr>
+{rfqDetails.length > 0 ? (
+              rfqDetails.map((item, index) => (
+                <tr key={item.id || index}>
+                  <td>{index + 1}</td>
+                  <td>{item.productId}</td>
+                  <td>{item.quantity}</td>
+                  <td>{item.unit}</td>
+                  <td>{item.noteColor || '-'}</td>
+                  <td>{item.notes || '-'}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="6">Không có sản phẩm nào trong yêu cầu báo giá.</td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
