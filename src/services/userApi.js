@@ -54,3 +54,14 @@ export const getUserByID = async (id) => {
     }
     }
 };
+const getAuthHeader = () => {
+  const user = JSON.parse(localStorage.getItem('user'));
+  if (!user || !user.token) {
+    throw new Error("Không tìm thấy token xác thực");
+  }
+  return {
+    headers: {
+      'Authorization': `Bearer ${user.token}`
+    }
+  };
+};

@@ -4,17 +4,18 @@ import './App.css'
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import Login from './pages/login/Login';
 
+
 import AdminDashboard from './pages/admin/AdminDashboard';
-import CreateAccount from './pages/admin/CreateAccount';
-import ChangePass from './pages/changePass/ChangePass';
+
+
 import ForgotPassword from './pages/forgot/ForgotPassword';
 import Blog from './pages/blog/Blog';
 import Register from './pages/register/Register';
 import MachineList from './pages/machine/MachineList';
-import CreateMachine from './pages/machine/CreateMachine';
+
 import Home from './pages/customer/home/Home';
 import QuoteRequest from './pages/customer/quoteRequest/QuoteRequest';
-import CreateQuote from './pages/customer/createquote/CreateQuote';
+
 import QuoteRequestSale from './pages/sale/quoterequestsale/QuoteRequestSale';
 import QuoteRequestDetailSale from './pages/sale/quoteRequestDetailSale/QuoteRequestDetailSale';
 import QuoteSale from './pages/sale/quotesale/QuoteSale';
@@ -33,6 +34,8 @@ import OrderManager from './pages/manager/ordermanager/OrderManager';
 import OrderDetailManager from './pages/manager/orderdetailmanager/OrderDetailManager';
 import ProductionOrderManager from './pages/manager/productionordermanager/ProductionOrderManager';
 import ProductionOrderDetailManager from './pages/manager/productionorderdetailmanager/ProductionOrderDetailManager';
+import Header from './components/header/Header';
+import ProtectedRoute from './components/protectedroute/ProtectedRoute';
 
 
 function App() {
@@ -42,8 +45,14 @@ function App() {
     <>
       <div>
         <BrowserRouter>
+        <Header></Header>
         <Routes>
-          <Route path="/" element={<Login />} />
+          <Route path="/machinelist" element={<MachineList />} />
+          <Route path="/quotedetailsale" element={<QuoteDetailSale />} />
+          <Route path="/quoterequestdetailplan" element={<QuoteRequestDetailplanRoom />} />
+          <Route path="/quotesale" element={<QuoteSale />} />
+          <Route path="/order" element={<Order />} />
+          {/* <Route path="/" element={<Login />} />
           <Route path="/createuser" element={<CreateAccount />} />
           <Route path="/changepass" element={<ChangePass />} />
           <Route path="/dashbroad" element={<AdminDashboard />} />
@@ -57,13 +66,13 @@ function App() {
           <Route path="/createquote" element={<CreateQuote />} />
           <Route path="/quoterequestsale" element={<QuoteRequestSale />} />
           <Route path="/quoterequestdetailsale" element={<QuoteRequestDetailSale />} />
-          <Route path="/quotesale" element={<QuoteSale />} />
-          <Route path="/quotedetailsale" element={<QuoteDetailSale />} />
+          
+          
           <Route path="/orderlistsale" element={<OrderListSale />} />
-          <Route path="/order" element={<Order />} />
+          
           <Route path="/orderdetail" element={<OrderDetail />} />
           <Route path="/quoterequestplan" element={<QuoteRequestplanRoom />} />
-          <Route path="/quoterequestdetailplan" element={<QuoteRequestDetailplanRoom />} />
+          
           <Route path="/orderlistplanRoom" element={<OrderListplanRoom />} />
           <Route path="/orderdetailplan" element={<OrderDetailplanRoom />} />
           <Route path="/productionorderplan" element={<ProductionOrderplanRoom />} />
@@ -72,7 +81,45 @@ function App() {
           <Route path="/ordermanager" element={<OrderManager />} />
           <Route path="/orderdetailmanager" element={<OrderDetailManager />} />
           <Route path="/productionordermanager" element={<ProductionOrderManager />} />
-          <Route path="/productionorderdetailmanager" element={<ProductionOrderDetailManager />} />
+          <Route path="/productionorderdetailmanager" element={<ProductionOrderDetailManager />} /> */}
+          <Route path="/" element={<Login />} />
+            <Route path="/forgot" element={<ForgotPassword />} />
+            <Route path="/blog" element={<Blog />} /> 
+            <Route path="/register" element={<Register />} />
+
+            {/* Protected routes */}
+            <Route path="/dashbroad" element={
+              <ProtectedRoute>
+                <AdminDashboard />
+              </ProtectedRoute>
+            } />
+
+            {/* Admin routes */}
+            <Route path="/createuser" element={
+              <ProtectedRoute>
+                
+              </ProtectedRoute>
+            } />
+
+            {/* Customer routes */}
+            <Route path="/home" element={
+              <ProtectedRoute>
+                <Home />
+              </ProtectedRoute>
+            } />
+            <Route path="/quote" element={
+              <ProtectedRoute>
+                <QuoteRequest />
+              </ProtectedRoute>
+            } />
+            
+            {/* Sales routes */}
+            <Route path="/quoterequestsale" element={
+              <ProtectedRoute>
+                <QuoteRequestSale />
+              </ProtectedRoute>
+            } />
+
 
         </Routes>
         </BrowserRouter>

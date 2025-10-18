@@ -18,16 +18,36 @@ const navigate = useNavigate();
       const data = await login(email, password);
       localStorage.setItem("user", JSON.stringify({
       token: data.accessToken,
-      userId: data.userId
+      userId: data.userId,
+      role: data.role
     })); 
       alert("Login successful!");
       console.log("User data:", data);
-      navigate('/dashbroad');
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+       switch (data.role) {
+      case "Admin":
+        navigate("/dashbroad");
+        break;
+      case "PLANROOM":
+        navigate("/quoterequestplan");
+        break;
+      case "MANAGER":
+        navigate("/ordermanager");
+        break;
+      case "SALE":
+        navigate("/quoterequestsale");
+        break;
+      case "CUSTOMER":
+        navigate("/home");
+        break;
+      default:
+        navigate("/");
     }
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+
   };
 
   return (

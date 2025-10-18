@@ -19,17 +19,7 @@ const OrderListplanRoom = () => {
                                 </ul>
                             </aside>
                             <main className="main-content2">
-                                                <header className="header2">
-                                                  <input type="text" placeholder="Tìm kiếm sản phẩm..." />
-                                                  <div className="user-info">
-                                                    
-                                                    <div className="user">
-                                                      <i className="bell">🔔</i>
-                                                      {/* <ProfilePopup /> */}
-                                                      
-                                                    </div>
-                                                  </div>
-                                                </header>
+                                                
                                                 <section className="product-section" style={{marginBottom:'50px'}}>
                                                   <h2>Danh sách đơn hàng</h2>           
                                                   

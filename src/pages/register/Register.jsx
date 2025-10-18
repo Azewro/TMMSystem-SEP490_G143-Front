@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import './Register.css';
 import { registerUser } from '../../services/authApi';
+import { useNavigate } from 'react-router-dom';
 
 const Register = () => {
+  const navigation = useNavigate();
     const [formData, setFormData] = useState({    
-    password: "",
-    
+    password: "",    
     email: "",
   });
-
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -18,15 +18,10 @@ const Register = () => {
       [e.target.name]: e.target.value,
     });
   };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    
-
     setLoading(true);
     setMessage("");
-
     try {
       const data = {
         email: formData.email,
@@ -35,6 +30,7 @@ const Register = () => {
 
       const res = await registerUser(data);
       setMessage("Đăng ký thành công!");
+      navigation('/');
       console.log("Kết quả:", res);
     } catch (error) {
       setMessage(error.message || "Có lỗi xảy ra khi đăng ký.");
@@ -60,8 +56,7 @@ const Register = () => {
             placeholder="Nhập mật khẩu"
             value={formData.password}
             onChange={handleChange}
-          />
-          
+          />         
           <button type="submit" className="signup-button" disabled={loading}>
             {loading ? "Đang tạo..." : "Tạo tài khoản"}
           </button>

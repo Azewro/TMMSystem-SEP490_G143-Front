@@ -1,95 +1,139 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import './QuoteRequest.css';
 import { FaUser } from "react-icons/fa";
+import { getAllRFQs } from '../../../services/rfqApi';
+
 // import ProfilePopup from "../../../components/ProfilePopup/ProfilePopup";
 const QuoteRequest = () => {
     const [showPopup, setShowPopup] = useState(false);
     const [showQuotePopup, setShowQuotePopup] = useState(false);
     const [showConfirmPopup, setShowConfirmPopup] = useState(false);
+      const [rfqs, setRfqs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    const fetchRFQs = async () => {
+      try {
+        const data = await getAllRFQs();
+        setRfqs(data);
+      } catch (error) {
+        console.error("Không thể tải RFQs:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchRFQs();
+  }, []);
     return (
-        <div className="quote-page-container">
+         <div className="quote-page-container">
       <aside className="sidebar2">
         <div className="logo-container">
           <img src="/images/logo.png" alt="Logo" />
         </div>
         <ul className="menu2">
-          <a href='/home' style={{textDecoration:'none'}}><li>Sản phẩm</li></a>
+          <a href="/home" style={{ textDecoration: "none" }}>
+            <li>Sản phẩm</li>
+          </a>
           <li className="active">Yêu cầu báo giá</li>
-          <a href='/order' style={{textDecoration:'none'}}><li>Đơn hàng</li></a>
+          <a href="/order" style={{ textDecoration: "none" }}>
+            <li>Đơn hàng</li>
+          </a>
           <li>Khách hàng</li>
         </ul>
       </aside>
+
       <div className="main-content2">
-        <header className="header2">
-          <input
-            type="text"
-            placeholder="Tìm kiếm theo mã lô, sản phẩm..."
-            className="search-input"
-          />
-          <div className="header-right">
-            <div className="notification">
-              <span className="dot">2</span>
-              🔔
-            </div>
-            {/* <ProfilePopup /> */}
-          </div>
-        </header>
         <div className="page-header">
           <h2>Danh sách yêu cầu báo giá</h2>
-          <a href='/createquote'><button className="create-btn">+ Tạo yêu cầu báo giá mới</button></a>
+          <a href="/createquote">
+            <button className="create-btn">+ Tạo yêu cầu báo giá mới</button>
+          </a>
         </div>
+
         <div className="quote-list">
-          {[1, 2].map((item) => (
-            <div className="quote-card" key={item}>
-              <div className="quote-info">
-                <span><strong>{item}</strong></span>
-                <span><strong>Mã lô:</strong> {item === 1 ? "102" : "101"}</span>
-                <span><strong>Số lượng trong lô:</strong> 1</span>
-                <span><strong>Ngày tạo đơn:</strong> {item === 1 ? "26/11/2025" : "25/11/2025"}</span>
-                <span>
-                  <strong>Trạng thái đơn hàng:</strong>{" "}
-                  <span className={item === 1 ? "pending" : "approved"}>
-                    {item === 1 ? "Đang chờ phê duyệt" : "Đã được duyệt"}
+          {rfqs.length === 0 ? (
+            <p style={{ textAlign: "center" }}>Không có yêu cầu báo giá nào.</p>
+          ) : (
+            rfqs.map((rfq, index) => (
+              <div className="quote-card" key={rfq.id}>
+                <div className="quote-info">
+                  <span>
+                    <strong>{index + 1}</strong>
                   </span>
-                </span>
-                <button className="action-btn" onClick={() => setShowQuotePopup(true)}>{item === 1 ? "Báo giá" : "Xem đơn"}</button>
-              </div>
+                  <span>
+                    <strong>Mã RFQ:</strong> {rfq.rfqNumber}
+                  </span>
+                  <span>
+                    <strong>Khách hàng ID:</strong> {rfq.customerId}
+                  </span>
+                  <span>
+                    <strong>Ngày tạo:</strong>{" "}
+                    {new Date(rfq.createdAt).toLocaleDateString("vi-VN")}
+                  </span>
+                  <span>
+                    <strong>Trạng thái:</strong>{" "}
+                    <span
+                      className={
+                        rfq.status?.toLowerCase() === "approved"
+                          ? "approved"
+                          : "pending"
+                      }
+                    >
+                      {rfq.status || "Đang chờ"}
+                    </span>
+                  </span>
+                  <button
+                    className="action-btn"
+                    onClick={() => setShowQuotePopup(true)}
+                  >
+                    Xem chi tiết
+                  </button>
+                </div>
 
-              <table className="quote-table">
-                <thead>
-                  <tr>
-                    <th>STT</th>
-                    <th>Mã đơn hàng</th>
-                    <th>Sản phẩm</th>
-                    <th>Kích thước</th>
-                    <th>Số lượng</th>
-                    <th>Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>1</td>
-                    <td>1</td>
-                    <td>{item === 1 ? "Khăn mặt hoa cotton" : "Khăn tắm cao cấp Bamboo"}</td>
-                    <td>{item === 1 ? "34x80cm" : "70x140cm"}</td>
-                    <td>{item === 1 ? "50" : "100"}</td>
-                    <td>
-                      <span className="edit">✏️</span>
-                      <span className="delete">🗑️</span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+                {/* ✅ Nếu có chi tiết sản phẩm */}
+                {rfq.details && rfq.details.length > 0 && (
+                  <table className="quote-table">
+                    <thead>
+                      <tr>
+                        <th>STT</th>
+                        <th>ID sản phẩm</th>
+                        <th>Số lượng</th>
+                        <th>Đơn vị</th>
+                        <th>Màu sắc</th>
+                        <th>Ghi chú</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rfq.details.map((d, i) => (
+                        <tr key={i}>
+                          <td>{i + 1}</td>
+                          <td>{d.productId}</td>
+                          <td>{d.quantity}</td>
+                          <td>{d.unit}</td>
+                          <td>{d.noteColor}</td>
+                          <td>{d.notes}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
 
-              <div className="quote-footer">
-                <p>
-                  <strong>Ngày mong muốn nhận hàng:</strong>{" "}
-                  {item === 1 ? "30/12/2025" : "28/12/2025"}
-                </p>
-                <button className="add-product" onClick={() => setShowPopup(true)}>+ Thêm sản phẩm</button>
+                <div className="quote-footer">
+                  <p>
+                    <strong>Ngày giao dự kiến:</strong>{" "}
+                    {new Date(
+                      rfq.expectedDeliveryDate
+                    ).toLocaleDateString("vi-VN")}
+                  </p>
+                  <button
+                    className="add-product"
+                    onClick={() => setShowPopup(true)}
+                  >
+                    + Thêm sản phẩm
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
       {showPopup && (
@@ -139,6 +183,7 @@ const QuoteRequest = () => {
                   <th>Kích thước</th>
                   <th>Số lượng (Cái)</th>
                   <th>Đơn giá (VND)</th>
+                  <th>Tổng tiền</th>
                   <th>Ghi chú</th>
                 </tr>
               </thead>
@@ -148,7 +193,8 @@ const QuoteRequest = () => {
                   <td>Tơ 150D-5000m</td>
                   <td>200</td>
                   <td>13,000</td>
-                  <td>Đồng/cái</td>
+                  <td>13,000</td>
+                  <td>Đồng/cái <br/> Chưa tính thuế</td>
                 </tr>
               </tbody>
             </table>

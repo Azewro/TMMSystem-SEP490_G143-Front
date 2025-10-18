@@ -92,14 +92,11 @@ const QuoteRequestDetailplanRoom = () => {
             </div>
             <div className="popup-body4">
               <input type="text" placeholder="Giá Nguyên vật liệu" />
-              <input type="text" placeholder="Giá Cuộn mác" />
-              <input type="text" placeholder="Giá Dệt" />
-              <input type="text" placeholder="Giá Tẩy Nhuộm" />
-              <input type="text" placeholder="Giá Cắt" />
-              <input type="text" placeholder="Giá May" />
-              <input type="text" placeholder="Giá Hoàn thiện" />
-              <input type="text" placeholder="Tổng" />
+              <input type="text" placeholder="chi phí công đoạn 45k/kg" />
+              
+              
               <input type="text" placeholder="% Lợi nhuận mong muốn" />
+              <input type="text" placeholder="Tổng" />
             </div>
             <div className="popup-footer4">
               <button className="cancel-btn" onClick={() => setQuoteFormOpen(false)}>Hủy</button>

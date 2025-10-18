@@ -23,6 +23,7 @@ const QuoteDetailSale = () => {
               <th>Kích thước</th>
               <th>Số lượng (cái)</th>
               <th>Đơn giá (VND)</th>
+              <th>Tổng tiền</th>
               <th>Ghi chú</th>
             </tr>
           </thead>
@@ -33,7 +34,8 @@ const QuoteDetailSale = () => {
               <td>10x20cm</td>
               <td>100</td>
               <td>50.000</td>
-              <td>Giao hàng sớm</td>
+              <td>500</td>
+              <td>chưa tính thuế</td>
             </tr>
             <tr>
               <td>2</td>
@@ -41,7 +43,8 @@ const QuoteDetailSale = () => {
               <td>15x25cm</td>
               <td>200</td>
               <td>75.000</td>
-              <td>Đóng gói cẩn thận</td>
+              <td>500</td>
+              <td>chưa tính thuế</td>
             </tr>
             <tr>
               <td>3</td>
@@ -49,7 +52,8 @@ const QuoteDetailSale = () => {
               <td>20x30cm</td>
               <td>150</td>
               <td>100.000</td>
-              <td>—</td>
+              <td>500</td>
+              <td>chưa tính thuế</td>
             </tr>
           </tbody>
         </table>
@@ -57,7 +61,7 @@ const QuoteDetailSale = () => {
 
       <div className="quote-buttons">
         <a href='/quotesale'><button className="btn btn-back">↩ Quay lại</button></a>
-        <button className="btn btn-cancel">✖ Hủy</button>
+        
         <button className="btn btn-send">📤 Gửi</button>
       </div>
     </div>
