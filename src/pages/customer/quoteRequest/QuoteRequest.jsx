@@ -1,15 +1,34 @@
-import React, { useState,useEffect } from 'react';
-import './QuoteRequest.css';
-import { FaUser } from "react-icons/fa";
-import { getAllRFQs } from '../../../services/rfqApi';
+import React, { useState, useEffect } from "react";
+import "./QuoteRequest.css";
+import { getAllRFQs, addRFQDetail } from "../../../services/rfqApi";
+import { getAllProducts } from "../../../services/productApi";
+import axios from "axios";
 
-// import ProfilePopup from "../../../components/ProfilePopup/ProfilePopup";
+const BASE_URL = "https://tmmsystem-sep490g143-production.up.railway.app/v1";
+
 const QuoteRequest = () => {
-    const [showPopup, setShowPopup] = useState(false);
-    const [showQuotePopup, setShowQuotePopup] = useState(false);
-    const [showConfirmPopup, setShowConfirmPopup] = useState(false);
-      const [rfqs, setRfqs] = useState([]);
+  const [rfqs, setRfqs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showPopup, setShowPopup] = useState(false);
+  const [selectedRFQ, setSelectedRFQ] = useState(null);
+  const [products, setProducts] = useState([]);
+  const [formData, setFormData] = useState({
+    productId: "",
+    quantity: "",
+    unit: "",
+    noteColor: "",
+    notes: "",
+  });
+
+ 
+  const [showQuotePopup, setShowQuotePopup] = useState(false);
+  const [showConfirmPopup, setShowConfirmPopup] = useState(""); 
+  const [selectedQuotationId, setSelectedQuotationId] = useState(null);
+  const [quotationData, setQuotationData] = useState([]); 
+
+  const customerId = 2; 
+
+
   useEffect(() => {
     const fetchRFQs = async () => {
       try {
@@ -23,8 +42,104 @@ const QuoteRequest = () => {
     };
     fetchRFQs();
   }, []);
-    return (
-         <div className="quote-page-container">
+
+
+  const openAddProductPopup = async (rfqId) => {
+    try {
+      const productList = await getAllProducts();
+      setProducts(productList);
+      setSelectedRFQ(rfqId);
+      setShowPopup(true);
+    } catch (error) {
+      console.error("Không thể tải sản phẩm:", error);
+    }
+  };
+
+ 
+  const openQuotePopup = async (rfqId) => {
+    try {
+      setShowQuotePopup(true);
+      const res = await axios.get(`${BASE_URL}/quotations/customer/${customerId}`);
+      const quotes = res.data || [];
+      const foundQuote = quotes.find((q) => q.rfqId === rfqId);
+
+      if (!foundQuote) {
+        alert("Không tìm thấy báo giá cho RFQ này!");
+        setShowQuotePopup(false);
+        return;
+      }
+
+      setSelectedQuotationId(foundQuote.id);
+      setQuotationData(foundQuote);
+    } catch (error) {
+      console.error("Lỗi tải báo giá:", error);
+      alert("❌ Không thể tải báo giá!");
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+
+  const handleAddProduct = async () => {
+    if (!formData.productId || !formData.quantity) {
+      alert("Vui lòng chọn sản phẩm và nhập số lượng");
+      return;
+    }
+
+    try {
+      await addRFQDetail(selectedRFQ, {
+        id: 0,
+        productId: parseInt(formData.productId),
+        quantity: parseInt(formData.quantity),
+        unit: formData.unit || "cái",
+        noteColor: formData.noteColor || "",
+        notes: formData.notes || "",
+      });
+
+      alert("Thêm sản phẩm thành công!");
+      setShowPopup(false);
+      setFormData({ productId: "", quantity: "", unit: "", noteColor: "", notes: "" });
+
+      const updated = await getAllRFQs();
+      setRfqs(updated);
+    } catch (error) {
+      alert("Thêm sản phẩm thất bại!");
+      console.error(error);
+    }
+  };
+
+ 
+  const handleConfirmQuote = async () => {
+    if (!selectedQuotationId) return;
+
+    try {
+      const endpoint =
+        showConfirmPopup === "approve"
+          ? `${BASE_URL}/quotations/${selectedQuotationId}/approve`
+          : `${BASE_URL}/quotations/${selectedQuotationId}/reject`;
+
+      await axios.post(endpoint);
+      alert(
+        showConfirmPopup === "approve"
+          ? "✅ Duyệt báo giá thành công!"
+          : "❌ Báo giá đã bị từ chối!"
+      );
+
+      setShowConfirmPopup("");
+      setShowQuotePopup(false);
+    } catch (error) {
+      console.error("Lỗi xác nhận báo giá:", error);
+      alert("❌ Xác nhận thất bại!");
+    }
+  };
+
+  if (loading) return <p>Đang tải...</p>;
+
+  return (
+    <div className="quote-page-container">
       <aside className="sidebar2">
         <div className="logo-container">
           <img src="/images/logo.png" alt="Logo" />
@@ -37,16 +152,12 @@ const QuoteRequest = () => {
           <a href="/order" style={{ textDecoration: "none" }}>
             <li>Đơn hàng</li>
           </a>
-          <li>Khách hàng</li>
         </ul>
       </aside>
 
       <div className="main-content2">
         <div className="page-header">
           <h2>Danh sách yêu cầu báo giá</h2>
-          <a href="/createquote">
-            <button className="create-btn">+ Tạo yêu cầu báo giá mới</button>
-          </a>
         </div>
 
         <div className="quote-list">
@@ -56,79 +167,19 @@ const QuoteRequest = () => {
             rfqs.map((rfq, index) => (
               <div className="quote-card" key={rfq.id}>
                 <div className="quote-info">
-                  <span>
-                    <strong>{index + 1}</strong>
-                  </span>
-                  <span>
-                    <strong>Mã RFQ:</strong> {rfq.rfqNumber}
-                  </span>
-                  <span>
-                    <strong>Khách hàng ID:</strong> {rfq.customerId}
-                  </span>
-                  <span>
-                    <strong>Ngày tạo:</strong>{" "}
-                    {new Date(rfq.createdAt).toLocaleDateString("vi-VN")}
-                  </span>
-                  <span>
-                    <strong>Trạng thái:</strong>{" "}
-                    <span
-                      className={
-                        rfq.status?.toLowerCase() === "approved"
-                          ? "approved"
-                          : "pending"
-                      }
-                    >
-                      {rfq.status || "Đang chờ"}
-                    </span>
-                  </span>
-                  <button
-                    className="action-btn"
-                    onClick={() => setShowQuotePopup(true)}
-                  >
-                    Xem chi tiết
-                  </button>
+                  <span><strong>{index + 1}</strong></span>
+                  <span><strong>Mã RFQ:</strong> {rfq.rfqNumber}</span>
+                  <span><strong>Khách hàng ID:</strong> {rfq.customerId}</span>
+                  <span><strong>Ngày tạo:</strong> {new Date(rfq.createdAt).toLocaleDateString("vi-VN")}</span>
+                  <span><strong>Trạng thái:</strong> {rfq.status || "Pending"}</span>
                 </div>
 
-                {/* ✅ Nếu có chi tiết sản phẩm */}
-                {rfq.details && rfq.details.length > 0 && (
-                  <table className="quote-table">
-                    <thead>
-                      <tr>
-                        <th>STT</th>
-                        <th>ID sản phẩm</th>
-                        <th>Số lượng</th>
-                        <th>Đơn vị</th>
-                        <th>Màu sắc</th>
-                        <th>Ghi chú</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rfq.details.map((d, i) => (
-                        <tr key={i}>
-                          <td>{i + 1}</td>
-                          <td>{d.productId}</td>
-                          <td>{d.quantity}</td>
-                          <td>{d.unit}</td>
-                          <td>{d.noteColor}</td>
-                          <td>{d.notes}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-
                 <div className="quote-footer">
-                  <p>
-                    <strong>Ngày giao dự kiến:</strong>{" "}
-                    {new Date(
-                      rfq.expectedDeliveryDate
-                    ).toLocaleDateString("vi-VN")}
-                  </p>
-                  <button
-                    className="add-product"
-                    onClick={() => setShowPopup(true)}
-                  >
+                  <button className="add-product" onClick={() => openAddProductPopup(rfq.id)}>
                     + Thêm sản phẩm
+                  </button>
+                  <button className="view-quote" onClick={() => openQuotePopup(rfq.id)}>
+                    📄 Xem báo giá
                   </button>
                 </div>
               </div>
@@ -136,103 +187,74 @@ const QuoteRequest = () => {
           )}
         </div>
       </div>
-      {showPopup && (
-        <div className="popup-overlay">
-          <div className="popup-content">
-            <h3>Thêm sản phẩm vào lô hàng</h3>
 
-            <label>Sản phẩm</label>
-            <select>
-              <option>Chọn sản phẩm</option>
-              <option>Sản phẩm A</option>
-              <option>Sản phẩm B</option>
-            </select>
-
-            <label>Kích thước</label>
-            <select>
-              <option>Chọn kích thước</option>
-              <option>10x20cm</option>
-              <option>15x25cm</option>
-            </select>
-
-            <label>Số lượng</label>
-            <input type="number" placeholder="Nhập số lượng" />
-
-            <div className="popup-buttons">
-              <button className="cancel-btn" onClick={() => setShowPopup(false)}>Hủy</button>
-              <button className="save-btn">Lưu sản phẩm</button>
-            </div>
-          </div>
-        </div>
-      )}
-      {showQuotePopup && (
+   
+      {showQuotePopup && quotationData && (
         <div className="popup-overlay2">
           <div className="quote-popup">
-            <h2 className="popup-title">Báo Giá Lô Hàng Mã RFQ-102</h2>
+            <h2 className="popup-title">Báo Giá #{quotationData.id}</h2>
             <hr className="popup-divider" />
-
             <div className="popup-section">
-              <p><strong>Trạng thái:</strong> <span className="status-pending">Chưa đồng ý</span></p>
-              <p><strong>Ngày giao hàng dự kiến:</strong> <span>29/05/2025</span></p>
+              <p><strong>Trạng thái:</strong> <span>{quotationData.status}</span></p>
+              <p><strong>Ngày tạo:</strong> {new Date(quotationData.createdAt).toLocaleDateString("vi-VN")}</p>
             </div>
 
-            <table className="popup-table">
-              <thead>
-                <tr>
-                  <th>Sản phẩm</th>
-                  <th>Kích thước</th>
-                  <th>Số lượng (Cái)</th>
-                  <th>Đơn giá (VND)</th>
-                  <th>Tổng tiền</th>
-                  <th>Ghi chú</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Khăn mặt Bambo</td>
-                  <td>Tơ 150D-5000m</td>
-                  <td>200</td>
-                  <td>13,000</td>
-                  <td>13,000</td>
-                  <td>Đồng/cái <br/> Chưa tính thuế</td>
-                </tr>
-              </tbody>
-            </table>
+            {quotationData.details && quotationData.details.length > 0 ? (
+              <table className="popup-table">
+                <thead>
+                  <tr>
+                    <th>Sản phẩm</th>
+                    <th>Số lượng</th>
+                    <th>Đơn giá</th>
+                    <th>Tổng</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {quotationData.details.map((d, i) => (
+                    <tr key={i}>
+                      <td>{d.productName || `SP-${d.productId}`}</td>
+                      <td>{d.quantity}</td>
+                      <td>{d.unitPrice?.toLocaleString("vi-VN")} ₫</td>
+                      <td>{d.totalPrice?.toLocaleString("vi-VN")} ₫</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p>Không có chi tiết báo giá.</p>
+            )}
 
             <div className="popup-buttons2">
-              <button className="agree-btn" onClick={() => setShowConfirmPopup("approve")}>Đồng ý</button>
-              <button className="disagree-btn" onClick={() => {
-          setShowConfirmPopup("reject");
-        }}>Không đồng ý</button>
-              <button className="back-btn" onClick={() => setShowQuotePopup(false)}>↩ Quay lại</button>
+              <button className="agree-btn" onClick={() => setShowConfirmPopup("approve")}>
+                Đồng ý
+              </button>
+              <button className="disagree-btn" onClick={() => setShowConfirmPopup("reject")}>
+                Không đồng ý
+              </button>
+              <button className="back-btn" onClick={() => setShowQuotePopup(false)}>
+                ↩ Quay lại
+              </button>
             </div>
           </div>
         </div>
       )}
+
+      
       {showConfirmPopup && (
-      <div className="popup-overlay-confirm">
-        <div className="confirm-popup">
-          <div className={`confirm-icon ${showConfirmPopup === "approve" ? "success" : "error"}`}>
-            {showConfirmPopup === "approve" ? "✔" : "✖"}
-          </div>
-          <h3>
-            {showConfirmPopup === "approve"
-              ? "Xác nhận báo giá"
-              : "Xác nhận hủy đơn báo giá"}
-          </h3>
-          <p>Hành động này không thể hoàn tác!</p>
-          <div className="confirm-buttons">
-            <button className="confirm-yes">Đồng ý</button>
-            <button
-              className={`confirm-cancel ${showConfirmPopup === "reject" ? "blue" : ""}`}
-              onClick={() => setShowConfirmPopup(false)}
-            >
-              Hủy
-            </button>
+        <div className="popup-overlay-confirm">
+          <div className="confirm-popup">
+            <div className={`confirm-icon ${showConfirmPopup === "approve" ? "success" : "error"}`}>
+              {showConfirmPopup === "approve" ? "✔" : "✖"}
+            </div>
+            <h3>{showConfirmPopup === "approve" ? "Xác nhận duyệt báo giá" : "Xác nhận hủy báo giá"}</h3>
+            <p>Hành động này không thể hoàn tác!</p>
+            <div className="confirm-buttons">
+              <button className="confirm-yes" onClick={handleConfirmQuote}>Đồng ý</button>
+              <button className="confirm-cancel" onClick={() => setShowConfirmPopup("")}>Hủy</button>
+            </div>
           </div>
         </div>
-      </div>
-    )}
+      )}
     </div>
   );
 };

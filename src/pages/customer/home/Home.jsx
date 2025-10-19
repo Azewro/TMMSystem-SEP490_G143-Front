@@ -57,7 +57,7 @@ useEffect(() => {
       rfqNumber: `RFQ-${Date.now()}`, 
       customerId: customerId,                   
       expectedDeliveryDate: quoteData.deliveryDate,
-      status: "Pending",
+      status: "DRAFT",
       isSent: true,
       notes: "Yêu cầu báo giá mới",
       createdById: customerId,              
@@ -234,8 +234,11 @@ useEffect(() => {
                       required
                     >
                       <option value="">Chọn kích thước</option>
-                      <option value="70x140">70x140 cm</option>
-                      <option value="50x100">50x100 cm</option>
+                     {products.map(p => (
+  <option key={p.id} value={p.id}>
+    {p.standardDimensions}
+  </option>
+))}
                     </select>
                   </div>
 

@@ -38,6 +38,7 @@ import Header from './components/header/Header';
 import ProtectedRoute from './components/protectedroute/ProtectedRoute';
 
 
+
 function App() {
 
 
@@ -48,12 +49,15 @@ function App() {
         <Header></Header>
         <Routes>
           <Route path="/machinelist" element={<MachineList />} />
-          <Route path="/quotedetailsale" element={<QuoteDetailSale />} />
-          <Route path="/quoterequestdetailplan" element={<QuoteRequestDetailplanRoom />} />
+          <Route path="/quotedetailsale/:id" element={<QuoteDetailSale />} />
+          <Route path="/quoterequestdetailplan/:id" element={<QuoteRequestDetailplanRoom />} />
           <Route path="/quotesale" element={<QuoteSale />} />
           <Route path="/order" element={<Order />} />
           <Route path="/quoterequestsale" element={<QuoteRequestSale />} />
-          <Route path="/quoterequestdetailsale" element={<QuoteRequestDetailSale />} />
+          <Route path="/quoterequestdetailsale/:id" element={<QuoteRequestDetailSale />} />
+          <Route path="/quoterequestplan" element={<QuoteRequestplanRoom />} />
+          <Route path="/quote" element={<QuoteRequest />} />
+          
           {/* <Route path="/" element={<Login />} />
           <Route path="/createuser" element={<CreateAccount />} />
           <Route path="/changepass" element={<ChangePass />} />
@@ -64,7 +68,7 @@ function App() {
           <Route path="/machinelist" element={<MachineList />} />
           <Route path="/createmachine" element={<CreateMachine />} />
           <Route path="/home" element={<Home />} />
-          <Route path="/quote" element={<QuoteRequest />} />
+          
           <Route path="/createquote" element={<CreateQuote />} />
           
           
@@ -73,7 +77,7 @@ function App() {
           <Route path="/orderlistsale" element={<OrderListSale />} />
           
           <Route path="/orderdetail" element={<OrderDetail />} />
-          <Route path="/quoterequestplan" element={<QuoteRequestplanRoom />} />
+          
           
           <Route path="/orderlistplanRoom" element={<OrderListplanRoom />} />
           <Route path="/orderdetailplan" element={<OrderDetailplanRoom />} />

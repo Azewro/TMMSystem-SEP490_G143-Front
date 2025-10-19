@@ -1,17 +1,65 @@
-import React from 'react';
-import './QuoteDetailSale.css';
+import React, { useEffect, useState } from "react";
+import "./QuoteDetailSale.css";
+import { useParams, Link } from "react-router-dom";
+import axios from "axios";
+
+const BASE_URL = "https://tmmsystem-sep490g143-production.up.railway.app/v1";
+
 const QuoteDetailSale = () => {
-    return (
-        <div className="quote-container">
+  const { id } = useParams();
+  const [quotation, setQuotation] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    const fetchQuotation = async () => {
+      try {
+        const res = await axios.get(`${BASE_URL}/quotations`);
+        const found = res.data.find((q) => q.id === parseInt(id));
+        setQuotation(found);
+      } catch (error) {
+        console.error("❌ Lỗi khi tải chi tiết báo giá:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchQuotation();
+  }, [id]);
+
+  const handleSendQuotation = async () => {
+    try {
+      await axios.post(`${BASE_URL}/quotations/${id}/send-to-customer`);
+      setMessage("✅ Đã gửi báo giá cho khách hàng thành công!");
+    } catch (error) {
+      console.error("❌ Lỗi khi gửi báo giá:", error);
+      setMessage("❌ Gửi báo giá thất bại!");
+    }
+  };
+
+  if (loading) return <div>Đang tải dữ liệu...</div>;
+  if (!quotation) return <div>Không tìm thấy báo giá.</div>;
+
+  return (
+    <div className="quote-container">
       <h2 className="quote-title">Chi tiết báo giá</h2>
 
       <div className="quote-status">
         <span className="status-label">Trạng thái:</span>
-        <span className="status-pill">Chờ duyệt</span>
+        <span className="status-pill">{quotation.status}</span>
       </div>
 
       <div className="quote-date">
-        <span>Ngày giao hàng dự kiến:</span> <b>2025-10-20</b>
+        <span>Ngày tạo:</span>{" "}
+        <b>{new Date(quotation.createdAt).toLocaleDateString("vi-VN")}</b>
+      </div>
+      <div className="quote-date">
+        <span>Ngày hiệu lực đến:</span> <b>{quotation.validUntil}</b>
+      </div>
+      <div className="quote-date">
+        <span>Người kiểm tra năng lực:</span> <b>ID {quotation.capacityCheckedById}</b>
+      </div>
+      <div className="quote-date">
+        <span>Ghi chú năng lực:</span> <b>{quotation.capacityCheckNotes || "-"}</b>
       </div>
 
       <div className="table-wrapper">
@@ -19,51 +67,40 @@ const QuoteDetailSale = () => {
           <thead>
             <tr>
               <th>STT</th>
-              <th>Sản phẩm</th>
-              <th>Kích thước</th>
-              <th>Số lượng (cái)</th>
+              <th>Sản phẩm ID</th>
+              <th>Số lượng</th>
+              <th>Đơn vị</th>
               <th>Đơn giá (VND)</th>
-              <th>Tổng tiền</th>
-              <th>Ghi chú</th>
+              <th>Tổng tiền (VND)</th>
+              <th>Chiết khấu (%)</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>1</td>
-              <td>Sản phẩm A</td>
-              <td>10x20cm</td>
-              <td>100</td>
-              <td>50.000</td>
-              <td>500</td>
-              <td>chưa tính thuế</td>
-            </tr>
-            <tr>
-              <td>2</td>
-              <td>Sản phẩm B</td>
-              <td>15x25cm</td>
-              <td>200</td>
-              <td>75.000</td>
-              <td>500</td>
-              <td>chưa tính thuế</td>
-            </tr>
-            <tr>
-              <td>3</td>
-              <td>Sản phẩm C</td>
-              <td>20x30cm</td>
-              <td>150</td>
-              <td>100.000</td>
-              <td>500</td>
-              <td>chưa tính thuế</td>
-            </tr>
+            {quotation.details?.map((d, index) => (
+              <tr key={d.id}>
+                <td>{index + 1}</td>
+                <td>{d.productId}</td>
+                <td>{d.quantity}</td>
+                <td>{d.unit}</td>
+                <td>{d.unitPrice.toLocaleString("vi-VN")}</td>
+                <td>{d.totalPrice.toLocaleString("vi-VN")}</td>
+                <td>{d.discountPercentage}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
 
       <div className="quote-buttons">
-        <a href='/quotesale'><button className="btn btn-back">↩ Quay lại</button></a>
-        
-        <button className="btn btn-send">📤 Gửi</button>
+        <Link to="/quotesale">
+          <button className="btn btn-back">↩ Quay lại</button>
+        </Link>
+        <button className="btn btn-send" onClick={handleSendQuotation}>
+          📤 Gửi báo giá
+        </button>
       </div>
+
+      {message && <div className="message-box">{message}</div>}
     </div>
   );
 };

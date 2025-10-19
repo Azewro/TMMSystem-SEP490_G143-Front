@@ -3,7 +3,7 @@ import { FiPhone, FiMail } from "react-icons/fi";
 import { FaUser } from "react-icons/fa";
 import './QuoteRequestSale.css';
 import { getAllRFQs } from '../../../services/rfqApi';
-
+import { Link } from "react-router-dom";
 const QuoteRequestSale = () => {
   const [rfqs, setRfqs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -58,7 +58,8 @@ const QuoteRequestSale = () => {
               <thead>
                 <tr>
                   <th>Mã RFQ</th>
-                  <th>Mã khách hàng</th>
+                  <th>Người đại diện</th>
+                  <th>Công ty</th>
                   <th>Ngày giao dự kiến</th>
                   <th>Ngày tạo</th>
                   <th>Số lượng sản phẩm</th>
@@ -71,6 +72,7 @@ const QuoteRequestSale = () => {
                   rfqs.map((rfq) => (
                     <tr key={rfq.id}>
                       <td>{rfq.rfqNumber}</td>
+                      <td>{rfq.customerId}</td>
                       <td>{rfq.customerId}</td>
                       <td>{new Date(rfq.expectedDeliveryDate).toLocaleDateString()}</td>
                       <td>{new Date(rfq.createdAt).toLocaleDateString()}</td>
@@ -90,10 +92,10 @@ const QuoteRequestSale = () => {
                         </span>
                       </td>
                       <td>
-                        <a href='/quoterequestdetailsale'>
-                          <button><span>👁️</span> Chi tiết</button>
-                        </a>
-                      </td>
+ <Link to={`/quoterequestdetailsale/${rfq.id}`}>
+  <button><span>👁️</span> Chi tiết</button>
+</Link>
+</td>
                     </tr>
                   ))
                 ) : (
