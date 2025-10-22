@@ -57,7 +57,14 @@ function App() {
           <Route path="/quoterequestdetailsale/:id" element={<QuoteRequestDetailSale />} />
           <Route path="/quoterequestplan" element={<QuoteRequestplanRoom />} />
           <Route path="/quote" element={<QuoteRequest />} />
-          
+          <Route path="/orderlistsale" element={<OrderListSale />} />
+          <Route path="/orderdetailsale/:id" element={<OrderDetailSale />} />
+          <Route path="/orderdetailmanager/:id" element={<OrderDetailManager />} />
+          <Route path="/orderdetailplan/:orderId" element={<OrderDetailplanRoom />} />
+          <Route path="/productionordermanager" element={<ProductionOrderManager />} />
+          <Route path="/productionorderdetailmanager/:id" element={<ProductionOrderDetailManager />} />
+          <Route path="/productionorderdetailplan" element={<ProductionOrderDetailplanRoom />} />
+          <Route path="/orderlistplanRoom" element={<OrderListplanRoom />} />
           {/* <Route path="/" element={<Login />} />
           <Route path="/createuser" element={<CreateAccount />} />
           <Route path="/changepass" element={<ChangePass />} />
@@ -74,20 +81,19 @@ function App() {
           
           
           
-          <Route path="/orderlistsale" element={<OrderListSale />} />
+          
           
           <Route path="/orderdetail" element={<OrderDetail />} />
           
           
-          <Route path="/orderlistplanRoom" element={<OrderListplanRoom />} />
-          <Route path="/orderdetailplan" element={<OrderDetailplanRoom />} />
+          
+          
           <Route path="/productionorderplan" element={<ProductionOrderplanRoom />} />
-          <Route path="/productionorderdetailplan" element={<ProductionOrderDetailplanRoom />} />
-          <Route path="/orderdetailsale" element={<OrderDetailSale />} />
+          
+          
           <Route path="/ordermanager" element={<OrderManager />} />
-          <Route path="/orderdetailmanager" element={<OrderDetailManager />} />
-          <Route path="/productionordermanager" element={<ProductionOrderManager />} />
-          <Route path="/productionorderdetailmanager" element={<ProductionOrderDetailManager />} /> */}
+          
+           */}
           <Route path="/" element={<Login />} />
             <Route path="/forgot" element={<ForgotPassword />} />
             <Route path="/blog" element={<Blog />} /> 

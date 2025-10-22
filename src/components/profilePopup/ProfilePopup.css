@@ -11,11 +11,12 @@
     z-index: 1000;
 }
 
-.popup {
+.popup2 {
     background: #fff;
     padding: 20px;
     border-radius: 12px;
-    width: 400px;
+    width: 500px;
+    
 }
 
 .profile-detail {

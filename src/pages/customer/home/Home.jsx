@@ -43,13 +43,24 @@ useEffect(() => {
     };
     fetchProducts();
   }, []);
-  const handleQuoteChange = (e) => {
-    const { name, value } = e.target;
+ const handleQuoteChange = (e) => {
+  const { name, value } = e.target;
+
+  if (name === "product") {
+    // Khi chọn sản phẩm → tự động set kích thước theo sản phẩm
+    const selectedProduct = products.find(p => p.id === parseInt(value));
+    setQuoteData(prev => ({
+      ...prev,
+      product: value,
+      size: selectedProduct ? selectedProduct.standardDimensions : ""
+    }));
+  } else {
     setQuoteData(prev => ({
       ...prev,
       [name]: value
     }));
-  };
+  }
+};
 
   const handleSubmitQuote = async (e) => {
     e.preventDefault();
@@ -131,7 +142,7 @@ useEffect(() => {
             <li className="active">Sản phẩm</li>
             <a href="/quote" style={{textDecoration:'none'}}><li>Yêu cầu báo giá</li></a>
             <a href="/order" style={{textDecoration:'none'}}><li>Đơn hàng</li></a>
-            <li>Khách hàng</li>
+            
           </ul>
         </nav>
       </aside>
@@ -172,7 +183,7 @@ useEffect(() => {
                 <h4>{p.name}</h4>
                 <p>Đơn vị: {p.unit}</p>
                 <p className="size">Kích thước: {p.standardDimensions}</p>
-                <p className="price">Giá: {p.basePrice.toLocaleString()} VNĐ</p>
+                
                 <button className="add-btn">Thêm vào báo giá</button>
               </div>
             ))}
@@ -225,22 +236,23 @@ useEffect(() => {
                   </div>
 
                   <div className="form-group9">
-                    <label>Kích thước</label>
-                    <select 
-                      name="size"
-                      value={quoteData.size}
-                      onChange={handleQuoteChange}
-                      className="input-field"
-                      required
-                    >
-                      <option value="">Chọn kích thước</option>
-                     {products.map(p => (
+  <label>Kích thước</label>
+  <input
+    type="text"
+    name="size"
+    value={quoteData.size}
+    className="input-field9"
+    readOnly
+  />
+</div>
+                      {/* <option value="">Chọn kích thước</option> */}
+                     {/* {products.map(p => (
   <option key={p.id} value={p.id}>
     {p.standardDimensions}
   </option>
-))}
-                    </select>
-                  </div>
+))} */}
+                    {/* </select>
+                  </div> */}
 
                   <div className="form-group9">
                     <label>Số lượng</label>

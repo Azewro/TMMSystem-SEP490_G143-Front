@@ -43,24 +43,17 @@ const QuoteDetailSale = () => {
     <div className="quote-container">
       <h2 className="quote-title">Chi tiết báo giá</h2>
 
-      <div className="quote-status">
+      <div className="quote-status" style={{ marginLeft: '150px' }}>
         <span className="status-label">Trạng thái:</span>
         <span className="status-pill">{quotation.status}</span>
       </div>
 
+      
       <div className="quote-date">
-        <span>Ngày tạo:</span>{" "}
-        <b>{new Date(quotation.createdAt).toLocaleDateString("vi-VN")}</b>
+        <span>Ngày giao hàng dự kiến:</span> <b>{quotation.expectedDeliveryDate}</b>
       </div>
-      <div className="quote-date">
-        <span>Ngày hiệu lực đến:</span> <b>{quotation.validUntil}</b>
-      </div>
-      <div className="quote-date">
-        <span>Người kiểm tra năng lực:</span> <b>ID {quotation.capacityCheckedById}</b>
-      </div>
-      <div className="quote-date">
-        <span>Ghi chú năng lực:</span> <b>{quotation.capacityCheckNotes || "-"}</b>
-      </div>
+      
+      
 
       <div className="table-wrapper">
         <table className="quote-table">
@@ -72,7 +65,7 @@ const QuoteDetailSale = () => {
               <th>Đơn vị</th>
               <th>Đơn giá (VND)</th>
               <th>Tổng tiền (VND)</th>
-              <th>Chiết khấu (%)</th>
+              
             </tr>
           </thead>
           <tbody>
@@ -84,7 +77,7 @@ const QuoteDetailSale = () => {
                 <td>{d.unit}</td>
                 <td>{d.unitPrice.toLocaleString("vi-VN")}</td>
                 <td>{d.totalPrice.toLocaleString("vi-VN")}</td>
-                <td>{d.discountPercentage}</td>
+                <td>Đồng/cái Chưa bao gồm thuế</td>
               </tr>
             ))}
           </tbody>

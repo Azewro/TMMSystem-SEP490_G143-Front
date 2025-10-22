@@ -53,8 +53,8 @@ const QuoteSale = () => {
               <tr>
                 <th>#</th>
                 <th>Mã báo giá</th>
-                <th>RFQ ID</th>
-                <th>Tổng tiền (VND)</th>
+                <th>Người liên hệ</th>
+                
                 <th>Trạng thái</th>
                 <th>Ngày tạo</th>
                 <th>Hành động</th>
@@ -66,8 +66,8 @@ const QuoteSale = () => {
                   <tr key={q.id}>
                     <td>{index + 1}</td>
                     <td>{q.quotationNumber}</td>
-                    <td>{q.rfqId}</td>
-                    <td>{q.totalAmount.toLocaleString("vi-VN")}</td>
+                    <td>{q.contactPerson}</td>
+                    
                     <td>{q.status}</td>
                     <td>{new Date(q.createdAt).toLocaleDateString("vi-VN")}</td>
                     <td>

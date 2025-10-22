@@ -120,9 +120,9 @@ const handleForwardToPlanning = async () => {
               <th>STT</th>
               <th>Mã sản phẩm</th>
               <th>Số lượng</th>
-              <th>Đơn vị</th>
-              <th>Màu sắc</th>
-              <th>Ghi chú</th>
+              <th>Kích thước</th>
+              <th>Sản Phẩm</th>
+              
             </tr>
           </thead>
           <tbody>
@@ -132,9 +132,9 @@ const handleForwardToPlanning = async () => {
                   <td>{index + 1}</td>
                   <td>{item.productId}</td>
                   <td>{item.quantity}</td>
-                  <td>{item.unit}</td>
-                  <td>{item.noteColor || "-"}</td>
-                  <td>{item.notes || "-"}</td>
+                  <td>{item.standardDimensions}</td>
+                  <td>{item.name}</td>
+                  
                 </tr>
               ))
             ) : (

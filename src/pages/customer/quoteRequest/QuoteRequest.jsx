@@ -139,54 +139,80 @@ const QuoteRequest = () => {
   if (loading) return <p>Đang tải...</p>;
 
   return (
-    <div className="quote-page-container">
-      <aside className="sidebar2">
-        <div className="logo-container">
-          <img src="/images/logo.png" alt="Logo" />
-        </div>
-        <ul className="menu2">
-          <a href="/home" style={{ textDecoration: "none" }}>
-            <li>Sản phẩm</li>
-          </a>
-          <li className="active">Yêu cầu báo giá</li>
-          <a href="/order" style={{ textDecoration: "none" }}>
-            <li>Đơn hàng</li>
-          </a>
-        </ul>
-      </aside>
-
-      <div className="main-content2">
-        <div className="page-header">
-          <h2>Danh sách yêu cầu báo giá</h2>
-        </div>
-
-        <div className="quote-list">
-          {rfqs.length === 0 ? (
-            <p style={{ textAlign: "center" }}>Không có yêu cầu báo giá nào.</p>
-          ) : (
-            rfqs.map((rfq, index) => (
-              <div className="quote-card" key={rfq.id}>
-                <div className="quote-info">
-                  <span><strong>{index + 1}</strong></span>
-                  <span><strong>Mã RFQ:</strong> {rfq.rfqNumber}</span>
-                  <span><strong>Khách hàng ID:</strong> {rfq.customerId}</span>
-                  <span><strong>Ngày tạo:</strong> {new Date(rfq.createdAt).toLocaleDateString("vi-VN")}</span>
-                  <span><strong>Trạng thái:</strong> {rfq.status || "Pending"}</span>
-                </div>
-
-                <div className="quote-footer">
-                  <button className="add-product" onClick={() => openAddProductPopup(rfq.id)}>
-                    + Thêm sản phẩm
-                  </button>
-                  <button className="view-quote" onClick={() => openQuotePopup(rfq.id)}>
-                    📄 Xem báo giá
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+  <div className="quote-page-container">
+    <aside className="sidebar2">
+      <div className="logo-container">
+        <img src="/images/logo.png" alt="Logo" />
       </div>
+      <ul className="menu2">
+        <a href="/home" style={{ textDecoration: "none" }}>
+          <li>Sản phẩm</li>
+        </a>
+        <li className="active">Yêu cầu báo giá</li>
+        <a href="/order" style={{ textDecoration: "none" }}>
+          <li>Đơn hàng</li>
+        </a>
+      </ul>
+    </aside>
+
+    <div className="main-content2">
+      <div className="page-header">
+        <h2>Danh sách yêu cầu báo giá</h2>
+      </div>
+
+      <div className="quote-list">
+        {rfqs.length === 0 ? (
+          <p style={{ textAlign: "center" }}>Không có yêu cầu báo giá nào.</p>
+        ) : (
+          rfqs.map((rfq, index) => (
+            <div className="quote-card" key={rfq.id}>
+              <div className="quote-info">
+                <span><strong>{index + 1}</strong></span>
+                <span><strong>Mã RFQ:</strong> {rfq.rfqNumber}</span>
+                <span><strong>Khách hàng ID:</strong> {rfq.customerId}</span>
+                <span><strong>Ngày tạo:</strong> {new Date(rfq.createdAt).toLocaleDateString("vi-VN")}</span>
+                <span><strong>Trạng thái:</strong> {rfq.status || "Pending"}</span>
+              </div>
+
+              {/* ✅ Thêm lại phần hiển thị danh sách sản phẩm của RFQ */}
+              {rfq.details && rfq.details.length > 0 ? (
+                <div className="rfq-detail-section">
+                  <table className="rfq-detail-table">
+                    <thead>
+                      <tr>
+                        <th>Sản phẩm</th>
+                        <th>Số lượng</th>
+                        
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rfq.details.map((item, i) => (
+                        <tr key={i}>
+                          <td>{item.productName || `SP-${item.productId}`}</td>
+                          <td>{item.quantity}</td>
+                          
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="no-products">Chưa có sản phẩm nào trong yêu cầu này.</p>
+              )}
+
+              <div className="quote-footer">
+                <button className="add-product" onClick={() => openAddProductPopup(rfq.id)}>
+                  + Thêm sản phẩm
+                </button>
+                <button className="view-quote" onClick={() => openQuotePopup(rfq.id)}>
+                  📄 Xem báo giá
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
 
    
       {showQuotePopup && quotationData && (
@@ -239,7 +265,49 @@ const QuoteRequest = () => {
         </div>
       )}
 
-      
+      {showPopup && (
+  <div className="popup-overlay2">
+    <div className="quote-popup">
+      <h2 className="popup-title">Thêm sản phẩm vào RFQ</h2>
+      <hr className="popup-divider" />
+
+      <div className="popup-section">
+        <label>Sản phẩm:</label>
+        <select
+          name="productId"
+          value={formData.productId}
+          onChange={handleChange}
+        >
+          <option value="">-- Chọn sản phẩm --</option>
+          {products.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+
+        <label>Số lượng:</label>
+        <input
+          type="number"
+          name="quantity"
+          value={formData.quantity}
+          onChange={handleChange}
+        />
+        <div className="popup-buttons2">
+          <button className="agree-btn" onClick={handleAddProduct}>
+            💾 Lưu sản phẩm
+          </button>
+          <button
+            className="back-btn"
+            onClick={() => setShowPopup(false)}
+          >
+            ↩ Quay lại
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
       {showConfirmPopup && (
         <div className="popup-overlay-confirm">
           <div className="confirm-popup">

@@ -278,9 +278,9 @@ const handleCreateQuotation = async () => {
       </div>
 
       <div className="form-group">
-        <label>Ghi chú năng lực</label>
+        <label>Ghi chú </label>
         <textarea
-          placeholder="Nhập ghi chú về năng lực..."
+          placeholder="Nhập ghi chú "
           value={capacityNotes}
           onChange={(e) => setCapacityNotes(e.target.value)}
         ></textarea>

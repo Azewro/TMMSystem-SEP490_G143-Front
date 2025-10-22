@@ -60,7 +60,7 @@ const QuoteRequestSale = () => {
                   <th>Mã RFQ</th>
                   <th>Người đại diện</th>
                   <th>Công ty</th>
-                  <th>Ngày giao dự kiến</th>
+                  
                   <th>Ngày tạo</th>
                   <th>Số lượng sản phẩm</th>
                   <th>Trạng thái</th>
@@ -72,9 +72,9 @@ const QuoteRequestSale = () => {
                   rfqs.map((rfq) => (
                     <tr key={rfq.id}>
                       <td>{rfq.rfqNumber}</td>
-                      <td>{rfq.customerId}</td>
-                      <td>{rfq.customerId}</td>
-                      <td>{new Date(rfq.expectedDeliveryDate).toLocaleDateString()}</td>
+                      <td>{rfq.contactPerson}</td>
+                      <td>{rfq.companyName}</td>
+                      
                       <td>{new Date(rfq.createdAt).toLocaleDateString()}</td>
                       <td>{rfq.details?.length || 0}</td>
                       <td>

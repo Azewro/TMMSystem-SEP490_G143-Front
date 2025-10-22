@@ -434,3 +434,31 @@
 .confirm-cancel:hover {
   opacity: 0.85;
 }
+.rfq-detail-section {
+  margin-top: 10px;
+  border-top: 1px solid #eee;
+  padding-top: 10px;
+}
+
+.rfq-detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.rfq-detail-table th,
+.rfq-detail-table td {
+  border: 1px solid #ddd;
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.rfq-detail-table th {
+  background-color: #f9f9f9;
+}
+
+.no-products {
+  color: #777;
+  font-style: italic;
+  margin-top: 8px;
+}
