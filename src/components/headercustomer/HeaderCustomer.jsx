@@ -1,24 +1,24 @@
-// import React from 'react';
-// import './HeaderCustomer.css';
-// import { FaUser } from "react-icons/fa";
-// import ProfilePopup from '../ProfilePopup/ProfilePopup';
-// const HeaderCustomer = () => {
-//     return (
-//         <div style={{marginLeft:'380px'}}>
-//             <header className="header2">
-//           <input type="text" placeholder="Tìm kiếm sản phẩm..." />
-//           <div className="user-info">
+import React from 'react';
+import './HeaderCustomer.css';
+import { FaUser } from "react-icons/fa";
+import ProfilePopup from '../ProfilePopup/ProfilePopup';
+const HeaderCustomer = () => {
+    return (
+        <div style={{marginLeft:'380px'}}>
+            <header className="header2">
+          <input type="text" placeholder="Tìm kiếm sản phẩm..." />
+          <div className="user-info">
             
-//             <div className="user">
-//               <i className="bell">🔔</i>
-//               <ProfilePopup />
+            <div className="user">
+              <i className="bell">🔔</i>
               
-//             </div>
-//           </div>
-//         </header>
+              
+            </div>
+          </div>
+        </header>
             
-//         </div>
-//     );
-// };
+        </div>
+    );
+};
 
-// export default HeaderCustomer;
+export default HeaderCustomer;

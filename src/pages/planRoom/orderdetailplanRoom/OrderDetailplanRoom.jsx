@@ -1,208 +1,269 @@
-import React, { useEffect, useState } from "react";
-import { Container, Row, Col, Button, Modal, Form, Alert, Table, Spinner } from "react-bootstrap";
-import axios from "axios";
-import { useParams, useNavigate } from "react-router-dom";
-const OrderDetailPlanRoom = () => {
-  const { orderId } = useParams();
-  const [order, setOrder] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [showRejectModal, setShowRejectModal] = useState(false);
-  const [showApproveModal, setShowApproveModal] = useState(false); // ✅ Modal xác nhận phê duyệt
-  const [rejectionNotes, setRejectionNotes] = useState("");
-  const [alert, setAlert] = useState(null);
+import React, { useState, useEffect } from 'react';
+import './OrderDetailplanRoom.css';
 
-  const directorId = localStorage.getItem("directorId");
-  const API_BASE = "https://tmmsystem-sep490g143-production.up.railway.app/v1/production/orders";
+const OrderDetailplanRoom = () => {
+  const [showPopup, setShowPopup] = useState(false);
+  const [showContractPopup, setShowContractPopup] = useState(false);
+  const [orderDetail, setOrderDetail] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [contractId, setContractId] = useState(2); // 👈 ID hợp đồng cần xem
+  const [orderItems, setOrderItems] = useState([]);
 
-  // Fetch chi tiết đơn hàng
-  const fetchOrderDetail = async () => {
+  // 🟩 trạng thái hiển thị sau khi tạo lệnh
+  const [orderStatus, setOrderStatus] = useState('Đang chờ phê duyệt');
+  const [creating, setCreating] = useState(false);
+  const [plannedStartDate, setPlannedStartDate] = useState('');
+  const [plannedEndDate, setPlannedEndDate] = useState('');
+  const [notes, setNotes] = useState('');
+
+  // 🟦 Hàm gọi API lấy chi tiết đơn hàng theo ID hợp đồng
+  const fetchOrderDetail = async (id) => {
     try {
-      const response = await axios.get(`${API_BASE}/${orderId}`);
-      setOrder(response.data);
-    } catch (error) {
-      console.error("Lỗi khi lấy chi tiết đơn hàng:", error);
+      setLoading(true);
+      const res = await fetch(
+        `https://tmmsystem-sep490g143-production.up.railway.app/v1/contracts/${id}/order-details`
+      );
+      if (!res.ok) throw new Error('Không thể tải dữ liệu đơn hàng!');
+      const data = await res.json();
+      setOrderDetail(data);
+
+      // Nếu API trả danh sách sản phẩm, gán vào state
+      if (Array.isArray(data?.orderDetails)) {
+        setOrderItems(data.orderDetails);
+      } else if (Array.isArray(data)) {
+        setOrderItems(data);
+      } else {
+        setOrderItems([]);
+      }
+    } catch (err) {
+      console.error('Lỗi khi tải dữ liệu:', err);
+      setOrderItems([]);
     } finally {
       setLoading(false);
     }
   };
 
+  // 🟨 Gọi API khi mở trang
   useEffect(() => {
-    fetchOrderDetail();
-  }, [orderId]);
+    fetchOrderDetail(contractId);
+  }, [contractId]);
 
-  // ✅ Phê duyệt
-  const handleApprove = async () => {
-    if (!directorId) {
-      setAlert({ type: "warning", message: "Không tìm thấy ID giám đốc. Vui lòng đăng nhập lại." });
-      return;
-    }
-    try {
-      setLoading(true);
-      const url = `${API_BASE}/${orderId}/approve?directorId=${directorId}`;
-      const res = await axios.post(url);
-      console.log("Approve response:", res.data);
-      setAlert({ type: "success", message: "✅ Đã phê duyệt lệnh sản xuất thành công!" });
-      setOrder((prev) => ({ ...prev, status: "APPROVED" }));
-      setShowApproveModal(false);
-    } catch (error) {
-      console.error("Lỗi khi phê duyệt:", error.response || error);
-      setAlert({ type: "danger", message: "❌ Phê duyệt thất bại, vui lòng thử lại!" });
-    } finally {
-      setLoading(false);
-    }
+  const handleViewContract = () => {
+    setShowContractPopup(true);
   };
 
-  // ✅ Từ chối
-  const handleReject = async () => {
-    if (!rejectionNotes.trim()) {
-      setAlert({ type: "warning", message: "Vui lòng nhập lý do từ chối." });
+  // 🧾 Hàm gọi API tạo lệnh sản xuất từ hợp đồng
+  const handleCreateProductionOrder = async () => {
+    if (!plannedStartDate || !plannedEndDate) {
+      alert('Vui lòng chọn ngày bắt đầu và kết thúc!');
       return;
     }
-    if (!directorId) {
-      setAlert({ type: "warning", message: "Không tìm thấy ID giám đốc. Vui lòng đăng nhập lại." });
-      return;
-    }
+
     try {
-      setLoading(true);
-      const url = `${API_BASE}/${orderId}/reject?directorId=${directorId}&notes=${encodeURIComponent(
-        rejectionNotes
-      )}`;
-      const res = await axios.post(url);
-      console.log("Reject response:", res.data);
-      setAlert({ type: "success", message: "🚫 Đã từ chối lệnh sản xuất!" });
-      setOrder((prev) => ({ ...prev, status: "REJECTED" }));
-      setShowRejectModal(false);
-      setRejectionNotes("");
+      setCreating(true);
+      const planningUserId = 4;
+
+      const url = `https://tmmsystem-sep490g143-production.up.railway.app/v1/production/orders/create-from-contract?contractId=${contractId}&planningUserId=${planningUserId}&plannedStartDate=${plannedStartDate}&plannedEndDate=${plannedEndDate}&notes=${encodeURIComponent(notes)}`;
+
+      const res = await fetch(url, { method: 'POST' });
+      if (!res.ok) throw new Error('Tạo lệnh sản xuất thất bại!');
+
+      const data = await res.json();
+      console.log('✅ Lệnh sản xuất đã tạo:', data);
+
+      // cập nhật trạng thái hiển thị
+      setOrderStatus('PENDING_APPROVAL');
+      setShowPopup(false);
+      alert('🎉 Tạo lệnh sản xuất thành công! Trạng thái: PENDING_APPROVAL');
     } catch (error) {
-      console.error("Lỗi khi từ chối:", error.response || error);
-      setAlert({ type: "danger", message: "❌ Từ chối thất bại, vui lòng thử lại!" });
+      console.error('❌ Lỗi khi tạo lệnh sản xuất:', error);
+      alert('Tạo lệnh thất bại, vui lòng thử lại!');
     } finally {
-      setLoading(false);
+      setCreating(false);
     }
   };
-
-  if (loading) {
-    return (
-      <div className="text-center mt-5">
-        <Spinner animation="border" />
-      </div>
-    );
-  }
-
-  if (!order) {
-    return <p className="text-center mt-4">Không tìm thấy thông tin đơn hàng.</p>;
-  }
 
   return (
-    <Container className="mt-4">
-      <h4 className="mb-3">Chi tiết lệnh sản xuất #{order.id}</h4>
+    <div className="order-detail-container">
+      <div className="breadcrumb">
+        <span>Đơn đặt hàng /</span> <span className="current">Chi tiết</span>
+      </div>
 
-      {alert && <Alert variant={alert.type}>{alert.message}</Alert>}
+      <h2 className="page-title">Chi tiết đơn đặt hàng</h2>
 
-      <Row>
-        <Col md={6}>
-          <p><strong>Tên đơn hàng:</strong> {order.name}</p>
-          <p><strong>Khách hàng:</strong> {order.customerName}</p>
-          <p><strong>Ngày tạo:</strong> {order.createdAt}</p>
-        </Col>
-        <Col md={6}>
-          <p><strong>Trạng thái:</strong>{" "}
-            <span
-              className={`badge ${
-                order.status === "APPROVED"
-                  ? "bg-success"
-                  : order.status === "REJECTED"
-                  ? "bg-danger"
-                  : "bg-warning text-dark"
-              }`}
-            >
-              {order.status}
-            </span>
-          </p>
-          <p><strong>Người tạo:</strong> {order.createdBy}</p>
-        </Col>
-      </Row>
+      {/* --- Phần thông tin --- */}
+      <div className="info-section">
+        <div className="info-card">
+          <div className="card-header">Thông tin khách hàng</div>
+          <div className="card-body">
+            <p><b>Tên khách hàng:</b> {orderDetail?.customerName || 'Nguyễn Văn Hùng'}</p>
+            <p><b>SDT:</b> {orderDetail?.customerPhone || '0969792483'}</p>
+            <p><b>Công ty:</b> {orderDetail?.companyName || 'Công ty Dệt Mỹ Đức'}</p>
+            <p><b>Mã thuế:</b> {orderDetail?.taxCode || '02435520488'}</p>
+            <p><b>Địa chỉ:</b> {orderDetail?.address || 'Lô N10 – 2 Cụm Sản Xuất Làng Nghề Tập Trung, Xã Tân Triều, Thanh Trì, Hà Nội'}</p>
+            <button style={{ background: 'blue', color: '#fff', borderRadius: '10px' }} onClick={handleViewContract}>
+              Xem hợp đồng
+            </button>
+          </div>
+        </div>
 
-      <h5 className="mt-4">Chi tiết đơn hàng</h5>
-      <Table bordered hover responsive>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Sản phẩm</th>
-            <th>Số lượng</th>
-            <th>Đơn vị</th>
-          </tr>
-        </thead>
-        <tbody>
-          {order.orderDetails?.map((item, index) => (
-            <tr key={item.id || index}>
-              <td>{index + 1}</td>
-              <td>{item.productName}</td>
-              <td>{item.quantity}</td>
-              <td>{item.unit}</td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
+        <div className="info-card">
+          <div className="card-header">Trạng thái đơn hàng</div>
+          <div className="card-body">
+            <p>
+              <b>Trạng thái:</b>{" "}
+              <span className="status-badge yellow">
+                {orderStatus}
+              </span>
+            </p>
+            <p><b>Ngày giao mong muốn:</b> {orderDetail?.desiredDeliveryDate || '02/05/2025'}</p>
+            <p><b>Ngày giao hàng dự kiến:</b> {orderDetail?.expectedDeliveryDate || '30/05/2025'}</p>
+          </div>
+        </div>
+      </div>
 
-      {/* ✅ Nút hành động nếu đang chờ duyệt */}
-      {order.status === "PENDING_APPROVAL" && (
-        <div className="d-flex gap-2 justify-content-end mt-3">
-          <Button variant="success" onClick={() => setShowApproveModal(true)} disabled={loading}>
-            Phê duyệt
-          </Button>
-          <Button variant="danger" onClick={() => setShowRejectModal(true)} disabled={loading}>
-            Từ chối
-          </Button>
+      {/* --- Chi tiết đơn hàng (lấy từ API) --- */}
+      <div className="order-detail-section">
+        <div className="card-header">Chi tiết đơn hàng</div>
+        {loading ? (
+          <p>Đang tải dữ liệu...</p>
+        ) : orderItems.length > 0 ? (
+          <table className="order-table2">
+            <thead>
+              <tr>
+                <th>Tên sản phẩm</th>
+                <th>Kích thước</th>
+                <th>Số lượng</th>
+                <th>Giá (VNĐ)</th>
+                <th>Thành tiền (VNĐ)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {orderItems.map((item, idx) => (
+                <tr key={idx}>
+                  <td>{item.productName}</td>
+                  <td>{item.productSize}</td>
+                  <td>{item.quantity}</td>
+                  <td>{item.unitPrice}</td>
+                  <td>{item.totalPrice }</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p style={{ color: '#888', marginTop: '10px' }}>Không có chi tiết đơn hàng</p>
+        )}
+      </div>
+
+      {/* --- Nút thao tác --- */}
+      <div className="action-section">
+        <a href="/orderlistplanRoom"><button className="back-btn">← Quay lại</button></a>
+        <button className="create-btn" onClick={() => setShowPopup(true)}>🧾 Tạo lệnh sản xuất</button>
+      </div>
+
+      {/* --- Popup tạo lệnh sản xuất --- */}
+      {showPopup && (
+        <div className="popup-overlay4">
+          <div className="popup-box4">
+            <h3 className="popup-title4">Tạo Lệnh Sản Xuất</h3>
+            <button className="popup-close4" onClick={() => setShowPopup(false)}>×</button>
+
+            <div className="popup-content4">
+              <p><b>Mã hợp đồng:</b> HD-2025-00{contractId}</p>
+              <p><b>Tên sản phẩm:</b> {orderItems[0]?.productName || 'Khăn mặt Bamboo'}</p>
+              <p><b>Số lượng:</b> {orderItems[0]?.quantity || 160}</p>
+
+              <div className="popup-inputs4">
+                <div className="input-row4">
+                  <label>Ngày bắt đầu:</label>
+                  <input
+                    type="date"
+                    value={plannedStartDate}
+                    onChange={(e) => setPlannedStartDate(e.target.value)}
+                  />
+                </div>
+                <div className="input-row4">
+                  <label>Ngày kết thúc:</label>
+                  <input
+                    type="date"
+                    value={plannedEndDate}
+                    onChange={(e) => setPlannedEndDate(e.target.value)}
+                  />
+                </div>
+                <div className="input-row4">
+                  <label>Ghi chú:</label>
+                  <input
+                    type="text"
+                    placeholder="notes"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="popup-actions4">
+                <button className="cancel-btn4" onClick={() => setShowPopup(false)}>Hủy</button>
+                <button
+                  className="confirm-btn4"
+                  onClick={handleCreateProductionOrder}
+                  disabled={creating}
+                >
+                  {creating ? 'Đang tạo...' : 'Tạo lệnh'}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* ✅ Modal xác nhận phê duyệt */}
-      <Modal show={showApproveModal} onHide={() => setShowApproveModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Xác nhận phê duyệt</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <p>Bạn có chắc chắn muốn <strong className="text-success">phê duyệt</strong> lệnh sản xuất này không?</p>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowApproveModal(false)}>
-            Hủy
-          </Button>
-          <Button variant="success" onClick={handleApprove} disabled={loading}>
-            Xác nhận phê duyệt
-          </Button>
-        </Modal.Footer>
-      </Modal>
+      {/* --- Popup xem hợp đồng (chỉ xem, không phê duyệt) --- */}
+      {showContractPopup && (
+        <div className="popup-overlay4">
+          <div className="popup-box4" style={{ width: "500px" }}>
+            <h3 className="popup-title4">Xem Hợp Đồng</h3>
+            <button className="popup-close4" onClick={() => setShowContractPopup(false)}>×</button>
 
-      {/* ✅ Modal nhập lý do từ chối */}
-      <Modal show={showRejectModal} onHide={() => setShowRejectModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Từ chối lệnh sản xuất</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form.Group>
-            <Form.Label>Lý do từ chối</Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={3}
-              value={rejectionNotes}
-              onChange={(e) => setRejectionNotes(e.target.value)}
-              placeholder="Nhập lý do từ chối..."
-            />
-          </Form.Group>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowRejectModal(false)}>
-            Hủy
-          </Button>
-          <Button variant="danger" onClick={handleReject} disabled={loading}>
-            Xác nhận từ chối
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    </Container>
+            <div className="popup-content4">
+              {loading ? (
+                <p>Đang tải dữ liệu...</p>
+              ) : (
+                <>
+                  <div className="input-row4">
+                    <label>Mã hợp đồng:</label>
+                    <input type="text" value={orderDetail?.contractNumber || "HD-2025-001"} readOnly />
+                  </div>
+
+                  <div className="input-row4">
+                    <label>Ảnh hợp đồng:</label>
+                    {orderDetail?.filePath ? (
+                      <img
+                        src={`https://tmmsystem-sep490g143-production.up.railway.app/files/${orderDetail.filePath}`}
+                        alt="Contract"
+                        style={{
+                          width: "100%",
+                          borderRadius: "8px",
+                          border: "1px solid #ddd",
+                          marginTop: "10px",
+                        }}
+                      />
+                    ) : (
+                      <p style={{ textAlign: "center", color: "#888" }}>Không có ảnh hợp đồng</p>
+                    )}
+                  </div>
+
+                  <div className="popup-actions4" style={{ justifyContent: "center" }}>
+                    <button className="cancel-btn4" onClick={() => setShowContractPopup(false)}>
+                      Đóng
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
-export default OrderDetailPlanRoom;
+export default OrderDetailplanRoom;

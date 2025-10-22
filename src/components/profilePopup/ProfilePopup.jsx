@@ -141,7 +141,7 @@ const ProfilePopup = () => {
       try {
         const storedUser = JSON.parse(localStorage.getItem("user"));
         if (!storedUser?.userId || !storedUser?.token) {
-          navigate("/");
+        //   navigate("/");
           return;
         }
 

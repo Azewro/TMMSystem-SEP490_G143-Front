@@ -65,6 +65,7 @@ function App() {
           <Route path="/productionorderdetailmanager/:id" element={<ProductionOrderDetailManager />} />
           <Route path="/productionorderdetailplan" element={<ProductionOrderDetailplanRoom />} />
           <Route path="/orderlistplanRoom" element={<OrderListplanRoom />} />
+          <Route path="/home" element={<Home />} />
           {/* <Route path="/" element={<Login />} />
           <Route path="/createuser" element={<CreateAccount />} />
           <Route path="/changepass" element={<ChangePass />} />
@@ -74,7 +75,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/machinelist" element={<MachineList />} />
           <Route path="/createmachine" element={<CreateMachine />} />
-          <Route path="/home" element={<Home />} />
+          
           
           <Route path="/createquote" element={<CreateQuote />} />
           
