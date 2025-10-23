@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
 import "./OrderDetailManager.css";
-
+import { useParams } from "react-router-dom";
 const OrderDetailManager = () => {
   const [showContractPopup, setShowContractPopup] = useState(false);
   const [orderDetail, setOrderDetail] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [contractId, setContractId] = useState(2);
+  
   const [rejectionNote, setRejectionNote] = useState("");
   const [processing, setProcessing] = useState(false);
+  const { id } = useParams();
 
   // Hàm fetch chi tiết hợp đồng
   const fetchOrderDetail = async (id) => {
@@ -16,9 +17,11 @@ const OrderDetailManager = () => {
       const response = await fetch(
         `https://tmmsystem-sep490g143-production.up.railway.app/v1/contracts/${id}/order-details`
       );
+      console.log("data",response)
       if (!response.ok) throw new Error("Lỗi khi tải dữ liệu hợp đồng");
       const data = await response.json();
       setOrderDetail(data);
+      console.log("data",data)
     } catch (error) {
       console.error("Fetch error:", error);
     } finally {
@@ -27,7 +30,7 @@ const OrderDetailManager = () => {
   };
 
   const handleViewContract = () => {
-    fetchOrderDetail(contractId);
+    fetchOrderDetail(id);
     setShowContractPopup(true);
   };
 
@@ -36,7 +39,7 @@ const OrderDetailManager = () => {
     try {
       setProcessing(true);
       const response = await fetch(
-        `https://tmmsystem-sep490g143-production.up.railway.app/v1/contracts/${contractId}/approve?directorId=3`,
+        `https://tmmsystem-sep490g143-production.up.railway.app/v1/contracts/${id}/approve?directorId=3`,
         { method: "POST", headers: { Accept: "*/*" } }
       );
       if (!response.ok) throw new Error("Phê duyệt thất bại!");
@@ -59,7 +62,7 @@ const OrderDetailManager = () => {
     try {
       setProcessing(true);
       const response = await fetch(
-        `https://tmmsystem-sep490g143-production.up.railway.app/v1/contracts/${contractId}/reject?directorId=3&rejectionNotes=${encodeURIComponent(
+        `https://tmmsystem-sep490g143-production.up.railway.app/v1/contracts/${id}/reject?directorId=3&rejectionNotes=${encodeURIComponent(
           rejectionNote
         )}`,
         { method: "POST", headers: { Accept: "*/*" } }
@@ -74,6 +77,7 @@ const OrderDetailManager = () => {
       setProcessing(false);
     }
   };
+  
 
   return (
     <div className="order-detail-container">
@@ -138,7 +142,7 @@ const OrderDetailManager = () => {
               </span>
             </p>
             <p>
-              <b>Ngày hợp đồng:</b> {orderDetail?.contractDate || "2025-10-19"}
+              <b>Ngày đơn hàng:</b> {orderDetail?.contractDate || "2025-10-19"}
             </p>
             <p>
               <b>Ngày giao hàng dự kiến:</b>{" "}
@@ -242,24 +246,58 @@ const OrderDetailManager = () => {
                   </div>
 
                   <div className="input-row4">
-                    <label>Ảnh hợp đồng:</label>
-                    {orderDetail?.filePath ? (
-                      <img
-                        src={`https://tmmsystem-sep490g143-production.up.railway.app/files/${orderDetail.filePath}`}
-                        alt="Contract"
-                        style={{
-                          width: "100%",
-                          borderRadius: "8px",
-                          border: "1px solid #ddd",
-                          marginTop: "10px",
-                        }}
-                      />
-                    ) : (
-                      <p style={{ textAlign: "center", color: "#888" }}>
-                        Không có ảnh hợp đồng
-                      </p>
-                    )}
-                  </div>
+  <label>Ảnh hợp đồng:</label>
+
+  <button
+    className="btn-primary"
+    style={{
+      marginTop: "10px",
+      backgroundColor: "#007bff",
+      color: "#fff",
+      border: "none",
+      borderRadius: "6px",
+      padding: "8px 12px",
+      cursor: "pointer",
+    }}
+    onClick={async () => {
+      try {
+        const response = await fetch(
+          `https://tmmsystem-sep490g143-production.up.railway.app/v1/contracts/${id}/download`,
+          {
+            method: "GET",
+            headers: {
+              Accept: "application/octet-stream",
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Không thể tải hợp đồng");
+        }
+
+        // Chuyển response thành blob (file)
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+
+        // Tạo thẻ <a> để tải file
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `contract_${id}.png`;
+        document.body.appendChild(link);
+        link.click();
+
+        // Dọn dẹp bộ nhớ
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        alert("❌ Lỗi khi tải hợp đồng: " + error.message);
+      }
+    }}
+  >
+    ⬇️ Tải hợp đồng
+  </button>
+</div>
+
 
                   <div className="input-row4">
                     <label>Lý do từ chối (nếu có):</label>

@@ -17,6 +17,7 @@ const QuoteDetailSale = () => {
         const res = await axios.get(`${BASE_URL}/quotations`);
         const found = res.data.find((q) => q.id === parseInt(id));
         setQuotation(found);
+        console.error("aaa",found)
       } catch (error) {
         console.error("❌ Lỗi khi tải chi tiết báo giá:", error);
       } finally {

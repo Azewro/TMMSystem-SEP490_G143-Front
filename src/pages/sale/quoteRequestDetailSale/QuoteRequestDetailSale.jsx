@@ -119,9 +119,10 @@ const handleForwardToPlanning = async () => {
             <tr>
               <th>STT</th>
               <th>Mã sản phẩm</th>
+              <th>Sản Phẩm</th>
               <th>Số lượng</th>
               <th>Kích thước</th>
-              <th>Sản Phẩm</th>
+              
               
             </tr>
           </thead>
@@ -131,9 +132,10 @@ const handleForwardToPlanning = async () => {
                 <tr key={item.id || index}>
                   <td>{index + 1}</td>
                   <td>{item.productId}</td>
+                  <td>{item.name}</td>
                   <td>{item.quantity}</td>
                   <td>{item.standardDimensions}</td>
-                  <td>{item.name}</td>
+                  
                   
                 </tr>
               ))

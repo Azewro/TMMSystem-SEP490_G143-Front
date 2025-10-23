@@ -5,9 +5,11 @@ import { useNavigate } from 'react-router-dom';
 
 const Register = () => {
   const navigation = useNavigate();
-    const [formData, setFormData] = useState({    
+    const [formData, setFormData] = useState({   
+      email: "", 
     password: "",    
-    email: "",
+    
+    confirmPassword: "",
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -22,6 +24,11 @@ const Register = () => {
     e.preventDefault();
     setLoading(true);
     setMessage("");
+    if (formData.password !== formData.confirmPassword) {
+      setMessage("❌ Mật khẩu nhập lại không trùng khớp!");
+      setLoading(false);
+      return;
+    }
     try {
       const data = {
         email: formData.email,
@@ -56,7 +63,15 @@ const Register = () => {
             placeholder="Nhập mật khẩu"
             value={formData.password}
             onChange={handleChange}
-          />         
+          /> 
+          <input
+            type="password"
+            name="confirmPassword"
+            placeholder="Nhập lại mật khẩu"
+            value={formData.confirmPassword}
+            onChange={handleChange}
+            required
+          />        
           <button type="submit" className="signup-button" disabled={loading}>
             {loading ? "Đang tạo..." : "Tạo tài khoản"}
           </button>

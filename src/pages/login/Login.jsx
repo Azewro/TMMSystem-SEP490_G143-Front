@@ -16,16 +16,12 @@ const Login = () => {
     setLoading(true);
     try {
       const data = await login(email, password);
+      localStorage.setItem("user", JSON.stringify(data));
+      localStorage.setItem("token", data.accessToken);
 
-      // Lưu thông tin user vào localStorage
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          token: data.accessToken,
-          userId: data.userId,
-          role: data.role,
-        })
-      );
+      console.log("User data:", data);
+
+      console.log("User data:", data);
 
       console.log("User data:", data);
 
@@ -34,13 +30,13 @@ const Login = () => {
         case "Admin":
           navigate("/dashbroad");
           break;
-        case "PLANROOM":
+        case "Planning department":
           navigate("/quoterequestplan");
           break;
-        case "MANAGER":
+        case "Director":
           navigate("/ordermanager");
           break;
-        case "SALE":
+        case "Sale staff":
           navigate("/quoterequestsale");
           break;
         case "CUSTOMER":

@@ -37,7 +37,7 @@ const QuoteSale = () => {
             <li>Yêu cầu báo giá</li>
           </a>
           <li className="active">Báo giá</li>
-          <a href="/orderlist" style={{ textDecoration: "none" }}>
+          <a href="/orderlistsale" style={{ textDecoration: "none" }}>
             <li>Đơn hàng</li>
           </a>
           <li>Ảnh hưởng giao hàng</li>

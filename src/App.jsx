@@ -60,12 +60,14 @@ function App() {
           <Route path="/orderlistsale" element={<OrderListSale />} />
           <Route path="/orderdetailsale/:id" element={<OrderDetailSale />} />
           <Route path="/orderdetailmanager/:id" element={<OrderDetailManager />} />
-          <Route path="/orderdetailplan/:orderId" element={<OrderDetailplanRoom />} />
+          <Route path="/orderdetailplan/:id" element={<OrderDetailplanRoom />} />
           <Route path="/productionordermanager" element={<ProductionOrderManager />} />
           <Route path="/productionorderdetailmanager/:id" element={<ProductionOrderDetailManager />} />
           <Route path="/productionorderdetailplan" element={<ProductionOrderDetailplanRoom />} />
           <Route path="/orderlistplanRoom" element={<OrderListplanRoom />} />
           <Route path="/home" element={<Home />} />
+          <Route path="/ordermanager" element={<OrderManager />} />
+          <Route path="/orderdetail" element={<OrderDetail />} />
           {/* <Route path="/" element={<Login />} />
           <Route path="/createuser" element={<CreateAccount />} />
           <Route path="/changepass" element={<ChangePass />} />
@@ -84,7 +86,7 @@ function App() {
           
           
           
-          <Route path="/orderdetail" element={<OrderDetail />} />
+          
           
           
           
@@ -92,7 +94,7 @@ function App() {
           <Route path="/productionorderplan" element={<ProductionOrderplanRoom />} />
           
           
-          <Route path="/ordermanager" element={<OrderManager />} />
+          
           
            */}
           <Route path="/" element={<Login />} />

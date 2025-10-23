@@ -21,9 +21,9 @@ const OrderDetailSale = () => {
   // ✅ Gọi API lấy chi tiết đơn hàng theo id hợp đồng
   useEffect(() => {
     const fetchOrderDetail = async () => {
-      try {
-        const res = await axios.get(`${BASE_URL}/contracts/${id}`);
-        setOrderDetail(res.data);
+       try {
+      const res = await axios.get(`${BASE_URL}/contracts/${id}/order-details`);
+      setOrderDetail(res.data);
       } catch (error) {
         console.error("❌ Lỗi khi tải chi tiết đơn hàng:", error);
         alert("Không thể tải chi tiết hợp đồng!");
@@ -146,8 +146,8 @@ const OrderDetailSale = () => {
             <tbody >
               {items.map((item, index) => (
                 <tr key={index}>
-                  <td>{item.name}</td>
-                  <td>{item.standardDimensions || "-"}</td>
+                  <td>{item.productName}</td>
+                  <td>{item.productSize}</td>
                   <td>{item.quantity}</td>
                   <td>{item.unitPrice.toLocaleString("vi-VN")}</td>
                   <td>{item.totalPrice.toLocaleString("vi-VN")}</td>

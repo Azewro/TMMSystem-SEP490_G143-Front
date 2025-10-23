@@ -14,6 +14,9 @@ const QuoteRequestDetailplanRoom = () => {
   const [message, setMessage] = useState("");
 const [profitMargin, setProfitMargin] = useState("");
 const [capacityNotes, setCapacityNotes] = useState("");
+const [totalMaterialCost, setTotalMaterialCost] = useState("");
+const [totalProcessCost, setTotalProcessCost] = useState("");
+const [finalTotalPrice, setFinalTotalPrice] = useState("");
   
   const [showPopup, setShowPopup] = useState(false);
   const [showWarehousePopup, setShowWarehousePopup] = useState(false);
@@ -53,6 +56,9 @@ const handleCreateQuotation = async () => {
     const body = {
       rfqId: parseInt(id),
       planningUserId,
+      totalMaterialCost: parseFloat(totalMaterialCost),
+      totalProcessCost: parseFloat(totalProcessCost),
+      finalTotalPrice: parseFloat(finalTotalPrice),
       profitMargin: parseFloat(profitMargin),
       capacityCheckNotes: capacityNotes,
     };
@@ -134,8 +140,8 @@ const handleCreateQuotation = async () => {
               <th>STT</th>
               <th>Mã sản phẩm</th>
               <th>Số lượng</th>
-              <th>Đơn vị</th>
-              <th>Màu sắc</th>
+              <th>Tên sản phẩm</th>
+              
               <th>Ghi chú</th>
             </tr>
           </thead>
@@ -146,8 +152,8 @@ const handleCreateQuotation = async () => {
                   <td>{index + 1}</td>
                   <td>{item.productId}</td>
                   <td>{item.quantity}</td>
-                  <td>{item.unit}</td>
-                  <td>{item.noteColor || "-"}</td>
+                  <td>{item.productName}</td>
+                  
                   <td>{item.notes || "-"}</td>
                 </tr>
               ))
@@ -229,27 +235,7 @@ const handleCreateQuotation = async () => {
             {machineCapacity ? (
               <>
                 <p><b>Đủ năng lực:</b> {machineCapacity.sufficient ? "✅ Có" : "❌ Không"}</p>
-                <p><b>Bottleneck:</b> {machineCapacity.bottleneck || "-"}</p>
-                <p><b>Ngày bắt đầu:</b> {machineCapacity.productionStartDate}</p>
-                <p><b>Ngày kết thúc:</b> {machineCapacity.productionEndDate}</p>
-                <p><b>Tổng thời gian chờ:</b> {machineCapacity.totalWaitTime} ngày</p>
-
-                <h4>🧵 Các giai đoạn sản xuất:</h4>
-                {["warpingStage", "weavingStage", "dyeingStage", "cuttingStage", "sewingStage"].map((stageKey) => {
-                  const stage = machineCapacity[stageKey];
-                  if (!stage) return null;
-                  return (
-                    <div key={stageKey} className="stage-card">
-                      <h4>{stage.stageName}</h4>
-                      <p>Mô tả: {stage.description}</p>
-                      <p>Loại: {stage.stageType}</p>
-                      <p>Thời gian xử lý: {stage.processingDays} ngày</p>
-                      <p>Thời gian chờ: {stage.waitTime} ngày</p>
-                      <p>Thời gian: {stage.startDate} → {stage.endDate}</p>
-                      <p><b>Công suất:</b> {stage.capacity}</p>
-                    </div>
-                  );
-                })}
+                                
               </>
             ) : (
               <p>Không có dữ liệu năng lực máy móc</p>
@@ -274,6 +260,36 @@ const handleCreateQuotation = async () => {
           placeholder="Nhập tỷ lệ lợi nhuận..."
           value={profitMargin}
           onChange={(e) => setProfitMargin(e.target.value)}
+        />
+      </div>
+      <div className="form-group">
+        <label>Giá nguyên vật liệu</label>
+        <input
+          type="number"
+          min="0"
+          placeholder="Nhập giá nguyên vật liệu"
+          value={totalMaterialCost}
+          onChange={(e) => setTotalMaterialCost(e.target.value)}
+        />
+      </div>
+      <div className="form-group">
+        <label>Giá công đoạn</label>
+        <input
+          type="number"
+          min="0"
+          placeholder="Nhập giá công đoạn"
+          value={totalProcessCost}
+          onChange={(e) => setTotalProcessCost(e.target.value)}
+        />
+      </div>
+      <div className="form-group">
+        <label>Tổng</label>
+        <input
+          type="number"
+          min="0"
+          placeholder="Nhập Tổng"
+          value={finalTotalPrice}
+          onChange={(e) => setFinalTotalPrice(e.target.value)}
         />
       </div>
 

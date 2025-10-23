@@ -11,7 +11,7 @@ export const createRFQ = async (rfqData, token) => {
       },
     });
     return response.data;
-    conslole.log("RFQ created successfully:", response.data);
+    console.log("RFQ created successfully:", response.data);
   } catch (error) {
     console.error("Lỗi khi tạo yêu cầu báo giá:", error);
     throw error.response?.data || error;
