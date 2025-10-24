@@ -19,7 +19,7 @@ import QuoteRequest from './pages/customer/quoteRequest/QuoteRequest';
 import QuoteRequestSale from './pages/sale/quoterequestsale/QuoteRequestSale';
 import QuoteRequestDetailSale from './pages/sale/quoteRequestDetailSale/QuoteRequestDetailSale';
 import QuoteSale from './pages/sale/quotesale/QuoteSale';
-import QuoteDetailSale from './pages/sale/quoteDetailSale/QuoteDetailSale';
+import QuoteDetailSale from './pages/sale/quotedetailsale/QuoteDetailSale';
 import OrderListSale from './pages/sale/orderlistsale/OrderListSale';
 import Order from './pages/customer/order/Order';
 import OrderDetail from './pages/customer/orderdetail/OrderDetail';
