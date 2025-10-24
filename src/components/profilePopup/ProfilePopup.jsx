@@ -11,7 +11,7 @@ const ProfilePopup = () => {
   const [showEditPopup, setShowEditPopup] = useState(false);
   const [showProfilePopup, setShowProfilePopup] = useState(false);
   const [profile, setProfile] = useState(null);
-  const [company, setCompany] = useState(null); // 🟩 thêm state lưu công ty
+  const [company, setCompany] = useState(null); 
   const [showChangePasswordPopup, setShowChangePasswordPopup] = useState(false);
   const [passwordData, setPasswordData] = useState({
     email: '',
@@ -34,7 +34,7 @@ const ProfilePopup = () => {
     createdById: 0
   });
 
-  // 🟨 Gọi API tạo công ty
+  
   const createCompany = async (token, companyData) => {
     const res = await axios.post(
       'https://tmmsystem-sep490g143-production.up.railway.app/v1/auth/customer/create-company',

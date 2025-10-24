@@ -36,7 +36,7 @@ import ProductionOrderManager from './pages/manager/productionordermanager/Produ
 import ProductionOrderDetailManager from './pages/manager/productionorderdetailmanager/ProductionOrderDetailManager';
 import Header from './components/header/Header';
 import ProtectedRoute from './components/protectedroute/ProtectedRoute';
-import ProfilePopup from './components/profilePopup/profilePopupuser/ProfilePopup';
+
 
 
 function App() {
