@@ -1,6 +1,6 @@
 import React from 'react';
 import './Header.css';
-import ProfilePopup from '../ProfilePopup/ProfilePopup';
+import ProfilePopup from '../profilePopup/ProfilePopup';
 
 const Header = () => {
     return (
