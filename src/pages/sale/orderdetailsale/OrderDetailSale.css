@@ -1,8 +1,10 @@
-.order-detail-container {
-  padding: 25px 40px;
+.order-detail-container0 {
+  
   background-color: #f8f9fa;
   font-family: "Segoe UI", sans-serif;
-  min-height: 100vh;
+  height: 600px;
+  margin-left: 200px;
+  
 }
 
 .breadcrumb {
@@ -100,6 +102,7 @@
 .button-group {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   gap: 10px;
   margin-top: 10px;
 }

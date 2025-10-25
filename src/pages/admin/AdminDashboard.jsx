@@ -264,10 +264,11 @@ const AdminDashboard = () => {
                                     placeholder="Số điện thoại"
                                 />
                                 <select name="roleName" value={account.roleName || ""} onChange={handleChange}>
-                                    <option value="ADMIN">ADMIN</option>
+                                    <option value="5">Planning department</option>
                                     <option value="USER">USER</option>
                                     <option value="MANAGER">MANAGER</option>
                                     <option value="SALES">SALES</option>
+                                    <option value="5">Director</option>
                                 </select>
                                 <div className="popup-actions">
                                     <button type="submit" className="save-btn">
@@ -312,9 +313,10 @@ const AdminDashboard = () => {
                                 >
                                     <option value="">--Chọn Role--</option>
                                     <option value="7">MANAGER</option>
-                                    <option value="5">ADMIN</option>
+                                    <option value="5">Director</option>
                                     <option value="8">USER</option>
                                     <option value="6">SALES</option>
+                                    <option value="5">Planning department</option>
                                 </select>
                                 <input 
                                     type="password" 

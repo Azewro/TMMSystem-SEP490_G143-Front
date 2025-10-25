@@ -94,7 +94,7 @@ const ProfilePopup = () => {
         createdById: storedUser.customerId
       });
 
-      // 🟩 Sau khi tạo xong, load lại công ty
+      
       fetchCompany(token);
     } catch (err) {
       alert('❌ Tạo công ty thất bại: ' + (err.response?.data?.message || err.message));
@@ -102,7 +102,7 @@ const ProfilePopup = () => {
     }
   };
 
-  // 🟨 Hàm lấy thông tin profile
+  
   const fetchProfile = async () => {
     try {
       const storedUser = JSON.parse(localStorage.getItem("user"));
@@ -132,7 +132,7 @@ const ProfilePopup = () => {
       setProfile(res.data);
       setName(res.data.name || res.data.contactPerson || "Người dùng");
 
-      // 🟩 sau khi có profile, gọi API lấy công ty
+     
       fetchCompany(storedUser.accessToken);
     } catch (error) {
       console.error("❌ Lỗi khi lấy thông tin profile:", error);
@@ -140,7 +140,7 @@ const ProfilePopup = () => {
     }
   };
 
-  // 🟩 Hàm lấy thông tin công ty
+  
   const fetchCompany = async (token) => {
     try {
       const res = await axios.get(
@@ -229,7 +229,7 @@ const ProfilePopup = () => {
       />
       <span>{name || "Profile"}</span>
 
-      {/* Popup Cập nhật tài khoản + công ty */}
+      
       {showEditPopup && (
         <div className="popup-overlay" >
           <div className="popup2">
@@ -257,7 +257,7 @@ const ProfilePopup = () => {
         </div>
       )}
 
-      {/* Popup hiển thị profile */}
+      
       {showProfilePopup && profile && (
         <div className="popup-overlay">
           <div className="popup profile-detail">
@@ -273,7 +273,7 @@ const ProfilePopup = () => {
             <p><b>Số điện thoại:</b> {profile.phoneNumber}</p>
             {profile.roleName && <p><b>Vai trò:</b> {profile.roleName}</p>}
 
-            {/* 🟩 Hiển thị thêm phần công ty */}
+            
             {company && (
               <>
                 <hr />
@@ -322,7 +322,7 @@ const ProfilePopup = () => {
         </div>
       )}
 
-      {/* Popup đổi mật khẩu */}
+      
       {showChangePasswordPopup && (
         <div className="popup-overlay">
           <div className="popup">

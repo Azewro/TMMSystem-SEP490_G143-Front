@@ -86,7 +86,7 @@ const handleForwardToPlanning = async () => {
   if (!rfqInfo) return <div>Không tìm thấy thông tin RFQ</div>;
 
   return (
-    <div className="quote-detail-container">
+    <div className="quote-detail-container0">
       <h2 className="page-title">Chi tiết Yêu cầu Báo giá</h2>
 
       

@@ -14,11 +14,11 @@ const OrderDetailSale = () => {
   const [uploading, setUploading] = useState(false);
   const [notes, setNotes] = useState("Hợp đồng đã ký");
 
-  // ✅ Lấy thông tin người dùng (để lấy saleUserId)
+
   const user = JSON.parse(localStorage.getItem("user"));
   const saleUserId = user?.userId || 1;
 
-  // ✅ Gọi API lấy chi tiết đơn hàng theo id hợp đồng
+
   useEffect(() => {
     const fetchOrderDetail = async () => {
        try {
@@ -35,12 +35,12 @@ const OrderDetailSale = () => {
     fetchOrderDetail();
   }, [id]);
 
-  // ✅ Chọn file upload
+
   const handleFileChange = (e) => {
     setSelectedFile(e.target.files[0]);
   };
 
-  // ✅ Hàm upload hợp đồng đã ký
+  
   const handleUpload = async () => {
     if (!selectedFile) {
       alert("Vui lòng chọn file hợp đồng trước khi tải lên!");
@@ -69,7 +69,7 @@ const OrderDetailSale = () => {
       alert("✅ Tải lên hợp đồng thành công!");
       setShowModal(false);
 
-      // Sau khi upload thành công → cập nhật trạng thái hợp đồng
+      
       setOrderDetail((prev) => ({
         ...prev,
         status: "PENDING_APPROVAL",
@@ -95,7 +95,7 @@ const OrderDetailSale = () => {
   const items = orderDetail.orderItems || [];
 
   return (
-    <div className="order-detail-container">
+    <div className="order-detail-container0">
       <div className="breadcrumb">
         <span>Đơn đặt hàng / </span>
         <span className="current">Chi tiết</span>
@@ -176,7 +176,7 @@ const OrderDetailSale = () => {
         </a>
       </div>
 
-      {/* ✅ Modal upload hợp đồng */}
+      
       {showModal && (
         <div className="modal-overlay6">
           <div className="modal6">

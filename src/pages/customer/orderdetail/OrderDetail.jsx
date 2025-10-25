@@ -6,11 +6,11 @@ const OrderDetail = () => {
   const [loading, setLoading] = useState(true);
   const [contractInfo, setContractInfo] = useState(null);
 
-  // Lấy id từ URL (vd: /orderdetail?id=3)
+  
   const queryParams = new URLSearchParams(window.location.search);
   const id = queryParams.get("id");
 
-  // Gọi API chi tiết đơn hàng
+ 
   useEffect(() => {
     const fetchOrderDetail = async () => {
       try {
@@ -25,7 +25,7 @@ const OrderDetail = () => {
       }
     };
 
-    // Gọi API hợp đồng (để lấy thông tin chung)
+    
     const fetchContractInfo = async () => {
       try {
         const response = await fetch(`https://tmmsystem-sep490g143-production.up.railway.app/v1/contracts/${id}`);
@@ -43,7 +43,7 @@ const OrderDetail = () => {
     }
   }, [id]);
 
-  // Hàm format tiền VND
+  
   const formatCurrency = (amount) => {
     return amount?.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' }) || '0 ₫';
   };

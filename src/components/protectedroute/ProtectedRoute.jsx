@@ -12,11 +12,11 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/" replace state={{ from: location }} />;
   }
 
-  // Lấy role của user
+  
   const user = JSON.parse(storedUser);
   const userRole = user.role;
 const currentPath = location.pathname;
-  // Kiểm tra xem route hiện tại có được phép với role không
+  
   const allowedRoutes = roleRoutes[userRole?.toUpperCase()] || [];
   const isAllowed = allowedRoutes.some(route =>
   currentPath.toLowerCase().startsWith(route.toLowerCase())

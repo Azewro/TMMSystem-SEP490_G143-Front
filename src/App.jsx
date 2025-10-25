@@ -1,21 +1,15 @@
 import { useState } from 'react'
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css'
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 import Login from './pages/login/Login';
-
-
 import AdminDashboard from './pages/admin/AdminDashboard';
-
-
 import ForgotPassword from './pages/forgot/ForgotPassword';
 import Blog from './pages/blog/Blog';
 import Register from './pages/register/Register';
 import MachineList from './pages/machine/MachineList';
-
 import Home from './pages/customer/home/Home';
 import QuoteRequest from './pages/customer/quoteRequest/QuoteRequest';
-
 import QuoteRequestSale from './pages/sale/quoterequestsale/QuoteRequestSale';
 import QuoteRequestDetailSale from './pages/sale/quoteRequestDetailSale/QuoteRequestDetailSale';
 import QuoteSale from './pages/sale/quotesale/QuoteSale';
@@ -39,108 +33,101 @@ import ProtectedRoute from './components/protectedroute/ProtectedRoute';
 
 
 
-function App() {
+function AppContent() {
+  const location = useLocation();
 
+  
+  const noHeaderRoutes = ['/', '/register', '/forgot','/orderdetail'];
+
+  
+  const shouldShowHeader = !noHeaderRoutes.includes(location.pathname.toLowerCase());
 
   return (
     <>
-      <div>
-        <BrowserRouter>
-        <Header></Header>
-        <Routes>
-          <Route path="/machinelist" element={<MachineList />} />
-          <Route path="/quotedetailsale/:id" element={<QuoteDetailSale />} />
-          <Route path="/quoterequestdetailplan/:id" element={<QuoteRequestDetailplanRoom />} />
-          <Route path="/quotesale" element={<QuoteSale />} />
-          <Route path="/order" element={<Order />} />
-          <Route path="/quoterequestsale" element={<QuoteRequestSale />} />
-          <Route path="/quoterequestdetailsale/:id" element={<QuoteRequestDetailSale />} />
-          <Route path="/quoterequestplan" element={<QuoteRequestplanRoom />} />
-          <Route path="/quote" element={<QuoteRequest />} />
-          <Route path="/orderlistsale" element={<OrderListSale />} />
-          <Route path="/orderdetailsale/:id" element={<OrderDetailSale />} />
-          <Route path="/orderdetailmanager/:id" element={<OrderDetailManager />} />
-          <Route path="/orderdetailplan/:id" element={<OrderDetailplanRoom />} />
-          <Route path="/productionordermanager" element={<ProductionOrderManager />} />
-          <Route path="/productionorderdetailmanager/:id" element={<ProductionOrderDetailManager />} />
-          <Route path="/productionorderdetailplan" element={<ProductionOrderDetailplanRoom />} />
-          <Route path="/orderlistplanRoom" element={<OrderListplanRoom />} />
-          <Route path="/home" element={<Home />} />
-          <Route path="/ordermanager" element={<OrderManager />} />
-          <Route path="/orderdetail" element={<OrderDetail />} />
-          {/* <Route path="/" element={<Login />} />
-          <Route path="/createuser" element={<CreateAccount />} />
-          <Route path="/changepass" element={<ChangePass />} />
-          <Route path="/dashbroad" element={<AdminDashboard />} />
-          <Route path="/forgot" element={<ForgotPassword />} />
-          <Route path="/blog" element={<Blog />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/machinelist" element={<MachineList />} />
-          <Route path="/createmachine" element={<CreateMachine />} />
-          
-          
-          <Route path="/createquote" element={<CreateQuote />} />
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          <Route path="/productionorderplan" element={<ProductionOrderplanRoom />} />
-          
-          
-          
-          
-           */}
-          <Route path="/" element={<Login />} />
-            <Route path="/forgot" element={<ForgotPassword />} />
-            <Route path="/blog" element={<Blog />} /> 
-            <Route path="/register" element={<Register />} />
+      {shouldShowHeader && <Header />}
 
-            {/* Protected routes */}
-            <Route path="/dashbroad" element={
-              <ProtectedRoute>
-                <AdminDashboard />
-              </ProtectedRoute>
-            } />
+      <Routes>
+        <Route path="/machinelist" element={<MachineList />} />
+        <Route path="/quotedetailsale/:id" element={<QuoteDetailSale />} />
+        <Route path="/quoterequestdetailplan/:id" element={<QuoteRequestDetailplanRoom />} />
+        <Route path="/quotesale" element={<QuoteSale />} />
+        <Route path="/order" element={<Order />} />
+        <Route path="/quoterequestsale" element={<QuoteRequestSale />} />
+        <Route path="/quoterequestdetailsale/:id" element={<QuoteRequestDetailSale />} />
+        <Route path="/quoterequestplan" element={<QuoteRequestplanRoom />} />
+        <Route path="/quote" element={<QuoteRequest />} />
+        <Route path="/orderlistsale" element={<OrderListSale />} />
+        <Route path="/orderdetailsale/:id" element={<OrderDetailSale />} />
+        <Route path="/orderdetailmanager/:id" element={<OrderDetailManager />} />
+        <Route path="/orderdetailplan/:id" element={<OrderDetailplanRoom />} />
+        <Route path="/productionordermanager" element={<ProductionOrderManager />} />
+        <Route path="/productionorderdetailmanager/:id" element={<ProductionOrderDetailManager />} />
+        <Route path="/productionorderdetailplan" element={<ProductionOrderDetailplanRoom />} />
+        <Route path="/orderlistplanRoom" element={<OrderListplanRoom />} />
+        <Route path="/home" element={<Home />} />
+        <Route path="/ordermanager" element={<OrderManager />} />
+        <Route path="/orderdetail" element={<OrderDetail />} />
+        <Route path="/" element={<Login />} />
+        <Route path="/forgot" element={<ForgotPassword />} />
+        <Route path="/blog" element={<Blog />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/productionorderplan" element={<ProductionOrderplanRoom />} />
+        {/* <Route path="/" element={<Login />} /> 
+        <Route path="/createuser" element={<CreateAccount />} /> 
+        <Route path="/changepass" element={<ChangePass />} /> 
+        <Route path="/dashbroad" element={<AdminDashboard />} /> 
+        <Route path="/forgot" element={<ForgotPassword />} /> 
+        <Route path="/blog" element={<Blog />} /> 
+        
+        <Route path="/machinelist" element={<MachineList />} />
+        <Route path="/createmachine" element={<CreateMachine />} /> 
+        <Route path="/createquote" element={<CreateQuote />} /> 
+         */}
+        {/* Protected routes */}
+        <Route path="/dashbroad" element={
+          <ProtectedRoute>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
 
-            {/* Admin routes */}
-            <Route path="/createuser" element={
-              <ProtectedRoute>
-                
-              </ProtectedRoute>
-            } />
+        {/* Admin routes */}
+        <Route path="/createuser" element={
+          <ProtectedRoute>
 
-            {/* Customer routes */}
-            <Route path="/home" element={
-              <ProtectedRoute>
-                <Home />
-              </ProtectedRoute>
-            } />
-            <Route path="/quote" element={
-              <ProtectedRoute>
-                <QuoteRequest />
-              </ProtectedRoute>
-            } />
-            
-            {/* Sales routes */}
-            <Route path="/quoterequestsale" element={
-              <ProtectedRoute>
-                <QuoteRequestSale />
-              </ProtectedRoute>
-            } />
+          </ProtectedRoute>
+        } />
 
+        {/* Customer routes */}
+        <Route path="/home" element={
+          <ProtectedRoute>
+            <Home />
+          </ProtectedRoute>
+        } />
+        <Route path="/quote" element={
+          <ProtectedRoute>
+            <QuoteRequest />
+          </ProtectedRoute>
+        } />
 
-        </Routes>
-        </BrowserRouter>
-      </div>      
+        {/* Sales routes */}
+        <Route path="/quoterequestsale" element={
+          <ProtectedRoute>
+            <QuoteRequestSale />
+          </ProtectedRoute>
+        } />
+      </Routes>
     </>
-  )
+  );
 }
 
-export default App
+
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AppContent />
+    </BrowserRouter>
+  );
+}
+
+export default App;

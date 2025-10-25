@@ -10,7 +10,7 @@ const OrderDetailManager = () => {
   const [processing, setProcessing] = useState(false);
   const { id } = useParams();
 
-  // Hàm fetch chi tiết hợp đồng
+
   const fetchOrderDetail = async (id) => {
     try {
       setLoading(true);
@@ -34,7 +34,7 @@ const OrderDetailManager = () => {
     setShowContractPopup(true);
   };
 
-  // ✅ API phê duyệt hợp đồng
+ 
   const handleApprove = async () => {
     try {
       setProcessing(true);
@@ -80,7 +80,7 @@ const OrderDetailManager = () => {
   
 
   return (
-    <div className="order-detail-container">
+    <div className="order-detail-container9">
       <div className="breadcrumb">
         <span>Đơn đặt hàng / </span>
         <span className="current">Chi tiết</span>
