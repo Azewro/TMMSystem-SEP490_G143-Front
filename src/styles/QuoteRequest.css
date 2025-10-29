@@ -1,0 +1,133 @@
+/* Quote Request Styling */
+.quote-request-card {
+  background-color: white;
+  border-radius: 12px;
+  border: none;
+}
+
+.quote-header {
+  text-align: center;
+  border-bottom: 1px solid #e9ecef;
+  padding-bottom: 20px;
+}
+
+.quote-title {
+  font-size: 1.75em;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.quote-subtitle {
+  font-size: 1em;
+  margin-bottom: 0;
+}
+
+.product-item-section {
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 20px;
+  background-color: #fafbfc;
+}
+
+.product-item-section:not(:last-child) {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 8px;
+}
+
+.form-control,
+.form-select {
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 0.95em;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.add-product-btn {
+  background-color: #ffc107;
+  border-color: #ffc107;
+  color: #000;
+  font-weight: 500;
+  padding: 10px 24px;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.add-product-btn:hover {
+  background-color: #ffb300;
+  border-color: #ffb300;
+  color: #000;
+  transform: translateY(-1px);
+}
+
+.submit-quote-btn {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+  padding: 12px 30px;
+  font-weight: 600;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.submit-quote-btn:hover {
+  background-color: #0b5ed7;
+  border-color: #0b5ed7;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+}
+
+.delivery-date-section {
+  border-top: 1px solid #e9ecef;
+  padding-top: 20px;
+}
+
+/* Remove product button styling */
+.btn-outline-danger {
+  padding: 4px 8px;
+  font-size: 0.8em;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .quote-request-card .card-body {
+    padding: 30px 20px;
+  }
+  
+  .quote-title {
+    font-size: 1.5em;
+  }
+  
+  .product-item-section {
+    padding: 15px;
+  }
+}
+
+/* Alert styling */
+.alert {
+  border: none;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+}
+
+.alert-success {
+  background-color: #d1edff;
+  color: #0c5460;
+}
+
+.alert-danger {
+  background-color: #f8d7da;
+  color: #721c24;
+}
