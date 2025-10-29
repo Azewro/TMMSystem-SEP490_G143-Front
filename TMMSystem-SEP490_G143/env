@@ -1,0 +1,27 @@
+MYSQLHOST="shortline.proxy.rlwy.net"
+MYSQLPORT="35890"
+MYSQLUSER="root"
+MYSQLPASSWORD="MEDkGxyLRYAnnMdkCBXKtcWVdpIvygJA"
+MYSQLDATABASE="railway"
+
+# JWT
+JWT_SECRET_BASE64=ZmFrZV9kZXZfczMyX3NlY3JldF9mb3JfZGV2X29ubHk=
+JWT_EXPIRATION_MS=32400000
+
+# Mail
+MAIL_USERNAME=hungnahe180711@fpt.edu.vn
+MAIL_PASSWORD=ecuk mlda ahva fxtz
+
+RESEND_API_KEY=re_PyQcDsnj_EzjkBU6CXe968F2uNkt135mT
+RESEND_FROM=onboarding@resend.dev
+
+# Railway → Variables
+APP_BASE_URL="https://tmmsystem-sep490g143-production.up.railway.app"
+MINIO_PUBLIC_ENDPOINT=http://bucket-production-d7ee.up.railway.app
+MINIO_PRIVATE_ENDPOINT=http://bucket.railway.internal:9000
+MINIO_ROOT_USER=0TvcWKqDJDF7yRazFYVg2WS03TKZy1n5
+MINIO_ROOT_PASSWORD=kJrbG6gRWm4U5Y65HeshRk2X3kkwnw0ly3QORi164fhX87gc
+MINIO_ACCESS_KEY=bgnN1x2ATd04HJtzBsMt
+MINIO_SECRET_KEY=MT15g22K65vmfJCeTUd37OA9JHkm17UKLeSjxehN
+#MINIO_ACCESS_KEY=tmms-abc
+#MINIO_SECRET_KEY=tmms-def

@@ -1,0 +1,156 @@
+.planning-quote-requests-page {
+  min-height: calc(100vh - 70px);
+}
+
+.page-title {
+  color: #2c3e50;
+  font-size: 1.75rem;
+  font-weight: 600;
+}
+
+.status-filter {
+  border: 2px solid #e3f2fd;
+  border-radius: 8px;
+}
+
+.status-filter:focus {
+  border-color: #2196f3;
+  box-shadow: 0 0 0 0.2rem rgba(33, 150, 243, 0.25);
+}
+
+.table-card {
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.planning-rfq-table {
+  font-size: 0.9rem;
+}
+
+.table-header {
+  background: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.table-header th {
+  border: none;
+  padding: 1rem;
+  font-weight: 600;
+  color: #495057;
+  vertical-align: middle;
+}
+
+.table-row {
+  border-bottom: 1px solid #f1f3f4;
+  transition: all 0.2s ease;
+}
+
+.table-row:hover {
+  background-color: #f8f9fa;
+}
+
+.table-row td {
+  padding: 1rem;
+  vertical-align: middle;
+  border: none;
+}
+
+.rfq-code {
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  color: #2c3e50;
+  background: #f8f9fa;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.product-count {
+  font-weight: 600;
+  color: #28a745;
+  font-size: 1rem;
+}
+
+.date-text {
+  color: #6c757d;
+  font-size: 0.85rem;
+}
+
+.status-badge {
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.assigned-person {
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.view-button {
+  background-color: #2196f3;
+  border-color: #2196f3;
+  border-radius: 20px;
+  padding: 0.25rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.view-button:hover {
+  background-color: #1976d2;
+  border-color: #1976d2;
+  transform: translateY(-1px);
+}
+
+.internal-sidebar {
+  position: sticky;
+  top: 70px;
+  height: calc(100vh - 70px);
+  overflow-y: auto;
+}
+
+.sidebar-link {
+  color: #495057;
+  font-weight: 500;
+  border-radius: 8px;
+  margin-bottom: 0.25rem;
+  transition: all 0.2s ease;
+}
+
+.sidebar-link:hover {
+  background-color: #e3f2fd;
+  color: #1976d2;
+  transform: translateX(5px);
+}
+
+.sidebar-link.active {
+  background-color: #2196f3;
+  color: white;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .internal-sidebar {
+    width: 100% !important;
+    position: relative;
+    height: auto;
+  }
+  
+  .planning-rfq-table {
+    font-size: 0.8rem;
+  }
+  
+  .planning-rfq-table th,
+  .planning-rfq-table td {
+    padding: 0.5rem;
+  }
+  
+  .page-title {
+    font-size: 1.5rem;
+  }
+}

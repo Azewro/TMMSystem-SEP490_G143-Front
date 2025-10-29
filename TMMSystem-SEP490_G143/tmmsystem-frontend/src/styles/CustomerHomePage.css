@@ -1,0 +1,116 @@
+/* src/styles/CustomerHomePage.css */
+
+.customer-home-page {
+    padding: 20px;
+    background-color: #fff; /* Nền trắng cho khu vực nội dung */
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.page-title {
+    font-size: 1.8em;
+    font-weight: 700;
+    color: #343a40;
+    margin-bottom: 5px; /* Giảm margin dưới */
+}
+
+.page-subtitle {
+    font-size: 1em;
+    color: #6c757d;
+    margin-bottom: 25px;
+}
+
+.filter-container {
+    margin-bottom: 25px;
+    display: flex;
+    align-items: center;
+    gap: 15px; /* Khoảng cách giữa các filter */
+}
+
+.category-dropdown {
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 0.95em;
+    min-width: 200px; /* Chiều rộng tối thiểu */
+    cursor: pointer;
+}
+
+.loading-message,
+.error-message,
+.no-products-message {
+    text-align: center;
+    padding: 40px 20px;
+    font-size: 1.1em;
+    color: #6c757d;
+}
+
+.error-message {
+    color: #dc3545;
+}
+
+.product-grid {
+    display: grid;
+    /* --- Grid 3 cột --- */
+    grid-template-columns: repeat(3, 1fr); /* Tạo 3 cột bằng nhau */
+    gap: 25px; /* Khoảng cách giữa các card */
+    margin-bottom: 30px;
+}
+
+/* --- Responsive Grid --- */
+@media (max-width: 992px) { /* Tablet */
+    .product-grid {
+        grid-template-columns: repeat(2, 1fr); /* 2 cột */
+        gap: 20px;
+    }
+}
+
+@media (max-width: 768px) { /* Mobile lớn */
+     .page-title {
+         font-size: 1.6em;
+     }
+     .page-subtitle {
+         font-size: 0.95em;
+     }
+}
+
+@media (max-width: 576px) { /* Mobile nhỏ */
+    .customer-home-page {
+        padding: 15px;
+    }
+    .product-grid {
+        grid-template-columns: 1fr; /* 1 cột */
+        gap: 15px;
+    }
+     .filter-container {
+        flex-direction: column; /* Xếp dọc filter */
+        align-items: stretch; /* Kéo dài dropdown */
+     }
+     .category-dropdown {
+         min-width: 100%;
+     }
+}
+
+/* Product Card Hover Effects */
+.product-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+/* Customer Layout */
+.customer-layout {
+    min-height: 100vh;
+}
+
+.sidebar-item {
+    transition: all 0.3s ease;
+}
+
+.sidebar-item:hover {
+    background-color: #e9ecef !important;
+    color: #495057 !important;
+}

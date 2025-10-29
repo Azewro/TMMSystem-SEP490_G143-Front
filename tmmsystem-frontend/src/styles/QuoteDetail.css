@@ -1,0 +1,155 @@
+.quote-detail-page {
+  min-height: 100vh;
+}
+
+.page-header {
+  border-bottom: 2px solid #e9ecef;
+  padding-bottom: 1rem;
+}
+
+.page-title {
+  color: #2c3e50;
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.delivery-date {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.quote-table-card {
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.quote-table {
+  font-size: 0.9rem;
+}
+
+.quote-table .table-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+}
+
+.quote-table .table-header th {
+  border: none;
+  padding: 1rem;
+  font-weight: 600;
+  vertical-align: middle;
+  text-align: center;
+}
+
+.quote-table .table-header th:first-child,
+.quote-table .table-header th:last-child {
+  text-align: center;
+}
+
+.quote-table tbody tr {
+  border-bottom: 1px solid #f1f3f4;
+  transition: background-color 0.2s ease;
+}
+
+.quote-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.quote-table tbody td {
+  padding: 1rem;
+  vertical-align: middle;
+  border: none;
+}
+
+.product-name {
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.size-info {
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.quantity {
+  font-weight: 600;
+  color: #28a745;
+  font-size: 1rem;
+}
+
+.unit-price {
+  font-weight: 600;
+  color: #dc3545;
+  font-size: 1rem;
+}
+
+.quote-actions {
+  padding: 1.5rem 0;
+  border-top: 1px solid #e9ecef;
+  margin-top: 2rem;
+}
+
+.back-button {
+  border-color: #6c757d;
+  color: #6c757d;
+  font-weight: 500;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.back-button:hover {
+  background-color: #6c757d;
+  border-color: #6c757d;
+  color: #fff;
+}
+
+.send-button {
+  background-color: #2196f3;
+  border-color: #2196f3;
+  color: white;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.send-button:hover {
+  background-color: #1976d2;
+  border-color: #1976d2;
+  transform: translateY(-1px);
+}
+
+.badge {
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .quote-actions {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .quote-table {
+    font-size: 0.8rem;
+  }
+  
+  .quote-table th,
+  .quote-table td {
+    padding: 0.5rem;
+  }
+  
+  .page-title {
+    font-size: 1.5rem;
+  }
+}

@@ -1,0 +1,124 @@
+/* Quote Requests Dashboard Styling */
+.quote-requests-dashboard {
+  padding: 0;
+}
+
+.dashboard-header {
+  margin-bottom: 30px;
+}
+
+.dashboard-title {
+  font-size: 1.8em;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0;
+}
+
+.status-filter {
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.95em;
+}
+
+.quote-table-card {
+  border: none;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.quote-requests-table {
+  font-size: 0.9em;
+}
+
+.quote-requests-table thead.table-header {
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.quote-requests-table thead th {
+  font-weight: 600;
+  color: #495057;
+  border-bottom: 2px solid #dee2e6;
+  padding: 12px;
+  vertical-align: middle;
+}
+
+.quote-requests-table tbody td {
+  padding: 12px;
+  vertical-align: middle;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.quote-requests-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.rfq-code {
+  font-weight: 500;
+  color: #495057;
+}
+
+.status-badge {
+  font-size: 0.8em;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.detail-button {
+  border: 1px solid #6c757d;
+  color: #6c757d;
+  padding: 4px 8px;
+  font-size: 0.8em;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.detail-button:hover {
+  background-color: #6c757d;
+  border-color: #6c757d;
+  color: white;
+}
+
+.pagination-info {
+  text-align: center;
+}
+
+/* Badge colors matching your mockup */
+.badge.bg-warning {
+  background-color: #ffc107 !important;
+  color: #000;
+}
+
+.badge.bg-primary {
+  background-color: #0d6efd !important;
+}
+
+.badge.bg-success {
+  background-color: #198754 !important;
+}
+
+.badge.bg-danger {
+  background-color: #dc3545 !important;
+}
+
+/* Responsive table */
+@media (max-width: 768px) {
+  .quote-requests-table {
+    font-size: 0.8em;
+  }
+  
+  .quote-requests-table thead th,
+  .quote-requests-table tbody td {
+    padding: 8px 6px;
+  }
+  
+  .detail-button span {
+    display: none;
+  }
+}
+
+/* Internal layout styling */
+.internal-layout {
+  min-height: 100vh;
+}
