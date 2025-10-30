@@ -3,7 +3,6 @@ import { authService } from '../api/authService';
 
 const AuthContext = createContext();
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -36,16 +35,20 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password, userType = 'customer') => {
-    let userData;
-
-    if (userType === 'customer') {
-      userData = await authService.customerLogin(email, password);
-    } else {
-      userData = await authService.internalLogin(email, password);
+    try {
+      let userData;
+      
+      if (userType === 'customer') {
+        userData = await authService.customerLogin(email, password);
+      } else {
+        userData = await authService.internalLogin(email, password);
+      }
+      
+      setUser(userData);
+      return userData;
+    } catch (error) {
+      throw error;
     }
-
-    setUser(userData);
-    return userData;
   };
 
   const logout = () => {

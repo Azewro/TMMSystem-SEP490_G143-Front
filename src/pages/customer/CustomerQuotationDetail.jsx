@@ -119,7 +119,7 @@ const CustomerQuotationDetail = () => {
                             <td>{it.productName || it.product?.name || 'Sản phẩm'}</td>
                             <td>{it.size || it.product?.standardDimensions || it.dimensions || 'Tờ 150D-500m'}</td>
                             <td>{it.quantity || it.qty || 0}</td>
-                            <td>{formatCurrency(it.unitPrice || 0)}</td>
+                            <td>{(it.unitPrice || 0).toLocaleString('vi-VN')}</td>
                             <td>{it.notes || 'Đồng/cái'}</td>
                           </tr>
                         )) : (

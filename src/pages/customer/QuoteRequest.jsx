@@ -221,10 +221,11 @@ const QuoteRequest = () => {
       const rfqData = {
         customerId: parseInt(customerId),
         expectedDeliveryDate: deliveryDate,
+        notes: `Customer quote request created on ${new Date().toLocaleDateString()}`,
         details: quoteItems.map(item => ({
           productId: parseInt(item.productId),
           quantity: parseInt(item.quantity),
-          unit: 'pcs', // Backend expects unit field
+          unit: 'pcs',
           notes: item.size || 'Standard size'
         }))
       };

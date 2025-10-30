@@ -1,12 +1,65 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Table, Button, Alert, Spinner } from 'react-bootstrap';
-import { FaArrowLeft, FaPaperPlane, FaCheck } from 'react-icons/fa';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Container, Row, Col, Card, Table, Button, Alert, Spinner, Badge } from 'react-bootstrap';
+import { FaArrowLeft, FaPaperPlane, FaClipboardCheck, FaShareSquare } from 'react-icons/fa';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { quoteService } from '../../api/quoteService';
 import { productService } from '../../api/productService';
 import '../../styles/RFQDetail.css';
+
+const STATUS_LABEL = {
+  DRAFT: 'Chờ xử lý',
+  SENT: 'Đã gửi',
+  PRELIMINARY_CHECKED: 'Đã kiểm tra sơ bộ',
+  FORWARDED_TO_PLANNING: 'Đã chuyển Phòng Kế hoạch',
+  RECEIVED_BY_PLANNING: 'Kế hoạch đã nhận',
+  QUOTED: 'Đã tạo báo giá',
+  REJECTED: 'Từ chối'
+};
+
+const STATUS_VARIANT = {
+  DRAFT: 'secondary',
+  SENT: 'info',
+  PRELIMINARY_CHECKED: 'primary',
+  FORWARDED_TO_PLANNING: 'warning',
+  RECEIVED_BY_PLANNING: 'warning',
+  QUOTED: 'success',
+  REJECTED: 'danger'
+};
+
+const workflowSteps = [
+  {
+    key: 'DRAFT',
+    title: 'Tạo yêu cầu báo giá',
+    description: 'Khách hàng đã gửi yêu cầu trên hệ thống.'
+  },
+  {
+    key: 'SENT',
+    title: 'Gửi yêu cầu cho bộ phận Sale',
+    description: 'Sale xác nhận và gửi yêu cầu cho khách hàng.'
+  },
+  {
+    key: 'PRELIMINARY_CHECKED',
+    title: 'Kiểm tra sơ bộ',
+    description: 'Sale kiểm tra thông tin đơn hàng, số lượng, lịch trình.'
+  },
+  {
+    key: 'FORWARDED_TO_PLANNING',
+    title: 'Chuyển sang Phòng Kế hoạch',
+    description: 'Sale chuyển yêu cầu đến Phòng Kế hoạch để đánh giá năng lực.'
+  },
+  {
+    key: 'RECEIVED_BY_PLANNING',
+    title: 'Phòng Kế hoạch đã nhận',
+    description: 'Phòng Kế hoạch xác nhận đã tiếp nhận RFQ.'
+  },
+  {
+    key: 'QUOTED',
+    title: 'Đã tạo báo giá',
+    description: 'Phòng Kế hoạch đã phản hồi báo giá cho bộ phận Sale.'
+  }
+];
 
 const RFQDetail = () => {
   const { id } = useParams();
@@ -15,123 +68,116 @@ const RFQDetail = () => {
   const [customerData, setCustomerData] = useState(null);
   const [productMap, setProductMap] = useState({});
   const [loading, setLoading] = useState(true);
-  const [sendingRFQ, setSendingRFQ] = useState(false);
+  const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  useEffect(() => {
-    const fetchRFQDetails = async () => {
-      setLoading(true);
-      try {
-        console.log('=== FETCHING RFQ DETAILS ===');
-        console.log('RFQ ID:', id);
+  const loadRFQ = useCallback(async () => {
+    if (!id) return;
+    setLoading(true);
+    setError('');
 
-        // Fetch RFQ details
-        const realRFQ = await quoteService.getRFQDetails(id);
-        console.log('Real RFQ data:', realRFQ);
-        setRFQData(realRFQ);
-        
-        // Fetch all customers to get customer data
-        const customers = await quoteService.getAllCustomers();
-        console.log('All customers:', customers);
-        const customer = customers.find(c => c.id === realRFQ.customerId);
-        console.log('Found customer:', customer);
-        setCustomerData(customer);
-        
-        // Fetch all products to map product IDs to names
-        const products = await productService.getAllProducts();
-        console.log('All products:', products);
-        const prodMap = {};
-        products.forEach(product => {
-          prodMap[product.id] = product;
-        });
-        setProductMap(prodMap);
-        
-      } catch (error) {
-        console.error('Error fetching RFQ details:', error);
-        setError('Không thể tải chi tiết RFQ. Vui lòng thử lại.');
-      } finally {
-        setLoading(false);
-      }
-    };
+    try {
+      const [rfq, customers, products] = await Promise.all([
+        quoteService.getRFQDetails(id),
+        quoteService.getAllCustomers(),
+        productService.getAllProducts()
+      ]);
 
-    fetchRFQDetails();
+      setRFQData(rfq);
+      const customer = customers.find(c => c.id === rfq.customerId);
+      setCustomerData(customer || null);
+
+      const prodMap = {};
+      products.forEach(product => {
+        prodMap[product.id] = product;
+      });
+      setProductMap(prodMap);
+    } catch (err) {
+      console.error('Error fetching RFQ details:', err);
+      setError(err.message || 'Không thể tải chi tiết RFQ. Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
 
-  const handleGoBack = () => {
-    navigate('/internal/quote-requests');
-  };
+  useEffect(() => {
+    loadRFQ();
+  }, [loadRFQ]);
 
-  const handleSendRFQ = async () => {
-    if (rfqData?.status === 'SENT') {
-      setError('RFQ này đã được gửi đến Phòng Kế hoạch rồi.');
-      return;
+  const currentStatus = rfqData?.status || 'DRAFT';
+
+  const nextAction = useMemo(() => {
+    if (!rfqData) return null;
+
+    switch (rfqData.status) {
+      case 'DRAFT':
+        return {
+          key: 'send',
+          label: 'Gửi yêu cầu báo giá',
+          icon: <FaPaperPlane className="me-2" />,
+          description: 'Gửi yêu cầu đến khách hàng và cập nhật trạng thái sang SENT.',
+          handler: () => quoteService.sendRfq(id),
+          success: 'Đã gửi RFQ cho khách hàng thành công.'
+        };
+      case 'SENT':
+        return {
+          key: 'check',
+          label: 'Hoàn tất kiểm tra sơ bộ',
+          icon: <FaClipboardCheck className="me-2" />,
+          description: 'Xác nhận đã kiểm tra thông tin RFQ trước khi chuyển cho Phòng Kế hoạch.',
+          handler: () => quoteService.preliminaryCheck(id),
+          success: 'RFQ đã được đánh dấu kiểm tra sơ bộ.'
+        };
+      case 'PRELIMINARY_CHECKED':
+        return {
+          key: 'forward',
+          label: 'Chuyển sang Phòng Kế hoạch',
+          icon: <FaShareSquare className="me-2" />,
+          description: 'Chuyển yêu cầu này sang Phòng Kế hoạch đánh giá năng lực sản xuất.',
+          handler: () => quoteService.forwardToPlanning(id),
+          success: 'Đã chuyển RFQ sang Phòng Kế hoạch.'
+        };
+      default:
+        return null;
     }
+  }, [rfqData, id]);
 
-    setSendingRFQ(true);
+  const handleAction = async () => {
+    if (!nextAction) return;
+    setWorking(true);
     setError('');
     setSuccess('');
 
     try {
-      console.log('Sending RFQ to Planning Department...');
-      const updatedRFQ = await quoteService.sendRFQToPlanningDepartment(id);
-      
-      // Update local state
-      setRFQData(prevData => ({
-        ...prevData,
-        status: 'SENT',
-        isSent: true,
-        ...updatedRFQ
-      }));
-      
-      setSuccess('✅ RFQ đã được gửi thành công đến Phòng Kế hoạch!');
-      
-      // Auto-hide success message after 5 seconds
-      setTimeout(() => {
-        setSuccess('');
-      }, 5000);
-      
-    } catch (error) {
-      console.error('Send RFQ error:', error);
-      setError('❌ ' + error.message);
+      await nextAction.handler();
+      setSuccess(nextAction.success);
+      await loadRFQ();
+    } catch (err) {
+      setError(err.message || 'Thao tác thất bại. Vui lòng thử lại.');
     } finally {
-      setSendingRFQ(false);
+      setWorking(false);
     }
   };
 
-  const getStatusDisplay = (status) => {
-    switch (status) {
-      case 'DRAFT': return 'Chờ xử lý';
-      case 'SENT': return 'Đã gửi';
-      case 'QUOTED': return 'Đã báo giá';
-      case 'APPROVED': return 'Đã duyệt';
-      case 'REJECTED': return 'Từ chối';
-      default: return status || 'Chờ xử lý';
-    }
-  };
+  const getStepState = (stepKey) => {
+    const statusOrder = workflowSteps.map(step => step.key);
+    const currentIndex = statusOrder.indexOf(currentStatus);
+    const stepIndex = statusOrder.indexOf(stepKey);
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'DRAFT': return 'warning';
-      case 'SENT': return 'primary';
-      case 'QUOTED': return 'info';
-      case 'APPROVED': return 'success';
-      case 'REJECTED': return 'danger';
-      default: return 'secondary';
-    }
+    if (stepIndex < 0) return 'pending';
+    if (currentIndex > stepIndex) return 'done';
+    if (currentIndex === stepIndex) return 'current';
+    return 'pending';
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) return '—';
     try {
       return new Date(dateString).toLocaleDateString('vi-VN');
     } catch {
       return dateString;
     }
-  };
-
-  const canSendRFQ = () => {
-    return rfqData?.status === 'DRAFT' && !rfqData?.isSent;
   };
 
   if (loading) {
@@ -141,7 +187,7 @@ const RFQDetail = () => {
         <div className="d-flex">
           <InternalSidebar />
           <div className="flex-grow-1 d-flex justify-content-center align-items-center" style={{ minHeight: 'calc(100vh - 70px)' }}>
-            <div>Đang tải dữ liệu...</div>
+            <Spinner animation="border" variant="primary" />
           </div>
         </div>
       </div>
@@ -155,7 +201,7 @@ const RFQDetail = () => {
         <div className="d-flex">
           <InternalSidebar />
           <div className="flex-grow-1 d-flex justify-content-center align-items-center" style={{ minHeight: 'calc(100vh - 70px)' }}>
-            <div className="text-danger">{error}</div>
+            <Alert variant="danger">{error}</Alert>
           </div>
         </div>
       </div>
@@ -165,125 +211,114 @@ const RFQDetail = () => {
   return (
     <div className="internal-layout">
       <Header />
-      
+
       <div className="d-flex">
         <InternalSidebar />
-        
+
         <div className="flex-grow-1" style={{ backgroundColor: '#f8f9fa', minHeight: 'calc(100vh - 70px)' }}>
           <Container fluid className="p-4">
             <div className="rfq-detail-page">
-              {/* Status Messages */}
+              <div className="page-header mb-4 d-flex justify-content-between align-items-center">
+                <div>
+                  <h1 className="page-title">Chi tiết Yêu cầu Báo giá</h1>
+                  <div className="text-muted">Mã RFQ: {rfqData?.rfqNumber || `RFQ-${rfqData?.id}`}</div>
+                </div>
+                <Button variant="outline-secondary" onClick={() => navigate('/internal/quote-requests')}>
+                  <FaArrowLeft className="me-2" />Quay lại danh sách
+                </Button>
+              </div>
+
               {error && (
                 <Alert variant="danger" dismissible onClose={() => setError('')}>
                   {error}
                 </Alert>
               )}
-              
+
               {success && (
                 <Alert variant="success" dismissible onClose={() => setSuccess('')}>
                   {success}
                 </Alert>
               )}
 
-              {/* Page Header */}
-              <div className="page-header mb-4 d-flex justify-content-between align-items-center">
-                <h1 className="page-title">Chi tiết Yêu cầu Báo giá</h1>
-                <div className="header-actions">
-                  <Button
-                    variant="outline-secondary"
-                    onClick={handleGoBack}
-                    className="me-3"
-                  >
-                    <FaArrowLeft className="me-2" />
-                    Quay lại danh sách
-                  </Button>
-                  
-                  {canSendRFQ() ? (
-                    <Button
-                      variant="dark"
-                      onClick={handleSendRFQ}
-                      disabled={sendingRFQ}
-                    >
-                      {sendingRFQ ? (
-                        <>
-                          <Spinner as="span" animation="border" size="sm" role="status" className="me-2" />
-                          Đang gửi...
-                        </>
-                      ) : (
-                        <>
-                          <FaPaperPlane className="me-2" />
-                          Gửi RFQ
-                        </>
-                      )}
-                    </Button>
-                  ) : (
-                    <Button variant="success" disabled>
-                      <FaCheck className="me-2" />
-                      Đã gửi
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {/* Customer and RFQ Info Cards */}
               <Row className="mb-4">
-                {/* Customer Information */}
                 <Col lg={6}>
                   <Card className="info-card shadow-sm h-100">
                     <Card.Header className="bg-primary text-white">
                       <h5 className="mb-0">Thông tin khách hàng</h5>
                     </Card.Header>
                     <Card.Body className="p-4">
-                      <div className="info-item">
-                        <strong>Tên khách hàng:</strong> {customerData?.contactPerson || 'N/A'}
-                      </div>
-                      <div className="info-item">
-                        <strong>Công ty:</strong> {customerData?.companyName || 'N/A'}
-                      </div>
-                      <div className="info-item">
-                        <strong>Email:</strong> {customerData?.email || 'N/A'}
-                      </div>
-                      <div className="info-item">
-                        <strong>Điện thoại:</strong> {customerData?.phoneNumber || 'N/A'}
-                      </div>
-                      <div className="info-item">
-                        <strong>Mã số thuế:</strong> {customerData?.taxCode || 'N/A'}
-                      </div>
+                      <div className="info-item"><strong>Tên khách hàng:</strong> {customerData?.contactPerson || '—'}</div>
+                      <div className="info-item"><strong>Công ty:</strong> {customerData?.companyName || '—'}</div>
+                      <div className="info-item"><strong>Email:</strong> {customerData?.email || '—'}</div>
+                      <div className="info-item"><strong>Điện thoại:</strong> {customerData?.phoneNumber || '—'}</div>
+                      <div className="info-item"><strong>Mã số thuế:</strong> {customerData?.taxCode || '—'}</div>
                     </Card.Body>
                   </Card>
                 </Col>
 
-                {/* RFQ Information */}
                 <Col lg={6}>
                   <Card className="info-card shadow-sm h-100">
                     <Card.Header className="bg-primary text-white">
                       <h5 className="mb-0">Thông tin RFQ</h5>
                     </Card.Header>
                     <Card.Body className="p-4">
+                      <div className="info-item"><strong>Ngày tạo:</strong> {formatDate(rfqData?.createdAt)}</div>
+                      <div className="info-item"><strong>Ngày mong muốn nhận:</strong> {formatDate(rfqData?.expectedDeliveryDate)}</div>
                       <div className="info-item">
-                        <strong>Mã RFQ:</strong> {rfqData?.rfqNumber || 'N/A'}
+                        <strong>Trạng thái:</strong>
+                        <Badge bg={STATUS_VARIANT[currentStatus]} className="ms-2">
+                          {STATUS_LABEL[currentStatus] || currentStatus}
+                        </Badge>
                       </div>
-                      <div className="info-item">
-                        <strong>Ngày tạo:</strong> {formatDate(rfqData?.createdAt)}
-                      </div>
-                      <div className="info-item">
-                        <strong>Trạng thái:</strong> 
-                        <span className={`badge bg-${getStatusColor(rfqData?.status)} ms-2`}>
-                          {getStatusDisplay(rfqData?.status)}
-                        </span>
-                      </div>
-                      <div className="info-item">
-                        <strong>Ngày mong muốn nhận:</strong> {formatDate(rfqData?.expectedDeliveryDate)}
-                      </div>
-                      <div className="info-item">
-                        <strong>Số lượng sản phẩm:</strong> {rfqData?.details?.length || 0}
-                      </div>
+                      <div className="info-item"><strong>Số dòng sản phẩm:</strong> {rfqData?.details?.length || 0}</div>
                     </Card.Body>
                   </Card>
                 </Col>
               </Row>
 
-              {/* Product Details Table */}
+              <Card className="shadow-sm mb-4">
+                <Card.Header className="bg-white">
+                  <h5 className="mb-0">Tiến trình xử lý</h5>
+                </Card.Header>
+                <Card.Body>
+                  <Row className="g-3">
+                    {workflowSteps.map(step => {
+                      const state = getStepState(step.key);
+                      return (
+                        <Col key={step.key} md={4}>
+                          <div className={`workflow-step workflow-step--${state}`}>
+                            <div className="workflow-step__title">{step.title}</div>
+                            <div className="workflow-step__description text-muted">{step.description}</div>
+                          </div>
+                        </Col>
+                      );
+                    })}
+                  </Row>
+                </Card.Body>
+              </Card>
+
+              {nextAction && (
+                <Card className="shadow-sm mb-4">
+                  <Card.Body>
+                    <h5 className="mb-3">Thao tác tiếp theo</h5>
+                    <p className="text-muted">{nextAction.description}</p>
+                    <Button variant="primary" disabled={working} onClick={handleAction}>
+                      {working ? (
+                        <>
+                          <Spinner animation="border" size="sm" className="me-2" />
+                          Đang thực hiện...
+                        </>
+                      ) : (
+                        <>
+                          {nextAction.icon}
+                          {nextAction.label}
+                        </>
+                      )}
+                    </Button>
+                  </Card.Body>
+                </Card>
+              )}
+
               <Card className="products-card shadow-sm">
                 <Card.Header className="bg-primary text-white">
                   <h5 className="mb-0">Danh sách sản phẩm</h5>
@@ -293,41 +328,27 @@ const RFQDetail = () => {
                     <thead className="table-header">
                       <tr>
                         <th style={{ width: '80px' }}>STT</th>
-                        <th style={{ width: '150px' }}>Mã đơn hàng</th>
                         <th style={{ minWidth: '200px' }}>Sản phẩm</th>
-                        <th style={{ width: '120px' }}>Kích thước</th>
-                        <th style={{ width: '100px' }}>Số lượng</th>
+                        <th style={{ width: '150px' }}>Kích thước/Ghi chú</th>
+                        <th style={{ width: '120px' }}>Số lượng</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {rfqData?.details?.length > 0 ? rfqData.details.map((item, index) => {
-                        const product = productMap[item.productId];
-                        return (
-                          <tr key={item.id || index}>
-                            <td className="text-center">{index + 1}</td>
-                            <td>
-                              <span className="order-code">ORD-{String(index + 1).padStart(3, '0')}</span>
-                            </td>
-                            <td>
-                              <span className="product-name">
-                                {product?.name || `Sản phẩm ID: ${item.productId}`}
-                              </span>
-                            </td>
-                            <td className="text-center">
-                              <span className="size-info">
-                                {item.notes || item.size || product?.standardDimensions || 'N/A'}
-                              </span>
-                            </td>
-                            <td className="text-center">
-                              <span className="quantity">{item.quantity}</span>
-                            </td>
-                          </tr>
-                        );
-                      }) : (
+                      {rfqData?.details?.length ? (
+                        rfqData.details.map((item, index) => {
+                          const product = productMap[item.productId];
+                          return (
+                            <tr key={item.id || index}>
+                              <td className="text-center">{index + 1}</td>
+                              <td>{product?.name || `Sản phẩm ID: ${item.productId}`}</td>
+                              <td className="text-center">{item.notes || product?.standardDimensions || '—'}</td>
+                              <td className="text-center">{item.quantity}</td>
+                            </tr>
+                          );
+                        })
+                      ) : (
                         <tr>
-                          <td colSpan="5" className="text-center py-4">
-                            Không có dữ liệu sản phẩm
-                          </td>
+                          <td colSpan={4} className="text-center py-4 text-muted">Không có dữ liệu sản phẩm</td>
                         </tr>
                       )}
                     </tbody>

@@ -6,7 +6,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
 
   const renderPaginationItems = () => {
     const items = [];
-
+    const maxVisiblePages = 5;
 
     // Previous button
     items.push(

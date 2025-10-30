@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Container, Row, Col, Table, Button, Badge, Form, Alert, Spinner } from 'react-bootstrap';
 import { FaEye } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
@@ -7,186 +7,174 @@ import PlanningSidebar from '../../components/common/PlanningSidebar';
 import { quoteService } from '../../api/quoteService';
 import '../../styles/PlanningQuoteRequests.css';
 
-const STATUS_LABELS = {
-    SENT: { text: 'Đang chờ xử lý', color: 'warning' },
-    RECEIVED_BY_PLANNING: { text: 'Đã nhận', color: 'info' },
-    QUOTED: { text: 'Đã tạo báo giá', color: 'primary' },
-    APPROVED: { text: 'Đã duyệt', color: 'success' },
-    REJECTED: { text: 'Từ chối', color: 'danger' }
+const STATUS_DISPLAY = {
+  FORWARDED_TO_PLANNING: { label: 'Chờ xác nhận', variant: 'warning' },
+  RECEIVED_BY_PLANNING: { label: 'Đã nhận', variant: 'info' },
+  QUOTED: { label: 'Đã báo giá', variant: 'success' }
 };
 
-const filterOptions = [
-    { value: 'ALL', label: 'Tất cả danh mục' },
-    { value: 'SENT', label: 'Đang chờ xử lý' },
-    { value: 'RECEIVED_BY_PLANNING', label: 'Đã nhận' },
-    { value: 'QUOTED', label: 'Đã tạo báo giá' },
-    { value: 'APPROVED', label: 'Đã duyệt' },
-    { value: 'REJECTED', label: 'Từ chối' }
-];
-
 const PlanningQuoteRequests = () => {
-    const navigate = useNavigate();
-    const [rfqs, setRfqs] = useState([]);
-    const [statusFilter, setStatusFilter] = useState('ALL');
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+  const navigate = useNavigate();
+  const [rfqRequests, setRfqRequests] = useState([]);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-    useEffect(() => {
-        const fetchPlanningRFQs = async () => {
-            setLoading(true);
-            setError('');
+  useEffect(() => {
+    const fetchPlanningRFQs = async () => {
+      setLoading(true);
+      setError('');
 
-            try {
-                const [allRfqs, customers] = await Promise.all([
-                    quoteService.getAllQuoteRequests(),
-                    quoteService.getAllCustomers()
-                ]);
+      try {
+        const [rfqs, customers] = await Promise.all([
+          quoteService.getAllQuoteRequests(),
+          quoteService.getAllCustomers()
+        ]);
 
-                const customerMap = new Map();
-                customers.forEach((customer) => customerMap.set(customer.id, customer));
+        const customerMap = Object.fromEntries(customers.map(c => [c.id, c]));
 
-                const planningRfqs = allRfqs
-                    .filter((rfq) => ['SENT', 'RECEIVED_BY_PLANNING', 'QUOTED'].includes(rfq.status))
-                    .map((rfq) => {
-                        const customer = customerMap.get(rfq.customerId);
-                        return {
-                            id: rfq.id,
-                            code: rfq.rfqNumber || `RFQ-${rfq.id}`,
-                            itemCount: rfq.details?.length || 0,
-                            createdDate: rfq.createdAt ? new Date(rfq.createdAt).toLocaleDateString('vi-VN') : '—',
-                            status: rfq.status,
-                            customerName: customer?.contactPerson || `Khách hàng #${rfq.customerId}`
-                        };
-                    });
+        const filtered = rfqs
+          .filter(rfq => ['FORWARDED_TO_PLANNING', 'RECEIVED_BY_PLANNING', 'QUOTED'].includes(rfq.status))
+          .map(rfq => {
+            const customer = customerMap[rfq.customerId] || {};
+            const createdAt = rfq.createdAt ? new Date(rfq.createdAt) : null;
+            return {
+              id: rfq.id,
+              status: rfq.status,
+              rfqCode: rfq.rfqNumber || `RFQ-${rfq.id}`,
+              productCount: rfq.details?.length || 0,
+              createdAt,
+              createdDate: createdAt ? createdAt.toLocaleDateString('vi-VN') : '—',
+              customerName: customer.contactPerson || customer.fullName || '—'
+            };
+          })
+          .sort((a, b) => {
+            if (!a.createdAt || !b.createdAt) return 0;
+            return b.createdAt.getTime() - a.createdAt.getTime();
+          });
 
-                setRfqs(planningRfqs.sort((a, b) => (b.id ?? 0) - (a.id ?? 0)));
-            } catch (err) {
-                console.error('Error fetching planning RFQs', err);
-                setError(err.message || 'Không thể tải danh sách yêu cầu báo giá.');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-            fetchPlanningRFQs();
-        }, []);
-
-    const filteredRequests = useMemo(() => {
-        if (statusFilter === 'ALL') return rfqs;
-        return rfqs.filter((request) => request.status === statusFilter);
-    }, [rfqs, statusFilter]);
-
-    const handleViewDetails = (request) => {
-        navigate(`/planning/rfq/${request.id}`);
+        setRfqRequests(filtered);
+      } catch (err) {
+        console.error('Error fetching planning RFQs:', err);
+        setError(err.message || 'Không thể tải danh sách yêu cầu báo giá. Vui lòng thử lại.');
+        setRfqRequests([]);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    return (
-        <div className="planning-layout">
-            <Header />
+    fetchPlanningRFQs();
+  }, []);
 
-            <div className="d-flex">
-                <PlanningSidebar />
+  const filteredRequests = useMemo(() => {
+    if (!statusFilter) return rfqRequests;
+    return rfqRequests.filter(r => r.status === statusFilter);
+  }, [rfqRequests, statusFilter]);
 
-                <div className="flex-grow-1" style={{ backgroundColor: '#f8f9fa', minHeight: 'calc(100vh - 70px)' }}>
-                    <Container fluid className="p-4">
-                        <div className="planning-quote-requests-page">
-                            <div className="page-header mb-4">
-                                <Row className="align-items-center">
-                                    <Col>
-                                        <h1 className="page-title mb-0">Danh sách yêu cầu báo giá</h1>
-                                    </Col>
-                                    <Col xs="auto">
-                                        <Form.Select
-                                            value={statusFilter}
-                                            onChange={(event) => setStatusFilter(event.target.value)}
-                                            className="status-filter"
-                                            style={{ width: '220px' }}
-                                        >
-                                            {filterOptions.map((option) => (
-                                                <option key={option.value} value={option.value}>
-                                                    {option.label}
-                                                </option>
-                                            ))}
-                                        </Form.Select>
-                                    </Col>
-                                </Row>
-                            </div>
+  const handleViewDetails = (request) => {
+    navigate(`/planning/rfqs/${request.id}`);
+  };
 
-                            {error && (
-                                <Alert variant="danger" onClose={() => setError('')} dismissible>
-                                    {error}
-                                </Alert>
-                            )}
+  return (
+    <div className="planning-layout">
+      <Header />
 
-                            <div className="table-card bg-white rounded shadow-sm">
-                                <Table responsive className="planning-rfq-table mb-0">
-                                    <thead className="table-header">
-                                        <tr>
-                                            <th className="text-center" style={{ width: '80px' }}>#</th>
-                                            <th style={{ width: '150px' }}>Mã RFQ</th>
-                                            <th className="text-center" style={{ width: '120px' }}>Số lượng sản phẩm</th>
-                                            <th className="text-center" style={{ width: '150px' }}>Ngày tạo đơn</th>
-                                            <th className="text-center" style={{ width: '180px' }}>Trạng thái</th>
-                                            <th style={{ minWidth: '180px' }}>Khách hàng</th>
-                                            <th className="text-center" style={{ width: '120px' }}>Thao tác</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {loading ? (
-                                            <tr>
-                                                <td colSpan={7} className="text-center py-4">
-                                                    <Spinner animation="border" size="sm" className="me-2" /> Đang tải dữ liệu...
-                                                </td>
-                                            </tr>
-                                        ) : filteredRequests.length === 0 ? (
-                                            <tr>
-                                                <td colSpan={7} className="text-center py-4 text-muted">
-                                                    {statusFilter === 'ALL'
-                                                        ? 'Chưa có yêu cầu báo giá nào được gửi đến.'
-                                                        : 'Không có yêu cầu nào với trạng thái đã chọn.'}
-                                                </td>
-                                            </tr>
-                                        ) : (
-                                            filteredRequests.map((request, index) => {
-                                                const config = STATUS_LABELS[request.status] || STATUS_LABELS.SENT;
-                                                return (
-                                                    <tr key={request.id} className="table-row">
-                                                        <td className="text-center fw-bold">{index + 1}</td>
-                                                        <td>
-                                                            <span className="rfq-code">{request.code}</span>
-                                                        </td>
-                                                        <td className="text-center">
-                                                            <span className="product-count">{request.itemCount}</span>
-                                                        </td>
-                                                        <td className="text-center">
-                                                            <span className="date-text">{request.createdDate}</span>
-                                                        </td>
-                                                        <td className="text-center">
-                                                            <Badge bg={config.color} className="status-badge">
-                                                                {config.text}
-                                                            </Badge>
-                                                        </td>
-                                                        <td>
-                                                            <span className="assigned-person">{request.customerName}</span>
-                                                        </td>
-                                                        <td className="text-center">
-                                                            <Button variant="primary" size="sm" onClick={() => handleViewDetails(request)} className="view-button">
-                                                                <FaEye className="me-1" /> Xem
-                                                            </Button>
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })
-                                        )}
-                                    </tbody>
-                                </Table>
-                            </div>
-                        </div>
-                    </Container>
-                </div>
+      <div className="d-flex">
+        <PlanningSidebar />
+
+        <div className="flex-grow-1" style={{ backgroundColor: '#f8f9fa', minHeight: 'calc(100vh - 70px)' }}>
+          <Container fluid className="p-4">
+            <div className="planning-quote-requests-page">
+              <div className="page-header mb-4">
+                <Row className="align-items-center">
+                  <Col>
+                    <h1 className="page-title mb-0">RFQ chờ xử lý</h1>
+                  </Col>
+                  <Col xs="auto">
+                    <Form.Select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="status-filter"
+                      style={{ width: '220px' }}
+                    >
+                      <option value="">Tất cả trạng thái</option>
+                      {Object.entries(STATUS_DISPLAY).map(([value, { label }]) => (
+                        <option key={value} value={value}>{label}</option>
+                      ))}
+                    </Form.Select>
+                  </Col>
+                </Row>
+              </div>
+
+              {error && (
+                <Alert variant="danger" dismissible onClose={() => setError('')}>
+                  {error}
+                </Alert>
+              )}
+
+              <div className="table-card bg-white rounded shadow-sm">
+                <Table responsive className="planning-rfq-table mb-0">
+                  <thead className="table-header">
+                    <tr>
+                      <th className="text-center" style={{ width: '80px' }}>#</th>
+                      <th style={{ width: '150px' }}>Mã RFQ</th>
+                      <th className="text-center" style={{ width: '120px' }}>Số lượng dòng</th>
+                      <th className="text-center" style={{ width: '150px' }}>Ngày tạo</th>
+                      <th style={{ minWidth: '200px' }}>Khách hàng</th>
+                      <th className="text-center" style={{ width: '180px' }}>Trạng thái</th>
+                      <th className="text-center" style={{ width: '100px' }}>Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loading ? (
+                      <tr>
+                        <td colSpan={7} className="text-center py-4">
+                          <Spinner animation="border" size="sm" className="me-2" />
+                          Đang tải dữ liệu...
+                        </td>
+                      </tr>
+                    ) : filteredRequests.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="text-center py-4 text-muted">
+                          {statusFilter ? 'Không có RFQ trong trạng thái này' : 'Chưa có RFQ nào được chuyển tới'}
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredRequests.map((request, index) => {
+                        const display = STATUS_DISPLAY[request.status] || STATUS_DISPLAY.FORWARDED_TO_PLANNING;
+                        return (
+                          <tr key={request.id} className="table-row">
+                            <td className="text-center fw-bold">{index + 1}</td>
+                            <td><span className="rfq-code">{request.rfqCode}</span></td>
+                            <td className="text-center">{request.productCount}</td>
+                            <td className="text-center">{request.createdDate}</td>
+                            <td>{request.customerName}</td>
+                            <td className="text-center">
+                              <Badge bg={display.variant} className="status-badge">{display.label}</Badge>
+                            </td>
+                            <td className="text-center">
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                onClick={() => handleViewDetails(request)}
+                                className="view-button"
+                              >
+                                <FaEye className="me-1" /> Xem
+                              </Button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </Table>
+              </div>
             </div>
+          </Container>
         </div>
-    );
+      </div>
+    </div>
+  );
 };
 
 export default PlanningQuoteRequests;

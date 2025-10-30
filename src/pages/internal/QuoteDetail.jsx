@@ -26,6 +26,7 @@ const QuoteDetail = () => {
   const [success, setSuccess] = useState('');
   const [sending, setSending] = useState(false);
   const [confirmSend, setConfirmSend] = useState(false);
+  const canSend = quote?.status === 'DRAFT';
 
   useEffect(() => {
     const loadQuote = async () => {
@@ -63,7 +64,7 @@ const QuoteDetail = () => {
   }, [id]);
 
   const onSendToCustomer = async () => {
-    if (!quote?.id) return;
+    if (!quote?.id || !canSend) return;
     setSending(true); 
     setError(''); 
     setSuccess('');
@@ -241,14 +242,14 @@ const QuoteDetail = () => {
                     )}
 
                     <div className="d-flex justify-content-end gap-2 mt-4">
-                      <Button 
-                        variant="success" 
+                      <Button
+                        variant="success"
                         size="lg"
-                        disabled={sending || quote.status==='SENT' || quote.status==='ACCEPTED' || quote.status==='APPROVED'} 
+                        disabled={sending || !canSend}
                         onClick={()=>setConfirmSend(true)}
                       >
-                        <FaPaperPlane className="me-2"/> 
-                        {quote.status === 'SENT' ? 'Đã gửi khách hàng' : 'Gửi khách hàng'}
+                        <FaPaperPlane className="me-2"/>
+                        {canSend ? 'Gửi khách hàng' : 'Đã gửi khách hàng'}
                       </Button>
                     </div>
                   </>
