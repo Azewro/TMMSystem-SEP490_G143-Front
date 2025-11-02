@@ -218,17 +218,18 @@ const QuoteRequest = () => {
       console.log('Delivery Date:', deliveryDate);
       
       // Prepare the RFQ data matching backend requirements
-      const rfqData = {
-        customerId: parseInt(customerId),
-        expectedDeliveryDate: deliveryDate,
-        notes: `Customer quote request created on ${new Date().toLocaleDateString()}`,
-        details: quoteItems.map(item => ({
-          productId: parseInt(item.productId),
-          quantity: parseInt(item.quantity),
-          unit: 'pcs',
-          notes: item.size || 'Standard size'
-        }))
-      };
+                  const rfqData = {
+                    rfqNumber: `RFQ-${Date.now()}`,
+                    status: 'DRAFT',              customerId: parseInt(customerId),
+              expectedDeliveryDate: deliveryDate,
+              notes: `Customer quote request created on ${new Date().toLocaleDateString()}`,
+              details: quoteItems.map(item => ({
+                productId: parseInt(item.productId),
+                quantity: parseFloat(item.quantity),
+                unit: 'pcs',
+                notes: item.size || 'Standard size'
+              }))
+            };
       
       console.log('Final RFQ payload:', rfqData);
       
@@ -249,7 +250,7 @@ const QuoteRequest = () => {
         setDeliveryDate('');
         
         // Navigate to quotations list
-        navigate('/customer/quotations');
+        navigate('/customer/quote-requests');
       }, 2000);
       
     } catch (error) {

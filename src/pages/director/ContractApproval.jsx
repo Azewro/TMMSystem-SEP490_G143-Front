@@ -47,8 +47,9 @@ const DirectorContractApproval = () => {
     setError('');
 
     try {
-      const pending = await contractService.getPendingForDirector();
-      setContracts(Array.isArray(pending) ? pending : []);
+      const pending = await contractService.getDirectorPendingContracts();
+      const sortedContracts = Array.isArray(pending) ? pending.sort((a, b) => new Date(b.deliveryDate) - new Date(a.deliveryDate)) : [];
+      setContracts(sortedContracts);
     } catch (err) {
       console.error('Failed to fetch contracts', err);
       setError(err.message || 'Không thể tải danh sách hợp đồng chờ duyệt.');
@@ -74,7 +75,12 @@ const DirectorContractApproval = () => {
         contractService.getContractFileUrl(contract.id)
       ]);
       setOrderDetails(details);
-      setFileUrl(url);
+
+      let absoluteUrl = url;
+      if (url && !url.startsWith('http')) {
+        absoluteUrl = 'https://' + url;
+      }
+      setFileUrl(absoluteUrl);
     } catch (err) {
       console.error('Failed to load contract detail', err);
       setError(err.message || 'Không thể tải chi tiết hợp đồng.');
@@ -174,7 +180,7 @@ const DirectorContractApproval = () => {
                   <thead className="table-light">
                     <tr>
                       <th style={{ width: 60 }}>#</th>
-                      <th style={{ width: 180 }}>Số hợp đồng</th>
+                      <th style={{ width: 180 }}>Tên hợp đồng</th>
                       <th style={{ width: 160 }}>Ngày ký</th>
                       <th style={{ width: 160 }}>Ngày giao</th>
                       <th style={{ width: 160 }}>Trạng thái</th>

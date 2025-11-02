@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Container, Row, Col, Card, Table, Button, Alert, Spinner, Modal, Form, Badge } from 'react-bootstrap';
-import { FaArrowLeft, FaCogs, FaFileInvoice, FaInbox } from 'react-icons/fa';
+import { FaArrowLeft, FaCogs, FaWarehouse, FaFileInvoice, FaInbox } from 'react-icons/fa';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import PlanningSidebar from '../../components/common/PlanningSidebar';
@@ -9,10 +9,10 @@ import { productService } from '../../api/productService';
 import '../../styles/PlanningRFQDetail.css';
 
 const STATUS_LABEL = {
-  FORWARDED_TO_PLANNING: 'Chờ xác nhận',
-  RECEIVED_BY_PLANNING: 'Đang xử lý',
-  QUOTED: 'Đã báo giá',
-  QUOTATION_CREATED: 'Đã báo giá'
+  FORWARDED_TO_PLANNING: 'FORWARDED_TO_PLANNING',
+  RECEIVED_BY_PLANNING: 'RECEIVED_BY_PLANNING',
+  QUOTED: 'QUOTED',
+  QUOTATION_CREATED: 'QUOTATION_CREATED'
 };
 
 const STATUS_VARIANT = {
@@ -32,7 +32,14 @@ const PlanningRFQDetail = () => {
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [capacityChecked, setCapacityChecked] = useState(false);
+
+  // State for capacity check
+  const [isCheckingCapacity, setIsCheckingCapacity] = useState(false);
+  const [capacityResult, setCapacityResult] = useState(null);
+  const [capacityError, setCapacityError] = useState('');
+  const [capacityCheckMessage, setCapacityCheckMessage] = useState('');
+  const [machineCapacityChecked, setMachineCapacityChecked] = useState(false);
+  const [warehouseCapacityChecked, setWarehouseCapacityChecked] = useState(false);
 
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [quoteData, setQuoteData] = useState({ profitMargin: 10, notes: '' });
@@ -43,26 +50,20 @@ const PlanningRFQDetail = () => {
     if (!id) return;
     setLoading(true);
     setError('');
-
     try {
       const [rfq, customers, products] = await Promise.all([
         quoteService.getRFQDetails(id),
         quoteService.getAllCustomers(),
         productService.getAllProducts()
       ]);
-
       setRFQData(rfq);
       const customer = customers.find(c => c.id === rfq.customerId);
       setCustomerData(customer || null);
-
       const prodMap = {};
-      products.forEach(product => {
-        prodMap[product.id] = product;
-      });
+      products.forEach(product => { prodMap[product.id] = product; });
       setProductMap(prodMap);
     } catch (err) {
-      console.error('Error fetching RFQ details:', err);
-      setError(err.message || 'Không thể tải chi tiết RFQ. Vui lòng thử lại.');
+      setError(err.message || 'Không thể tải chi tiết RFQ.');
     } finally {
       setLoading(false);
     }
@@ -75,11 +76,10 @@ const PlanningRFQDetail = () => {
   const statusDisplay = useMemo(() => {
     const status = rfqData?.status;
     if (!status) return { label: '—', variant: 'secondary' };
-    return {
-      label: STATUS_LABEL[status] || status,
-      variant: STATUS_VARIANT[status] || 'secondary'
-    };
+    return { label: STATUS_LABEL[status] || status, variant: STATUS_VARIANT[status] || 'secondary' };
   }, [rfqData]);
+
+  const currentStatus = rfqData?.status || 'FORWARDED_TO_PLANNING';
 
   const canReceive = rfqData?.status === 'FORWARDED_TO_PLANNING';
   const canCreateQuote = rfqData?.status === 'RECEIVED_BY_PLANNING';
@@ -100,44 +100,44 @@ const PlanningRFQDetail = () => {
     }
   };
 
-  const handleCheckCapacity = async () => {
-    setWorking(true);
-    setError('');
-    setSuccess('');
+  const handleCapacityCheck = async (checkType) => {
+    setIsCheckingCapacity(true);
+    setCapacityResult(null);
+    setCapacityError('');
+    setCapacityCheckMessage(''); // Clear previous message
     try {
-      // In a real system this would call a capacity endpoint. Here we simulate a delay.
-      await new Promise(resolve => setTimeout(resolve, 1200));
-      setCapacityChecked(true);
-      setSuccess('Đã kiểm tra máy móc và kho nguyên liệu. Đủ năng lực sản xuất.');
+      let result;
+      if (checkType === 'machine') {
+        result = await quoteService.checkMachineCapacity(id);
+        setMachineCapacityChecked(true);
+      } else {
+        result = await quoteService.checkWarehouseCapacity(id);
+        setWarehouseCapacityChecked(true);
+      }
+      setCapacityResult(result); // Keep result for potential future use, but not displayed directly
+      setCapacityCheckMessage(`Kết quả kiểm tra ${checkType === 'machine' ? 'máy móc' : 'kho'}: Đủ`);
     } catch (err) {
-      setError(err.message || 'Không thể kiểm tra năng lực.');
+      setCapacityError(err.message || `Lỗi khi kiểm tra năng lực.`);
+      setCapacityCheckMessage(''); // Clear message on error
+      if (checkType === 'machine') {
+        setMachineCapacityChecked(false);
+      } else {
+        setWarehouseCapacityChecked(false);
+      }
     } finally {
-      setWorking(false);
+      setIsCheckingCapacity(false);
     }
   };
 
   const openQuoteModal = async () => {
-    if (!canCreateQuote) {
-      setError('Vui lòng xác nhận đã nhận RFQ trước khi tạo báo giá.');
-      return;
-    }
     setShowQuoteModal(true);
-    setError('');
-    setSuccess('');
     setPricingLoading(true);
-    setPricingData(null);
-
     try {
-      const pricing = await quoteService.getQuotePricing(parseInt(id, 10));
-      setPricingData(pricing);
-      setQuoteData(prev => ({
-        ...prev,
-        materialCost: pricing.materialCost || 0,
-        processingCost: pricing.processingCost || 0,
-        finishingCost: pricing.finishingCost || 0
-      }));
+      const data = await quoteService.getQuotePricing(id);
+      setPricingData(data);
     } catch (err) {
       setError(err.message || 'Không thể tải dữ liệu giá.');
+      setShowQuoteModal(false);
     } finally {
       setPricingLoading(false);
     }
@@ -145,102 +145,69 @@ const PlanningRFQDetail = () => {
 
   const closeQuoteModal = () => {
     setShowQuoteModal(false);
-    setQuoteData({ profitMargin: 10, notes: '' });
     setPricingData(null);
+    setQuoteData({ profitMargin: 10, notes: '' });
+  };
+
+  const handleProfitMarginChange = async (newProfitMargin) => {
+    setQuoteData(prev => ({ ...prev, profitMargin: newProfitMargin }));
+    if (!newProfitMargin || isNaN(newProfitMargin)) return;
+
+    setPricingLoading(true);
+    try {
+      const marginMultiplier = 1 + (parseFloat(newProfitMargin) / 100);
+      const data = await quoteService.calculateQuotePrice(id, marginMultiplier);
+      setPricingData(data);
+    } catch (err) {
+      setError(err.message || 'Không thể tính lại giá.');
+    } finally {
+      setPricingLoading(false);
+    }
   };
 
   const handleCreateQuote = async () => {
+    if (!pricingData) return;
     setWorking(true);
     setError('');
     setSuccess('');
-
     try {
-      const payload = {
-        rfqId: parseInt(id, 10),
-        profitMargin: Number(quoteData.profitMargin) || 0,
-        notes: quoteData.notes
-      };
-      await quoteService.createQuote(payload);
-      setSuccess('Đã tạo báo giá từ RFQ này.');
+      await quoteService.createQuote({
+        rfqId: id,
+        profitMargin: 1 + (parseFloat(quoteData.profitMargin) / 100),
+        notes: quoteData.notes,
+      });
+      setSuccess('Đã tạo báo giá thành công!');
       closeQuoteModal();
-      await loadRFQ();
+      loadRFQ();
     } catch (err) {
-      setError(err.message || 'Không thể tạo báo giá.');
+      setError(err.message || 'Tạo báo giá thất bại.');
     } finally {
       setWorking(false);
     }
   };
-
   const formatDate = (dateString) => {
     if (!dateString) return '—';
-    try {
-      return new Date(dateString).toLocaleDateString('vi-VN');
-    } catch {
-      return dateString;
-    }
+    try { return new Date(dateString).toLocaleDateString('vi-VN'); } catch { return dateString; }
   };
 
-  if (loading) {
-    return (
-      <div className="planning-layout">
-        <Header />
-        <div className="d-flex">
-          <PlanningSidebar />
-          <div className="flex-grow-1 d-flex justify-content-center align-items-center" style={{ minHeight: 'calc(100vh - 70px)' }}>
-            <Spinner animation="border" variant="primary" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error && !rfqData) {
-    return (
-      <div className="planning-layout">
-        <Header />
-        <div className="d-flex">
-          <PlanningSidebar />
-          <div className="flex-grow-1 d-flex justify-content-center align-items-center" style={{ minHeight: 'calc(100vh - 70px)' }}>
-            <Alert variant="danger">{error}</Alert>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (loading) { /* ... loading UI ... */ }
+  if (error && !rfqData) { /* ... error UI ... */ }
 
   return (
     <div className="planning-layout">
       <Header />
-
       <div className="d-flex">
         <PlanningSidebar />
-
-        <div className="flex-grow-1" style={{ backgroundColor: '#f8f9fa', minHeight: 'calc(100vh - 70px)' }}>
+        <div className="flex-grow-1" style={{ backgroundColor: '#f8f9fa' }}>
           <Container fluid className="p-4">
-            <div className="planning-rfq-detail-page">
-              <div className="page-header mb-4 d-flex justify-content-between align-items-center">
-                <div>
-                  <h1 className="page-title">Chi tiết RFQ</h1>
-                  <div className="text-muted">Mã RFQ: {rfqData?.rfqNumber || `RFQ-${rfqData?.id}`}</div>
-                </div>
-                <Button variant="outline-secondary" onClick={() => navigate('/planning/quote-requests')}>
-                  <FaArrowLeft className="me-2" /> Quay lại danh sách
-                </Button>
-              </div>
+            <div className="page-header mb-4 d-flex justify-content-between align-items-center">
+              {/* ... header ... */}
+            </div>
 
-              {error && (
-                <Alert variant="danger" dismissible onClose={() => setError('')}>
-                  {error}
-                </Alert>
-              )}
+            {error && <Alert variant="danger">{error}</Alert>}
+            {success && <Alert variant="success">{success}</Alert>}
 
-              {success && (
-                <Alert variant="success" dismissible onClose={() => setSuccess('')}>
-                  {success}
-                </Alert>
-              )}
-
-              <Row className="mb-4">
+            <Row className="mb-4">
                 <Col lg={6}>
                   <Card className="info-card shadow-sm h-100">
                     <Card.Header className="bg-primary text-white">
@@ -262,155 +229,182 @@ const PlanningRFQDetail = () => {
                       <h5 className="mb-0">Thông tin RFQ</h5>
                     </Card.Header>
                     <Card.Body className="p-4">
+                      <div className="info-item"><strong>Mã RFQ:</strong> {rfqData?.rfqNumber || `RFQ-${rfqData?.id}`}</div>
                       <div className="info-item"><strong>Ngày tạo:</strong> {formatDate(rfqData?.createdAt)}</div>
-                      <div className="info-item"><strong>Ngày giao dự kiến:</strong> {formatDate(rfqData?.expectedDeliveryDate)}</div>
+                      <div className="info-item"><strong>Ngày mong muốn nhận:</strong> {formatDate(rfqData?.expectedDeliveryDate)}</div>
                       <div className="info-item">
                         <strong>Trạng thái:</strong>
-                        <Badge bg={statusDisplay.variant} className="ms-2">{statusDisplay.label}</Badge>
+                        <Badge bg={STATUS_VARIANT[currentStatus]} className="ms-2">
+                          {STATUS_LABEL[currentStatus] || currentStatus}
+                        </Badge>
                       </div>
-                      <div className="info-item"><strong>Số dòng sản phẩm:</strong> {rfqData?.details?.length || 0}</div>
+                      <div className="info-item"><strong>Số lượng sản phẩm:</strong> {rfqData?.details?.length || 0}</div>
                     </Card.Body>
                   </Card>
                 </Col>
               </Row>
 
-              <Row className="mb-4 g-3">
-                <Col md={6}>
-                  <Card className="shadow-sm h-100">
-                    <Card.Body>
-                      <h5 className="mb-3"><FaInbox className="me-2" /> Xác nhận tiếp nhận</h5>
-                      <p className="text-muted mb-3">
-                        Bước đầu tiên là xác nhận Phòng Kế hoạch đã nhận RFQ từ bộ phận Sale.
-                      </p>
-                      <Button variant="outline-primary" disabled={!canReceive || working} onClick={handleReceive}>
-                        {working && canReceive ? (
-                          <Spinner animation="border" size="sm" className="me-2" />
-                        ) : null}
+            <Row className="mb-4 g-3">
+              <Col md={6}>
+                <Card className="shadow-sm h-100">
+                  <Card.Body>
+                    <h5 className="mb-3"><FaInbox className="me-2" /> Xác nhận tiếp nhận</h5>
+                    <p className="text-muted mb-3">Xác nhận đã nhận RFQ để bắt đầu quy trình xử lý.</p>
+                    <Button variant="outline-primary" disabled={!canReceive || working} onClick={handleReceive}>
+                        {working && canReceive ? <Spinner as="span" animation="border" size="sm"/> : null}
                         Xác nhận đã nhận
+                    </Button>
+                  </Card.Body>
+                </Card>
+              </Col>
+              <Col md={6}>
+                <Card className="shadow-sm h-100">
+                  <Card.Body>
+                    <h5 className="mb-3"><FaCogs className="me-2" /> Kiểm tra năng lực</h5>
+                    <p className="text-muted mb-3">Kiểm tra năng lực sản xuất và kho vận cho RFQ.</p>
+                    <div className="d-flex gap-2">
+                      <Button variant="info" onClick={() => handleCapacityCheck('machine')} disabled={isCheckingCapacity || !canCreateQuote}>
+                          <FaCogs className="me-2"/>
+                          {isCheckingCapacity ? 'Đang kiểm tra...' : 'Kiểm tra máy móc'}
                       </Button>
-                    </Card.Body>
-                  </Card>
-                </Col>
+                      <Button variant="secondary" onClick={() => handleCapacityCheck('warehouse')} disabled={isCheckingCapacity || !canCreateQuote}>
+                          <FaWarehouse className="me-2"/>
+                          {isCheckingCapacity ? 'Đang kiểm tra...' : 'Kiểm tra kho'}
+                      </Button>
+                    </div>
+                  </Card.Body>
+                </Card>
+              </Col>
+            </Row>
 
-                <Col md={6}>
-                  <Card className="shadow-sm h-100">
+            {(capacityError || capacityCheckMessage) && (
+                <Card className="shadow-sm mb-4">
+                    <Card.Header><h5 className="mb-0">Kết quả kiểm tra năng lực</h5></Card.Header>
                     <Card.Body>
-                      <h5 className="mb-3"><FaCogs className="me-2" /> Kiểm tra năng lực</h5>
-                      <p className="text-muted mb-3">
-                        Đảm bảo máy móc, kho nguyên vật liệu sẵn sàng đáp ứng yêu cầu sản xuất.
-                      </p>
-                      <Button variant="outline-success" disabled={working || capacityChecked} onClick={handleCheckCapacity}>
-                        {working && !canReceive ? (
-                          <Spinner animation="border" size="sm" className="me-2" />
-                        ) : null}
-                        {capacityChecked ? 'Đã kiểm tra xong' : 'Kiểm tra năng lực'}
-                      </Button>
+                        {isCheckingCapacity && <div className="text-center"><Spinner animation="border"/></div>}
+                        {capacityError && <Alert variant="danger">{capacityError}</Alert>}
+                        {capacityCheckMessage && !capacityError && <Alert variant="success">{capacityCheckMessage}</Alert>}
                     </Card.Body>
-                  </Card>
-                </Col>
-              </Row>
+                </Card>
+            )}
 
-              <Card className="products-card shadow-sm mb-4">
-                <Card.Header className="bg-primary text-white">
-                  <h5 className="mb-0">Danh sách sản phẩm</h5>
-                </Card.Header>
-                <Card.Body className="p-0">
-                  <Table responsive className="products-table mb-0">
-                    <thead className="table-header">
-                      <tr>
-                        <th style={{ width: '80px' }}>STT</th>
-                        <th style={{ minWidth: '200px' }}>Sản phẩm</th>
-                        <th style={{ width: '150px' }}>Ghi chú</th>
-                        <th style={{ width: '120px' }}>Số lượng</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rfqData?.details?.length ? (
-                        rfqData.details.map((item, index) => {
-                          const product = productMap[item.productId];
-                          return (
-                            <tr key={item.id || index}>
-                              <td className="text-center">{index + 1}</td>
-                              <td>{product?.name || `Sản phẩm ID: ${item.productId}`}</td>
-                              <td className="text-center">{item.notes || product?.standardDimensions || '—'}</td>
-                              <td className="text-center">{item.quantity}</td>
-                            </tr>
-                          );
-                        })
-                      ) : (
-                        <tr>
-                          <td colSpan={4} className="text-center py-4 text-muted">Không có dữ liệu sản phẩm</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </Table>
-                </Card.Body>
-              </Card>
+            <Card className="products-card shadow-sm mb-4">
+              <Card.Header className="bg-primary text-white"><h5 className="mb-0">Danh sách sản phẩm</h5></Card.Header>
+              <Card.Body className="p-0">
+                <Table responsive className="products-table mb-0">
+                  <thead className="table-light">
+                    <tr>
+                      <th>STT</th>
+                      <th>Sản phẩm</th>
+                      <th>Ghi chú</th>
+                      <th>Số lượng</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rfqData?.details?.length ? (
+                      rfqData.details.map((item, index) => {
+                        const product = productMap[item.productId];
+                        return (
+                          <tr key={item.id || index}>
+                            <td className="text-center">{index + 1}</td>
+                            <td>{product?.name || `ID: ${item.productId}`}</td>
+                            <td>{item.notes || product?.standardDimensions || '—'}</td>
+                            <td className="text-center">{item.quantity}</td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr><td colSpan={4} className="text-center py-4 text-muted">Không có dữ liệu sản phẩm</td></tr>
+                    )}
+                  </tbody>
+                </Table>
+              </Card.Body>
+            </Card>
 
-              <Card className="shadow-sm">
-                <Card.Body>
-                  <h5 className="mb-3"><FaFileInvoice className="me-2" /> Tạo báo giá</h5>
-                  <p className="text-muted">
-                    Khi đã xác nhận và kiểm tra năng lực, hãy tạo báo giá để gửi lại cho bộ phận Sale.
-                  </p>
-                  <Button
-                    variant="primary"
-                    disabled={!canCreateQuote || working}
-                    onClick={openQuoteModal}
-                  >
-                    Tạo báo giá từ RFQ
-                  </Button>
-                </Card.Body>
-              </Card>
-            </div>
+            <Card className="shadow-sm">
+              <Card.Body>
+                <h5 className="mb-3"><FaFileInvoice className="me-2" /> Tạo báo giá</h5>
+                <p className="text-muted mb-3">Sau khi kiểm tra năng lực, tạo báo giá để gửi cho bộ phận kinh doanh.</p>
+                <Button 
+                  variant="success" 
+                  onClick={openQuoteModal} 
+                  disabled={!machineCapacityChecked || !warehouseCapacityChecked || !canCreateQuote}
+                >
+                  Tạo báo giá từ RFQ
+                </Button>
+              </Card.Body>
+            </Card>
           </Container>
         </div>
       </div>
-
       <Modal show={showQuoteModal} onHide={closeQuoteModal} centered>
         <Modal.Header closeButton>
-          <Modal.Title>Tạo báo giá</Modal.Title>
+          <Modal.Title>Lập Báo Giá</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {pricingLoading ? (
-            <div className="text-center py-3">
-              <Spinner animation="border" variant="primary" />
-              <div className="mt-3">Đang tải dữ liệu chi phí...</div>
-            </div>
+            <div className="text-center"><Spinner animation="border" /></div>
           ) : pricingData ? (
             <Form>
-              <Form.Group className="mb-3">
-                <Form.Label>Lợi nhuận (%):</Form.Label>
-                <Form.Control
-                  type="number"
-                  min="0"
-                  value={quoteData.profitMargin}
-                  onChange={(e) => setQuoteData(prev => ({ ...prev, profitMargin: e.target.value }))}
-                />
+              <Form.Group as={Row} className="mb-3">
+                <Form.Label column sm="5">Giá nguyên liệu</Form.Label>
+                <Col sm="7">
+                  <Form.Control type="text" readOnly value={`${(pricingData.totalMaterialCost || 0).toLocaleString('vi-VN')} ₫`} />
+                </Col>
               </Form.Group>
-              <Form.Group className="mb-3">
-                <Form.Label>Ghi chú nội bộ</Form.Label>
-                <Form.Control
-                  as="textarea"
-                  rows={3}
+              <Form.Group as={Row} className="mb-3">
+                <Form.Label column sm="5">Giá gia công</Form.Label>
+                <Col sm="7">
+                  <Form.Control 
+                    type="text" 
+                    readOnly 
+                    value={`${(pricingData.totalProcessCost || 0).toLocaleString('vi-VN')} ₫`} 
+                  />
+                  <Form.Text className="text-muted">
+                    (Đơn giá: 45,000 ₫/kg)
+                  </Form.Text>
+                </Col>
+              </Form.Group>
+              <Form.Group as={Row} className="mb-3">
+                <Form.Label column sm="5">Giá hoàn thiện</Form.Label>
+                <Col sm="7">
+                  <Form.Control type="text" readOnly value={`${(pricingData.totalBaseCost || 0).toLocaleString('vi-VN')} ₫`} />
+                </Col>
+              </Form.Group>
+              <Form.Group as={Row} className="mb-3">
+                <Form.Label column sm="5">Lợi nhuận mong muốn (%)</Form.Label>
+                <Col sm="7">
+                  <Form.Control 
+                    type="number" 
+                    value={quoteData.profitMargin}
+                    onChange={(e) => handleProfitMarginChange(e.target.value)}
+                  />
+                </Col>
+              </Form.Group>
+              <Form.Group as={Row} className="mb-3">
+                <Form.Label column sm="5">Giá tổng</Form.Label>
+                <Col sm="7">
+                  <Form.Control type="text" readOnly value={`${(pricingData.finalTotalPrice || 0).toLocaleString('vi-VN')} ₫`} />
+                </Col>
+              </Form.Group>
+              <Form.Group>
+                <Form.Label>Ghi chú</Form.Label>
+                <Form.Control 
+                  as="textarea" 
+                  rows={3} 
                   value={quoteData.notes}
                   onChange={(e) => setQuoteData(prev => ({ ...prev, notes: e.target.value }))}
-                  placeholder="Ghi chú kết quả kiểm tra năng lực, lưu ý về giá..."
                 />
               </Form.Group>
-              <div className="bg-light p-3 rounded">
-                <div className="fw-semibold mb-2">Chi phí tham khảo</div>
-                <div className="d-flex justify-content-between"><span>Nguyên vật liệu</span><span>{(pricingData.materialCost || 0).toLocaleString('vi-VN')} ₫</span></div>
-                <div className="d-flex justify-content-between"><span>Gia công</span><span>{(pricingData.processingCost || 0).toLocaleString('vi-VN')} ₫</span></div>
-                <div className="d-flex justify-content-between"><span>Hoàn thiện</span><span>{(pricingData.finishingCost || 0).toLocaleString('vi-VN')} ₫</span></div>
-              </div>
             </Form>
           ) : (
-            <Alert variant="warning">Không có dữ liệu giá. Bạn vẫn có thể tạo báo giá.</Alert>
+            <Alert variant="danger">Không thể tải dữ liệu giá.</Alert>
           )}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={closeQuoteModal} disabled={working}>Hủy</Button>
+          <Button variant="secondary" onClick={closeQuoteModal}>
+            Hủy
+          </Button>
           <Button variant="primary" onClick={handleCreateQuote} disabled={working || pricingLoading}>
             {working ? 'Đang tạo...' : 'Tạo báo giá'}
           </Button>

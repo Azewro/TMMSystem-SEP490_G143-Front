@@ -1,33 +1,59 @@
 import React from 'react';
 import { Nav } from 'react-bootstrap';
-import { FaUser, FaFileInvoice, FaShoppingCart } from 'react-icons/fa';
-import { useLocation } from 'react-router-dom';
+import { FaTachometerAlt, FaFileInvoice, FaPlusSquare, FaShoppingCart } from 'react-icons/fa';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const CustomerSidebar = () => {
+  const navigate = useNavigate();
   const location = useLocation();
 
   const menuItems = [
-    { path: '/customer/dashboard', label: 'Tổng quan', icon: <FaUser /> },
-    { path: '/customer/quotations', label: 'Yêu cầu báo giá', icon: <FaFileInvoice /> },
-    { path: '/customer/quote-request', label: 'Tạo yêu cầu báo giá', icon: <FaShoppingCart /> },
-    { path: '/customer/orders', label: 'Đơn hàng', icon: <FaShoppingCart /> },
+    {
+      icon: FaTachometerAlt,
+      label: 'Tổng quan',
+      path: '/customer/dashboard',
+    },
+    {
+      icon: FaFileInvoice,
+      label: 'Yêu cầu đã gửi',
+      path: '/customer/quote-requests',
+    },
+    {
+      icon: FaShoppingCart,
+      label: 'Đơn hàng của tôi',
+      path: '/customer/orders',
+    }
   ];
 
   return (
-    <div className="sidebar" style={{ width: '250px', backgroundColor: '#343a40', minHeight: '100vh' }}>
-      <Nav className="flex-column">
-        {menuItems.map((item) => (
-          <Nav.Link
-            key={item.path}
-            href={item.path}
-            className={`text-light p-3 ${location.pathname === item.path ? 'bg-primary' : ''}`}
-            style={{ textDecoration: 'none' }}
-          >
-            <span className="me-2">{item.icon}</span>
-            {item.label}
-          </Nav.Link>
-        ))}
-      </Nav>
+    <div className="sidebar bg-light border-end" style={{ width: '250px', minHeight: 'calc(100vh - 70px)' }}>
+      <div className="sidebar-content p-3">
+        <Nav className="flex-column">
+          {menuItems.map((item, index) => {
+            const IconComponent = item.icon;
+            // Check if the current path starts with the item's path.
+            // For the dashboard, we use an exact match.
+            const isActive = item.path === '/customer/dashboard' 
+              ? location.pathname === item.path 
+              : location.pathname.startsWith(item.path);
+
+            return (
+              <Nav.Link
+                key={index}
+                href="#"
+                className={`sidebar-item d-flex align-items-center py-3 px-3 mb-1 rounded ${isActive ? 'bg-primary text-white' : 'text-dark'}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate(item.path);
+                }}
+              >
+                <IconComponent className="me-3" size={16} />
+                <span>{item.label}</span>
+              </Nav.Link>
+            );
+          })}
+        </Nav>
+      </div>
     </div>
   );
 };

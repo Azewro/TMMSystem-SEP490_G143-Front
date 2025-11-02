@@ -1,75 +1,69 @@
 import React from 'react';
 import { Nav } from 'react-bootstrap';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-  FaClipboardList, 
-  FaBox, 
-  FaIndustry, 
-  FaExclamationTriangle, 
-  FaTruck 
+import {
+  FaClipboardList,
+  FaBox,
+  FaIndustry,
+  FaExclamationTriangle,
+  FaTruck
 } from 'react-icons/fa';
 
 const PlanningSidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const handleNavClick = (path) => {
-    navigate(path);
-  };
-
-  const isActiveRoute = (path) => {
-    return location.pathname === path;
-  };
+  const menuItems = [
+    {
+      icon: FaClipboardList,
+      label: 'Yêu cầu báo giá',
+      path: '/planning/quote-requests',
+    },
+    {
+      icon: FaBox,
+      label: 'Đơn hàng',
+      path: '/planning/orders',
+    },
+    {
+      icon: FaIndustry,
+      label: 'Lệnh Sản Xuất',
+      path: '/planning/production-orders',
+    },
+    {
+      icon: FaExclamationTriangle,
+      label: 'Báo cáo rủi ro',
+      path: '/planning/risk-reports',
+    },
+    {
+      icon: FaTruck,
+      label: 'Ảnh hưởng giao hàng',
+      path: '/planning/delivery-impact',
+    }
+  ];
 
   return (
-    <div className="internal-sidebar bg-light shadow-sm" style={{ width: '250px', minHeight: 'calc(100vh - 70px)' }}>
-      <div className="p-4">
-        <h5 className="text-primary mb-3">Phòng Kế Hoạch</h5>
+    <div className="sidebar bg-light border-end" style={{ width: '250px', minHeight: 'calc(100vh - 70px)' }}>
+      <div className="sidebar-content p-3">
         <Nav className="flex-column">
-          <Nav.Link 
-            className={`sidebar-link py-3 ${isActiveRoute('/planning/quote-requests') ? 'active' : ''}`}
-            onClick={() => handleNavClick('/planning/quote-requests')}
-            style={{ cursor: 'pointer' }}
-          >
-            <FaClipboardList className="me-3" />
-            Yêu cầu báo giá
-          </Nav.Link>
-          
-          <Nav.Link 
-            className={`sidebar-link py-3 ${isActiveRoute('/planning/orders') ? 'active' : ''}`}
-            onClick={() => handleNavClick('/planning/orders')}
-            style={{ cursor: 'pointer' }}
-          >
-            <FaBox className="me-3" />
-            Đơn hàng
-          </Nav.Link>
-          
-          <Nav.Link 
-            className={`sidebar-link py-3 ${isActiveRoute('/planning/production-orders') ? 'active' : ''}`}
-            onClick={() => handleNavClick('/planning/production-orders')}
-            style={{ cursor: 'pointer' }}
-          >
-            <FaIndustry className="me-3" />
-            Lệnh Sản Xuất
-          </Nav.Link>
-          
-          <Nav.Link 
-            className={`sidebar-link py-3 ${isActiveRoute('/planning/risk-reports') ? 'active' : ''}`}
-            onClick={() => handleNavClick('/planning/risk-reports')}
-            style={{ cursor: 'pointer' }}
-          >
-            <FaExclamationTriangle className="me-3" />
-            Báo cáo rủi ro
-          </Nav.Link>
-          
-          <Nav.Link 
-            className={`sidebar-link py-3 ${isActiveRoute('/planning/delivery-impact') ? 'active' : ''}`}
-            onClick={() => handleNavClick('/planning/delivery-impact')}
-            style={{ cursor: 'pointer' }}
-          >
-            <FaTruck className="me-3" />
-            Ảnh hưởng giao hàng
-          </Nav.Link>
+          {menuItems.map((item, index) => {
+            const IconComponent = item.icon;
+            const isActive = location.pathname.startsWith(item.path);
+
+            return (
+              <Nav.Link
+                key={index}
+                href="#"
+                className={`sidebar-item d-flex align-items-center py-3 px-3 mb-1 rounded ${isActive ? 'bg-primary text-white' : 'text-dark'}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate(item.path);
+                }}
+              >
+                <IconComponent className="me-3" size={16} />
+                <span>{item.label}</span>
+              </Nav.Link>
+            );
+          })}
         </Nav>
       </div>
     </div>

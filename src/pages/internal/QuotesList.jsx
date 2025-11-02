@@ -7,13 +7,14 @@ import InternalSidebar from '../../components/common/InternalSidebar';
 import { quoteService } from '../../api/quoteService';
 
 const statusMap = {
-  PENDING: { label: 'Chờ duyệt', variant: 'warning' },
-  SENT: { label: 'Chờ duyệt', variant: 'warning' },  // Keep same as your image
-  APPROVED: { label: 'Đã duyệt', variant: 'success' },
-  ACCEPTED: { label: 'Đã duyệt', variant: 'success' },
-  REJECTED: { label: 'Từ chối', variant: 'danger' },
-  EXPIRED: { label: 'Hết hạn', variant: 'secondary' },
-  CANCELED: { label: 'Đã hủy', variant: 'dark' }
+  DRAFT: { variant: 'secondary' },
+  SENT: { variant: 'primary' },
+  ACCEPTED: { variant: 'success' },
+  REJECTED: { variant: 'danger' },
+  EXPIRED: { variant: 'light', text: 'dark' },
+  CANCELED: { variant: 'dark' },
+  ORDER_CREATED: { variant: 'info' },
+  QUOTED: { variant: 'info' }
 };
 
 const formatDate = (iso) => {
@@ -43,35 +44,38 @@ const QuotesList = () => {
   const [q, setQ] = useState('');
 
   useEffect(() => {
-    const fetchQuotes = async () => {
-      setLoading(true); 
+    const fetchAndEnrichQuotes = async () => {
+      setLoading(true);
       setError('');
-      
-      console.log('=== FETCHING QUOTES ===');
-      console.log('User token:', localStorage.getItem('userToken') ? 'EXISTS' : 'MISSING');
-      
       try {
-        const data = await quoteService.getAllQuotes();
-        console.log('Raw API response:', data);
-        
-        if (Array.isArray(data)) {
-          console.log('Sample quote object:', data[0]);
-          setQuotes(data);
+        const [quotesData, customersData] = await Promise.all([
+          quoteService.getAllQuotes(),
+          quoteService.getAllCustomers()
+        ]);
+
+        if (Array.isArray(quotesData) && Array.isArray(customersData)) {
+          const customerMap = new Map(customersData.map(c => [c.id, c]));
+          const enrichedQuotes = quotesData.map(quote => ({
+            ...quote,
+            customer: customerMap.get(quote.customerId)
+          }));
+
+          const sortedData = enrichedQuotes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          setQuotes(sortedData);
         } else {
-          console.warn('API returned non-array:', data);
+          console.warn('API returned non-array data for quotes or customers.');
           setQuotes([]);
         }
       } catch (e) {
         console.error('Fetch error:', e);
-        console.error('Error response:', e?.response?.data);
         setError('Không thể tải danh sách báo giá: ' + (e?.message || 'Lỗi không xác định'));
         setQuotes([]);
-      } finally { 
-        setLoading(false); 
+      } finally {
+        setLoading(false);
       }
     };
-    
-    fetchQuotes();
+
+    fetchAndEnrichQuotes();
   }, []);
 
   const filtered = useMemo(() => {
@@ -149,7 +153,7 @@ const QuotesList = () => {
                       </td></tr>
                     )}
                     {!loading && !error && filtered.map((quote, idx) => {
-                      const status = statusMap[quote.status] || statusMap.PENDING;
+                      const status = statusMap[quote.status] || { variant: 'secondary' };
                       return (
                         <tr key={quote.id || idx}>
                           <td>{idx + 1}</td>
@@ -163,8 +167,8 @@ const QuotesList = () => {
                             {formatCurrency(quote.totalAmount)}
                           </td>
                           <td>
-                            <Badge bg={status.variant} className="px-2 py-1">
-                              CHỜ DUYỆT
+                            <Badge bg={status.variant} text={status.text || null} className="px-2 py-1">
+                              {quote.status}
                             </Badge>
                           </td>
                           <td className="text-center">

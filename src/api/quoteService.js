@@ -74,6 +74,67 @@ export const quoteService = {
     }
   },
 
+  updateRfq: async (rfqId, payload) => {
+    try {
+      const response = await apiClient.put(`/v1/rfqs/${rfqId}`, payload);
+      return response.data;
+    } catch (error) {
+      throw new Error(mapApiError(error, 'Lỗi khi cập nhật RFQ'));
+    }
+  },
+
+  addRfqDetail: async (rfqId, detailPayload) => {
+    try {
+      const response = await apiClient.post(`/v1/rfqs/${rfqId}/details`, detailPayload);
+      return response.data;
+    } catch (error) {
+      throw new Error(mapApiError(error, 'Lỗi khi thêm sản phẩm vào RFQ'));
+    }
+  },
+
+  updateRfqDetail: async (detailId, detailPayload) => {
+    try {
+      const response = await apiClient.put(`/v1/rfqs/details/${detailId}`, detailPayload);
+      return response.data;
+    } catch (error) {
+      throw new Error(mapApiError(error, 'Lỗi khi cập nhật sản phẩm trong RFQ'));
+    }
+  },
+
+  deleteRfqDetail: async (detailId) => {
+    try {
+      await apiClient.delete(`/v1/rfqs/details/${detailId}`);
+    } catch (error) {
+      throw new Error(mapApiError(error, 'Lỗi khi xóa sản phẩm khỏi RFQ'));
+    }
+  },
+
+  deleteRfq: async (rfqId) => {
+    try {
+      await apiClient.delete(`/v1/rfqs/${rfqId}`);
+    } catch (error) {
+      throw new Error(mapApiError(error, 'Lỗi khi xóa RFQ'));
+    }
+  },
+
+  checkMachineCapacity: async (rfqId) => {
+    try {
+      const response = await apiClient.post(`/v1/rfqs/${rfqId}/check-machine-capacity`);
+      return response.data;
+    } catch (error) {
+      throw new Error(mapApiError(error, 'Lỗi khi kiểm tra năng lực máy móc'));
+    }
+  },
+
+  checkWarehouseCapacity: async (rfqId) => {
+    try {
+      const response = await apiClient.post(`/v1/rfqs/${rfqId}/check-warehouse-capacity`);
+      return response.data;
+    } catch (error) {
+      throw new Error(mapApiError(error, 'Lỗi khi kiểm tra năng lực kho'));
+    }
+  },
+
   /**
    * RFQ workflow for Sales & Planning
    */
@@ -120,7 +181,7 @@ export const quoteService = {
     try {
       const response = await apiClient.post('/v1/quotations/calculate-price', {
         rfqId,
-        profitMargin: 0
+        profitMargin: 1.10 // Default to 10% profit margin
       });
       return response.data;
     } catch (error) {
@@ -215,7 +276,7 @@ export const quoteService = {
    */
   getCustomerQuotations: async (customerId) => {
     try {
-      const response = await apiClient.get(`/v1/customers/${customerId}/quotations`);
+      const response = await apiClient.get(`/v1/quotations/customer/${customerId}`);
       return Array.isArray(response.data) ? response.data : [];
     } catch (error) {
       throw new Error(mapApiError(error, 'Lỗi khi tải báo giá của khách hàng'));

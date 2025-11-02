@@ -68,7 +68,9 @@ const LoginPage = () => {
         // Internal staff login - check specific role
         const userRole = userData.role?.toUpperCase() || userData.userType?.toUpperCase();
 
-        if (userRole?.includes('PLANNING') || userRole?.includes('PLANNER') || userRole === 'PLANNING_DEPARTMENT') {
+        if (userRole?.includes('DIRECTOR')) {
+          navigate('/director/contract-approval');
+        } else if (userRole?.includes('PLANNING') || userRole?.includes('PLANNER') || userRole === 'PLANNING_DEPARTMENT') {
           navigate('/planning/quote-requests');
         } else {
           navigate('/internal/quote-requests'); // default for Sales

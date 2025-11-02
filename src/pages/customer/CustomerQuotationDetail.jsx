@@ -5,6 +5,7 @@ import { FaArrowLeft } from 'react-icons/fa';
 import Header from '../../components/common/Header';
 import CustomerSidebar from '../../components/common/CustomerSidebar';
 import { quoteService } from '../../api/quoteService';
+import { productService } from '../../api/productService';
 
 const formatCurrency = (v) => new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(v||0);
 const formatDate = (iso) => iso ? new Date(iso).toLocaleDateString('vi-VN') : 'N/A';
@@ -14,6 +15,7 @@ const CustomerQuotationDetail = () => {
   const navigate = useNavigate();
 
   const [quote, setQuote] = useState(null);
+  const [products, setProducts] = useState(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -24,8 +26,21 @@ const CustomerQuotationDetail = () => {
     const fetch = async () => {
       setLoading(true); setError('');
       try {
-        const data = await quoteService.getQuoteDetails(id);
-        setQuote(data);
+        const [quoteData, productsData] = await Promise.all([
+          quoteService.getQuoteDetails(id),
+          productService.getAllProducts()
+        ]);
+
+        const productMap = new Map(productsData.map(p => [p.id, p]));
+        setProducts(productMap);
+
+        // Enrich quote details with product info
+        const enrichedQuoteDetails = quoteData.details.map(item => ({
+          ...item,
+          product: productMap.get(item.productId)
+        }));
+
+        setQuote({ ...quoteData, details: enrichedQuoteDetails });
       } catch (e) { setError(e.message || 'Không thể tải báo giá'); }
       finally { setLoading(false); }
     };
@@ -94,7 +109,7 @@ const CustomerQuotationDetail = () => {
                       <Col md={6}>
                         <div><strong>Trạng thái:</strong></div>
                         <Badge bg={getStatusBadge(quote.status).bg} className="fs-6">
-                          {getStatusBadge(quote.status).text}
+                          {quote.status}
                         </Badge>
                       </Col>
                       <Col md={6} className="text-end">
@@ -114,21 +129,17 @@ const CustomerQuotationDetail = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {Array.isArray(quote.items) && quote.items.length > 0 ? quote.items.map((it, idx) => (
+                        {Array.isArray(quote.details) && quote.details.length > 0 ? quote.details.map((it, idx) => (
                           <tr key={it.id || idx}>
-                            <td>{it.productName || it.product?.name || 'Sản phẩm'}</td>
-                            <td>{it.size || it.product?.standardDimensions || it.dimensions || 'Tờ 150D-500m'}</td>
+                            <td>{it.product?.name || 'Sản phẩm không xác định'}</td>
+                            <td>{it.product?.standardDimensions || '—'}</td>
                             <td>{it.quantity || it.qty || 0}</td>
                             <td>{(it.unitPrice || 0).toLocaleString('vi-VN')}</td>
                             <td>{it.notes || 'Đồng/cái'}</td>
                           </tr>
                         )) : (
                           <tr>
-                            <td>Khăn mặt Bambo</td>
-                            <td>Tờ 150D-500m</td>
-                            <td>200</td>
-                            <td>13,000</td>
-                            <td>Đồng/cái</td>
+                            <td colSpan="5" className="text-center text-muted">Không có sản phẩm nào trong báo giá.</td>
                           </tr>
                         )}
                       </tbody>

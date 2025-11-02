@@ -1,0 +1,37 @@
+/* src/styles/CustomerQuoteRequests.css */
+
+.customer-layout .table-card {
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.customer-layout .table {
+  font-size: 0.9rem;
+}
+
+.customer-layout .table thead.table-light th {
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+  font-weight: 600;
+  color: #495057;
+  padding: 1rem;
+  vertical-align: middle;
+}
+
+.customer-layout .table tbody tr:hover {
+  background-color: #f1f3f4;
+}
+
+.customer-layout .table tbody td {
+  padding: 1rem;
+  vertical-align: middle;
+  border-top: 1px solid #e9ecef;
+}
+
+.customer-layout .badge {
+  padding: 0.4em 0.75em;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 20px;
+}
