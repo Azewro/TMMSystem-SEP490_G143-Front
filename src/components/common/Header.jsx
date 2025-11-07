@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navbar, Nav, Form, FormControl, Button, Dropdown } from 'react-bootstrap';
-import { FaSearch, FaBell, FaUserCircle, FaUser, FaCog, FaSignOutAlt } from 'react-icons/fa';
+import { FaSearch, FaBell, FaUserCircle, FaTachometerAlt, FaCog, FaSignOutAlt } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -13,10 +13,24 @@ const Header = () => {
     navigate('/login');
   };
 
+  const getDashboardPath = () => {
+    if (!user) return '/';
+    switch (user.role) {
+      case 'CUSTOMER':
+        return '/customer/dashboard';
+      case 'DIRECTOR':
+        return '/director/contract-approval';
+      case 'PLANNING_DEPARTMENT':
+        return '/planning/quote-requests';
+      default:
+        return '/internal/quote-requests'; // Default for Sales
+    }
+  };
+
   return (
-    <Navbar bg="white" expand="lg" className="shadow-sm border-bottom px-3">
+    <Navbar bg="white" expand="lg" className="shadow-sm border-bottom px-3 sticky-top">
       {/* Logo */}
-      <Navbar.Brand href="#" className="me-4">
+      <Navbar.Brand href="/" onClick={(e) => { e.preventDefault(); navigate('/'); }} style={{cursor: 'pointer'}}>
         <img
           src="/logo.png"
           alt="TMM System"
@@ -42,46 +56,50 @@ const Header = () => {
 
         {/* Right Side Navigation */}
         <Nav className="ms-auto align-items-center">
-          {/* Create Quote Request Button */}
-          <Button 
-            variant="primary" 
-            className="me-3"
-            onClick={() => navigate('/customer/quote-request')}
-          >
-            Tạo yêu cầu báo giá
-          </Button>
+          {user ? (
+            <>
+              {/* Notifications */}
+              <Nav.Link href="#" className="position-relative me-3">
+                <FaBell size={20} />
+                <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                  3
+                </span>
+              </Nav.Link>
 
-          {/* Notifications */}
-          <Nav.Link href="#" className="position-relative me-3">
-            <FaBell size={20} />
-            <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-              3
-            </span>
-          </Nav.Link>
+              {/* User Dropdown */}
+              <Dropdown align="end">
+                <Dropdown.Toggle variant="link" className="text-decoration-none text-dark d-flex align-items-center">
+                  <FaUserCircle size={24} className="me-2" />
+                  <span>{user?.name || user?.email || 'User'}</span>
+                </Dropdown.Toggle>
 
-          {/* User Dropdown */}
-          <Dropdown align="end">
-            <Dropdown.Toggle variant="link" className="text-decoration-none text-dark">
-              <FaUserCircle size={24} className="me-1" />
-              <span>{user?.name || user?.email || 'User'}</span>
-            </Dropdown.Toggle>
-
-            <Dropdown.Menu>
-              <Dropdown.Item href="#profile">
-                <FaUser className="me-2" />
-                Hồ sơ
-              </Dropdown.Item>
-              <Dropdown.Item href="#settings">
-                <FaCog className="me-2" />
-                Cài đặt
-              </Dropdown.Item>
-              <Dropdown.Divider />
-              <Dropdown.Item onClick={handleLogout}>
-                <FaSignOutAlt className="me-2" />
-                Đăng xuất
-              </Dropdown.Item>
-            </Dropdown.Menu>
-          </Dropdown>
+                <Dropdown.Menu>
+                  <Dropdown.Item onClick={() => navigate(getDashboardPath())}>
+                    <FaTachometerAlt className="me-2" />
+                    Bảng điều khiển
+                  </Dropdown.Item>
+                  <Dropdown.Item href="#settings">
+                    <FaCog className="me-2" />
+                    Cài đặt
+                  </Dropdown.Item>
+                  <Dropdown.Divider />
+                  <Dropdown.Item onClick={handleLogout}>
+                    <FaSignOutAlt className="me-2" />
+                    Đăng xuất
+                  </Dropdown.Item>
+                </Dropdown.Menu>
+              </Dropdown>
+            </>
+          ) : (
+            <>
+              <Button variant="outline-primary" className="me-2" onClick={() => navigate('/login')}>
+                Đăng nhập
+              </Button>
+              <Button variant="primary" onClick={() => navigate('/register')}>
+                Đăng ký
+              </Button>
+            </>
+          )}
         </Nav>
       </Navbar.Collapse>
     </Navbar>

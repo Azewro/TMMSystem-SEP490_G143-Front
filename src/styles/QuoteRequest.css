@@ -1,133 +1,78 @@
-/* Quote Request Styling */
+/* Quote Request General Styling */
 .quote-request-card {
   background-color: white;
   border-radius: 12px;
   border: none;
+  font-size: 0.875rem; /* Set a smaller base font size */
 }
 
+/* Header */
 .quote-header {
-  text-align: center;
+  text-align: left;
   border-bottom: 1px solid #e9ecef;
-  padding-bottom: 20px;
+  padding-bottom: 0.75rem;
+  margin-bottom: 1.5rem !important;
 }
 
 .quote-title {
-  font-size: 1.75em;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 8px;
+  font-size: 1.75rem; /* Smaller title */
+  font-weight: 700;
+  color: #212529;
 }
 
 .quote-subtitle {
-  font-size: 1em;
-  margin-bottom: 0;
+  font-size: 0.95rem; /* Smaller subtitle */
+  color: #6c757d;
 }
 
-.product-item-section {
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 20px;
-  background-color: #fafbfc;
-}
-
-.product-item-section:not(:last-child) {
-  margin-bottom: 20px;
-}
-
+/* Form Sections */
 .form-label {
   font-weight: 500;
-  color: #495057;
-  margin-bottom: 8px;
+  font-size: 0.8rem; /* Smaller labels */
+  margin-bottom: 0.2rem;
 }
 
-.form-control,
-.form-select {
-  border: 1px solid #ced4da;
-  border-radius: 6px;
-  padding: 10px 12px;
-  font-size: 0.95em;
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+.product-item-row {
+  padding: 0.2rem 0;
 }
 
-.form-control:focus,
-.form-select:focus {
-  border-color: #0d6efd;
-  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+/* File Upload Input */
+.form-control[type="file"] {
+  padding: 0.4rem;
+  background-color: #f8f9fa;
+  border-style: dashed;
 }
 
-.add-product-btn {
-  background-color: #ffc107;
-  border-color: #ffc107;
-  color: #000;
-  font-weight: 500;
-  padding: 10px 24px;
-  border-radius: 6px;
-  transition: all 0.3s ease;
+.form-control[type="file"]::-webkit-file-upload-button {
+  visibility: hidden;
 }
 
-.add-product-btn:hover {
-  background-color: #ffb300;
-  border-color: #ffb300;
-  color: #000;
-  transform: translateY(-1px);
-}
-
-.submit-quote-btn {
-  background-color: #0d6efd;
-  border-color: #0d6efd;
-  padding: 12px 30px;
-  font-weight: 600;
-  border-radius: 6px;
-  transition: all 0.3s ease;
-}
-
-.submit-quote-btn:hover {
-  background-color: #0b5ed7;
-  border-color: #0b5ed7;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
-}
-
-.delivery-date-section {
-  border-top: 1px solid #e9ecef;
-  padding-top: 20px;
-}
-
-/* Remove product button styling */
-.btn-outline-danger {
+.form-control[type="file"]::before {
+  content: 'Chọn file';
+  display: inline-block;
+  background: #0d6efd;
+  color: white;
+  border-radius: 3px;
   padding: 4px 8px;
-  font-size: 0.8em;
+  outline: none;
+  white-space: nowrap;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.75rem;
+  margin-right: 8px;
+}
+
+.form-control[type="file"]:hover::before {
+  background: #0b5ed7;
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .quote-request-card .card-body {
-    padding: 30px 20px;
+    padding: 1.5rem !important;
   }
   
   .quote-title {
-    font-size: 1.5em;
+    font-size: 1.5rem;
   }
-  
-  .product-item-section {
-    padding: 15px;
-  }
-}
-
-/* Alert styling */
-.alert {
-  border: none;
-  border-radius: 8px;
-  padding: 12px 16px;
-  margin-bottom: 20px;
-}
-
-.alert-success {
-  background-color: #d1edff;
-  color: #0c5460;
-}
-
-.alert-danger {
-  background-color: #f8d7da;
-  color: #721c24;
 }

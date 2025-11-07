@@ -1,116 +1,99 @@
-/* src/styles/CustomerHomePage.css */
-
+/* General Styling */
 .customer-home-page {
-    padding: 20px;
-    background-color: #fff; /* Nền trắng cho khu vực nội dung */
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #333;
 }
 
-.page-title {
-    font-size: 1.8em;
-    font-weight: 700;
-    color: #343a40;
-    margin-bottom: 5px; /* Giảm margin dưới */
+.section-title {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 1rem;
 }
 
-.page-subtitle {
-    font-size: 1em;
-    color: #6c757d;
-    margin-bottom: 25px;
+.section-subtitle {
+    font-size: 1.1rem;
+    color: #7f8c8d;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
-.filter-container {
-    margin-bottom: 25px;
+.bg-light {
+    background-color: #f8f9fa !important;
+}
+
+/* Hero Banner Section */
+.hero-banner {
+    background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('/khan-spa.png') no-repeat center center;
+    background-size: cover;
+    background-position: center center;
+    padding: 100px 0;
+    min-height: 60vh;
     display: flex;
     align-items: center;
-    gap: 15px; /* Khoảng cách giữa các filter */
+    justify-content: center;
+    flex-direction: column;
 }
 
-.category-dropdown {
-    padding: 8px 12px;
-    border: 1px solid #ced4da;
-    border-radius: 6px;
-    font-size: 0.95em;
-    min-width: 200px; /* Chiều rộng tối thiểu */
-    cursor: pointer;
+.hero-title {
+    font-size: 4rem;
+    font-weight: 700;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
-.loading-message,
-.error-message,
-.no-products-message {
+.hero-subtitle {
+    font-size: 1.5rem;
+    margin-top: 1rem;
+    margin-bottom: 2rem;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* About Us Section */
+.about-us-section {
+    background-color: #ffffff;
+}
+
+.about-us-section .lead {
+    font-weight: 500;
+    color: #34495e;
+}
+
+.about-us-section p {
+    line-height: 1.8;
+}
+
+/* Featured Products Section */
+.featured-products-section {
+    padding-top: 4rem;
+    padding-bottom: 4rem;
+}
+
+/* Partners Section */
+.partners-section {
+    background-color: #ffffff;
+}
+
+.partner-logo {
+    transition: transform 0.3s ease-in-out;
+    padding: 20px;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.partner-logo p {
+    margin: 0;
+    font-weight: 600;
+    color: #566573;
     text-align: center;
-    padding: 40px 20px;
-    font-size: 1.1em;
-    color: #6c757d;
 }
 
-.error-message {
-    color: #dc3545;
-}
-
-.product-grid {
-    display: grid;
-    /* --- Grid 3 cột --- */
-    grid-template-columns: repeat(3, 1fr); /* Tạo 3 cột bằng nhau */
-    gap: 25px; /* Khoảng cách giữa các card */
-    margin-bottom: 30px;
-}
-
-/* --- Responsive Grid --- */
-@media (max-width: 992px) { /* Tablet */
-    .product-grid {
-        grid-template-columns: repeat(2, 1fr); /* 2 cột */
-        gap: 20px;
-    }
-}
-
-@media (max-width: 768px) { /* Mobile lớn */
-     .page-title {
-         font-size: 1.6em;
-     }
-     .page-subtitle {
-         font-size: 0.95em;
-     }
-}
-
-@media (max-width: 576px) { /* Mobile nhỏ */
-    .customer-home-page {
-        padding: 15px;
-    }
-    .product-grid {
-        grid-template-columns: 1fr; /* 1 cột */
-        gap: 15px;
-    }
-     .filter-container {
-        flex-direction: column; /* Xếp dọc filter */
-        align-items: stretch; /* Kéo dài dropdown */
-     }
-     .category-dropdown {
-         min-width: 100%;
-     }
-}
-
-/* Product Card Hover Effects */
-.product-card {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.product-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-}
-
-/* Customer Layout */
-.customer-layout {
-    min-height: 100vh;
-}
-
-.sidebar-item {
-    transition: all 0.3s ease;
-}
-
-.sidebar-item:hover {
-    background-color: #e9ecef !important;
-    color: #495057 !important;
+.partner-logo:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
 }
