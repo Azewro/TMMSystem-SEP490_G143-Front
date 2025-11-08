@@ -1,35 +1,52 @@
 import React from 'react';
 import { Container, Row, Col } from 'react-bootstrap';
+import { FaFacebook, FaYoutube, FaTiktok } from 'react-icons/fa';
+import '../../styles/Footer.css';
 
 const Footer = () => {
   return (
-    <footer className="bg-dark text-white mt-auto py-4">
+    <footer className="main-footer">
       <Container>
         <Row>
-          <Col md={4} className="mb-3 mb-md-0">
-            <h5>TMM System</h5>
-            <p className="text-muted">
-              Chuyên cung cấp các giải pháp và sản phẩm khăn bông chất lượng cao.
+          <Col lg={4} md={12} className="mb-4 mb-lg-0">
+            <img src="/logo.png" alt="TMM System Logo" className="footer-logo" />
+            <p>
+              Nhà cung cấp giải pháp và sản phẩm khăn bông chất lượng cao hàng đầu cho khách sạn, spa và gia đình.
             </p>
           </Col>
-          <Col md={4} className="mb-3 mb-md-0">
-            <h5>Liên kết</h5>
+          <Col lg={2} md={6} className="mb-4 mb-md-0">
+            <h5>Sản phẩm</h5>
             <ul className="list-unstyled">
-              <li><a href="/" className="text-white text-decoration-none">Trang chủ</a></li>
-              <li><a href="#" className="text-white text-decoration-none">Về chúng tôi</a></li>
-              <li><a href="#" className="text-white text-decoration-none">Liên hệ</a></li>
+              <li><a href="#">Khăn khách sạn</a></li>
+              <li><a href="#">Khăn Spa</a></li>
+              <li><a href="#">Khăn quà tặng</a></li>
+              <li><a href="#">Khăn gia đình</a></li>
             </ul>
           </Col>
-          <Col md={4}>
+          <Col lg={3} md={6} className="mb-4 mb-md-0">
+            <h5>Công ty</h5>
+            <ul className="list-unstyled">
+              <li><a href="#">Về chúng tôi</a></li>
+              <li><a href="#">Tuyển dụng</a></li>
+              <li><a href="#">Chính sách & Điều khoản</a></li>
+            </ul>
+          </Col>
+          <Col lg={3} md={12}>
             <h5>Liên hệ</h5>
-            <p className="text-muted">
-              Email: support@tmmsystem.com<br />
-              Điện thoại: (028) 3844 7207
+            <p>
+              <strong>Địa chỉ:</strong> Lô CN2, Cụm công nghiệp, Ba Hàng, Phổ Yên, Thái Nguyên<br />
+              <strong>Email:</strong> support@tmmsystem.com<br />
+              <strong>Điện thoại:</strong> (028) 3844 7207
             </p>
           </Col>
         </Row>
-        <div className="text-center text-muted border-top border-secondary pt-3 mt-3">
-          &copy; {new Date().getFullYear()} TMM System. All Rights Reserved.
+        <div className="footer-bottom d-flex justify-content-between align-items-center">
+          <span>&copy; {new Date().getFullYear()} TMM System. All Rights Reserved.</span>
+          <div className="social-icons">
+            <a href="#"><FaFacebook /></a>
+            <a href="#"><FaYoutube /></a>
+            <a href="#"><FaTiktok /></a>
+          </div>
         </div>
       </Container>
     </footer>

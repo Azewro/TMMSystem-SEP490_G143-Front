@@ -1,44 +1,43 @@
 /* Quote Request General Styling */
 .quote-request-card {
   background-color: white;
-  border-radius: 12px;
+  border-radius: 9px; /* Reduced */
   border: none;
-  font-size: 0.875rem; /* Set a smaller base font size */
 }
 
 /* Header */
 .quote-header {
   text-align: left;
   border-bottom: 1px solid #e9ecef;
-  padding-bottom: 0.75rem;
-  margin-bottom: 1.5rem !important;
+  padding-bottom: 1.1rem; /* Reduced */
+  margin-bottom: 1.5rem !important; /* Reduced */
 }
 
 .quote-title {
-  font-size: 1.75rem; /* Smaller title */
+  font-size: 1.5rem; /* Reduced */
   font-weight: 700;
   color: #212529;
 }
 
 .quote-subtitle {
-  font-size: 0.95rem; /* Smaller subtitle */
+  font-size: 0.8rem; /* Reduced */
   color: #6c757d;
 }
 
 /* Form Sections */
 .form-label {
   font-weight: 500;
-  font-size: 0.8rem; /* Smaller labels */
-  margin-bottom: 0.2rem;
+  font-size: 0.85rem; /* Reduced */
+  margin-bottom: 0.4rem; /* Reduced */
 }
 
 .product-item-row {
-  padding: 0.2rem 0;
+  padding: 0.4rem 0; /* Reduced */
 }
 
 /* File Upload Input */
 .form-control[type="file"] {
-  padding: 0.4rem;
+  padding: 0.4rem; /* Reduced */
   background-color: #f8f9fa;
   border-style: dashed;
 }
@@ -52,27 +51,16 @@
   display: inline-block;
   background: #0d6efd;
   color: white;
-  border-radius: 3px;
-  padding: 4px 8px;
+  border-radius: 2px;
+  padding: 4px 6px; /* Reduced */
   outline: none;
   white-space: nowrap;
   cursor: pointer;
   font-weight: 500;
-  font-size: 0.75rem;
+  font-size: 0.7rem; /* Reduced */
   margin-right: 8px;
 }
 
 .form-control[type="file"]:hover::before {
   background: #0b5ed7;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .quote-request-card .card-body {
-    padding: 1.5rem !important;
-  }
-  
-  .quote-title {
-    font-size: 1.5rem;
-  }
 }

@@ -1,0 +1,35 @@
+/* src/styles/Sidebar.css */
+
+.sidebar-dark {
+  width: 220px; /* Reduced width */
+  background-color: #212529;
+  border-right: 1px solid #343a40;
+  position: sticky;
+  top: 56px; /* Match standard Bootstrap navbar height */
+  height: calc(100vh - 56px);
+  overflow-y: auto;
+  flex-shrink: 0; /* Prevent sidebar from shrinking */
+}
+
+.sidebar-dark .sidebar-item {
+  color: rgba(255, 255, 255, 0.65);
+  transition: background-color 0.2s, color 0.2s;
+  padding: 0.75rem 1.25rem; /* Reduced padding */
+  font-size: 0.9rem; /* Reduced font size */
+}
+
+.sidebar-dark .sidebar-item:hover {
+  background-color: #343a40;
+  color: #fff;
+}
+
+.sidebar-dark .sidebar-item.active {
+  background-color: rgba(13, 110, 253, 0.1); /* Subtle background for active item */
+  color: #fff;
+  font-weight: 500;
+  border-left: 4px solid #0d6efd; /* Prominent blue left border */
+}
+
+.sidebar-dark .sidebar-item.active .nav-link {
+    padding-left: calc(1rem - 4px); /* Adjust padding to align text */
+}

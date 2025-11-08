@@ -24,17 +24,92 @@
 }
 
 /* Hero Banner Section */
-.hero-banner {
-    background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('/khan-spa.png') no-repeat center center;
-    background-size: cover;
-    background-position: center center;
-    padding: 100px 0;
-    min-height: 60vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
+/* src/styles/CustomerHomePage.css */
+
+.customer-home-page {
+  font-size: 75%;
 }
+
+/* Hero Banner */
+.hero-banner {
+  position: relative;
+  padding: 3.5rem 0; /* Further reduced padding */
+  background: url('/khan-spa.png') no-repeat center center;
+  background-size: cover;
+  color: white;
+}
+
+.hero-banner::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1;
+}
+
+.hero-banner .container {
+  position: relative;
+  z-index: 2;
+}
+
+.hero-title {
+  font-size: 2.2rem; /* Further reduced from 2.6rem */
+  font-weight: 700;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+}
+
+.hero-subtitle {
+  font-size: 1.0rem; /* Further reduced from 1.1rem */
+  font-weight: 300;
+  margin-bottom: 1.25rem;
+}
+
+/* General Section Styling */
+.about-us-section, .featured-products-section, .partners-section {
+  padding: 2.5rem 0; /* Further reduced padding */
+}
+
+.section-title {
+  position: relative;
+  display: inline-block;
+  font-size: 1.6rem; /* Further reduced size */
+  padding-bottom: 0.3rem;
+  margin-bottom: 1.25rem;
+}
+
+.section-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px; /* Reduced width */
+  height: 2px;
+  background-color: var(--primary-color);
+}
+
+/* Partners Section */
+.partner-logo {
+  filter: grayscale(100%);
+  opacity: 0.7;
+  transition: all 0.3s ease;
+}
+
+.partner-logo:hover {
+  filter: grayscale(0%);
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.partner-logo p {
+  font-size: 0.9rem; /* Further reduced size */
+  font-weight: 500;
+  color: #6c757d;
+}
+
 
 .hero-title {
     font-size: 4rem;

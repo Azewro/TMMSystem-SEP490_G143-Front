@@ -1,48 +1,47 @@
 import React from 'react';
 import { Nav } from 'react-bootstrap';
-import { FaClipboardList, FaReceipt, FaShoppingCart, FaTruck } from 'react-icons/fa';
+import { FaListAlt, FaFileSignature, FaProjectDiagram } from 'react-icons/fa';
 import { useNavigate, useLocation } from 'react-router-dom';
+import '../../styles/Sidebar.css'; // Reuse the same dark theme
 
-const InternalSidebar = () => {
+const InternalSidebar = ({ userRole }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const menuItems = [
-    {
-      icon: FaClipboardList,
-      label: 'Yêu cầu báo giá',
-      path: '/internal/quote-requests',
-    },
-    {
-      icon: FaReceipt,
-      label: 'Danh sách báo giá',
-      path: '/internal/quotations',
-    },
-    {
-      icon: FaShoppingCart,
-      label: 'Đơn hàng',
-      path: '/internal/orders',
-    },
-    {
-      icon: FaTruck,
-      label: 'Ảnh hưởng giao hàng',
-      path: '/internal/delivery',
-    }
-  ];
+  // Define all possible menu items
+  const allMenuItems = {
+    director: [
+      { icon: FaListAlt, label: 'Quản lý RFQ', path: '/director/rfqs' },
+      { icon: FaFileSignature, label: 'Duyệt Hợp Đồng', path: '/director/contract-approval' },
+      { icon: FaProjectDiagram, label: 'Duyệt Kế Hoạch SX', path: '/director/plan-approval' },
+    ],
+    sales: [
+      { icon: FaListAlt, label: 'RFQ của tôi', path: '/sales/rfqs' },
+      { icon: FaFileSignature, label: 'Hợp đồng', path: '/sales/contracts' },
+    ],
+    planning: [
+      { icon: FaListAlt, label: 'RFQ cần xử lý', path: '/planning/rfqs' },
+      { icon: FaProjectDiagram, label: 'Kế hoạch sản xuất', path: '/planning/plans' },
+    ],
+  };
+
+  // Select menu items based on user role
+  const menuItems = allMenuItems[userRole] || [];
 
   return (
-    <div className="sidebar bg-light border-end flex-shrink-0" style={{ width: '250px', minHeight: 'calc(100vh - 70px)' }}>
+    <div className="sidebar sidebar-dark">
       <div className="sidebar-content p-3">
+        <h5 className="text-white px-3 mb-3">Menu</h5>
         <Nav className="flex-column">
           {menuItems.map((item, index) => {
             const IconComponent = item.icon;
-            const isActive = item.path === '/internal/quote-requests' ? location.pathname.startsWith(item.path) || location.pathname.startsWith('/internal/rfqs') : location.pathname.startsWith(item.path);
+            const isActive = location.pathname.startsWith(item.path);
 
             return (
               <Nav.Link
                 key={index}
                 href="#"
-                className={`sidebar-item d-flex align-items-center py-3 px-3 mb-1 rounded ${isActive ? 'bg-primary text-white' : 'text-dark'}`}
+                className={`sidebar-item d-flex align-items-center py-2 px-3 mb-1 rounded ${isActive ? 'active' : ''}`}
                 onClick={(e) => {
                   e.preventDefault();
                   navigate(item.path);

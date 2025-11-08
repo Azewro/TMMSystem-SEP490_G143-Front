@@ -1,9 +1,15 @@
 import React from 'react';
 import { Card, Button } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
+import toast from 'react-hot-toast';
+import '../styles/ProductCard.css';
 
 const ProductCard = ({ product }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { addToCart } = useCart();
 
   const handleQuoteRequest = () => {
     navigate('/customer/quote-request', { 
@@ -11,10 +17,15 @@ const ProductCard = ({ product }) => {
     });
   };
 
+  const handleAddToCart = () => {
+    addToCart(product);
+    toast.success(`Đã thêm "${product.name}" vào giỏ hàng!`);
+  };
+
   return (
-    <Card className="h-100 shadow-sm product-card">
+    <Card className="h-100 product-card">
       {/* Product Image */}
-      <div className="product-image-container" style={{ height: '200px', overflow: 'hidden' }}>
+      <div className="product-image-container" style={{ height: '12.5rem', overflow: 'hidden' }}>
         <Card.Img
           variant="top"
           src={product.imageUrl || '/placeholder-product.jpg'}
@@ -29,28 +40,37 @@ const ProductCard = ({ product }) => {
       </div>
 
       <Card.Body className="d-flex flex-column">
-        <Card.Title className="product-title" style={{ fontSize: '1.1em', fontWeight: '600' }}>
+        <Card.Title className="product-title">
           {product.name}
         </Card.Title>
 
-        <Card.Text className="text-muted flex-grow-1" style={{ fontSize: '0.9em' }}>
+        <Card.Text className="text-muted flex-grow-1">
           {product.description || 'Khăn tắm mềm mại, thấm hút tốt, bền đẹp.'}
         </Card.Text>
 
-        {/* Product Details - Only dimensions */}
         <div className="product-details mb-3">
           <small className="text-muted d-block">
             <strong>Kích thước:</strong> {product.standardDimensions || '75x140cm'}
           </small>
         </div>
 
-        <Button 
-          variant="primary" 
-          className="mt-auto"
-          onClick={handleQuoteRequest}
-        >
-          Yêu cầu báo giá
-        </Button>
+        <div className="mt-auto d-grid gap-2">
+          {user && user.role === 'CUSTOMER' ? (
+            <Button 
+              variant="primary"
+              onClick={handleAddToCart}
+            >
+              Thêm vào giỏ hàng
+            </Button>
+          ) : (
+            <Button 
+              variant="outline-primary" 
+              onClick={handleQuoteRequest}
+            >
+              Yêu cầu báo giá
+            </Button>
+          )}
+        </div>
       </Card.Body>
     </Card>
   );

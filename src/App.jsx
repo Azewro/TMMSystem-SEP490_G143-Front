@@ -1,12 +1,14 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { CartProvider } from './context/CartContext';
+import { Toaster } from 'react-hot-toast';
 
 // Public Pages
 import HomePage from './pages/public/HomePage';
 import LoginPage from './pages/auth/LoginPage';
+import InternalLoginPage from './pages/auth/InternalLoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
-import InternalLoginPage from './pages/auth/InternalLoginPage'; // Import new login page
 
 // Internal Pages
 import PlanningRFQDetail from './pages/planning/PlanningRFQDetail';
@@ -23,53 +25,66 @@ import RFQDetail from './pages/internal/RFQDetail';
 import CustomerDashboard from './pages/customer/Dashboard';
 import QuoteRequest from './pages/customer/QuoteRequest';
 import CustomerQuoteRequests from './pages/customer/CustomerQuoteRequests';
+import CustomerQuotations from './pages/customer/CustomerQuotations';
+import CartPage from './pages/customer/CartPage';
 
 // Planning Pages
 import PlanningQuoteRequests from './pages/planning/PlanningQuoteRequests';
 
 // Director Pages
 import ContractApproval from './pages/director/ContractApproval';
+import DirectorRfqList from './pages/director/DirectorRfqList'; // Import the new page
+
+// Sales Pages
+import MyRfqs from './pages/sales/MyRfqs';
 
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <div className="main-container">
-          <Routes>
-            {/* Public routes */}
-            <Route path="/" element={<HomePage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/internal-login" element={<InternalLoginPage />} /> {/* Add internal login route */}
-            <Route path="/register" element={<RegisterPage />} />
-            
+      <CartProvider>
+        <Router>
+          <div className="main-container">
+            <Toaster position="top-right" reverseOrder={false} />
+            <Routes>
+              {/* Public routes */}
+              <Route path="/" element={<HomePage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/internal-login" element={<InternalLoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              
 
-            {/* Internal routes - NO AUTH GUARD (for now) */}
-            <Route path="/internal/dashboard" element={<InternalDashboard />} />
-            <Route path="/internal/quotations" element={<QuotesList />} />
-            <Route path="/internal/quotations/:id" element={<QuoteDetail />} />
-            <Route path="/internal/orders" element={<OrderList />} />
-            <Route path="/internal/orders/:id" element={<OrderDetail />} />
-            <Route path="/internal/quote-requests" element={<QuoteRequests />} />
-            <Route path="/internal/rfqs/:id" element={<RFQDetail />} />
+              {/* Internal routes - NO AUTH GUARD (for now) */}
+              <Route path="/internal/dashboard" element={<InternalDashboard />} />
+              <Route path="/internal/quotations" element={<QuotesList />} />
+              <Route path="/internal/quote-requests" element={<QuoteRequests />} />
+              <Route path="/internal/rfq/:id" element={<RFQDetail />} />
+              <Route path="/internal/quotes/:id" element={<QuoteDetail />} />
+              <Route path="/internal/orders" element={<OrderList />} />
+              <Route path="/internal/orders/:id" element={<OrderDetail />} />
 
-            {/* Customer routes - NO AUTH GUARD (for now) */}
-            <Route path="/customer/dashboard" element={<CustomerDashboard />} />
-            <Route path="/customer/quote-requests" element={<CustomerQuoteRequests />} />
-            <Route path="/customer/quotations/:id" element={<CustomerQuotationDetail />} />
-            <Route path="/customer/quote-request" element={<QuoteRequest />} />
+              {/* Customer routes */}
+              <Route path="/customer/dashboard" element={<CustomerDashboard />} />
+              <Route path="/customer/quote-request" element={<QuoteRequest />} />
+              <Route path="/customer/quote-requests" element={<CustomerQuoteRequests />} />
+              <Route path="/customer/quotations" element={<CustomerQuotations />} />
+              <Route path="/customer/quotations/:id" element={<CustomerQuotationDetail />} />
+              <Route path="/cart" element={<CartPage />} />
 
-            {/* Planning routes - NO AUTH GUARD (for now) */}
-            <Route path="/planning/quote-requests" element={<PlanningQuoteRequests />} />
-            <Route path="/planning/rfqs/:id" element={<PlanningRFQDetail />} />
+              {/* Planning routes */}
+              <Route path="/planning/quote-requests" element={<PlanningQuoteRequests />} />
+              <Route path="/planning/rfq/:id" element={<PlanningRFQDetail />} />
 
-            {/* Director routes - NO AUTH GUARD (for now) */}
-            <Route path="/director/contract-approval" element={<ContractApproval />} />
+              {/* Director routes */}
+              <Route path="/director/contract-approval" element={<ContractApproval />} />
+              <Route path="/director/rfqs" element={<DirectorRfqList />} />
 
-            {/* Fallback redirect to home */}
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </div>
-      </Router>
+              {/* Sales routes */}
+              <Route path="/sales/rfqs" element={<MyRfqs />} />
+
+            </Routes>
+          </div>
+        </Router>
+      </CartProvider>
     </AuthProvider>
   );
 }

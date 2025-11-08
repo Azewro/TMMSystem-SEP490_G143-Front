@@ -1,11 +1,13 @@
 import React from 'react';
 import { Navbar, Nav, Form, FormControl, Button, Dropdown } from 'react-bootstrap';
-import { FaSearch, FaBell, FaUserCircle, FaTachometerAlt, FaCog, FaSignOutAlt } from 'react-icons/fa';
+import { FaSearch, FaBell, FaUserCircle, FaTachometerAlt, FaCog, FaSignOutAlt, FaShoppingCart } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
+import { useCart } from '../../context/CartContext';
 import { useNavigate } from 'react-router-dom';
 
 const Header = () => {
   const { user, logout } = useAuth();
+  const { itemCount } = useCart();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -28,7 +30,7 @@ const Header = () => {
   };
 
   return (
-    <Navbar bg="white" expand="lg" className="shadow-sm border-bottom px-3 sticky-top">
+    <Navbar bg="dark" variant="dark" expand="lg" className="shadow-sm px-3 sticky-top">
       {/* Logo */}
       <Navbar.Brand href="/" onClick={(e) => { e.preventDefault(); navigate('/'); }} style={{cursor: 'pointer'}}>
         <img
@@ -49,7 +51,7 @@ const Header = () => {
             className="me-2"
             aria-label="Search"
           />
-          <Button variant="outline-primary" type="submit">
+          <Button variant="outline-light" type="submit">
             <FaSearch />
           </Button>
         </Form>
@@ -58,6 +60,18 @@ const Header = () => {
         <Nav className="ms-auto align-items-center">
           {user ? (
             <>
+              {/* Shopping Cart for Customers */}
+              {user.role === 'CUSTOMER' && (
+                <Nav.Link onClick={() => navigate('/cart')} className="position-relative me-3">
+                  <FaShoppingCart size={20} />
+                  {itemCount > 0 && (
+                    <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
+                      {itemCount}
+                    </span>
+                  )}
+                </Nav.Link>
+              )}
+
               {/* Notifications */}
               <Nav.Link href="#" className="position-relative me-3">
                 <FaBell size={20} />
@@ -68,7 +82,7 @@ const Header = () => {
 
               {/* User Dropdown */}
               <Dropdown align="end">
-                <Dropdown.Toggle variant="link" className="text-decoration-none text-dark d-flex align-items-center">
+                <Dropdown.Toggle as={Nav.Link} className="text-white d-flex align-items-center">
                   <FaUserCircle size={24} className="me-2" />
                   <span>{user?.name || user?.email || 'User'}</span>
                 </Dropdown.Toggle>
@@ -92,7 +106,7 @@ const Header = () => {
             </>
           ) : (
             <>
-              <Button variant="outline-primary" className="me-2" onClick={() => navigate('/login')}>
+              <Button variant="outline-light" className="me-2" onClick={() => navigate('/login')}>
                 Đăng nhập
               </Button>
               <Button variant="primary" onClick={() => navigate('/register')}>

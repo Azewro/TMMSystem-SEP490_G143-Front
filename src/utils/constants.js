@@ -6,7 +6,7 @@ export const API_ENDPOINTS = {
   AUTH: {
     CUSTOMER_LOGIN: '/v1/auth/login', 
     CUSTOMER_REGISTER: '/v1/auth/customer/register',
-    INTERNAL_LOGIN: '/v1/auth/login', 
+    INTERNAL_LOGIN: '/v1/auth/user/login', 
   },
   CUSTOMERS: '/v1/customers',
   QUOTATIONS: '/v1/quotations',

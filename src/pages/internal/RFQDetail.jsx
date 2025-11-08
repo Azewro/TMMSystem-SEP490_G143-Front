@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Container, Row, Col, Card, Table, Button, Alert, Spinner, Badge } from 'react-bootstrap';
-import { FaArrowLeft, FaPaperPlane, FaClipboardCheck, FaShareSquare } from 'react-icons/fa';
+import { Container, Row, Col, Card, Table, Button, Alert, Spinner, Badge, Form, Modal } from 'react-bootstrap';
+import { FaArrowLeft, FaPaperPlane, FaClipboardCheck, FaShareSquare, FaEdit, FaTrash, FaPlus, FaSave } from 'react-icons/fa';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { quoteService } from '../../api/quoteService';
 import { productService } from '../../api/productService';
+import AddProductToRfqModal from '../../components/modals/AddProductToRfqModal';
 import '../../styles/RFQDetail.css';
 
 const STATUS_LABEL = {
@@ -28,39 +29,6 @@ const STATUS_VARIANT = {
   REJECTED: 'danger'
 };
 
-const workflowSteps = [
-  {
-    key: 'DRAFT',
-    title: 'Tạo yêu cầu báo giá',
-    description: 'Khách hàng đã gửi yêu cầu trên hệ thống.'
-  },
-  {
-    key: 'SENT',
-    title: 'Gửi yêu cầu cho bộ phận Sale',
-    description: 'Sale xác nhận và gửi yêu cầu cho khách hàng.'
-  },
-  {
-    key: 'PRELIMINARY_CHECKED',
-    title: 'Kiểm tra sơ bộ',
-    description: 'Sale kiểm tra thông tin đơn hàng, số lượng, lịch trình.'
-  },
-  {
-    key: 'FORWARDED_TO_PLANNING',
-    title: 'Chuyển sang Phòng Kế hoạch',
-    description: 'Sale chuyển yêu cầu đến Phòng Kế hoạch để đánh giá năng lực.'
-  },
-  {
-    key: 'RECEIVED_BY_PLANNING',
-    title: 'Phòng Kế hoạch đã nhận',
-    description: 'Phòng Kế hoạch xác nhận đã tiếp nhận RFQ.'
-  },
-  {
-    key: 'QUOTED',
-    title: 'Đã tạo báo giá',
-    description: 'Phòng Kế hoạch đã phản hồi báo giá cho bộ phận Sale.'
-  }
-];
-
 const RFQDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -71,6 +39,14 @@ const RFQDetail = () => {
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Editing state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editableRfqData, setEditableRfqData] = useState(null);
+  const [deletedDetailIds, setDeletedDetailIds] = useState([]);
+  const [showAddProductModal, setShowAddProductModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+
 
   const loadRFQ = useCallback(async () => {
     if (!id) return;
@@ -85,6 +61,7 @@ const RFQDetail = () => {
       ]);
 
       setRFQData(rfq);
+      setEditableRfqData(JSON.parse(JSON.stringify(rfq))); // Deep copy for editing
       const customer = customers.find(c => c.id === rfq.customerId);
       setCustomerData(customer || null);
 
@@ -106,9 +83,10 @@ const RFQDetail = () => {
   }, [loadRFQ]);
 
   const currentStatus = rfqData?.status || 'DRAFT';
+  const canEdit = ['DRAFT', 'SENT'].includes(currentStatus);
 
   const nextAction = useMemo(() => {
-    if (!rfqData) return null;
+    if (!rfqData || isEditing) return null;
 
     switch (rfqData.status) {
       case 'DRAFT':
@@ -141,7 +119,7 @@ const RFQDetail = () => {
       default:
         return null;
     }
-  }, [rfqData, id]);
+  }, [rfqData, id, isEditing]);
 
   const handleAction = async () => {
     if (!nextAction) return;
@@ -160,21 +138,91 @@ const RFQDetail = () => {
     }
   };
 
-  const getStepState = (stepKey) => {
-    const statusOrder = workflowSteps.map(step => step.key);
-    const currentIndex = statusOrder.indexOf(currentStatus);
-    const stepIndex = statusOrder.indexOf(stepKey);
-
-    if (stepIndex < 0) return 'pending';
-    if (currentIndex > stepIndex) return 'done';
-    if (currentIndex === stepIndex) return 'current';
-    return 'pending';
+  const handleToggleEdit = () => {
+    if (!isEditing) {
+      setEditableRfqData(JSON.parse(JSON.stringify(rfqData))); // Reset changes on entering edit mode
+      setDeletedDetailIds([]);
+    }
+    setIsEditing(!isEditing);
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return '—';
+  const handleDataChange = (field, value) => {
+    setEditableRfqData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleDetailChange = (index, field, value) => {
+    const newDetails = [...editableRfqData.details];
+    newDetails[index] = { ...newDetails[index], [field]: value };
+    setEditableRfqData(prev => ({ ...prev, details: newDetails }));
+  };
+
+  const handleDeleteDetail = (index) => {
+    const detailToDelete = editableRfqData.details[index];
+    if (detailToDelete.id) {
+      setDeletedDetailIds(prev => [...prev, detailToDelete.id]);
+    }
+    const newDetails = editableRfqData.details.filter((_, i) => i !== index);
+    setEditableRfqData(prev => ({ ...prev, details: newDetails }));
+  };
+
+  const handleAddProduct = (newProduct) => {
+    // newProduct comes from the modal
+    const newDetail = {
+      ...newProduct,
+      // No ID yet, it's a new item
+    };
+    setEditableRfqData(prev => ({
+      ...prev,
+      details: [...prev.details, newDetail]
+    }));
+  };
+
+  const handleSaveChanges = async () => {
+    setSaving(true);
+    setError('');
+    setSuccess('');
     try {
-      return new Date(dateString).toLocaleDateString('vi-VN');
+      // Update general RFQ info (like date)
+      if (editableRfqData.expectedDeliveryDate !== rfqData.expectedDeliveryDate) {
+        await quoteService.updateRfq(id, {
+          ...rfqData, // send original data
+          expectedDeliveryDate: editableRfqData.expectedDeliveryDate
+        });
+      }
+
+      // Handle deleted details
+      for (const detailId of deletedDetailIds) {
+        await quoteService.deleteRfqDetail(detailId);
+      }
+
+      // Handle added/updated details
+      for (const detail of editableRfqData.details) {
+        if (detail.id) { // Existing detail, check for updates
+          const originalDetail = rfqData.details.find(d => d.id === detail.id);
+          if (originalDetail && (originalDetail.quantity !== detail.quantity || originalDetail.notes !== detail.notes)) {
+            await quoteService.updateRfqDetail(detail.id, detail);
+          }
+        } else { // New detail
+          await quoteService.addRfqDetail(id, detail);
+        }
+      }
+
+      setSuccess('Lưu thay đổi thành công!');
+      setIsEditing(false);
+      await loadRFQ(); // Reload data from server
+    } catch (err) {
+      setError(err.message || 'Lưu thay đổi thất bại.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    try {
+      // Handles both '2025-11-08T...' and '2025-11-08'
+      return dateString.split('T')[0];
     } catch {
       return dateString;
     }
@@ -264,7 +312,19 @@ const RFQDetail = () => {
                     <Card.Body className="p-4">
                       <div className="info-item"><strong>Mã RFQ:</strong> {rfqData?.rfqNumber || `RFQ-${rfqData?.id}`}</div>
                       <div className="info-item"><strong>Ngày tạo:</strong> {formatDate(rfqData?.createdAt)}</div>
-                      <div className="info-item"><strong>Ngày mong muốn nhận:</strong> {formatDate(rfqData?.expectedDeliveryDate)}</div>
+                      <div className="info-item"><strong>Ngày mong muốn nhận:</strong>
+                        {isEditing ? (
+                          <Form.Control
+                            type="date"
+                            size="sm"
+                            value={formatDate(editableRfqData.expectedDeliveryDate)}
+                            onChange={(e) => handleDataChange('expectedDeliveryDate', e.target.value)}
+                            style={{ display: 'inline-block', width: 'auto', marginLeft: '10px' }}
+                          />
+                        ) : (
+                          <span className="ms-2">{formatDate(rfqData?.expectedDeliveryDate)}</span>
+                        )}
+                      </div>
                       <div className="info-item">
                         <strong>Trạng thái:</strong>
                         <Badge bg={STATUS_VARIANT[currentStatus]} className="ms-2">
@@ -300,8 +360,24 @@ const RFQDetail = () => {
               )}
 
               <Card className="products-card shadow-sm">
-                <Card.Header className="bg-primary text-white">
+                <Card.Header className="bg-primary text-white d-flex justify-content-between align-items-center">
                   <h5 className="mb-0">Danh sách sản phẩm</h5>
+                  {canEdit && (
+                    isEditing ? (
+                      <div>
+                        <Button variant="success" size="sm" onClick={handleSaveChanges} disabled={saving}>
+                          <FaSave className="me-1" /> {saving ? 'Đang lưu...' : 'Lưu'}
+                        </Button>
+                        <Button variant="light" size="sm" className="ms-2" onClick={handleToggleEdit} disabled={saving}>
+                          Hủy
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button variant="light" size="sm" onClick={handleToggleEdit}>
+                        <FaEdit className="me-1" /> Chỉnh sửa
+                      </Button>
+                    )
+                  )}
                 </Card.Header>
                 <Card.Body className="p-0">
                   <Table responsive className="products-table mb-0">
@@ -311,34 +387,77 @@ const RFQDetail = () => {
                         <th style={{ minWidth: '200px' }}>Sản phẩm</th>
                         <th style={{ width: '150px' }}>Kích thước/Ghi chú</th>
                         <th style={{ width: '120px' }}>Số lượng</th>
+                        {isEditing && <th style={{ width: '100px' }}>Thao tác</th>}
                       </tr>
                     </thead>
                     <tbody>
-                      {rfqData?.details?.length ? (
-                        rfqData.details.map((item, index) => {
+                      {(isEditing ? editableRfqData.details : rfqData?.details)?.length ? (
+                        (isEditing ? editableRfqData.details : rfqData.details).map((item, index) => {
                           const product = productMap[item.productId];
                           return (
-                            <tr key={item.id || index}>
+                            <tr key={item.id || `new-${index}`}>
                               <td className="text-center">{index + 1}</td>
                               <td>{product?.name || `Sản phẩm ID: ${item.productId}`}</td>
-                              <td className="text-center">{item.notes || product?.standardDimensions || '—'}</td>
-                              <td className="text-center">{item.quantity}</td>
+                              <td className="text-center">
+                                {isEditing ? (
+                                  <Form.Control
+                                    type="text"
+                                    size="sm"
+                                    value={item.notes}
+                                    onChange={(e) => handleDetailChange(index, 'notes', e.target.value)}
+                                  />
+                                ) : (
+                                  item.notes || product?.standardDimensions || '—'
+                                )}
+                              </td>
+                              <td className="text-center">
+                                {isEditing ? (
+                                  <Form.Control
+                                    type="number"
+                                    size="sm"
+                                    value={item.quantity}
+                                    onChange={(e) => handleDetailChange(index, 'quantity', parseInt(e.target.value, 10) || 1)}
+                                    style={{ width: '80px', margin: 'auto' }}
+                                  />
+                                ) : (
+                                  item.quantity
+                                )}
+                              </td>
+                              {isEditing && (
+                                <td className="text-center">
+                                  <Button variant="outline-danger" size="sm" onClick={() => handleDeleteDetail(index)}>
+                                    <FaTrash />
+                                  </Button>
+                                </td>
+                              )}
                             </tr>
                           );
                         })
                       ) : (
                         <tr>
-                          <td colSpan={4} className="text-center py-4 text-muted">Không có dữ liệu sản phẩm</td>
+                          <td colSpan={isEditing ? 5 : 4} className="text-center py-4 text-muted">Không có dữ liệu sản phẩm</td>
                         </tr>
                       )}
                     </tbody>
                   </Table>
+                  {isEditing && (
+                    <div className="p-3">
+                      <Button variant="primary" size="sm" onClick={() => setShowAddProductModal(true)}>
+                        <FaPlus className="me-1" /> Thêm sản phẩm
+                      </Button>
+                    </div>
+                  )}
                 </Card.Body>
               </Card>
             </div>
           </Container>
         </div>
       </div>
+      <AddProductToRfqModal
+        show={showAddProductModal}
+        onHide={() => setShowAddProductModal(false)}
+        onAddProduct={handleAddProduct}
+      />
     </div>
   );
 };

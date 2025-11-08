@@ -1,7 +1,8 @@
 import React from 'react';
 import { Nav } from 'react-bootstrap';
-import { FaTachometerAlt, FaFileInvoice, FaPlusSquare, FaShoppingCart } from 'react-icons/fa';
+import { FaHome, FaFileInvoice, FaShoppingCart } from 'react-icons/fa';
 import { useNavigate, useLocation } from 'react-router-dom';
+import '../../styles/Sidebar.css';
 
 const Sidebar = () => {
   const navigate = useNavigate();
@@ -9,37 +10,40 @@ const Sidebar = () => {
 
   const menuItems = [
     {
-      icon: FaTachometerAlt,
-      label: 'Tổng quan',
-      path: '/customer/dashboard',
+      icon: FaHome,
+      label: 'Trang chủ',
+      path: '/',
     },
     {
       icon: FaFileInvoice,
+      label: 'Báo giá của tôi',
+      path: '/customer/quotations',
+    },
+    {
+      icon: FaFileInvoice, // Reusing FaFileInvoice for "Yêu cầu đã gửi"
       label: 'Yêu cầu đã gửi',
       path: '/customer/quote-requests',
     },
     {
       icon: FaShoppingCart,
-      label: 'Đơn hàng của tôi',
+      label: 'Đơn hàng',
       path: '/customer/orders',
     }
   ];
 
   return (
-    <div className="sidebar bg-light border-end" style={{ width: '250px', minHeight: 'calc(100vh - 70px)' }}>
+    <div className="sidebar sidebar-dark">
       <div className="sidebar-content p-3">
         <Nav className="flex-column">
           {menuItems.map((item, index) => {
             const IconComponent = item.icon;
-            const isActive = item.path === '/customer/dashboard' 
-              ? location.pathname === item.path 
-              : location.pathname.startsWith(item.path);
+            const isActive = location.pathname === item.path;
 
             return (
               <Nav.Link
                 key={index}
                 href="#"
-                className={`sidebar-item d-flex align-items-center py-3 px-3 mb-1 rounded ${isActive ? 'bg-primary text-white' : 'text-dark'}`}
+                className={`sidebar-item d-flex align-items-center py-3 px-3 mb-1 rounded ${isActive ? 'active' : ''}`}
                 onClick={(e) => {
                   e.preventDefault();
                   navigate(item.path);

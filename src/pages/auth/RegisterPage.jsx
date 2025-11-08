@@ -40,6 +40,7 @@ const RegisterPage = () => {
         navigate('/login');
       }, 2000);
     } catch (err) {
+      // Display the specific error message from the backend
       setError(err.message || 'Đăng ký thất bại. Vui lòng thử lại.');
     } finally {
       setLoading(false);

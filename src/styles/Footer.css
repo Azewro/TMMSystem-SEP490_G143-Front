@@ -1,0 +1,50 @@
+/* src/styles/Footer.css */
+.main-footer {
+  background-color: #212529;
+  color: rgba(255, 255, 255, 0.8);
+  padding-top: 3rem;
+  padding-bottom: 3rem;
+}
+
+.main-footer h5 {
+  color: #fff;
+  font-weight: 600;
+  margin-bottom: 1.25rem;
+}
+
+.main-footer .footer-logo {
+  max-height: 40px;
+  margin-bottom: 1rem;
+}
+
+.main-footer p, .main-footer .list-unstyled a {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.95rem;
+}
+
+.main-footer .list-unstyled a {
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.main-footer .list-unstyled a:hover {
+  color: #fff;
+}
+
+.footer-bottom {
+  border-top: 1px solid #343a40;
+  padding-top: 1.5rem;
+  margin-top: 2rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.social-icons a {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 1.25rem;
+  margin-left: 1rem;
+  transition: color 0.2s;
+}
+
+.social-icons a:hover {
+  color: #fff;
+}

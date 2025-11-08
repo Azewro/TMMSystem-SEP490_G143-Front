@@ -12,6 +12,11 @@ const apiClient = axios.create({
 // Request interceptor to add auth token
 apiClient.interceptors.request.use(
   (config) => {
+    // Do not add token to auth-related routes
+    if (config.url.includes('/auth/')) {
+      return config;
+    }
+
     const token = localStorage.getItem('userToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
