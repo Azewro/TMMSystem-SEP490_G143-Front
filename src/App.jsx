@@ -19,7 +19,6 @@ import OrderList from './pages/internal/OrderList';
 import OrderDetail from './pages/internal/OrderDetail';
 import InternalDashboard from './pages/internal/Dashboard';
 import QuoteRequests from './pages/internal/QuoteRequests';
-import RFQDetail from './pages/internal/RFQDetail';
 
 // Customer Pages
 import CustomerDashboard from './pages/customer/Dashboard';
@@ -29,7 +28,7 @@ import CustomerQuotations from './pages/customer/CustomerQuotations';
 import CartPage from './pages/customer/CartPage';
 
 // Planning Pages
-import PlanningQuoteRequests from './pages/planning/PlanningQuoteRequests';
+import PlanningRfqs from './pages/planning/PlanningRfqs';
 
 // Director Pages
 import ContractApproval from './pages/director/ContractApproval';
@@ -57,7 +56,6 @@ function App() {
               <Route path="/internal/dashboard" element={<InternalDashboard />} />
               <Route path="/internal/quotations" element={<QuotesList />} />
               <Route path="/internal/quote-requests" element={<QuoteRequests />} />
-              <Route path="/internal/rfq/:id" element={<RFQDetail />} />
               <Route path="/internal/quotes/:id" element={<QuoteDetail />} />
               <Route path="/internal/orders" element={<OrderList />} />
               <Route path="/internal/orders/:id" element={<OrderDetail />} />
@@ -71,8 +69,8 @@ function App() {
               <Route path="/cart" element={<CartPage />} />
 
               {/* Planning routes */}
-              <Route path="/planning/quote-requests" element={<PlanningQuoteRequests />} />
-              <Route path="/planning/rfq/:id" element={<PlanningRFQDetail />} />
+              <Route path="/planning/rfqs" element={<PlanningRfqs />} />
+              <Route path="/planning/rfqs/:id" element={<PlanningRFQDetail />} />
 
               {/* Director routes */}
               <Route path="/director/contract-approval" element={<ContractApproval />} />

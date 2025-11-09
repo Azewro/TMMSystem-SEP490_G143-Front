@@ -16,6 +16,7 @@ const statusMap = {
   ACCEPTED: { label: 'Đã duyệt', variant: 'success' },
   APPROVED: { label: 'Đã duyệt', variant: 'success' },
   REJECTED: { label: 'Từ chối', variant: 'danger' },
+  QUOTED: { label: 'Đã báo giá', variant: 'info' }, // Added QUOTED status
 };
 
 const QuoteDetail = () => {
@@ -29,7 +30,7 @@ const QuoteDetail = () => {
   const [success, setSuccess] = useState('');
   const [sending, setSending] = useState(false);
   const [confirmSend, setConfirmSend] = useState(false);
-  const canSend = quote?.status === 'DRAFT';
+  const canSend = ['PENDING', 'QUOTED'].includes(quote?.status); // Adjusted canSend logic
 
   useEffect(() => {
     const loadQuoteData = async () => {

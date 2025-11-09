@@ -131,21 +131,21 @@ Dưới đây là danh sách các màn hình cần xây dựng, được sắp x
 
 **--- BƯỚC 1: KHÁCH HÀNG TIẾP CẬN VÀ TẠO YÊU CẦU BÁO GIÁ (RFQ) ---**
 
-1.  **Trang Chủ (Homepage)**
+1.  **Trang Chủ (Homepage)** (ĐÃ XONG)
     *   **Mục đích:** Cung cấp điểm truy cập đầu tiên, trưng bày sản phẩm.
     *   **Nội dung (Khi chưa đăng nhập):**
         *   Danh sách các sản phẩm (hình ảnh, tên, kích thước).
         *   Trên mỗi sản phẩm có nút "Yêu cầu báo giá".
         *   Header có nút "Đăng nhập" và "Đăng ký".
     *   **Nội dung (Khi đã đăng nhập - vai trò Khách hàng):**
-        *   Tương tự như trên, nhưng nút trên sản phẩm là "Thêm vào giỏ hàng".
+        *   Tương tự như trên, như	ng nút trên sản phẩm là "Thêm vào giỏ hàng".
         *   Header có icon giỏ hàng (hiển thị số lượng sản phẩm) và menu người dùng (dẫn đến trang quản lý cá nhân).
 
-2.  **Trang Đăng Nhập / Đăng Ký (Login / Register)**
+2.  **Trang Đăng Nhập / Đăng Ký (Login / Register)** (ĐÃ XONG)
     *   **Mục đích:** Xác thực người dùng.
     *   **Nội dung:** Form đăng nhập (email, mật khẩu) và Form đăng ký cho khách hàng mới.
 
-3.  **Trang/Form Tạo Yêu Cầu Báo Giá (RFQ)**
+3.  **Trang/Form Tạo Yêu Cầu Báo Giá (RFQ)** (ĐÃ XONG)
     *   **Mục đích:** Thu thập thông tin RFQ từ khách hàng hoặc Sales.
     *   **Luồng 1 (Khách hàng mới):** Sau khi nhấn "Yêu cầu báo giá" ở trang chủ, hiện ra form này để khách điền thông tin liên hệ, chi tiết sản phẩm, số lượng, ngày giao mong muốn.
     *   **Luồng 2 (Khách hàng cũ):** Sau khi thêm sản phẩm vào giỏ hàng, khách vào trang "Giỏ hàng". Trang này cho phép xem lại sản phẩm, chỉnh sửa số lượng và gửi đi để tạo RFQ. Thông tin khách hàng được tự điền.
@@ -153,7 +153,7 @@ Dưới đây là danh sách các màn hình cần xây dựng, được sắp x
 
 **--- BƯỚC 2: NỘI BỘ TIẾP NHẬN VÀ XỬ LÝ RFQ ---**
 
-4.  **Trang Danh Sách Yêu Cầu Báo Giá - Nội bộ (Internal RFQ List)**
+4.  **Trang Danh Sách Yêu Cầu Báo Giá - Nội bộ (Internal RFQ List)** (ĐÃ XONG)
     *   **Mục đích:** Quản lý tập trung các RFQ.
     *   **Nội dung (Vai trò Giám đốc):**
         *   Bảng liệt kê tất cả RFQ mới với các thông tin cơ bản (Mã RFQ, Tên khách, Ngày tạo, Trạng thái).

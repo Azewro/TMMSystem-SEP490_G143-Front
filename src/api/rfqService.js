@@ -82,5 +82,78 @@ export const rfqService = {
       console.error("Error fetching assigned RFQs for sales:", error.response?.data);
       throw new Error(error.response?.data?.message || 'Failed to fetch assigned RFQs for sales');
     }
+  },
+
+  async getAssignedRfqsForPlanning() {
+    try {
+      const userId = localStorage.getItem('userId');
+      if (!userId) {
+        throw new Error('User ID not found. Please log in.');
+      }
+      const response = await apiClient.get('/v1/rfqs/for-planning', {
+        headers: {
+          'X-User-Id': userId
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching assigned RFQs for planning:", error.response?.data);
+      throw new Error(error.response?.data?.message || 'Failed to fetch assigned RFQs for planning');
+    }
+  },
+
+  async getRfqById(rfqId) {
+    try {
+      const response = await apiClient.get(`/v1/rfqs/${rfqId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching RFQ ${rfqId}:`, error.response?.data);
+      throw new Error(error.response?.data?.message || 'Failed to fetch RFQ details');
+    }
+  },
+
+  async confirmRfq(rfqId, note) {
+    try {
+      // Corrected the endpoint URL by removing "/status"
+      const response = await apiClient.post(`/v1/rfqs/${rfqId}/preliminary-check`, { note });
+      return response.data;
+    } catch (error) {
+      console.error(`Error confirming RFQ ${rfqId}:`, error.response?.data);
+      throw new Error(error.response?.data?.message || 'Failed to confirm RFQ');
+    }
+  },
+
+  async forwardRfqToPlanning(rfqId) {
+    try {
+      const response = await apiClient.post(`/v1/rfqs/${rfqId}/forward-to-planning`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error forwarding RFQ ${rfqId}:`, error.response?.data);
+      throw new Error(error.response?.data?.message || 'Failed to forward RFQ to planning');
+    }
+  },
+
+  async salesEditRfq(rfqId, editData) {
+    try {
+      const userId = localStorage.getItem('userId');
+      if (!userId) {
+        throw new Error('User ID not found. Please log in.');
+      }
+
+      // The endpoint might be expecting a specific format for the date.
+      // Assuming yyyy-MM-dd from the previous findings.
+      if (editData.expectedDeliveryDate) {
+        editData.expectedDeliveryDate = new Date(editData.expectedDeliveryDate).toISOString().split('T')[0];
+      }
+      const response = await apiClient.patch(`/v1/rfqs/${rfqId}/sales-edit`, editData, {
+        headers: {
+          'X-User-Id': userId
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error(`Error editing RFQ ${rfqId}:`, error.response?.data);
+      throw new Error(error.response?.data?.message || 'Failed to edit RFQ');
+    }
   }
 };

@@ -135,6 +135,17 @@ export const quoteService = {
     }
   },
 
+  evaluateCapacity: async (rfqId, { status, reason, proposedNewDate }) => {
+    try {
+      const response = await apiClient.post(`/v1/rfqs/${rfqId}/capacity-evaluate`, null, {
+        params: { status, reason, proposedNewDate }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(mapApiError(error, 'Lỗi khi gửi đánh giá năng lực'));
+    }
+  },
+
   /**
    * RFQ workflow for Sales & Planning
    */

@@ -1,21 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Container, Card, Table, Button, Spinner, Alert, Badge } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { rfqService } from '../../api/rfqService';
 import { customerService } from '../../api/customerService';
 import Pagination from '../../components/Pagination';
-import RFQDetailModal from '../../components/modals/RFQDetailModal';
 import toast from 'react-hot-toast';
 
-const MyRfqs = () => {
+const PlanningRfqs = () => {
+  const navigate = useNavigate();
   const [allRfqs, setAllRfqs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-
-  // Modal state
-  const [showModal, setShowModal] = useState(false);
-  const [selectedRfqId, setSelectedRfqId] = useState(null);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -23,20 +20,19 @@ const MyRfqs = () => {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'DRAFT': return 'secondary';
-      case 'SENT': return 'info';
-      case 'PENDING_ASSIGNMENT': return 'warning';
-      case 'PRELIMINARY_CHECKED': return 'primary';
-      case 'FORWARDED_TO_PLANNING': return 'dark';
+      case 'FORWARDED_TO_PLANNING': return 'warning';
+      case 'RECEIVED_BY_PLANNING': return 'info';
+      case 'QUOTED': return 'success';
       default: return 'light';
     }
   };
 
-  const fetchMyRfqs = useCallback(async () => {
+  const fetchPlanningRfqs = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const data = await rfqService.getAssignedRfqsForSales();
+      // Use the new service function for planning
+      const data = await rfqService.getAssignedRfqsForPlanning();
 
       const enrichedData = await Promise.all(
         (data || []).map(async (rfq) => {
@@ -59,28 +55,20 @@ const MyRfqs = () => {
       const sortedData = (enrichedData || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       setAllRfqs(sortedData);
     } catch (err) {
-      setError('Lỗi khi tải danh sách RFQ của bạn.');
-      toast.error('Lỗi khi tải danh sách RFQ của bạn.');
+      setError('Lỗi khi tải danh sách RFQ.');
+      toast.error('Lỗi khi tải danh sách RFQ.');
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchMyRfqs();
-  }, [fetchMyRfqs]);
+    fetchPlanningRfqs();
+  }, [fetchPlanningRfqs]);
 
   const handleViewDetails = (rfqId) => {
-    setSelectedRfqId(rfqId);
-    setShowModal(true);
-  };
-
-  const handleCloseModal = (refresh) => {
-    setShowModal(false);
-    setSelectedRfqId(null);
-    if (refresh) {
-      fetchMyRfqs();
-    }
+    // Navigate to the detail page for planning
+    navigate(`/planning/rfqs/${rfqId}`);
   };
 
   // Pagination logic
@@ -93,16 +81,16 @@ const MyRfqs = () => {
     <div>
       <Header />
       <div className="d-flex">
-        <InternalSidebar userRole="sales" />
+        <InternalSidebar userRole="planning" />
         <div className="flex-grow-1 p-4" style={{ backgroundColor: '#f8f9fa' }}>
           <Container fluid>
-            <h2 className="mb-4">Danh sách RFQ được giao</h2>
+            <h2 className="mb-4">Yêu cầu báo giá cần xử lý</h2>
             <Card>
               <Card.Header>
-                Các RFQ cần bạn xử lý
+                Các RFQ được giao cho bộ phận Kế hoạch
               </Card.Header>
               <Card.Body>
-                {loading && !showModal ? (
+                {loading ? (
                   <div className="text-center"><Spinner animation="border" /></div>
                 ) : error ? (
                   <Alert variant="danger">{error}</Alert>
@@ -133,7 +121,7 @@ const MyRfqs = () => {
                           </tr>
                         )) : (
                           <tr>
-                            <td colSpan="5" className="text-center">Bạn không có RFQ nào cần xử lý.</td>
+                            <td colSpan="5" className="text-center">Không có RFQ nào cần xử lý.</td>
                           </tr>
                         )}
                       </tbody>
@@ -150,16 +138,8 @@ const MyRfqs = () => {
           </Container>
         </div>
       </div>
-
-      {selectedRfqId && (
-        <RFQDetailModal
-          rfqId={selectedRfqId}
-          show={showModal}
-          handleClose={handleCloseModal}
-        />
-      )}
     </div>
   );
 };
 
-export default MyRfqs;
+export default PlanningRfqs;

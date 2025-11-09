@@ -3,9 +3,10 @@ import { Container, Row, Col, Card, Table, Button, Alert, Spinner, Modal, Form, 
 import { FaArrowLeft, FaCogs, FaWarehouse, FaFileInvoice, FaInbox } from 'react-icons/fa';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
-import PlanningSidebar from '../../components/common/PlanningSidebar';
+import InternalSidebar from '../../components/common/InternalSidebar';
 import { quoteService } from '../../api/quoteService';
 import { productService } from '../../api/productService';
+import InsufficientCapacityModal from '../../components/modals/InsufficientCapacityModal';
 import '../../styles/PlanningRFQDetail.css';
 
 const STATUS_LABEL = {
@@ -40,6 +41,11 @@ const PlanningRFQDetail = () => {
   const [capacityCheckMessage, setCapacityCheckMessage] = useState('');
   const [machineCapacityChecked, setMachineCapacityChecked] = useState(false);
   const [warehouseCapacityChecked, setWarehouseCapacityChecked] = useState(false);
+
+  // State for insufficient capacity modal
+  const [showInsufficientModal, setShowInsufficientModal] = useState(false);
+  const [evaluationLoading, setEvaluationLoading] = useState(false);
+
 
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [quoteData, setQuoteData] = useState({ profitMargin: 10, notes: '' });
@@ -114,18 +120,38 @@ const PlanningRFQDetail = () => {
         result = await quoteService.checkWarehouseCapacity(id);
         setWarehouseCapacityChecked(true);
       }
-      setCapacityResult(result); // Keep result for potential future use, but not displayed directly
+      setCapacityResult(result);
       setCapacityCheckMessage(`Kết quả kiểm tra ${checkType === 'machine' ? 'máy móc' : 'kho'}: Đủ`);
-    } catch (err) {
-      setCapacityError(err.message || `Lỗi khi kiểm tra năng lực.`);
-      setCapacityCheckMessage(''); // Clear message on error
-      if (checkType === 'machine') {
-        setMachineCapacityChecked(false);
-      } else {
-        setWarehouseCapacityChecked(false);
+      // If both are checked, mark as sufficient
+      if ((checkType === 'machine' && warehouseCapacityChecked) || (checkType === 'warehouse' && machineCapacityChecked)) {
+        await quoteService.evaluateCapacity(id, { status: 'SUFFICIENT' });
+        setSuccess('Đã ghi nhận năng lực sản xuất: Đủ.');
       }
+    } catch (err) {
+      // Instead of setting an error, open the modal to report insufficiency
+      setShowInsufficientModal(true);
+      setCapacityError(''); // Clear general error
     } finally {
       setIsCheckingCapacity(false);
+    }
+  };
+
+  const handleInsufficientCapacitySubmit = async ({ reason, proposedNewDate }) => {
+    setEvaluationLoading(true);
+    setError('');
+    try {
+      await quoteService.evaluateCapacity(id, {
+        status: 'INSUFFICIENT',
+        reason,
+        proposedNewDate: proposedNewDate || undefined
+      });
+      setSuccess('Đã gửi thông báo năng lực không đủ cho bộ phận Sales.');
+      setShowInsufficientModal(false);
+      loadRFQ(); // Refresh data
+    } catch (err) {
+      setError(err.message || 'Lỗi khi gửi thông báo.');
+    } finally {
+      setEvaluationLoading(false);
     }
   };
 
@@ -197,7 +223,7 @@ const PlanningRFQDetail = () => {
     <div className="planning-layout">
       <Header />
       <div className="d-flex">
-        <PlanningSidebar />
+        <InternalSidebar userRole="planning" />
         <div className="flex-grow-1" style={{ backgroundColor: '#f8f9fa' }}>
           <Container fluid className="p-4">
             <div className="page-header mb-4 d-flex justify-content-between align-items-center">
@@ -337,6 +363,12 @@ const PlanningRFQDetail = () => {
           </Container>
         </div>
       </div>
+      <InsufficientCapacityModal
+        show={showInsufficientModal}
+        onHide={() => setShowInsufficientModal(false)}
+        onSubmit={handleInsufficientCapacitySubmit}
+        loading={evaluationLoading}
+      />
       <Modal show={showQuoteModal} onHide={closeQuoteModal} centered>
         <Modal.Header closeButton>
           <Modal.Title>Lập Báo Giá</Modal.Title>
