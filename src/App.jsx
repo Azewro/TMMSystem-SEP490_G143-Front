@@ -13,7 +13,6 @@ import RegisterPage from './pages/auth/RegisterPage';
 // Internal Pages
 import PlanningRFQDetail from './pages/planning/PlanningRFQDetail';
 import QuotesList from './pages/internal/QuotesList';
-import CustomerQuotationDetail from './pages/customer/CustomerQuotationDetail';
 import QuoteDetail from './pages/internal/QuoteDetail';
 import OrderList from './pages/internal/OrderList';
 import OrderDetail from './pages/internal/OrderDetail';
@@ -23,8 +22,10 @@ import QuoteRequests from './pages/internal/QuoteRequests';
 // Customer Pages
 import CustomerDashboard from './pages/customer/Dashboard';
 import QuoteRequest from './pages/customer/QuoteRequest';
-import CustomerQuoteRequests from './pages/customer/CustomerQuoteRequests';
+import CustomerRfqs from './pages/customer/CustomerRfqs';
 import CustomerQuotations from './pages/customer/CustomerQuotations';
+import CustomerQuotationDetail from './pages/customer/CustomerQuotationDetail';
+import CustomerRfqDetail from './pages/customer/CustomerRfqDetail';
 import CartPage from './pages/customer/CartPage';
 
 // Planning Pages
@@ -63,9 +64,10 @@ function App() {
               {/* Customer routes */}
               <Route path="/customer/dashboard" element={<CustomerDashboard />} />
               <Route path="/customer/quote-request" element={<QuoteRequest />} />
-              <Route path="/customer/quote-requests" element={<CustomerQuoteRequests />} />
+              <Route path="/customer/rfqs" element={<CustomerRfqs />} />
               <Route path="/customer/quotations" element={<CustomerQuotations />} />
               <Route path="/customer/quotations/:id" element={<CustomerQuotationDetail />} />
+              <Route path="/customer/rfqs/:id" element={<CustomerRfqDetail />} /> {/* New route */}
               <Route path="/cart" element={<CartPage />} />
 
               {/* Planning routes */}

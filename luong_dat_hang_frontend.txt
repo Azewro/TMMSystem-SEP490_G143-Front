@@ -1,99 +1,99 @@
-
 PHẦN 1: MÔ TẢ CHI TIẾT LUỒNG ĐẶT HÀNG
 ======================================
 
-Dưới đây là mô tả chi tiết các bước trong luồng đặt hàng, phân chia theo từng vai trò và giai đoạn.
+Dưới đây là mô tả chi tiết các bước trong luồng đặt hàng từ khi khách hàng tạo yêu cầu cho đến khi lên kế hoạch sản xuất, dựa trên tài liệu quy trình.
 
-**GIAI ĐOẠN 1: TẠO YÊU CẦU BÁO GIÁ (RFQ)**
------------------------------------------
+**GIAI ĐOẠN 1: TẠO YÊU CẦU BÁO GIÁ (RFQ) VÀ XÁC NHẬN**
+----------------------------------------------------
 
-Mục tiêu: Khách hàng hoặc Sales tạo một yêu cầu báo giá (RFQ) trên hệ thống.
+Mục tiêu: Khách hàng tạo một Yêu cầu báo giá (RFQ) và nhân viên Sales xác nhận lại thông tin trước khi chuyển cho bộ phận Kế hoạch.
 
-*   **CÓ 3 LUỒNG TẠO RFQ:**
+*   **CÁC LUỒNG TẠO RFQ:**
 
-    1.  **Sales tạo hộ (cho khách hàng không dùng hệ thống):**
-        *   Khách hàng liên hệ trực tiếp Sales.
-        *   Sales đăng nhập và điền thông tin vào form RFQ giúp khách hàng.
-
-    2.  **Khách hàng mới (lần đầu dùng hệ thống):**
-        *   Khách hàng vào trang chủ (chưa đăng nhập).
-        *   Chọn sản phẩm và nhấn "Yêu cầu báo giá".
-        *   Điền đầy đủ thông tin vào form RFQ.
-
-    3.  **Khách hàng cũ (đã có tài khoản):**
+    1.  **Khách hàng đã có tài khoản:**
         *   Khách hàng đăng nhập vào hệ thống.
-        *   Chọn sản phẩm, thêm vào giỏ hàng và gửi yêu cầu báo giá từ giỏ hàng.
-        *   Hệ thống sẽ tự điền thông tin khách hàng, chỉ cần nhập số lượng và ngày giao mong muốn. Khách hàng có thể chỉnh sửa thông tin nếu cần.
+        *   Tạo RFQ. Hệ thống sẽ tự động điền các thông tin cá nhân (tên, sđt, email...). Khách hàng chỉ cần nhập sản phẩm, số lượng, ngày giao mong muốn.
+        *   **Quan trọng:** Khách hàng có quyền chỉnh sửa lại các thông tin được tự động điền.
 
-*   **PHÂN CÔNG VÀ XÁC NHẬN:**
+    2.  **Khách hàng lần đầu sử dụng (Khách vãng lai):**
+        *   Khách hàng truy cập trang chủ (chưa đăng nhập).
+        *   Vẫn có thể tạo RFQ nhưng phải điền tất cả thông tin từ đầu.
 
-    4.  **Giám đốc:**
-        *   Sau khi RFQ được tạo, Giám đốc sẽ nhận được thông báo.
+    3.  **Sales tạo hộ:**
+        *   Áp dụng cho khách hàng không sử dụng hệ thống, liên hệ trực tiếp với Sales.
+        *   Sales sẽ đăng nhập và tạo một RFQ thay cho khách hàng.
+
+*   **PHÂN CÔNG VÀ XÁC NHẬN (NỘI BỘ):**
+
+    4.  **Giám đốc phân công:**
+        *   Nếu RFQ được tạo mà không có "Mã nhân viên sale", Giám đốc sẽ nhận được thông báo.
         *   Giám đốc sẽ chỉ định một nhân viên **Sales** và một bộ phận **Kế hoạch** để xử lý RFQ này.
 
-    5.  **Sales:**
-        *   Nhận được RFQ được phân công.
-        *   Thực hiện gọi điện (ngoài hệ thống) để xác nhận lại yêu cầu với khách hàng.
-        *   Nếu khách hàng muốn thay đổi, Sales sẽ chỉnh sửa trực tiếp trên RFQ.
-        *   Sau khi chốt thông tin, Sales nhấn nút **"Xác nhận"** trên hệ thống để chuyển RFQ cho bộ phận Kế hoạch.
+    5.  **Sales xác nhận RFQ:**
+        *   Sales nhận được RFQ đã được phân công cho mình.
+        *   **Quyền chỉnh sửa của khách hàng:** Tại thời điểm này, khách hàng vẫn có thể tự do chỉnh sửa RFQ của mình.
+        *   Sales thực hiện gọi điện (ngoài hệ thống) để xác nhận lại các yêu cầu với khách hàng.
+        *   Nếu khách hàng muốn thay đổi, Sales có thể thay đổi giúp họ trực tiếp trên hệ thống.
+        *   Sau khi đã chốt thông tin, Sales nhấn nút **"Xác nhận"**.
+        *   **Quan trọng:** Kể từ lúc Sales nhấn "Xác nhận", khách hàng sẽ **không thể chỉnh sửa** RFQ đó nữa. RFQ được chuyển cho bộ phận Kế hoạch.
 
-**GIAI ĐOẠN 2: KIỂM TRA, TẠO VÀ GỬI BÁO GIÁ**
-------------------------------------------------
+**GIAI ĐOẠN 2: KIỂM TRA NĂNG LỰC VÀ TẠO BÁO GIÁ**
+---------------------------------------------------
 
-Mục tiêu: Bộ phận Kế hoạch kiểm tra khả năng sản xuất và tạo báo giá gửi cho khách hàng.
+Mục tiêu: Bộ phận Kế hoạch kiểm tra khả năng đáp ứng của nhà máy và tạo ra một Báo giá chính thức.
 
 *   **KIỂM TRA NĂNG LỰC SẢN XUẤT:**
 
     6.  **Bộ phận Kế hoạch:**
         *   Nhận được RFQ đã được Sales xác nhận.
-        *   Tiến hành kiểm tra năng lực sản xuất (lịch máy, nguyên vật liệu).
+        *   Tiến hành kiểm tra năng lực sản xuất, bao gồm: lịch hoạt động của máy móc, tình trạng tồn kho nguyên vật liệu.
 
 *   **XỬ LÝ KẾT QUẢ KIỂM TRA:**
 
     7.  **Trường hợp 1: ĐỦ NĂNG LỰC SẢN XUẤT**
-        *   **Kế hoạch:** Tiến hành tạo báo giá, tính toán chi phí và gửi đi.
+        *   **Kế hoạch:** Tiến hành bước tiếp theo là tạo báo giá.
 
     8.  **Trường hợp 2: KHÔNG ĐỦ NĂNG LỰC SẢN XUẤT**
-        *   **Kế hoạch:** Điền lý do vào form (ví dụ: "Lịch máy đã đầy, ngày sản xuất khả thi sớm nhất là 27/11/2025").
-        *   **Hệ thống:** Gửi thông báo này cho Sales.
-        *   **Sales:** Nhận thông báo, gọi điện thương lượng lại ngày giao hàng mới với khách.
-            *   **Nếu khách hàng đồng ý:** Sales cập nhật lại ngày giao hàng mong muốn mới trên RFQ. Kế hoạch tiếp tục tạo báo giá với ngày mới.
+        *   **Kế hoạch:** Mở một form trên hệ thống và điền lý do không đủ năng lực (ví dụ: "Lịch máy dệt đã đầy, ngày sản xuất khả thi sớm nhất là...").
+        *   **Hệ thống:** Tự động gửi thông báo này cho Sales.
+        *   **Sales:** Nhận thông báo, gọi điện thương lượng lại ngày giao hàng mới với khách hàng.
+            *   **Nếu khách hàng đồng ý:** Sales cập nhật lại ngày giao hàng mong muốn mới trên RFQ. Luồng quay lại bước 6 để Kế hoạch tiếp tục.
             *   **Nếu khách hàng không đồng ý:** Sales đóng RFQ với lý do "Khách hàng không đồng ý ngày giao hàng mới". Luồng kết thúc.
 
-*   **GỬI BÁO GIÁ CHO KHÁCH HÀNG:**
+*   **TẠO VÀ GỬI BÁO GIÁ:**
 
-    9.  **Hệ thống:**
-        *   Sau khi Kế hoạch tạo báo giá (dưới dạng file PDF), hệ thống sẽ gửi một email/thông báo đến khách hàng.
-        *   Nội dung bao gồm: đường link để xem báo giá.
-        *   Đối với khách hàng mới/được Sales tạo hộ, email sẽ kèm theo **thông tin đăng nhập tạm thời** (tài khoản và mật khẩu).
+    9.  **Kế hoạch & Hệ thống:**
+        *   Sau khi xác định đủ năng lực, Kế hoạch tiến hành tạo báo giá trên hệ thống.
+        *   Hệ thống sẽ gửi Báo giá này đến cho cả Sales và Khách hàng.
+        *   Đối với khách hàng mới hoặc được Sales tạo hộ, hệ thống sẽ gửi kèm **thông tin đăng nhập** (tài khoản và mật khẩu tạm thời) qua email/sdt để họ truy cập xem báo giá.
 
 **GIAI ĐOẠN 3: PHÊ DUYỆT BÁO GIÁ VÀ HỢP ĐỒNG**
 -------------------------------------------------
 
-Mục tiêu: Khách hàng phê duyệt báo giá và các bên ký kết, phê duyệt hợp đồng.
+Mục tiêu: Khách hàng phê duyệt báo giá và các bên ký kết, phê duyệt hợp đồng chính thức.
 
 *   **KHÁCH HÀNG PHÊ DUYỆT BÁO GIÁ:**
 
     10. **Khách hàng:**
-        *   Nhấp vào link trong email, đăng nhập vào hệ thống (nếu là lần đầu sẽ phải đổi mật khẩu).
+        *   Truy cập vào hệ thống (nếu là lần đầu sẽ phải đổi mật khẩu).
         *   Xem chi tiết báo giá.
         *   **Lựa chọn 1: Chấp nhận báo giá:**
-            *   Hệ thống hiển thị form để khách hàng điền các thông tin còn thiếu để làm hợp đồng (Tên doanh nghiệp, MST, người đại diện...).
-            *   Sau khi điền xong, hệ thống tự động tạo một **Đơn hàng (Order)** ở trạng thái "Pending".
+            *   Hệ thống hiển thị một form để khách hàng điền/xác nhận các thông tin pháp lý còn thiếu để làm hợp đồng.
+            *   Sau khi điền xong, hệ thống tự động tạo một **Đơn hàng (Order)**.
         *   **Lựa chọn 2: Từ chối báo giá:** Luồng kết thúc.
 
 *   **UPLOAD VÀ PHÊ DUYỆT HỢP ĐỒNG:**
 
     11. **Sales:**
         *   Nhận thông báo khi khách hàng đã chấp nhận báo giá.
-        *   Tiến hành ký kết hợp đồng giấy (ngoài hệ thống) với khách hàng.
-        *   **Upload file PDF hợp đồng** đã có chữ ký của các bên lên Đơn hàng tương ứng trên hệ thống.
+        *   Tiến hành ký kết hợp đồng giấy (ngoài hệ thống).
+        *   **Upload file PDF hợp đồng** đã ký lên Đơn hàng tương ứng trên hệ thống.
 
     12. **Giám đốc:**
         *   Nhận thông báo có hợp đồng mới cần duyệt.
-        *   Xem file PDF hợp đồng mà Sales đã upload.
-        *   **Lựa chọn 1: Phê duyệt hợp đồng:** Đơn hàng được duyệt. Chuyển sang giai đoạn tiếp theo.
-        *   **Lựa chọn 2: Từ chối hợp đồng:** Gửi trả lại cho Sales kèm lý do. Sales phải làm lại hợp đồng, upload file mới và trình Giám đốc duyệt lại.
+        *   Xem file PDF hợp đồng.
+        *   **Lựa chọn 1: Phê duyệt hợp đồng:** Đơn hàng được duyệt.
+        *   **Lựa chọn 2: Từ chối hợp đồng:** Gửi trả lại cho Sales kèm lý do. Sales phải làm lại hợp đồng, upload file mới và trình duyệt lại.
 
 **GIAI ĐOẠN 4: LẬP KẾ HOẠCH SẢN XUẤT VÀ THỰC THI**
 ----------------------------------------------------
@@ -102,13 +102,13 @@ Mục tiêu: Lập kế hoạch sản xuất chi tiết, được Giám đốc p
 
 *   **GỘP ĐƠN VÀ LẬP KẾ HOẠCH:**
 
-    13. **Hệ thống:**
-        *   Sau khi hợp đồng được duyệt, hệ thống sẽ tự động quét và **gộp các đơn hàng** chưa được sản xuất có cùng tiêu chí (cùng sản phẩm, ngày giao gần nhau...) thành một **Lô sản xuất**.
+    13. **Hệ thống (Tự động):**
+        *   Sau khi hợp đồng được duyệt, hệ thống sẽ tự động quét và **gộp các đơn hàng** có cùng tiêu chí (cùng sản phẩm, ngày giao gần nhau...) thành một **Lô sản xuất**.
 
     14. **Bộ phận Kế hoạch:**
         *   Nhận thông báo về các lô sản xuất đã được gộp.
-        *   Dựa trên thông tin lô, tiến hành **lập Kế hoạch sản xuất chi tiết** (phân bổ máy móc, nhân sự, thời gian cho từng công đoạn: dệt, nhuộm, cắt, may, đóng gói).
-        *   Gửi kế hoạch sản xuất cho Giám đốc.
+        *   Dựa trên thông tin lô, tiến hành **lập Kế hoạch sản xuất chi tiết** (phân bổ máy móc, nhân sự, thời gian cho từng công đoạn).
+        *   Gửi kế hoạch sản xuất cho Giám đốc duyệt.
 
 *   **PHÊ DUYỆT VÀ SẢN XUẤT:**
 
@@ -117,158 +117,8 @@ Mục tiêu: Lập kế hoạch sản xuất chi tiết, được Giám đốc p
         *   **Lựa chọn 1: Phê duyệt:** Trạng thái đơn hàng chuyển thành "Approved".
         *   **Lựa chọn 2: Từ chối:** Gửi trả lại cho Kế hoạch để chỉnh sửa và trình duyệt lại.
 
-    16. **Hệ thống:**
+    16. **Hệ thống (Tự động):**
         *   Ngay sau khi Giám đốc duyệt kế hoạch sản xuất, hệ thống tự động tạo ra **Lệnh sản xuất (Production Order)**.
 
     17. **Quản lý sản xuất:**
-        *   Nhận Lệnh sản xuất, phân công kỹ thuật viên/công nhân và bắt đầu quá trình sản xuất thực tế.
-
-================================
-PHẦN 2: DANH SÁCH CHI TIẾT CÁC MÀN HÌNH (FRONTEND)
-===================================================
-
-Dưới đây là danh sách các màn hình cần xây dựng, được sắp xếp theo trình tự luồng người dùng và vai trò.
-
-**--- BƯỚC 1: KHÁCH HÀNG TIẾP CẬN VÀ TẠO YÊU CẦU BÁO GIÁ (RFQ) ---**
-
-1.  **Trang Chủ (Homepage)** (ĐÃ XONG)
-    *   **Mục đích:** Cung cấp điểm truy cập đầu tiên, trưng bày sản phẩm.
-    *   **Nội dung (Khi chưa đăng nhập):**
-        *   Danh sách các sản phẩm (hình ảnh, tên, kích thước).
-        *   Trên mỗi sản phẩm có nút "Yêu cầu báo giá".
-        *   Header có nút "Đăng nhập" và "Đăng ký".
-    *   **Nội dung (Khi đã đăng nhập - vai trò Khách hàng):**
-        *   Tương tự như trên, như	ng nút trên sản phẩm là "Thêm vào giỏ hàng".
-        *   Header có icon giỏ hàng (hiển thị số lượng sản phẩm) và menu người dùng (dẫn đến trang quản lý cá nhân).
-
-2.  **Trang Đăng Nhập / Đăng Ký (Login / Register)** (ĐÃ XONG)
-    *   **Mục đích:** Xác thực người dùng.
-    *   **Nội dung:** Form đăng nhập (email, mật khẩu) và Form đăng ký cho khách hàng mới.
-
-3.  **Trang/Form Tạo Yêu Cầu Báo Giá (RFQ)** (ĐÃ XONG)
-    *   **Mục đích:** Thu thập thông tin RFQ từ khách hàng hoặc Sales.
-    *   **Luồng 1 (Khách hàng mới):** Sau khi nhấn "Yêu cầu báo giá" ở trang chủ, hiện ra form này để khách điền thông tin liên hệ, chi tiết sản phẩm, số lượng, ngày giao mong muốn.
-    *   **Luồng 2 (Khách hàng cũ):** Sau khi thêm sản phẩm vào giỏ hàng, khách vào trang "Giỏ hàng". Trang này cho phép xem lại sản phẩm, chỉnh sửa số lượng và gửi đi để tạo RFQ. Thông tin khách hàng được tự điền.
-    *   **Luồng 3 (Sales tạo hộ):** Sales sau khi đăng nhập sẽ có một mục để tạo RFQ, form tương tự luồng 1 nhưng có thêm trường để điền thông tin khách hàng.
-
-**--- BƯỚC 2: NỘI BỘ TIẾP NHẬN VÀ XỬ LÝ RFQ ---**
-
-4.  **Trang Danh Sách Yêu Cầu Báo Giá - Nội bộ (Internal RFQ List)** (ĐÃ XONG)
-    *   **Mục đích:** Quản lý tập trung các RFQ.
-    *   **Nội dung (Vai trò Giám đốc):**
-        *   Bảng liệt kê tất cả RFQ mới với các thông tin cơ bản (Mã RFQ, Tên khách, Ngày tạo, Trạng thái).
-        *   Mỗi dòng có nút "Phân công".
-    *   **Nội dung (Vai trò Sales/Kế hoạch):**
-        *   Bảng liệt kê các RFQ đã được phân công cho mình.
-        *   Mỗi dòng có nút "Xem chi tiết".
-
-5.  **Trang Chi Tiết RFQ - Nội bộ (Internal RFQ Detail)**
-    *   **Mục đích:** Hiển thị đầy đủ thông tin của RFQ và cung cấp hành động theo vai trò.
-    *   **Popup/View Phân công (Giám đốc):** Khi nhấn "Phân công", hiện ra cửa sổ để chọn nhân viên Sales và bộ phận Kế hoạch từ danh sách thả xuống.
-    *   **View của Sales:** Hiển thị chi tiết RFQ, có nút "Sửa đổi" (để cập nhật thông tin sau khi gọi cho khách) và nút "Xác nhận" (để gửi cho Kế hoạch).
-    *   **View của Kế hoạch:** Sau khi Sales xác nhận, Kế hoạch sẽ thấy chi tiết RFQ cùng với nút "Kiểm tra năng lực sản xuất" và "Tạo báo giá".
-
-**--- BƯỚC 3: TẠO, GỬI VÀ PHÊ DUYỆT BÁO GIÁ ---**
-
-6.  **Trang Tạo Báo Giá (Create Quotation Form)**
-    *   **Mục đích:** Dành cho bộ phận Kế hoạch nhập các thông số để cấu thành giá.
-    *   **Nội dung:** Form gồm các trường như: giá nguyên vật liệu, giá gia công, chi phí hoàn thiện, lợi nhuận mong muốn (%), ghi chú... Hệ thống sẽ tự tính tổng giá trị. Có nút "Tạo và Gửi báo giá".
-
-7.  **Trang Danh Sách Báo Giá - Khách hàng (My Quotations)**
-    *   **Mục đích:** Khách hàng xem các báo giá đã nhận.
-    *   **Nội dung:** Bảng liệt kê các báo giá (Mã báo giá, Tổng tiền, Trạng thái, Ngày hết hạn) và nút "Xem chi tiết".
-
-8.  **Trang Chi Tiết Báo Giá - Khách hàng (Quotation Detail)**
-    *   **Mục đích:** Khách hàng xem xét và ra quyết định.
-    *   **Nội dung:** Hiển thị chi tiết báo giá (có thể nhúng file PDF hoặc hiển thị dữ liệu dạng bảng). Có 2 nút chính: **"Chấp nhận"** và **"Từ chối"**.
-
-9.  **Form Điền Thông Tin Hợp Đồng**
-    *   **Mục đích:** Thu thập thông tin pháp lý từ khách hàng.
-    *   **Nội dung:** Sau khi khách hàng nhấn "Chấp nhận" báo giá, một form/popup hiện ra yêu cầu điền các thông tin như: Tên doanh nghiệp, Mã số thuế, Người đại diện, Địa chỉ... để chuẩn bị cho hợp đồng.
-
-**--- BƯỚC 4: HỢP ĐỒNG VÀ PHÊ DUYỆT ---**
-
-10. **Trang Danh Sách Đơn Hàng - Nội bộ (Internal Order List)**
-    *   **Mục đích:** Quản lý các đơn hàng đã hình thành.
-    *   **Nội dung (Vai trò Sales):** Liệt kê các đơn hàng của mình. Với các đơn hàng đang chờ hợp đồng, có nút "Upload Hợp đồng".
-    *   **Nội dung (Vai trò Giám đốc):** Liệt kê tất cả đơn hàng. Với các đơn hàng chờ duyệt hợp đồng, có nút "Xem và Duyệt".
-
-11. **Trang Chi Tiết Đơn Hàng - Duyệt Hợp Đồng (Director's Order Detail)**
-    *   **Mục đích:** Giám đốc ra quyết định phê duyệt hợp đồng.
-    *   **Nội dung:** Hiển thị thông tin đơn hàng, có link để xem/tải file PDF hợp đồng mà Sales đã upload. Bên dưới là 2 nút: **"Phê duyệt hợp đồng"** và **"Từ chối hợp đồng"** (kèm ô nhập lý do).
-
-**--- BƯỚC 5: LẬP KẾ HOẠCH SẢN XUẤT ---**
-
-12. **Trang Danh Sách Lô Sản Xuất (Grouped Orders for Planning)**
-    *   **Mục đích:** Dành cho bộ phận Kế hoạch xem các đơn hàng đã được hệ thống tự động gộp.
-    *   **Nội dung:** Bảng liệt kê các lô sản xuất (Mã lô, Tên sản phẩm, Tổng số lượng, Danh sách mã đơn hàng đã gộp). Mỗi dòng có nút "Lập kế hoạch sản xuất".
-
-13. **Trang Lập Kế Hoạch Sản Xuất (Create Production Plan)**
-    *   **Mục đích:** Kế hoạch xây dựng tiến trình sản xuất chi tiết.
-    *   **Nội dung:** Một form phức tạp bao gồm các công đoạn (cuộn mắc, dệt, nhuộm, cắt, may, đóng gói). Trong mỗi công đoạn, cho phép chọn máy móc, người phụ trách, người kiểm tra, thời gian bắt đầu/kết thúc dự kiến.
-
-14. **Trang Chi Tiết Kế Hoạch Sản Xuất - Duyệt (Director's Plan Detail)**
-    *   **Mục đích:** Giám đốc phê duyệt kế hoạch sản xuất.
-    *   **Nội dung:** Hiển thị chi tiết kế hoạch mà bộ phận Kế hoạch đã lập. Có 2 nút: **"Phê duyệt kế hoạch"** và **"Từ chối kế hoạch"** (kèm lý do).
-
-**--- BƯỚC 6: THEO DÕI SẢN XUẤT ---**
-
-15. **Trang Danh Sách Lệnh Sản Xuất (Production Orders List)**
-    *   **Mục đích:** Dành cho Quản lý sản xuất.
-    *   **Nội dung:** Liệt kê các lệnh sản xuất đã được Giám đốc phê duyệt, sẵn sàng để đưa vào sản xuất.
-
-16. **Trang Theo Dõi Đơn Hàng - Khách hàng (My Order Tracking)**
-    *   **Mục đích:** Cung cấp cho khách hàng cái nhìn tổng quan về tiến độ đơn hàng.
-    *   **Nội dung:** Truy cập từ trang "Danh sách đơn hàng của tôi". Hiển thị một timeline hoặc các bước trực quan về trạng thái của đơn hàng (VD: Đã duyệt hợp đồng -> Đang lập kế hoạch -> Đang sản xuất -> Hoàn thành).
-
-================================
-PHẦN 3: DANH SÁCH API CẦN THIẾT
-================================
-
-Dưới đây là danh sách các API endpoint quan trọng cho từng giai đoạn, dựa trên Swagger UI.
-
-**A. XÁC THỰC (Auth)**
-- `POST /auth/login`: Đăng nhập
-- `POST /auth/register`: Đăng ký
-- `GET /auth/me`: Lấy thông tin người dùng đang đăng nhập
-
-**B. SẢN PHẨM (Products)**
-- `GET /products`: Lấy danh sách tất cả sản phẩm để hiển thị trên trang chủ.
-- `GET /products/{id}`: Lấy thông tin chi tiết một sản phẩm.
-
-**C. GIAI ĐOẠN 1: YÊU CẦU BÁO GIÁ (RFQs)**
-- `POST /rfqs`: Khách hàng hoặc Sales tạo một RFQ mới.
-- `GET /rfqs`: Lấy danh sách RFQ (với filter theo vai trò).
-- `GET /rfqs/{id}`: Lấy chi tiết một RFQ.
-- `PUT /rfqs/{id}`: Sales chỉnh sửa RFQ.
-- `PUT /rfqs/{id}/assignment`: Giám đốc phân công Sales/Kế hoạch cho RFQ.
-- `PUT /rfqs/{id}/status`: Sales xác nhận RFQ hoặc các thay đổi trạng thái khác.
-
-**D. GIAI ĐOẠN 2: BÁO GIÁ (Quotations)**
-- `POST /quotations`: Bộ phận Kế hoạch tạo báo giá từ một RFQ.
-- `GET /quotations`: Lấy danh sách báo giá (cho khách hàng, sales...).
-- `GET /quotations/{id}`: Lấy chi tiết một báo giá.
-- `GET /quotations/rfq/{rfqId}`: Lấy báo giá gắn với một RFQ cụ thể.
-- `PUT /quotations/{id}/status`: Khách hàng chấp nhận hoặc từ chối báo giá.
-- `GET /quotations/{id}/file`: Tải file PDF của báo giá.
-
-**E. GIAI ĐOẠN 3: ĐƠN HÀNG & HỢP ĐỒNG (Orders & Contracts)**
-- `GET /orders`: Lấy danh sách đơn hàng.
-- `GET /orders/{id}`: Lấy chi tiết một đơn hàng.
-- `POST /contracts`: Sales upload file hợp đồng cho một đơn hàng.
-- `PUT /contracts/{id}/status`: Giám đốc phê duyệt hoặc từ chối hợp đồng.
-- `GET /contracts/order/{orderId}`: Lấy thông tin hợp đồng của một đơn hàng.
-
-**F. GIAI ĐOẠN 4: KẾ HOẠCH & SẢN XUẤT (Production)**
-- `GET /production-plans/grouped-orders`: Kế hoạch lấy danh sách các đơn hàng đã được gộp.
-- `POST /production-plans`: Kế hoạch tạo một kế hoạch sản xuất mới.
-- `GET /production-plans`: Lấy danh sách các kế hoạch sản xuất.
-- `GET /production-plans/{id}`: Lấy chi tiết một kế hoạch sản xuất.
-- `PUT /production-plans/{id}/status`: Giám đốc phê duyệt hoặc từ chối kế hoạch sản xuất.
-- `GET /production-orders`: Lấy danh sách các lệnh sản xuất.
-- `GET /production-orders/{id}`: Lấy chi tiết một lệnh sản xuất.
-- `GET /orders/{id}/tracking`: Khách hàng theo dõi trạng thái sản xuất của đơn hàng.
-
-**G. CÁC API KHÁC**
-- `GET /users`: Lấy danh sách người dùng (ví dụ để Giám đốc chọn Sales/Kế hoạch khi phân công).
-- API để upload file (có thể được tích hợp trong các endpoint `POST /contracts`).
+        *   Nhận Lệnh sản xuất và phân công để bắt đầu quá trình sản xuất thực tế.

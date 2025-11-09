@@ -4,15 +4,18 @@ import Header from '../../components/common/Header';
 import Sidebar from '../../components/common/Sidebar';
 import { useAuth } from '../../context/AuthContext';
 import { rfqService } from '../../api/rfqService';
-import { useNavigate } from 'react-router-dom';
+import CustomerRfqDetailModal from '../../components/modals/CustomerRfqDetailModal';
 import '../../styles/CustomerQuoteRequests.css';
 
-const CustomerQuoteRequests = () => {
+const CustomerRfqs = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [rfqs, setRfqs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Modal state
+  const [showModal, setShowModal] = useState(false);
+  const [selectedRfqId, setSelectedRfqId] = useState(null);
 
   const fetchCustomerRfqs = async () => {
     setLoading(true);
@@ -36,6 +39,19 @@ const CustomerQuoteRequests = () => {
       setError('Bạn cần đăng nhập để xem các yêu cầu báo giá.');
     }
   }, [user]);
+
+  const handleViewDetails = (rfqId) => {
+    setSelectedRfqId(rfqId);
+    setShowModal(true);
+  };
+
+  const handleCloseModal = (refresh) => {
+    setShowModal(false);
+    setSelectedRfqId(null);
+    if (refresh) {
+      fetchCustomerRfqs();
+    }
+  };
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -84,8 +100,8 @@ const CustomerQuoteRequests = () => {
                             <td>{new Date(rfq.createdAt).toLocaleDateString()}</td>
                             <td><Badge bg={getStatusBadge(rfqStatus)}>{rfqStatus}</Badge></td>
                             <td>
-                              <Button variant="info" size="sm" onClick={() => navigate(`/customer/quotations/${rfq.id}`)}>
-                                Xem chi tiết
+                              <Button variant="primary" size="sm" onClick={() => handleViewDetails(rfq.id)}>
+                                Chi tiết
                               </Button>
                             </td>
                           </tr>
@@ -103,8 +119,16 @@ const CustomerQuoteRequests = () => {
           </Container>
         </div>
       </div>
+
+      {showModal && (
+        <CustomerRfqDetailModal
+          rfqId={selectedRfqId}
+          show={showModal}
+          handleClose={handleCloseModal}
+        />
+      )}
     </div>
   );
 };
 
-export default CustomerQuoteRequests;
+export default CustomerRfqs;

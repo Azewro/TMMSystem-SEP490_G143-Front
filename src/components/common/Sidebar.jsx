@@ -22,7 +22,7 @@ const Sidebar = () => {
     {
       icon: FaFileInvoice, // Reusing FaFileInvoice for "Yêu cầu đã gửi"
       label: 'Yêu cầu đã gửi',
-      path: '/customer/quote-requests',
+      path: '/customer/rfqs',
     },
     {
       icon: FaShoppingCart,

@@ -16,7 +16,7 @@ const CustomerSidebar = () => {
     {
       icon: FaFileInvoice,
       label: 'Yêu cầu đã gửi',
-      path: '/customer/quote-requests',
+      path: '/customer/rfqs',
     },
     {
       icon: FaShoppingCart,

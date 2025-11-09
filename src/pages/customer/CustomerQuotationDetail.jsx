@@ -43,10 +43,12 @@ const numberToWords = (num) => {
                 }
             } else if (t === 1) {
                 chunkWords.push(teens[u]);
-            } else if (u > 0 && (h > 0 || i > 0)) {
-                chunkWords.push("linh " + units[u]);
             } else if (u > 0) {
-                chunkWords.push(units[u]);
+                if (h > 0 || num >= 1000) {
+                    chunkWords.push("linh " + units[u]);
+                } else {
+                    chunkWords.push(units[u]);
+                }
             }
             
             if (powers[i]) {
@@ -68,6 +70,7 @@ const CustomerQuotationDetail = () => {
   const navigate = useNavigate();
 
   const [quote, setQuote] = useState(null);
+  const [productDetails, setProductDetails] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -75,33 +78,41 @@ const CustomerQuotationDetail = () => {
   const [working, setWorking] = useState(false);
 
   useEffect(() => {
-    const fetch = async () => {
-      setLoading(true); setError('');
+    const fetchDetails = async () => {
+      setLoading(true);
+      setError('');
       try {
-        const quoteData = await quoteService.getQuoteDetails(id);
+        const quoteData = await quoteService.getQuoteDetails(parseInt(id, 10));
+        
+        // Fetch all product details in parallel
+        const productPromises = quoteData.details.map(item => 
+          productService.getProductById(item.productId)
+        );
+        const products = await Promise.all(productPromises);
+        
+        const productsMap = products.reduce((acc, product) => {
+          acc[product.id] = product;
+          return acc;
+        }, {});
+        setProductDetails(productsMap);
+
         const enrichedDetails = quoteData.details.map(item => ({
           ...item,
           totalPrice: item.unitPrice * item.quantity
         }));
         
-        const subTotal = enrichedDetails.reduce((sum, item) => sum + item.totalPrice, 0);
-        
-        // Assuming totalAmount from API is the final price including VAT
-        const vatAmount = quoteData.totalAmount - subTotal;
-        const vatRate = subTotal > 0 ? (vatAmount / subTotal) * 100 : 0;
-
         setQuote({ 
             ...quoteData, 
             details: enrichedDetails,
-            subTotal,
-            vatAmount,
-            vatRate: vatRate.toFixed(0) // Assuming integer VAT rate
         });
 
-      } catch (e) { setError(e.message || 'Không thể tải báo giá'); }
-      finally { setLoading(false); }
+      } catch (e) {
+        setError(e.message || 'Không thể tải báo giá');
+      } finally {
+        setLoading(false);
+      }
     };
-    fetch();
+    fetchDetails();
   }, [id]);
 
   const onConfirm = async (type) => {
@@ -138,6 +149,13 @@ const CustomerQuotationDetail = () => {
     }
   };
 
+  const totalWeight = quote?.details.reduce((total, item) => {
+    const product = productDetails[item.productId];
+    const weight = product?.standardWeight || 0;
+    return total + (item.quantity * weight);
+  }, 0) || 0;
+
+
   return (
     <div className="customer-layout">
       <Header />
@@ -152,100 +170,110 @@ const CustomerQuotationDetail = () => {
             {error && <Alert variant="danger" onClose={()=>setError('')} dismissible>{error}</Alert>}
             {success && <Alert variant="success" onClose={()=>setSuccess('')} dismissible>{success}</Alert>}
 
-            <Card className="shadow-sm">
-              <Card.Header className="bg-light p-3">
-                <Row className="align-items-center">
-                    <Col md={8}>
-                        <h4 className="mb-0">Chi Tiết Báo Giá</h4>
-                        <span className="text-muted">Mã: {quote?.rfqNumber || quote?.rfq?.rfqNumber || `RFQ-${quote?.rfqId || quote?.id}`}</span>
-                    </Col>
-                    <Col md={4} className="text-md-end">
-                        {quote && <Badge bg={getStatusBadge(quote.status).bg} className="fs-6">{getStatusBadge(quote.status).text}</Badge>}
-                    </Col>
-                </Row>
-              </Card.Header>
-              <Card.Body className="p-4">
-                {loading ? (
-                  <div className="text-center py-5"><Spinner animation="border" /></div>
-                ) : quote ? (
-                  <>
-                    <Table responsive bordered className="align-middle">
-                      <thead className="table-light text-center">
-                        <tr>
-                          <th>STT</th>
-                          <th>Tên sản phẩm</th>
-                          <th>Kích thước</th>
-                          <th>Số lượng</th>
-                          <th>Đơn vị tính</th>
-                          <th className="text-end">Đơn giá</th>
-                          <th className="text-end">Thành tiền</th>
+            {loading ? (
+              <div className="text-center py-5"><Spinner animation="border" /></div>
+            ) : quote ? (
+              <Card className="shadow-sm p-5 mx-auto" style={{ maxWidth: '800px' }}>
+                <div className="text-end mb-4">
+                  <h5 className="mb-0">CÔNG TY TNHH DỆT MAY MỸ ĐỨC</h5>
+                  <p className="mb-0">Địa chỉ: X. Phùng Xá, H. Mỹ Đức, Hà Nội, Việt Nam</p>
+                </div>
+
+                <div className="mb-4">
+                  <p className="mb-1">Số: {quote?.rfqNumber || quote?.rfq?.rfqNumber || `RFQ-${quote?.rfqId || quote?.id}`}</p>
+                </div>
+
+                <h2 className="text-center mb-4 fw-bold">BẢNG BÁO GIÁ</h2>
+
+                <div className="mb-4">
+                  <p className="mb-1">Kính gửi: {quote.customer?.contactPerson || quote.customer?.companyName || 'Quý khách hàng'}</p>
+                  <p className="mb-1">{quote.customer?.companyName || 'Công Ty TNHH Dệt May Mỹ Đức'}</p>
+                  <p className="mb-0">xin trân trọng báo giá các sản phẩm như sau:</p>
+                </div>
+
+                <Table bordered responsive className="mb-4">
+                  <thead>
+                    <tr className="text-center">
+                      <th style={{ width: '5%' }}>STT</th>
+                      <th style={{ width: '35%' }}>THÔNG TIN SẢN PHẨM</th>
+                      <th style={{ width: '10%' }}>SỐ LƯỢNG</th>
+                      <th style={{ width: '10%' }}>KHỐI LƯỢNG (kg)</th>
+                      <th style={{ width: '15%' }}>ĐƠN GIÁ (VNĐ)</th>
+                      <th style={{ width: '25%' }}>THÀNH TIỀN (VNĐ)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {quote.details.map((item, idx) => {
+                      const product = productDetails[item.productId];
+                      const itemWeight = product ? item.quantity * (product.standardWeight || 0) : 0;
+                      return (
+                        <tr key={item.id || idx}>
+                          <td className="text-center">{idx + 1}</td>
+                          <td>
+                            <div>{product?.name || 'Sản phẩm không xác định'}</div>
+                            <small className="text-muted">Kích thước: {product?.standardDimensions || 'N/A'}</small>
+                          </td>
+                          <td className="text-center">{item.quantity}</td>
+                          <td className="text-center">{itemWeight.toFixed(2)}</td>
+                          <td className="text-end">{formatCurrency(item.unitPrice)}</td>
+                          <td className="text-end fw-bold">{formatCurrency(item.totalPrice)}</td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {quote.details.map((item, idx) => (
-                          <tr key={item.id || idx}>
-                            <td className="text-center">{idx + 1}</td>
-                            <td>{item.productName || 'Sản phẩm không xác định'}</td>
-                            <td className="text-center">{item.notes || 'Tiêu chuẩn'}</td>
-                            <td className="text-center">{item.quantity}</td>
-                            <td className="text-center">{item.unit || 'cái'}</td>
-                            <td className="text-end">{formatCurrency(item.unitPrice)}</td>
-                            <td className="text-end fw-bold">{formatCurrency(item.totalPrice)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </Table>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td colSpan="3" className="text-end fw-bold">TỔNG CỘNG:</td>
+                      <td className="text-center fw-bold">{totalWeight.toFixed(2)}</td>
+                      <td className="text-end fw-bold"></td>
+                      <td className="text-end fw-bold">{formatCurrency(quote.totalAmount)}</td>
+                    </tr>
+                  </tfoot>
+                </Table>
 
-                    <Row className="justify-content-end mt-4">
-                        <Col md={5}>
-                            <Table borderless size="sm">
-                                <tbody>
-                                    <tr>
-                                        <td><strong>Tổng cộng:</strong></td>
-                                        <td className="text-end">{formatCurrency(quote.subTotal)}</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Thuế GTGT ({quote.vatRate}%):</strong></td>
-                                        <td className="text-end">{formatCurrency(quote.vatAmount)}</td>
-                                    </tr>
-                                    <tr className="fs-5">
-                                        <td className="fw-bold">Tổng thanh toán:</td>
-                                        <td className="text-end fw-bold text-danger">{formatCurrency(quote.totalAmount)}</td>
-                                    </tr>
-                                </tbody>
-                            </Table>
-                            <div className="text-end fst-italic text-muted">
-                                Bằng chữ: {numberToWords(quote.totalAmount)}
-                            </div>
-                        </Col>
-                    </Row>
+                <div className="mb-3">
+                  <p className="mb-1">(Bằng chữ: {numberToWords(quote.totalAmount)})</p>
+                </div>
 
-                    <hr className="my-4" />
+                <div className="mb-3">
+                  <p className="mb-1 fw-bold">Ghi chú:</p>
+                  <ul className="list-unstyled ms-3">
+                    <li>- Đơn giá chưa bao gồm thuế VAT</li>
+                    <li>- Trạng thái báo giá: <Badge bg={getStatusBadge(quote.status).bg}>{getStatusBadge(quote.status).text}</Badge></li>
+                  </ul>
+                </div>
 
-                    <div className="d-flex justify-content-end gap-2">
-                      <Button 
-                        variant="danger" 
-                        size="lg"
-                        onClick={()=>setConfirm({ type: 'REJECTED', open: true })} 
-                        disabled={working || quote.status !== 'SENT'}
-                      >
-                        <FaTimesCircle className="me-2" /> Từ Chối
-                      </Button>
-                      <Button 
-                        variant="success" 
-                        size="lg"
-                        onClick={()=>setConfirm({ type: 'ACCEPTED', open: true })} 
-                        disabled={working || quote.status !== 'SENT'}
-                      >
-                        <FaCheckCircle className="me-2" /> Chấp Nhận Báo Giá
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-center py-5 text-muted">Không tìm thấy báo giá</div>
-                )}
-              </Card.Body>
-            </Card>
+                <div className="text-end mb-5">
+                  <p className="mb-1">Hà Nội, ngày {formatDate(quote.createdAt)}</p>
+                  <p className="mb-0 fw-bold">CÔNG TY TNHH DỆT MAY MỸ ĐỨC</p>
+                </div>
+
+                <p className="mb-0">Trân trọng kính chào!</p>
+              </Card>
+            ) : (
+              <div className="text-center py-5 text-muted">Không tìm thấy báo giá</div>
+            )}
+
+            {quote && (
+              <div className="d-flex justify-content-end gap-2 mt-4">
+                <Button 
+                  variant="danger" 
+                  size="lg"
+                  onClick={()=>setConfirm({ type: 'REJECTED', open: true })} 
+                  disabled={working || quote.status !== 'SENT'}
+                >
+                  <FaTimesCircle className="me-2" /> Từ Chối
+                </Button>
+                <Button 
+                  variant="success" 
+                  size="lg"
+                  onClick={()=>setConfirm({ type: 'ACCEPTED', open: true })} 
+                  disabled={working || quote.status !== 'SENT'}
+                >
+                  <FaCheckCircle className="me-2" /> Chấp Nhận Báo Giá
+                </Button>
+              </div>
+            )}
 
             <Modal show={confirm.open} onHide={()=>setConfirm({ type: null, open: false })} centered>
               <Modal.Header closeButton>
