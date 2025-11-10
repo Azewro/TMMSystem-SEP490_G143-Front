@@ -50,7 +50,7 @@ const LoginPage = () => {
         navigate('/');
       }
     } catch (err) {
-      setError(err.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
+      setError(err.message || 'Đăng nhập thất bại');
     } finally {
       setLoading(false);
     }

@@ -59,7 +59,7 @@ const InternalLoginPage = () => {
       }
       
     } catch (err) {
-      setError(err.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại tài khoản.');
+      setError(err.message || 'Đăng nhập thất bại');
     } finally {
       setLoading(false);
     }

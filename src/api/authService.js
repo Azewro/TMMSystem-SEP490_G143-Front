@@ -24,7 +24,21 @@ export const authService = {
       
       throw new Error('Login failed - no access token');
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Đăng nhập thất bại');
+      // Check if it's a credentials error (401 or specific error messages)
+      const status = error.response?.status;
+      const errorMessage = error.response?.data?.message || error.response?.data || '';
+      const errorMessageLower = errorMessage.toLowerCase();
+      
+      if (status === 401 || 
+          errorMessageLower.includes('invalid credentials') ||
+          errorMessageLower.includes('customer not found') ||
+          errorMessageLower.includes('user not found') ||
+          errorMessageLower.includes('sai') ||
+          errorMessageLower.includes('không đúng')) {
+        throw new Error('Tài khoản hoặc mật khẩu không đúng');
+      }
+      
+      throw new Error(errorMessage || 'Đăng nhập thất bại');
     }
   },
 
@@ -50,7 +64,22 @@ export const authService = {
       
       throw new Error('Login failed');
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Đăng nhập thất bại');
+      // Check if it's a credentials error (401 or specific error messages)
+      const status = error.response?.status;
+      const errorMessage = error.response?.data?.message || error.response?.data || '';
+      const errorMessageLower = errorMessage.toLowerCase();
+      
+      if (status === 401 || 
+          errorMessageLower.includes('invalid credentials') ||
+          errorMessageLower.includes('user not found') ||
+          errorMessageLower.includes('customer not found') ||
+          errorMessageLower.includes('sai') ||
+          errorMessageLower.includes('không đúng') ||
+          errorMessageLower.includes('inactive')) {
+        throw new Error('Tài khoản hoặc mật khẩu không đúng');
+      }
+      
+      throw new Error(errorMessage || 'Đăng nhập thất bại');
     }
   },
 
