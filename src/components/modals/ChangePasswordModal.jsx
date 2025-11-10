@@ -52,14 +52,24 @@ const ChangePasswordModal = ({ show, onHide }) => {
 
     if (!formData.newPassword) {
       newErrors.newPassword = 'Mật khẩu mới không được để trống.';
-    } else if (formData.newPassword.length < 6) {
-      newErrors.newPassword = 'Mật khẩu mới phải có ít nhất 6 ký tự';
+    } else {
+      const hasUppercase = /[A-Z]/.test(formData.newPassword);
+      const hasDigit = /\d/.test(formData.newPassword);
+      const hasWhitespace = /\s/.test(formData.newPassword);
+
+      if (formData.newPassword.length < 8) {
+        newErrors.newPassword = 'Mật khẩu phải có ít nhất 8 ký tự';
+      } else if (hasWhitespace) {
+        newErrors.newPassword = 'Mật khẩu không được chứa khoảng trắng';
+      } else if (!(hasUppercase && hasDigit)) {
+        newErrors.newPassword = 'Mật khẩu phải chứa ít nhất 1 chữ số và 1 chữ in hoa';
+      }
     }
 
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Xác nhận mật khẩu là bắt buộc';
+      newErrors.confirmPassword = 'Vui lòng điền vào trường này';
     } else if (formData.newPassword !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Mật khẩu xác nhận không khớp';
+      newErrors.confirmPassword = 'Mật khẩu mới và xác nhận mật khẩu phải giống nhau';
     }
 
     if (formData.currentPassword === formData.newPassword) {
@@ -186,7 +196,7 @@ const ChangePasswordModal = ({ show, onHide }) => {
                 value={formData.newPassword}
                 onChange={handleChange}
                 isInvalid={!!errors.newPassword}
-                placeholder="Nhập mật khẩu mới (ít nhất 6 ký tự)"
+                placeholder="Nhập mật khẩu mới (ít nhất 8 ký tự)"
               />
               <Button
                 variant="link"

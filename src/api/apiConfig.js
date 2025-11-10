@@ -41,13 +41,27 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Clear auth data and redirect to login
-      localStorage.removeItem('userToken');
-      localStorage.removeItem('userEmail');
-      localStorage.removeItem('userName');
-      localStorage.removeItem('userRole');
-      window.location.href = '/login';
+  if (error.response?.status === 401) {
+      const requestUrl = error.config?.url || '';
+      const isAuthRequest =
+        requestUrl.includes('/auth/customer/login') ||
+        requestUrl.includes('/auth/internal/login') ||
+        requestUrl.includes('/auth/customer/register') ||
+        requestUrl.includes('/auth/customer/forgot-password') ||
+        requestUrl.includes('/auth/customer/verify-reset-code');
+
+      if (!isAuthRequest) {
+        const lastLoginType = localStorage.getItem('lastLoginType');
+
+        // Clear auth data
+        localStorage.removeItem('userToken');
+        localStorage.removeItem('userEmail');
+        localStorage.removeItem('userName');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('lastLoginType');
+
+        window.location.href = lastLoginType === 'internal' ? '/internal-login' : '/login';
+      }
     }
     return Promise.reject(error);
   }

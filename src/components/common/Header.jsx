@@ -15,9 +15,12 @@ const Header = () => {
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
   const handleLogout = () => {
-    const userRole = user?.role;
+    const userRole = user?.role || user?.userRole;
+    const lastLoginType = userRole && userRole !== 'CUSTOMER'
+      ? 'internal'
+      : localStorage.getItem('lastLoginType') || 'customer';
     logout();
-    if (userRole && userRole !== 'CUSTOMER') {
+    if (lastLoginType === 'internal') {
       navigate('/internal-login');
     } else {
       navigate('/login');

@@ -9,6 +9,8 @@ import HomePage from './pages/public/HomePage';
 import LoginPage from './pages/auth/LoginPage';
 import InternalLoginPage from './pages/auth/InternalLoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
+import CustomerForgotPassword from './pages/auth/CustomerForgotPassword';
+import InternalForgotPassword from './pages/auth/InternalForgotPassword';
 
 // Internal Pages
 import PlanningRFQDetail from './pages/planning/PlanningRFQDetail';
@@ -61,6 +63,8 @@ function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/internal-login" element={<InternalLoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route path="/forgot-password" element={<CustomerForgotPassword />} />
+              <Route path="/internal-forgot-password" element={<InternalForgotPassword />} />
               
 
               {/* Internal routes - NO AUTH GUARD (for now) */}

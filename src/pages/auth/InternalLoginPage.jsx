@@ -125,6 +125,12 @@ const InternalLoginPage = () => {
             {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </button>
         </form>
+
+        <div className="login-footer">
+          <Link to="/internal-forgot-password" className="forgot-password-link">
+            Quên mật khẩu?
+          </Link>
+        </div>
       </div>
     </div>
   );

@@ -17,6 +17,7 @@ export const authService = {
         localStorage.setItem('userName', response.data.name || response.data.email);
         localStorage.setItem('userRole', 'CUSTOMER');
         localStorage.setItem('customerId', response.data.customerId);
+        localStorage.setItem('lastLoginType', 'customer');
         
         return { ...response.data, customerId: response.data.customerId };
       }
@@ -42,6 +43,7 @@ export const authService = {
         localStorage.setItem('userName', response.data.name || response.data.email);
         localStorage.setItem('userRole', response.data.role);
         localStorage.setItem('userId', response.data.userId);
+        localStorage.setItem('lastLoginType', 'internal');
         
         return response.data;
       }
@@ -73,6 +75,7 @@ export const authService = {
     localStorage.removeItem('userRole');
     localStorage.removeItem('customerId');
     localStorage.removeItem('userId');
+    localStorage.removeItem('lastLoginType');
   },
 
   // Get current user data
@@ -117,6 +120,46 @@ export const authService = {
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.message || error.response?.data || 'Đổi mật khẩu thất bại');
+    }
+  },
+
+  // Forgot password for internal users
+  forgotPassword: async (email) => {
+    try {
+      const response = await apiClient.post('/v1/auth/forgot-password', { email });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Không thể gửi yêu cầu đặt lại mật khẩu');
+    }
+  },
+
+  // Forgot password for customers
+  customerForgotPassword: async (email) => {
+    try {
+      const response = await apiClient.post('/v1/auth/customer/forgot-password', { email });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Không thể gửi yêu cầu đặt lại mật khẩu');
+    }
+  },
+
+  // Verify reset code for internal users
+  verifyResetCode: async (email, code) => {
+    try {
+      const response = await apiClient.post('/v1/auth/verify-reset-code', { email, code });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Mã xác minh không hợp lệ hoặc đã hết hạn');
+    }
+  },
+
+  // Verify reset code for customers
+  customerVerifyResetCode: async (email, code) => {
+    try {
+      const response = await apiClient.post('/v1/auth/customer/verify-reset-code', { email, code });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Mã xác minh không hợp lệ hoặc đã hết hạn');
     }
   },
 
