@@ -16,9 +16,12 @@ apiClient.interceptors.request.use(
     const noAuthRoutes = [
       '/auth/customer/login',
       '/auth/customer/register',
+      '/auth/user/login',
       '/auth/internal/login',
       '/auth/customer/forgot-password',
-      '/auth/customer/verify-reset-code'
+      '/auth/customer/verify-reset-code',
+      '/auth/forgot-password',
+      '/auth/verify-reset-code'
     ];
 
     // If the request URL is one of the public routes, don't add the token
@@ -45,10 +48,13 @@ apiClient.interceptors.response.use(
       const requestUrl = error.config?.url || '';
       const isAuthRequest =
         requestUrl.includes('/auth/customer/login') ||
+        requestUrl.includes('/auth/user/login') ||
         requestUrl.includes('/auth/internal/login') ||
         requestUrl.includes('/auth/customer/register') ||
         requestUrl.includes('/auth/customer/forgot-password') ||
-        requestUrl.includes('/auth/customer/verify-reset-code');
+        requestUrl.includes('/auth/customer/verify-reset-code') ||
+        requestUrl.includes('/auth/forgot-password') ||
+        requestUrl.includes('/auth/verify-reset-code');
 
       if (!isAuthRequest) {
         const lastLoginType = localStorage.getItem('lastLoginType');
