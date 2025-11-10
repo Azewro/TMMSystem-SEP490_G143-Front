@@ -32,6 +32,9 @@ import CustomerOrderDetail from './pages/customer/CustomerOrderDetail';
 
 // Planning Pages
 import PlanningRfqs from './pages/planning/PlanningRfqs';
+import ProductionPlans from './pages/planning/ProductionPlans';
+import ProductionPlanDetail from './pages/planning/ProductionPlanDetail';
+import ConsolidatedOrders from './pages/planning/ConsolidatedOrders'; // Import new component
 
 // Director Pages
 import ContractApproval from './pages/director/ContractApproval';
@@ -39,6 +42,7 @@ import DirectorRfqList from './pages/director/DirectorRfqList'; // Import the ne
 
 // Sales Pages
 import MyRfqs from './pages/sales/MyRfqs';
+import ContractUpload from './pages/internal/ContractUpload';
 
 // Admin Pages
 import AdminUserManagement from './pages/admin/AdminUserManagement';
@@ -81,6 +85,11 @@ function App() {
               {/* Planning routes */}
               <Route path="/planning/rfqs" element={<PlanningRfqs />} />
               <Route path="/planning/rfqs/:id" element={<PlanningRFQDetail />} />
+              <Route path="/planning/plans" element={<ProductionPlans />} />
+              <Route path="/planning/production-plans/:id" element={<ProductionPlanDetail />} />
+              <Route path="/planning/consolidated-orders" element={<ConsolidatedOrders />} />
+              {/* Placeholder for Create Production Plan page */}
+              <Route path="/planning/create-production-plan/:batchId" element={<div>Create Production Plan Page</div>} />
 
               {/* Director routes */}
               <Route path="/director/contract-approval" element={<ContractApproval />} />
@@ -88,6 +97,7 @@ function App() {
 
               {/* Sales routes */}
               <Route path="/sales/rfqs" element={<MyRfqs />} />
+              <Route path="/sales/contracts" element={<ContractUpload />} />
 
               {/* Admin routes */}
               <Route path="/admin/users" element={<AdminUserManagement />} />

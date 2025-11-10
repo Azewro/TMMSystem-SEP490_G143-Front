@@ -47,6 +47,7 @@ const InternalSidebar = ({ userRole: propUserRole }) => {
     ],
     planning: [
       { icon: FaListAlt, label: 'RFQ cần xử lý', path: '/planning/rfqs' },
+      { icon: FaListAlt, label: 'Đơn hàng đã gộp', path: '/planning/consolidated-orders' },
       { icon: FaProjectDiagram, label: 'Kế hoạch sản xuất', path: '/planning/plans' },
     ],
   };

@@ -51,7 +51,7 @@ const InternalLoginPage = () => {
       } else if (userRole?.includes('DIRECTOR')) {
         navigate('/director/rfqs');
       } else if (userRole?.includes('PLANNING') || userRole?.includes('PLANNER') || userRole === 'PLANNING_DEPARTMENT') {
-        navigate('/planning/quote-requests');
+        navigate('/planning/rfqs');
       } else if (userRole === 'SALE STAFF' || userRole?.includes('SALE')) {
         navigate('/sales/rfqs');
       } else {

@@ -29,5 +29,14 @@ export const productionPlanService = {
   rejectPlan: async (planId, rejectionReason) => {
     const response = await apiClient.put(`/v1/production-plans/${planId}/reject`, { rejectionReason });
     return response.data;
+  },
+
+  getConsolidatedOrdersForPlanning: async () => {
+    try {
+      const response = await apiClient.get('/v1/production-plans/consolidated-orders');
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi tải danh sách đơn hàng đã gộp.');
+    }
   }
 };

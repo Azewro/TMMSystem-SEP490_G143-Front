@@ -63,7 +63,7 @@ export const CartProvider = ({ children }) => {
     removeFromCart,
     updateQuantity,
     clearCart,
-    itemCount: cartItems.reduce((sum, item) => sum + item.quantity, 0)
+    itemCount: cartItems.length
   };
 
   return (

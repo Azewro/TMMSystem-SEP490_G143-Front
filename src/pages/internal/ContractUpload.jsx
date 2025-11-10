@@ -3,6 +3,8 @@ import { Container, Card, Table, Button, Modal, Form, Alert, Badge, Spinner } fr
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { contractService } from '../../api/contractService';
+import { quotationService } from '../../api/quotationService'; // Import quotationService
+import Pagination from '../../components/Pagination'; // Import Pagination
 import '../../styles/QuoteRequests.css';
 
 const STATUS_LABELS = {
@@ -41,17 +43,26 @@ const ContractUpload = () => {
   const [selectedContract, setSelectedContract] = useState(null);
   const [orderDetails, setOrderDetails] = useState(null);
   const [file, setFile] = useState(null);
+  const [quoteFile, setQuoteFile] = useState(null); // State for quote file
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   const loadContracts = async () => {
     setLoading(true);
     setError('');
 
     try {
-      const allContracts = await contractService.getAll();
-      setContracts(Array.isArray(allContracts) ? allContracts : []);
+      const allContracts = await contractService.getAllContracts();
+      // Sort by newest date first
+      const sortedContracts = Array.isArray(allContracts)
+        ? allContracts.sort((a, b) => new Date(b.contractDate || b.createdAt) - new Date(a.contractDate || a.createdAt))
+        : [];
+      setContracts(sortedContracts);
     } catch (err) {
       console.error('Failed to load contracts', err);
       setError(err.message || 'Không thể tải danh sách hợp đồng.');
@@ -65,13 +76,22 @@ const ContractUpload = () => {
   }, []);
 
   const actionableContracts = useMemo(() => {
-    return contracts.filter((contract) => ['DRAFT', 'REJECTED', 'PENDING_APPROVAL'].includes(contract.status));
+    // Exclude PENDING_APPROVAL status
+    return contracts.filter((contract) => ['DRAFT', 'REJECTED'].includes(contract.status));
   }, [contracts]);
+
+  // Pagination logic
+  const indexOfLastContract = currentPage * ITEMS_PER_PAGE;
+  const indexOfFirstContract = indexOfLastContract - ITEMS_PER_PAGE;
+  const currentContracts = actionableContracts.slice(indexOfFirstContract, indexOfLastContract);
+  const totalPages = Math.ceil(actionableContracts.length / ITEMS_PER_PAGE);
+
 
   const openUploadModal = async (contract) => {
     setSelectedContract(contract);
     setModalOpen(true);
     setFile(null);
+    setQuoteFile(null);
     setNotes('');
     setOrderDetails(null);
     setDetailsLoading(true);
@@ -92,13 +112,17 @@ const ContractUpload = () => {
     setSelectedContract(null);
     setOrderDetails(null);
     setFile(null);
+    setQuoteFile(null);
     setNotes('');
   };
 
   const handleUpload = async () => {
-    if (!selectedContract) return;
-    if (!file) {
-      setError('Vui lòng chọn file hợp đồng đã ký.');
+    if (!selectedContract || !selectedContract.quotationId) {
+        setError('Hợp đồng được chọn không hợp lệ hoặc thiếu ID báo giá.');
+        return;
+    }
+    if (!file || !quoteFile) {
+      setError('Vui lòng chọn file hợp đồng và file báo giá đã ký.');
       return;
     }
 
@@ -113,23 +137,29 @@ const ContractUpload = () => {
     setSuccess('');
 
     try {
-      const payload = {
-        notes: notes.trim() || undefined,
-        saleUserId: parseInt(saleUserId, 10)
-      };
+      const saleUserIdInt = parseInt(saleUserId, 10);
+      const notesTrimmed = notes.trim() || '';
 
-      if (selectedContract.status === 'REJECTED') {
-        await contractService.reUploadSignedContract(selectedContract.id, file, payload);
-      } else {
-        await contractService.uploadSignedContract(selectedContract.id, file, payload);
-      }
+      // Perform both uploads in parallel
+      await Promise.all([
+        contractService.uploadSignedContract(
+          selectedContract.id,
+          file,
+          notesTrimmed,
+          saleUserIdInt
+        ),
+        quotationService.uploadSignedQuotation(
+          selectedContract.quotationId,
+          quoteFile
+        )
+      ]);
 
-      setSuccess('Upload hợp đồng thành công. Hợp đồng đang chờ giám đốc phê duyệt.');
+      setSuccess('Upload hợp đồng và báo giá thành công. Đang chờ giám đốc phê duyệt.');
       closeModal();
       loadContracts();
     } catch (err) {
-      console.error('Upload signed contract failed', err);
-      setError(err.message || 'Không thể upload hợp đồng.');
+      console.error('Upload signed files failed', err);
+      setError(err.message || 'Không thể upload file.');
     } finally {
       setSubmitting(false);
     }
@@ -183,18 +213,18 @@ const ContractUpload = () => {
                           <Spinner animation="border" size="sm" className="me-2" /> Đang tải hợp đồng...
                         </td>
                       </tr>
-                    ) : actionableContracts.length === 0 ? (
+                    ) : currentContracts.length === 0 ? (
                       <tr>
                         <td colSpan={8} className="text-center py-4 text-muted">
                           Không có hợp đồng cần upload.
                         </td>
                       </tr>
                     ) : (
-                      actionableContracts.map((contract, index) => {
+                      currentContracts.map((contract, index) => {
                         const statusConfig = STATUS_LABELS[contract.status] || STATUS_LABELS.DRAFT;
                         return (
                           <tr key={contract.id}>
-                            <td>{index + 1}</td>
+                            <td>{indexOfFirstContract + index + 1}</td>
                             <td className="fw-semibold text-primary">{contract.contractNumber}</td>
                             <td>{formatDate(contract.contractDate)}</td>
                             <td>{formatDate(contract.deliveryDate)}</td>
@@ -223,6 +253,15 @@ const ContractUpload = () => {
                   </tbody>
                 </Table>
               </Card.Body>
+              {totalPages > 1 && (
+                <Card.Footer>
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                  />
+                </Card.Footer>
+              )}
             </Card>
           </Container>
         </div>
@@ -231,7 +270,7 @@ const ContractUpload = () => {
       <Modal show={modalOpen} onHide={closeModal} size="lg" centered>
         <Modal.Header closeButton>
           <Modal.Title>
-            {selectedContract?.status === 'REJECTED' ? 'Upload lại hợp đồng' : 'Upload hợp đồng đã ký'}
+            {selectedContract?.status === 'REJECTED' ? 'Upload lại' : 'Upload hợp đồng và báo giá'}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
@@ -281,6 +320,15 @@ const ContractUpload = () => {
             />
           </Form.Group>
 
+          <Form.Group className="mb-3">
+            <Form.Label>File báo giá (PDF hoặc hình ảnh)</Form.Label>
+            <Form.Control
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png"
+              onChange={(event) => setQuoteFile(event.target.files?.[0] || null)}
+            />
+          </Form.Group>
+
           <Form.Group>
             <Form.Label>Ghi chú gửi Giám đốc (tuỳ chọn)</Form.Label>
             <Form.Control
@@ -296,7 +344,7 @@ const ContractUpload = () => {
           <Button variant="secondary" onClick={closeModal} disabled={submitting}>
             Hủy
           </Button>
-          <Button variant="primary" onClick={handleUpload} disabled={submitting || !file}>
+          <Button variant="primary" onClick={handleUpload} disabled={submitting || !file || !quoteFile}>
             {submitting ? 'Đang upload...' : 'Upload'}
           </Button>
         </Modal.Footer>

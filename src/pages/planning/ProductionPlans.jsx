@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Container, Card, Table, Badge, Button, Alert, Form, Spinner } from 'react-bootstrap';
 import Header from '../../components/common/Header';
-import PlanningSidebar from '../../components/common/PlanningSidebar';
+import InternalSidebar from '../../components/common/InternalSidebar';
 import { productionPlanService } from '../../api/productionPlanService';
+import Pagination from '../../components/Pagination'; // Import Pagination
 import '../../styles/QuoteRequests.css';
 import { useNavigate } from 'react-router-dom';
 
@@ -38,13 +39,20 @@ const ProductionPlans = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+
   const loadPlans = async () => {
     setLoading(true);
     setError('');
 
     try {
       const allPlans = await productionPlanService.getAll();
-      setPlans(Array.isArray(allPlans) ? allPlans : []);
+      const sortedPlans = Array.isArray(allPlans)
+        ? allPlans.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        : [];
+      setPlans(sortedPlans);
     } catch (err) {
       console.error('Failed to fetch production plans', err);
       setError(err.message || 'Không thể tải danh sách kế hoạch sản xuất.');
@@ -66,27 +74,20 @@ const ProductionPlans = () => {
     navigate(`/planning/production-plans/${planId}`);
   };
 
+  // Pagination logic
+  const indexOfLastPlan = currentPage * ITEMS_PER_PAGE;
+  const indexOfFirstPlan = indexOfLastPlan - ITEMS_PER_PAGE;
+  const currentPlans = filteredPlans.slice(indexOfFirstPlan, indexOfLastPlan);
+  const totalPages = Math.ceil(filteredPlans.length / ITEMS_PER_PAGE);
+
   return (
-    <div className="planning-layout">
+    <div>
       <Header />
       <div className="d-flex">
-        <PlanningSidebar />
-        <div className="flex-grow-1" style={{ backgroundColor: '#f8f9fa', minHeight: 'calc(100vh - 70px)' }}>
-          <Container fluid className="p-4">
-            <div className="d-flex justify-content-between align-items-center mb-4">
-              <h1 className="mb-0">Kế hoạch sản xuất</h1>
-              <Form.Select
-                value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value)}
-                style={{ width: 220 }}
-              >
-                {filterOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </Form.Select>
-            </div>
+        <InternalSidebar userRole="planning" />
+        <div className="flex-grow-1 p-4" style={{ backgroundColor: '#f8f9fa' }}>
+          <Container fluid>
+            <h2 className="mb-4">Kế hoạch sản xuất</h2>
 
             {error && (
               <Alert variant="danger" onClose={() => setError('')} dismissible>
@@ -94,18 +95,34 @@ const ProductionPlans = () => {
               </Alert>
             )}
 
-            <Card className="shadow-sm">
-              <Card.Body className="p-0">
-                <Table responsive hover className="mb-0 align-middle">
+            <Card>
+              <Card.Header>
+                <div className="d-flex justify-content-between align-items-center">
+                  <span>Danh sách các kế hoạch sản xuất</span>
+                  <Form.Select
+                    value={statusFilter}
+                    onChange={(event) => setStatusFilter(event.target.value)}
+                    style={{ width: 220 }}
+                  >
+                    {filterOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </div>
+              </Card.Header>
+              <Card.Body>
+                <Table striped bordered hover responsive>
                   <thead className="table-light">
                     <tr>
-                      <th style={{ width: 60 }}>#</th>
-                      <th style={{ width: 160 }}>Mã kế hoạch</th>
-                      <th style={{ width: 160 }}>Hợp đồng</th>
-                      <th style={{ width: 180 }}>Khách hàng</th>
-                      <th style={{ width: 160 }}>Ngày tạo</th>
-                      <th style={{ width: 160 }}>Trạng thái</th>
-                      <th style={{ width: 140 }} className="text-center">Hành động</th>
+                      <th>#</th>
+                      <th>Mã kế hoạch</th>
+                      <th>Hợp đồng</th>
+                      <th>Khách hàng</th>
+                      <th>Ngày tạo</th>
+                      <th>Trạng thái</th>
+                      <th className="text-center">Hành động</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -115,7 +132,7 @@ const ProductionPlans = () => {
                           <Spinner animation="border" size="sm" className="me-2" /> Đang tải kế hoạch...
                         </td>
                       </tr>
-                    ) : filteredPlans.length === 0 ? (
+                    ) : currentPlans.length === 0 ? (
                       <tr>
                         <td colSpan={7} className="text-center py-4 text-muted">
                           {statusFilter === 'ALL'
@@ -124,11 +141,11 @@ const ProductionPlans = () => {
                         </td>
                       </tr>
                     ) : (
-                      filteredPlans.map((plan, index) => {
+                      currentPlans.map((plan, index) => {
                         const statusConfig = STATUS_LABELS[plan.status] || STATUS_LABELS.DRAFT;
                         return (
                           <tr key={plan.id}>
-                            <td>{index + 1}</td>
+                            <td>{indexOfFirstPlan + index + 1}</td>
                             <td className="fw-semibold text-primary">{plan.planCode || `PLAN-${plan.id}`}</td>
                             <td>{plan.contractNumber || '—'}</td>
                             <td>{plan.customerName || '—'}</td>
@@ -147,6 +164,13 @@ const ProductionPlans = () => {
                     )}
                   </tbody>
                 </Table>
+                {totalPages > 1 && (
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={setCurrentPage}
+                    />
+                )}
               </Card.Body>
             </Card>
           </Container>

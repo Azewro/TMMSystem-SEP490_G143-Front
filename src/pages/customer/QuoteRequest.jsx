@@ -6,13 +6,23 @@ import Sidebar from '../../components/common/Sidebar';
 import { productService } from '../../api/productService';
 import { customerService } from '../../api/customerService';
 import { useAuth } from '../../context/AuthContext';
+import { useCart } from '../../context/CartContext'; // Import useCart
 import { rfqService } from '../../api/rfqService';
 import '../../styles/QuoteRequest.css';
+
+const getMinDate = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 const QuoteRequest = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const { clearCart } = useCart(); // Get clearCart function from context
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -136,6 +146,7 @@ const QuoteRequest = () => {
     try {
       await rfqService.createRfq(rfqData, isAuthenticated);
       setSuccess('Yêu cầu báo giá đã được gửi thành công!');
+      clearCart(); // Clear the cart after successful submission
       setTimeout(() => navigate('/'), 3000);
     } catch (err) {
       setError(err.message || 'Gửi yêu cầu thất bại. Vui lòng kiểm tra lại thông tin.');
@@ -211,7 +222,7 @@ const QuoteRequest = () => {
                       )}
 
                       <Row className="mt-3">
-                        <Col md={6}><Form.Group className="mb-3"><Form.Label>Ngày giao hàng mong muốn</Form.Label><Form.Control type="date" name="expectedDeliveryDate" value={formData.expectedDeliveryDate} onChange={handleFormChange} /></Form.Group></Col>
+                        <Col md={6}><Form.Group className="mb-3"><Form.Label>Ngày giao hàng mong muốn</Form.Label><Form.Control type="date" name="expectedDeliveryDate" value={formData.expectedDeliveryDate} onChange={handleFormChange} min={getMinDate()} /></Form.Group></Col>
                         <Col md={12}><Form.Group className="mb-3"><Form.Label>Ghi chú chung</Form.Label><Form.Control as="textarea" rows={3} name="notes" value={formData.notes} onChange={handleFormChange} placeholder="Yêu cầu đặc biệt cho toàn bộ đơn hàng..." /></Form.Group></Col>
                       </Row>
 

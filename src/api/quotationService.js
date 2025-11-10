@@ -29,5 +29,29 @@ export const quotationService = {
   getCustomerQuotations: async (customerId) => {
     const response = await apiClient.get(`/v1/quotations/customer/${customerId}`);
     return response.data;
+  },
+
+  getQuoteFileUrl: async (quotationId) => {
+    try {
+      const response = await apiClient.get(`/v1/quotations/${quotationId}/file-url`);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi lấy URL file báo giá');
+    }
+  },
+
+  uploadSignedQuotation: async (quotationId, file) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await apiClient.post(`/v1/quotations/${quotationId}/upload-signed`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi upload file báo giá');
+    }
   }
 };

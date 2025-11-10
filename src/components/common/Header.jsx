@@ -15,8 +15,13 @@ const Header = () => {
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
   const handleLogout = () => {
+    const userRole = user?.role;
     logout();
-    navigate('/login');
+    if (userRole && userRole !== 'CUSTOMER') {
+      navigate('/internal-login');
+    } else {
+      navigate('/login');
+    }
   };
 
   const getDashboardPath = () => {

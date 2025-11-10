@@ -57,6 +57,17 @@ export const contractService = {
     }
   },
 
+  rejectContract: async (contractId, directorId, notes) => {
+    try {
+      const response = await apiClient.post(`/v1/contracts/${contractId}/reject`, null, {
+        params: { directorId, notes }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi từ chối hợp đồng');
+    }
+  },
+
   getOrderDetails: async (contractId) => {
     try {
       const response = await apiClient.get(`/v1/contracts/${contractId}/order-details`);

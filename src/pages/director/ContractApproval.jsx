@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Container, Card, Table, Button, Modal, Form, Alert, Spinner, Badge } from 'react-bootstrap';
 import Header from '../../components/common/Header';
+import InternalSidebar from '../../components/common/InternalSidebar'; // Import sidebar
 import { contractService } from '../../api/contractService';
+import { quotationService } from '../../api/quotationService'; // Import quotationService
 import '../../styles/QuoteRequests.css';
 
 const STATUS_LABELS = {
@@ -38,6 +40,7 @@ const DirectorContractApproval = () => {
   const [selectedContract, setSelectedContract] = useState(null);
   const [orderDetails, setOrderDetails] = useState(null);
   const [fileUrl, setFileUrl] = useState('');
+  const [quoteFileUrl, setQuoteFileUrl] = useState(''); // State for quote file URL
   const [decision, setDecision] = useState({ type: null, note: '' });
   const [processing, setProcessing] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -67,20 +70,33 @@ const DirectorContractApproval = () => {
     setDecision({ type: null, note: '' });
     setOrderDetails(null);
     setFileUrl('');
+    setQuoteFileUrl('');
     setDetailsLoading(true);
 
     try {
-      const [details, url] = await Promise.all([
+      // Fetch essential details first
+      const [details, contractUrl] = await Promise.all([
         contractService.getOrderDetails(contract.id),
-        contractService.getContractFileUrl(contract.id)
+        contractService.getContractFileUrl(contract.id),
       ]);
-      setOrderDetails(details);
 
-      let absoluteUrl = url;
-      if (url && !url.startsWith('http')) {
-        absoluteUrl = 'https://' + url;
+      setOrderDetails(details);
+      if (contractUrl) {
+        setFileUrl(contractUrl.startsWith('http') ? contractUrl : 'https://' + contractUrl);
       }
-      setFileUrl(absoluteUrl);
+
+      // Fetch optional quote file URL separately and handle failure gracefully
+      if (contract.quotationId) {
+        try {
+          const quoteUrl = await quotationService.getQuoteFileUrl(contract.quotationId);
+          if (quoteUrl) {
+            setQuoteFileUrl(quoteUrl.startsWith('http') ? quoteUrl : 'https://' + quoteUrl);
+          }
+        } catch (quoteUrlError) {
+          console.error('Could not fetch quote file URL:', quoteUrlError);
+          // Do not set a blocking error, just let the UI show that the file is missing.
+        }
+      }
     } catch (err) {
       console.error('Failed to load contract detail', err);
       setError(err.message || 'Không thể tải chi tiết hợp đồng.');
@@ -93,6 +109,7 @@ const DirectorContractApproval = () => {
     setSelectedContract(null);
     setOrderDetails(null);
     setFileUrl('');
+    setQuoteFileUrl('');
     setDecision({ type: null, note: '' });
   };
 
@@ -152,15 +169,13 @@ const DirectorContractApproval = () => {
   };
 
   return (
-    <div className="customer-layout">
+    <div>
       <Header />
       <div className="d-flex">
-        <div className="flex-grow-1" style={{ backgroundColor: '#f8f9fa', minHeight: 'calc(100vh - 70px)' }}>
-          <Container fluid className="p-4">
-            <div className="d-flex justify-content-between align-items-center mb-4">
-              <h1 className="mb-0">Phê duyệt hợp đồng</h1>
-              <div className="text-muted">Danh sách hợp đồng đã được nhân viên kinh doanh upload.</div>
-            </div>
+        <InternalSidebar userRole="director" />
+        <div className="flex-grow-1 p-4" style={{ backgroundColor: '#f8f9fa' }}>
+          <Container fluid>
+            <h2 className="mb-4">Phê duyệt hợp đồng</h2>
 
             {error && (
               <Alert variant="danger" onClose={() => setError('')} dismissible>
@@ -174,8 +189,11 @@ const DirectorContractApproval = () => {
               </Alert>
             )}
 
-            <Card className="shadow-sm">
-              <Card.Body className="p-0">
+            <Card>
+              <Card.Header>
+                Danh sách hợp đồng đã được nhân viên kinh doanh upload
+              </Card.Header>
+              <Card.Body>
                 <Table responsive hover className="mb-0 align-middle">
                   <thead className="table-light">
                     <tr>
@@ -270,21 +288,36 @@ const DirectorContractApproval = () => {
                   ))}
                 </tbody>
               </Table>
-              {fileUrl ? (
-                <Button
-                  variant="outline-secondary"
-                  className="mt-3"
-                  href={fileUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Xem file hợp đồng đã upload
-                </Button>
-              ) : (
-                <Alert variant="warning" className="mt-3">
-                  Chưa có file hợp đồng được upload.
-                </Alert>
-              )}
+              <div className="mt-3 d-flex gap-2">
+                {fileUrl ? (
+                  <Button
+                    variant="outline-secondary"
+                    href={fileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Xem file hợp đồng
+                  </Button>
+                ) : (
+                  <Alert variant="warning" className="py-2 px-3 mb-0">
+                    Chưa có file hợp đồng.
+                  </Alert>
+                )}
+                {quoteFileUrl ? (
+                  <Button
+                    variant="outline-info"
+                    href={quoteFileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Xem file báo giá
+                  </Button>
+                ) : (
+                  <Alert variant="warning" className="py-2 px-3 mb-0">
+                    Chưa có file báo giá.
+                  </Alert>
+                )}
+              </div>
             </>
           ) : (
             <Alert variant="warning">Không thể tải chi tiết hợp đồng.</Alert>
