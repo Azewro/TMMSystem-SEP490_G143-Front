@@ -58,7 +58,7 @@ const ChangePasswordModal = ({ show, onHide }) => {
       const hasWhitespace = /\s/.test(formData.newPassword);
 
       if (formData.newPassword.length < 8) {
-        newErrors.newPassword = 'Mật khẩu phải có ít nhất 8 ký tự';
+        newErrors.newPassword = 'Mật khẩu mới phải có ít nhất 8 ký tự.';
       } else if (hasWhitespace) {
         newErrors.newPassword = 'Mật khẩu không được chứa khoảng trắng';
       } else if (!(hasUppercase && hasDigit)) {
@@ -67,12 +67,12 @@ const ChangePasswordModal = ({ show, onHide }) => {
     }
 
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Vui lòng điền vào trường này';
+      newErrors.confirmPassword = 'Vui lòng nhập lại mật khẩu mới.';
     } else if (formData.newPassword !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Mật khẩu mới và xác nhận mật khẩu phải giống nhau';
+      newErrors.confirmPassword = 'Mật khẩu xác nhận không khớp.';
     }
 
-    if (formData.currentPassword === formData.newPassword) {
+    if (formData.currentPassword && formData.newPassword && formData.currentPassword === formData.newPassword) {
       newErrors.newPassword = 'Mật khẩu mới không được trùng với mật khẩu hiện tại.';
     }
 
@@ -111,7 +111,7 @@ const ChangePasswordModal = ({ show, onHide }) => {
           errorMessage.toLowerCase().includes('sai') ||
           errorMessage.toLowerCase().includes('incorrect') ||
           errorMessage.toLowerCase().includes('wrong')) {
-        setErrors(prev => ({ ...prev, currentPassword: 'Mật khẩu hiện tại không đúng.' }));
+        setErrors(prev => ({ ...prev, currentPassword: 'Mật khẩu hiện tại không chính xác.' }));
       } else {
         setError(errorMessage);
       }
@@ -144,16 +144,27 @@ const ChangePasswordModal = ({ show, onHide }) => {
   };
 
   return (
-    <Modal 
-      show={show} 
-      onHide={handleClose} 
-      size="md"
-      centered
-    >
-      <Modal.Header closeButton style={{ borderBottom: '1px solid #dee2e6' }}>
-        <Modal.Title>Đổi mật khẩu</Modal.Title>
-      </Modal.Header>
-      <Form onSubmit={handleSubmit}>
+    <>
+      <style>{`
+        .change-password-modal .form-control.is-invalid {
+          background-image: none !important;
+          padding-right: 45px !important;
+        }
+        .change-password-modal .form-control.is-invalid:focus {
+          background-image: none !important;
+        }
+      `}</style>
+      <Modal 
+        show={show} 
+        onHide={handleClose} 
+        size="md"
+        centered
+        className="change-password-modal"
+      >
+        <Modal.Header closeButton style={{ borderBottom: '1px solid #dee2e6' }}>
+          <Modal.Title>Đổi mật khẩu</Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={handleSubmit}>
         <Modal.Body style={{ padding: '1.5rem' }}>
           {error && <Alert variant="danger">{error}</Alert>}
 
@@ -169,6 +180,7 @@ const ChangePasswordModal = ({ show, onHide }) => {
                 onChange={handleChange}
                 isInvalid={!!errors.currentPassword}
                 placeholder="Nhập mật khẩu hiện tại"
+                style={{ paddingRight: '45px' }}
               />
               <Button
                 variant="link"
@@ -180,9 +192,11 @@ const ChangePasswordModal = ({ show, onHide }) => {
                 {showPasswords.current ? <FaEyeSlash /> : <FaEye />}
               </Button>
             </div>
-            <Form.Control.Feedback type="invalid">
-              {errors.currentPassword}
-            </Form.Control.Feedback>
+            {errors.currentPassword && (
+              <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
+                {errors.currentPassword}
+              </Form.Control.Feedback>
+            )}
           </Form.Group>
 
           <Form.Group className="mb-3">
@@ -197,6 +211,7 @@ const ChangePasswordModal = ({ show, onHide }) => {
                 onChange={handleChange}
                 isInvalid={!!errors.newPassword}
                 placeholder="Nhập mật khẩu mới (ít nhất 8 ký tự)"
+                style={{ paddingRight: '45px' }}
               />
               <Button
                 variant="link"
@@ -208,9 +223,11 @@ const ChangePasswordModal = ({ show, onHide }) => {
                 {showPasswords.new ? <FaEyeSlash /> : <FaEye />}
               </Button>
             </div>
-            <Form.Control.Feedback type="invalid">
-              {errors.newPassword}
-            </Form.Control.Feedback>
+            {errors.newPassword && (
+              <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
+                {errors.newPassword}
+              </Form.Control.Feedback>
+            )}
           </Form.Group>
 
           <Form.Group className="mb-3">
@@ -225,6 +242,7 @@ const ChangePasswordModal = ({ show, onHide }) => {
                 onChange={handleChange}
                 isInvalid={!!errors.confirmPassword}
                 placeholder="Nhập lại mật khẩu mới"
+                style={{ paddingRight: '45px' }}
               />
               <Button
                 variant="link"
@@ -236,9 +254,11 @@ const ChangePasswordModal = ({ show, onHide }) => {
                 {showPasswords.confirm ? <FaEyeSlash /> : <FaEye />}
               </Button>
             </div>
-            <Form.Control.Feedback type="invalid">
-              {errors.confirmPassword}
-            </Form.Control.Feedback>
+            {errors.confirmPassword && (
+              <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
+                {errors.confirmPassword}
+              </Form.Control.Feedback>
+            )}
           </Form.Group>
         </Modal.Body>
         <Modal.Footer style={{ borderTop: '1px solid #dee2e6' }}>
@@ -251,6 +271,7 @@ const ChangePasswordModal = ({ show, onHide }) => {
         </Modal.Footer>
       </Form>
     </Modal>
+    </>
   );
 };
 
