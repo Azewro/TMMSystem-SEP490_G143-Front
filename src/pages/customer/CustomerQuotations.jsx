@@ -7,10 +7,11 @@ import { quoteService } from '../../api/quoteService';
 import { useAuth } from '../../context/AuthContext';
 
 const statusMap = {
-  SENT: { label: 'Đã báo giá', variant: 'success' },
-  PENDING: { label: 'Chờ phê duyệt', variant: 'warning' },
-  ACCEPTED: { label: 'Đã duyệt', variant: 'primary' },
-  REJECTED: { label: 'Từ chối', variant: 'danger' },
+  DRAFT: { label: 'Bản nháp', variant: 'secondary' },
+  SENT: { label: 'Đã gửi', variant: 'info' },
+  ACCEPTED: { label: 'Đã chấp nhận', variant: 'success' },
+  REJECTED: { label: 'Đã từ chối', variant: 'danger' },
+  ORDER_CREATED: { label: 'Đã tạo đơn hàng', variant: 'primary' },
 };
 
 const formatDate = (iso) => {
@@ -80,7 +81,7 @@ const CustomerQuotations = () => {
                     {!loading && error && (<tr><td colSpan={5} className="text-danger text-center py-4">{error}</td></tr>)}
                     {!loading && !error && quotes.length === 0 && (<tr><td colSpan={5} className="text-center py-4">Chưa có báo giá nào</td></tr>)}
                     {!loading && !error && quotes.map((x) => {
-                      const badge = statusMap[x.status] || statusMap.SENT;
+                      const badge = statusMap[x.status] || { label: 'Không xác định', variant: 'secondary' };
                       const rfqCode = x.rfqNumber || x.rfq?.rfqNumber || (x.rfqId ? `RFQ-${x.rfqId}` : x.quotationNumber || x.id);
                       return (
                         <tr key={x.id}>

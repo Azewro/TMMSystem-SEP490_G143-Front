@@ -90,5 +90,43 @@ export const authService = {
   // Check if user is authenticated
   isAuthenticated: () => {
     return !!localStorage.getItem('userToken');
+  },
+
+  // Change password for internal users
+  changePassword: async (email, currentPassword, newPassword) => {
+    try {
+      const response = await apiClient.post('/v1/auth/change-password', {
+        email,
+        currentPassword,
+        newPassword
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || error.response?.data || 'Đổi mật khẩu thất bại');
+    }
+  },
+
+  // Change password for customers
+  changeCustomerPassword: async (email, currentPassword, newPassword) => {
+    try {
+      const response = await apiClient.post('/v1/auth/customer/change-password', {
+        email,
+        currentPassword,
+        newPassword
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || error.response?.data || 'Đổi mật khẩu thất bại');
+    }
+  },
+
+  // Get customer profile
+  getCustomerProfile: async () => {
+    try {
+      const response = await apiClient.get('/v1/auth/customer/profile');
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Không thể tải thông tin cá nhân');
+    }
   }
 };

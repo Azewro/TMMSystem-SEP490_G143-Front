@@ -1,14 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Navbar, Nav, Form, FormControl, Button, Dropdown } from 'react-bootstrap';
-import { FaSearch, FaBell, FaUserCircle, FaTachometerAlt, FaCog, FaSignOutAlt, FaShoppingCart } from 'react-icons/fa';
+import { FaSearch, FaBell, FaUserCircle, FaTachometerAlt, FaCog, FaSignOutAlt, FaShoppingCart, FaUser, FaKey } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useNavigate } from 'react-router-dom';
+import ProfileModal from '../modals/ProfileModal';
+import ChangePasswordModal from '../modals/ChangePasswordModal';
 
 const Header = () => {
   const { user, logout } = useAuth();
   const { itemCount } = useCart();
   const navigate = useNavigate();
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -17,15 +21,23 @@ const Header = () => {
 
   const getDashboardPath = () => {
     if (!user) return '/';
-    switch (user.role) {
+    const role = user.role?.toUpperCase();
+    
+    switch (role) {
       case 'CUSTOMER':
         return '/customer/dashboard';
+      case 'ADMIN':
+        return '/admin/users';
       case 'DIRECTOR':
         return '/director/contract-approval';
       case 'PLANNING_DEPARTMENT':
+      case 'PLANNING':
         return '/planning/quote-requests';
+      case 'SALE_STAFF':
+      case 'SALES':
+        return '/sales/rfqs';
       default:
-        return '/internal/quote-requests'; // Default for Sales
+        return '/internal/quote-requests'; // Default for other internal roles
     }
   };
 
@@ -43,18 +55,20 @@ const Header = () => {
 
       <Navbar.Toggle aria-controls="basic-navbar-nav" />
       <Navbar.Collapse id="basic-navbar-nav">
-        {/* Search Bar */}
-        <Form className="d-flex me-auto" style={{ maxWidth: '400px', width: '100%' }}>
-          <FormControl
-            type="search"
-            placeholder="Tìm kiếm sản phẩm..."
-            className="me-2"
-            aria-label="Search"
-          />
-          <Button variant="outline-light" type="submit">
-            <FaSearch />
-          </Button>
-        </Form>
+        {/* Search Bar - Only for Customers */}
+        {user?.role === 'CUSTOMER' && (
+          <Form className="d-flex me-auto" style={{ maxWidth: '400px', width: '100%' }}>
+            <FormControl
+              type="search"
+              placeholder="Tìm kiếm sản phẩm..."
+              className="me-2"
+              aria-label="Search"
+            />
+            <Button variant="outline-light" type="submit">
+              <FaSearch />
+            </Button>
+          </Form>
+        )}
 
         {/* Right Side Navigation */}
         <Nav className="ms-auto align-items-center">
@@ -92,9 +106,13 @@ const Header = () => {
                     <FaTachometerAlt className="me-2" />
                     Bảng điều khiển
                   </Dropdown.Item>
-                  <Dropdown.Item href="#settings">
-                    <FaCog className="me-2" />
-                    Cài đặt
+                  <Dropdown.Item onClick={() => setShowProfileModal(true)}>
+                    <FaUser className="me-2" />
+                    Thông tin cá nhân
+                  </Dropdown.Item>
+                  <Dropdown.Item onClick={() => setShowChangePasswordModal(true)}>
+                    <FaKey className="me-2" />
+                    Đổi mật khẩu
                   </Dropdown.Item>
                   <Dropdown.Divider />
                   <Dropdown.Item onClick={handleLogout}>
@@ -116,6 +134,18 @@ const Header = () => {
           )}
         </Nav>
       </Navbar.Collapse>
+
+      {/* Profile Modal */}
+      <ProfileModal
+        show={showProfileModal}
+        onHide={() => setShowProfileModal(false)}
+      />
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        show={showChangePasswordModal}
+        onHide={() => setShowChangePasswordModal(false)}
+      />
     </Navbar>
   );
 };

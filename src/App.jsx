@@ -27,6 +27,8 @@ import CustomerQuotations from './pages/customer/CustomerQuotations';
 import CustomerQuotationDetail from './pages/customer/CustomerQuotationDetail';
 import CustomerRfqDetail from './pages/customer/CustomerRfqDetail';
 import CartPage from './pages/customer/CartPage';
+import CustomerOrders from './pages/customer/CustomerOrders';
+import CustomerOrderDetail from './pages/customer/CustomerOrderDetail';
 
 // Planning Pages
 import PlanningRfqs from './pages/planning/PlanningRfqs';
@@ -37,6 +39,10 @@ import DirectorRfqList from './pages/director/DirectorRfqList'; // Import the ne
 
 // Sales Pages
 import MyRfqs from './pages/sales/MyRfqs';
+
+// Admin Pages
+import AdminUserManagement from './pages/admin/AdminUserManagement';
+import AdminCustomerManagement from './pages/admin/AdminCustomerManagement';
 
 function App() {
   return (
@@ -69,6 +75,8 @@ function App() {
               <Route path="/customer/quotations/:id" element={<CustomerQuotationDetail />} />
               <Route path="/customer/rfqs/:id" element={<CustomerRfqDetail />} /> {/* New route */}
               <Route path="/cart" element={<CartPage />} />
+              <Route path="/customer/orders" element={<CustomerOrders />} />
+              <Route path="/customer/orders/:id" element={<CustomerOrderDetail />} />
 
               {/* Planning routes */}
               <Route path="/planning/rfqs" element={<PlanningRfqs />} />
@@ -80,6 +88,10 @@ function App() {
 
               {/* Sales routes */}
               <Route path="/sales/rfqs" element={<MyRfqs />} />
+
+              {/* Admin routes */}
+              <Route path="/admin/users" element={<AdminUserManagement />} />
+              <Route path="/admin/customers" element={<AdminCustomerManagement />} />
 
             </Routes>
           </div>

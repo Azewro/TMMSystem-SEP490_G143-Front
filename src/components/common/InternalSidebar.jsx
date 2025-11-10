@@ -1,15 +1,41 @@
 import React from 'react';
 import { Nav } from 'react-bootstrap';
-import { FaListAlt, FaFileSignature, FaProjectDiagram } from 'react-icons/fa';
+import { FaListAlt, FaFileSignature, FaProjectDiagram, FaUsers, FaUserFriends } from 'react-icons/fa';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import '../../styles/Sidebar.css'; // Reuse the same dark theme
 
-const InternalSidebar = ({ userRole }) => {
+const InternalSidebar = ({ userRole: propUserRole }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
+
+  // Map backend role to sidebar role format
+  const mapRoleToSidebarFormat = (role) => {
+    if (!role) return null;
+    const roleUpper = role.toUpperCase();
+    
+    if (roleUpper === 'ADMIN' || roleUpper.includes('ADMIN')) {
+      return 'admin';
+    } else if (roleUpper.includes('DIRECTOR')) {
+      return 'director';
+    } else if (roleUpper.includes('PLANNING') || roleUpper === 'PLANNING_DEPARTMENT') {
+      return 'planning';
+    } else if (roleUpper.includes('SALE') || roleUpper === 'SALE_STAFF') {
+      return 'sales';
+    }
+    return null;
+  };
+
+  // Get user role from prop or from auth context
+  const userRole = propUserRole || mapRoleToSidebarFormat(user?.role);
 
   // Define all possible menu items
   const allMenuItems = {
+    admin: [
+      { icon: FaUsers, label: 'Quản lý tài khoản', path: '/admin/users' },
+      { icon: FaUserFriends, label: 'Quản lý khách hàng', path: '/admin/customers' },
+    ],
     director: [
       { icon: FaListAlt, label: 'Quản lý RFQ', path: '/director/rfqs' },
       { icon: FaFileSignature, label: 'Duyệt Hợp Đồng', path: '/director/contract-approval' },
@@ -26,7 +52,7 @@ const InternalSidebar = ({ userRole }) => {
   };
 
   // Select menu items based on user role
-  const menuItems = allMenuItems[userRole] || [];
+  const menuItems = userRole ? (allMenuItems[userRole] || []) : [];
 
   return (
     <div className="sidebar sidebar-dark">

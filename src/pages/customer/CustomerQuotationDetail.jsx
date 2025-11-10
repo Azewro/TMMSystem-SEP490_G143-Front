@@ -6,6 +6,11 @@ import Header from '../../components/common/Header';
 import Sidebar from '../../components/common/Sidebar';
 import { quoteService } from '../../api/quoteService';
 import { productService } from '../../api/productService';
+import { customerService } from '../../api/customerService';
+import { authService } from '../../api/authService';
+import { useAuth } from '../../context/AuthContext';
+import ConfirmOrderProfileModal from '../../components/modals/ConfirmOrderProfileModal';
+import toast from 'react-hot-toast';
 
 const formatCurrency = (v) => new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(v||0);
 const formatDate = (iso) => iso ? new Date(iso).toLocaleDateString('vi-VN') : 'N/A';
@@ -68,6 +73,7 @@ const numberToWords = (num) => {
 const CustomerQuotationDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [quote, setQuote] = useState(null);
   const [productDetails, setProductDetails] = useState({});
@@ -76,13 +82,78 @@ const CustomerQuotationDetail = () => {
   const [success, setSuccess] = useState('');
   const [confirm, setConfirm] = useState({ type: null, open: false });
   const [working, setWorking] = useState(false);
+  const [showConfirmOrderModal, setShowConfirmOrderModal] = useState(false);
+
+  const handleAcceptQuoteAndCreateOrder = async () => {
+    if (!quote?.id) return;
+    setWorking(true);
+    setError('');
+    setSuccess('');
+    try {
+      await quoteService.updateQuotationStatus(quote.id, 'ACCEPTED');
+      try {
+        await quoteService.createOrderFromQuotation({ quotationId: quote.id });
+      } catch (orderErr) {
+        console.log('Order creation failed or already exists:', orderErr.message);
+      }
+      setSuccess('✅ Bạn đã đồng ý báo giá. Đơn hàng đã được tạo và đang chờ xử lý.');
+      toast.success('Chấp nhận báo giá thành công! Đơn hàng đã được tạo.');
+      setTimeout(() => navigate('/customer/orders'), 3000);
+    } catch (e) {
+      setError(e.message || 'Thao tác thất bại');
+      toast.error(e.message || 'Thao tác thất bại');
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  const handleAcceptClick = async () => {
+    if (!user?.customerId) {
+      toast.error('Không thể xác thực thông tin khách hàng.');
+      return;
+    }
+    setWorking(true);
+    try {
+      const profile = await customerService.getCustomerById(user.customerId);
+      const isInfoComplete = profile.companyName && profile.address && profile.taxCode;
+      
+      setShowConfirmOrderModal(true);
+
+      if (isInfoComplete) {
+        toast.success('Vui lòng xác nhận lại thông tin trước khi tạo đơn hàng.');
+      } else {
+        toast.error('Vui lòng điền đầy đủ thông tin công ty, địa chỉ và mã số thuế.');
+      }
+    } catch (err) {
+      toast.error('Không thể tải thông tin cá nhân.');
+    } finally {
+      setWorking(false);
+    }
+  };
+
 
   useEffect(() => {
     const fetchDetails = async () => {
+      if (!user?.customerId) {
+        setError('Không thể xác thực người dùng.');
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       setError('');
       try {
-        const quoteData = await quoteService.getQuoteDetails(parseInt(id, 10));
+        // Workaround: Fetch both detail and list to get correct status
+        const [quoteData, customerQuotes] = await Promise.all([
+          quoteService.getQuoteDetails(parseInt(id, 10)),
+          quoteService.getCustomerQuotations(user.customerId)
+        ]);
+
+        // Find the quote from the list to get the correct status
+        const correctQuoteInfo = customerQuotes.find(q => q.id === parseInt(id, 10));
+        if (correctQuoteInfo) {
+          quoteData.status = correctQuoteInfo.status; // Patch the status
+        }
         
         // Fetch all product details in parallel
         const productPromises = quoteData.details.map(item => 
@@ -112,8 +183,11 @@ const CustomerQuotationDetail = () => {
         setLoading(false);
       }
     };
-    fetchDetails();
-  }, [id]);
+    
+    if (user) {
+      fetchDetails();
+    }
+  }, [id, user]);
 
   const onConfirm = async (type) => {
     if (!quote?.id) return;
@@ -142,16 +216,18 @@ const CustomerQuotationDetail = () => {
 
   const getStatusBadge = (status) => {
     switch(status) {
-      case 'SENT': return { text: 'Chờ phản hồi', bg: 'warning' };
+      case 'DRAFT': return { text: 'Bản nháp', bg: 'secondary' };
+      case 'SENT': return { text: 'Đã gửi', bg: 'info' };
       case 'ACCEPTED': return { text: 'Đã chấp nhận', bg: 'success' };
       case 'REJECTED': return { text: 'Đã từ chối', bg: 'danger' };
+      case 'ORDER_CREATED': return { text: 'Đã tạo đơn hàng', bg: 'primary' };
       default: return { text: status || 'Không xác định', bg: 'secondary' };
     }
   };
 
   const totalWeight = quote?.details.reduce((total, item) => {
     const product = productDetails[item.productId];
-    const weight = product?.standardWeight || 0;
+    const weight = (product?.standardWeight || 0) / 1000;
     return total + (item.quantity * weight);
   }, 0) || 0;
 
@@ -205,7 +281,7 @@ const CustomerQuotationDetail = () => {
                   <tbody>
                     {quote.details.map((item, idx) => {
                       const product = productDetails[item.productId];
-                      const itemWeight = product ? item.quantity * (product.standardWeight || 0) : 0;
+                      const itemWeight = product ? (item.quantity * (product.standardWeight || 0)) / 1000 : 0;
                       return (
                         <tr key={item.id || idx}>
                           <td className="text-center">{idx + 1}</td>
@@ -259,7 +335,6 @@ const CustomerQuotationDetail = () => {
                 <Button 
                   variant="danger" 
                   size="lg"
-                  onClick={()=>setConfirm({ type: 'REJECTED', open: true })} 
                   disabled={working || quote.status !== 'SENT'}
                 >
                   <FaTimesCircle className="me-2" /> Từ Chối
@@ -267,13 +342,19 @@ const CustomerQuotationDetail = () => {
                 <Button 
                   variant="success" 
                   size="lg"
-                  onClick={()=>setConfirm({ type: 'ACCEPTED', open: true })} 
+                  onClick={handleAcceptClick} 
                   disabled={working || quote.status !== 'SENT'}
                 >
                   <FaCheckCircle className="me-2" /> Chấp Nhận Báo Giá
                 </Button>
               </div>
             )}
+
+            <ConfirmOrderProfileModal 
+              show={showConfirmOrderModal} 
+              onHide={() => setShowConfirmOrderModal(false)} 
+              onConfirm={handleAcceptQuoteAndCreateOrder}
+            />
 
             <Modal show={confirm.open} onHide={()=>setConfirm({ type: null, open: false })} centered>
               <Modal.Header closeButton>

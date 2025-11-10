@@ -12,8 +12,17 @@ const apiClient = axios.create({
 // Request interceptor to add auth token
 apiClient.interceptors.request.use(
   (config) => {
-    // Do not add token to auth-related routes
-    if (config.url.includes('/auth/')) {
+    // Define routes that don't need authentication
+    const noAuthRoutes = [
+      '/auth/customer/login',
+      '/auth/customer/register',
+      '/auth/internal/login',
+      '/auth/customer/forgot-password',
+      '/auth/customer/verify-reset-code'
+    ];
+
+    // If the request URL is one of the public routes, don't add the token
+    if (noAuthRoutes.some(route => config.url.includes(route))) {
       return config;
     }
 
