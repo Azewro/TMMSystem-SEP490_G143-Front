@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Container, Row, Col, Card, Table, Badge, Button, Alert, Modal } from 'react-bootstrap';
+import Spinner from 'react-bootstrap/Spinner';
 import { FaArrowLeft, FaPaperPlane, FaSignInAlt } from 'react-icons/fa';
 import { useNavigate, useParams } from 'react-router-dom';
 import Header from '../../components/common/Header';
@@ -30,7 +31,7 @@ const QuoteDetail = () => {
   const [success, setSuccess] = useState('');
   const [sending, setSending] = useState(false);
   const [confirmSend, setConfirmSend] = useState(false);
-  const canSend = ['PENDING', 'QUOTED'].includes(quote?.status); // Adjusted canSend logic
+  const canSend = ['DRAFT', 'PENDING', 'QUOTED'].includes(quote?.status); // Adjusted canSend logic
 
   useEffect(() => {
     const loadQuoteData = async () => {
@@ -119,15 +120,18 @@ const QuoteDetail = () => {
   };
 
   return (
-    <div className="customer-layout">
+    <div>
       <Header />
       <div className="d-flex">
-        <InternalSidebar />
-        <div className="flex-grow-1" style={{ backgroundColor: '#f8f9fa', minHeight: 'calc(100vh - 70px)' }}>
-          <Container fluid className="p-4">
-            <Button variant="outline-secondary" className="mb-3" onClick={() => navigate('/internal/quotations')}>
-              <FaArrowLeft className="me-2"/> Quay lại danh sách
-            </Button>
+        <InternalSidebar userRole="sales" />
+        <div className="flex-grow-1 p-4" style={{ backgroundColor: '#f8f9fa' }}>
+          <Container fluid>
+            <div className="d-flex justify-content-between align-items-center mb-3">
+                <h2 className="mb-0">Chi tiết báo giá</h2>
+                <Button variant="outline-secondary" onClick={() => navigate('/sales/quotations')}>
+                    <FaArrowLeft className="me-2"/> Quay lại danh sách
+                </Button>
+            </div>
 
             {error && (
               <Alert variant={error.includes('hết hạn') ? 'warning' : 'danger'} className="mb-3">
@@ -148,110 +152,100 @@ const QuoteDetail = () => {
               </Alert>
             )}
 
-            <Card className="shadow-sm">
-              <Card.Header className="bg-primary text-white">
-                <h5 className="mb-0">Chi tiết báo giá</h5>
-              </Card.Header>
-              <Card.Body>
-                {loading ? (
-                  <div className="text-center py-5">
-                    <div className="spinner-border text-primary me-2" role="status"></div>
-                    Đang tải chi tiết báo giá...
-                  </div>
-                ) : error && !quote ? (
-                  <div className="text-center py-5 text-muted">
-                    Không thể hiển thị chi tiết do lỗi trên
-                  </div>
-                ) : quote ? (
-                  <>
-                    <Row className="mb-4">
-                      <Col md={6}>
-                        <div className="mb-2">
-                          <strong>Mã báo giá:</strong> 
-                          <span className="ms-2 text-primary fw-semibold">
-                            {quote.quotationNumber || `QUO-${quote.id}`}
-                          </span>
-                        </div>
-                        <div className="mb-2">
-                          <strong>Ngày tạo:</strong> 
-                          <span className="ms-2">{formatDate(quote.createdAt)}</span>
-                        </div>
+            {loading ? (
+              <div className="text-center py-5"><Spinner animation="border" /></div>
+            ) : quote ? (
+              <>
+                <Row>
+                  <Col lg={6} className="mb-4">
+                    <Card className="h-100 shadow-sm">
+                      <Card.Header className="bg-light">
+                        <h5 className="mb-0">Thông tin khách hàng</h5>
+                      </Card.Header>
+                      <Card.Body>
+                        <p><strong>Công ty:</strong> {customer?.companyName || '—'}</p>
+                        <p><strong>Người đại diện:</strong> {customer?.contactPerson || '—'}</p>
+                        <p><strong>Email:</strong> {customer?.email || '—'}</p>
+                        <p><strong>Điện thoại:</strong> {customer?.phoneNumber || '—'}</p>
+                      </Card.Body>
+                    </Card>
+                  </Col>
+                  <Col lg={6} className="mb-4">
+                    <Card className="h-100 shadow-sm">
+                      <Card.Header className="bg-light">
+                        <h5 className="mb-0">Thông tin báo giá</h5>
+                      </Card.Header>
+                      <Card.Body>
+                        <p><strong>Mã báo giá:</strong> <span className="fw-semibold text-primary">{quote.quotationNumber || `QUO-${quote.id}`}</span></p>
+                        <p><strong>Ngày tạo:</strong> {formatDate(quote.createdAt)}</p>
+                        <p><strong>Trạng thái:</strong> <StatusBadge status={quote.status} /></p>
+                      </Card.Body>
+                    </Card>
+                  </Col>
+                </Row>
 
-                      </Col>
-                      <Col md={6}>
-                        <div className="mb-2">
-                          <strong>Khách hàng:</strong> 
-                          <span className="ms-2">{customer?.companyName || '—'}</span>
-                        </div>
-                        <div className="mb-2">
-                          <strong>Người đại diện:</strong> 
-                          <span className="ms-2">{customer?.contactPerson || '—'}</span>
-                        </div>
-                        <div>
-                          <strong>Trạng thái:</strong> 
-                          <span className="ms-2"><StatusBadge status={quote.status} /></span>
-                        </div>
-                      </Col>
-                    </Row>
+                <Card className="shadow-sm">
+                    <Card.Header className="bg-light">
+                        <h5 className="mb-0">Sản phẩm báo giá</h5>
+                    </Card.Header>
+                    <Card.Body className="p-0">
+                        <Table responsive striped hover className="mb-0">
+                            <thead className="table-light">
+                                <tr>
+                                <th style={{width: '50px'}}>STT</th>
+                                <th>Tên sản phẩm</th>
+                                <th>Kích thước</th>
+                                <th className="text-center">Số lượng</th>
+                                <th className="text-end">Đơn giá</th>
+                                <th className="text-end">Thành tiền</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {quote.details && quote.details.length > 0 ? (
+                                quote.details.map((item, index) => {
+                                    const product = products.get(item.productId);
+                                    return (
+                                    <tr key={item.id}>
+                                        <td className="text-center">{index + 1}</td>
+                                        <td>{product?.name || 'Sản phẩm không xác định'}</td>
+                                        <td>{product?.standardDimensions || '—'}</td>
+                                        <td className="text-center">{item.quantity}</td>
+                                        <td className="text-end">{formatCurrency(item.unitPrice)}</td>
+                                        <td className="text-end fw-semibold">{formatCurrency(item.totalPrice)}</td>
+                                    </tr>
+                                    );
+                                })
+                                ) : (
+                                <tr>
+                                    <td colSpan="6" className="text-center text-muted py-4">Chưa có sản phẩm nào trong báo giá.</td>
+                                </tr>
+                                )}
+                            </tbody>
+                            <tfoot className="table-group-divider">
+                                <tr>
+                                <td colSpan="5" className="text-end fw-bold">Tổng cộng</td>
+                                <td className="text-end fw-bold text-success fs-5">{formatCurrency(quote.totalAmount)}</td>
+                                </tr>
+                            </tfoot>
+                        </Table>
+                    </Card.Body>
+                </Card>
 
-                    <h6 className="mt-4 mb-3 text-primary">Sản phẩm báo giá</h6>
-                    <Table responsive striped bordered hover size="sm" className="mb-4">
-                      <thead className="table-light">
-                        <tr>
-                          <th style={{width: '50px'}}>STT</th>
-                          <th>Tên sản phẩm</th>
-                          <th>Kích thước</th>
-                          <th className="text-center">Số lượng</th>
-                          <th className="text-end">Thành tiền (VNĐ)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {quote.details && quote.details.length > 0 ? (
-                          quote.details.map((item, index) => {
-                            const product = products.get(item.productId);
-                            return (
-                              <tr key={item.id}>
-                                <td className="text-center">{index + 1}</td>
-                                <td>{product?.name || 'Sản phẩm không xác định'}</td>
-                                <td>{product?.standardDimensions || '—'}</td>
-                                <td className="text-center">{item.quantity}</td>
-                                <td className="text-end fw-semibold">{formatCurrency(item.totalPrice)}</td>
-                              </tr>
-                            );
-                          })
-                        ) : (
-                          <tr>
-                            <td colSpan="5" className="text-center text-muted">Chưa có sản phẩm nào trong báo giá.</td>
-                          </tr>
-                        )}
-                      </tbody>
-                      <tfoot className="table-group-divider">
-                        <tr>
-                          <td colSpan="4" className="text-end fw-bold">Tổng cộng</td>
-                          <td className="text-end fw-bold text-success">{formatCurrency(quote.totalAmount)}</td>
-                        </tr>
-                      </tfoot>
-                    </Table>
-
-                    <div className="d-flex justify-content-end gap-2 mt-4">
-                      <Button
-                        variant="success"
-                        size="lg"
-                        disabled={sending || !canSend}
-                        onClick={()=>setConfirmSend(true)}
-                      >
-                        <FaPaperPlane className="me-2"/>
-                        {canSend ? 'Gửi khách hàng' : 'Đã gửi khách hàng'}
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-center py-5 text-muted">
-                    Không tìm thấy báo giá
-                  </div>
-                )}
-              </Card.Body>
-            </Card>
+                <div className="d-flex justify-content-end gap-2 mt-4">
+                    <Button
+                    variant="success"
+                    size="lg"
+                    disabled={sending || !canSend}
+                    onClick={()=>setConfirmSend(true)}
+                    >
+                    <FaPaperPlane className="me-2"/>
+                    {canSend ? 'Gửi khách hàng' : 'Đã gửi khách hàng'}
+                    </Button>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-5 text-muted">Không tìm thấy báo giá</div>
+            )}
 
             <Modal show={confirmSend} onHide={()=>setConfirmSend(false)} centered>
               <Modal.Header closeButton>
@@ -272,7 +266,7 @@ const QuoteDetail = () => {
                 <Button variant="success" onClick={onSendToCustomer} disabled={sending}>
                   {sending ? (
                     <>
-                      <div className="spinner-border spinner-border-sm me-2" role="status"></div>
+                      <Spinner as="span" size="sm" className="me-2" />
                       Đang gửi...
                     </>
                   ) : (

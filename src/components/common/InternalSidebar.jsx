@@ -43,12 +43,12 @@ const InternalSidebar = ({ userRole: propUserRole }) => {
     ],
     sales: [
       { icon: FaListAlt, label: 'RFQ của tôi', path: '/sales/rfqs' },
+      { icon: FaFileSignature, label: 'Báo giá', path: '/sales/quotations' },
       { icon: FaFileSignature, label: 'Hợp đồng', path: '/sales/contracts' },
     ],
     planning: [
       { icon: FaListAlt, label: 'RFQ cần xử lý', path: '/planning/rfqs' },
-      { icon: FaListAlt, label: 'Đơn hàng đã gộp', path: '/planning/consolidated-orders' },
-      { icon: FaProjectDiagram, label: 'Kế hoạch sản xuất', path: '/planning/plans' },
+      { icon: FaProjectDiagram, label: 'Lô sản xuất', path: '/planning/lots' },
     ],
   };
 

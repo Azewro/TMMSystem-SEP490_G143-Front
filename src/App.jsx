@@ -32,9 +32,8 @@ import CustomerOrderDetail from './pages/customer/CustomerOrderDetail';
 
 // Planning Pages
 import PlanningRfqs from './pages/planning/PlanningRfqs';
-import ProductionPlans from './pages/planning/ProductionPlans';
 import ProductionPlanDetail from './pages/planning/ProductionPlanDetail';
-import ConsolidatedOrders from './pages/planning/ConsolidatedOrders'; // Import new component
+import ProductionLots from './pages/planning/ProductionLots'; // Import new component
 
 // Director Pages
 import ContractApproval from './pages/director/ContractApproval';
@@ -65,9 +64,9 @@ function App() {
 
               {/* Internal routes - NO AUTH GUARD (for now) */}
               <Route path="/internal/dashboard" element={<InternalDashboard />} />
-              <Route path="/internal/quotations" element={<QuotesList />} />
+              <Route path="/sales/quotations" element={<QuotesList />} />
               <Route path="/internal/quote-requests" element={<QuoteRequests />} />
-              <Route path="/internal/quotes/:id" element={<QuoteDetail />} />
+              <Route path="/sales/quotations/:id" element={<QuoteDetail />} />
               <Route path="/internal/orders" element={<OrderList />} />
               <Route path="/internal/orders/:id" element={<OrderDetail />} />
 
@@ -85,11 +84,8 @@ function App() {
               {/* Planning routes */}
               <Route path="/planning/rfqs" element={<PlanningRfqs />} />
               <Route path="/planning/rfqs/:id" element={<PlanningRFQDetail />} />
-              <Route path="/planning/plans" element={<ProductionPlans />} />
               <Route path="/planning/production-plans/:id" element={<ProductionPlanDetail />} />
-              <Route path="/planning/consolidated-orders" element={<ConsolidatedOrders />} />
-              {/* Placeholder for Create Production Plan page */}
-              <Route path="/planning/create-production-plan/:batchId" element={<div>Create Production Plan Page</div>} />
+              <Route path="/planning/lots" element={<ProductionLots />} />
 
               {/* Director routes */}
               <Route path="/director/contract-approval" element={<ContractApproval />} />
