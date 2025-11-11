@@ -54,6 +54,8 @@ const InternalLoginPage = () => {
         navigate('/planning/rfqs');
       } else if (userRole === 'SALE STAFF' || userRole?.includes('SALE')) {
         navigate('/sales/rfqs');
+      } else if (userRole?.includes('TECHNICAL') || userRole === 'TECHNICAL_DEPARTMENT') {
+        navigate('/technical/machines');
       } else {
         navigate('/internal/quote-requests'); // default for other internal roles
       }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Nav } from 'react-bootstrap';
-import { FaListAlt, FaFileSignature, FaProjectDiagram, FaUsers, FaUserFriends } from 'react-icons/fa';
+import { FaListAlt, FaFileSignature, FaProjectDiagram, FaUsers, FaUserFriends, FaCog } from 'react-icons/fa';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import '../../styles/Sidebar.css'; // Reuse the same dark theme
@@ -23,6 +23,8 @@ const InternalSidebar = ({ userRole: propUserRole }) => {
       return 'planning';
     } else if (roleUpper.includes('SALE') || roleUpper === 'SALE_STAFF') {
       return 'sales';
+    } else if (roleUpper.includes('TECHNICAL') || roleUpper === 'TECHNICAL_DEPARTMENT') {
+      return 'technical';
     }
     return null;
   };
@@ -49,6 +51,9 @@ const InternalSidebar = ({ userRole: propUserRole }) => {
       { icon: FaListAlt, label: 'RFQ cần xử lý', path: '/planning/rfqs' },
       { icon: FaListAlt, label: 'Đơn hàng đã gộp', path: '/planning/consolidated-orders' },
       { icon: FaProjectDiagram, label: 'Kế hoạch sản xuất', path: '/planning/plans' },
+    ],
+    technical: [
+      { icon: FaCog, label: 'Quản lý máy', path: '/technical/machines' },
     ],
   };
 

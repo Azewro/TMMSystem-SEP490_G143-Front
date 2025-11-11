@@ -50,6 +50,9 @@ import ContractUpload from './pages/internal/ContractUpload';
 import AdminUserManagement from './pages/admin/AdminUserManagement';
 import AdminCustomerManagement from './pages/admin/AdminCustomerManagement';
 
+// Technical Pages
+import MachineManagement from './pages/technical/MachineManagement';
+
 function App() {
   return (
     <AuthProvider>
@@ -106,6 +109,9 @@ function App() {
               {/* Admin routes */}
               <Route path="/admin/users" element={<AdminUserManagement />} />
               <Route path="/admin/customers" element={<AdminCustomerManagement />} />
+
+              {/* Technical routes */}
+              <Route path="/technical/machines" element={<MachineManagement />} />
 
             </Routes>
           </div>

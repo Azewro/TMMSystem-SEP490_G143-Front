@@ -68,6 +68,28 @@ const CreateCustomerModal = ({ show, onHide, onSave, customer = null, mode = 'cr
     }
   };
 
+  const validateEmail = (email) => {
+    return /\S+@\S+\.\S+/.test(email);
+  };
+
+  const validatePhone = (phone) => {
+    if (!phone) return false;
+    return /^[0-9]{10,11}$/.test(phone);
+  };
+
+  const validateTaxCode = (taxCode) => {
+    if (!taxCode) return true; // Optional field
+    // Mã số thuế thường có 10 hoặc 13 chữ số
+    return /^[0-9]{10,13}$/.test(taxCode);
+  };
+
+  const validateContactPerson = (name) => {
+    if (!name) return false;
+    // Check for special characters like @@@ or ###
+    const specialCharPattern = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/;
+    return !specialCharPattern.test(name);
+  };
+
   const validate = () => {
     const newErrors = {};
     
@@ -77,16 +99,24 @@ const CreateCustomerModal = ({ show, onHide, onSave, customer = null, mode = 'cr
 
     if (!formData.contactPerson) {
       newErrors.contactPerson = 'Người liên hệ là bắt buộc';
+    } else if (!validateContactPerson(formData.contactPerson)) {
+      newErrors.contactPerson = 'Tên người liên hệ không hợp lệ.';
     }
 
     if (!formData.email) {
       newErrors.email = 'Email là bắt buộc';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email không hợp lệ';
+    } else if (!validateEmail(formData.email)) {
+      newErrors.email = 'Email không hợp lệ.';
     }
 
     if (!formData.phoneNumber) {
       newErrors.phoneNumber = 'Số điện thoại là bắt buộc';
+    } else if (!validatePhone(formData.phoneNumber)) {
+      newErrors.phoneNumber = 'Số điện thoại không hợp lệ.';
+    }
+
+    if (formData.taxCode && !validateTaxCode(formData.taxCode)) {
+      newErrors.taxCode = 'Mã số thuế không hợp lệ.';
     }
 
     setErrors(newErrors);
@@ -126,6 +156,19 @@ const CreateCustomerModal = ({ show, onHide, onSave, customer = null, mode = 'cr
       }
     } catch (error) {
       console.error('Error saving customer:', error);
+      const errorMessage = error.message || 'Có lỗi xảy ra';
+      // Check for specific error messages
+      if (errorMessage.toLowerCase().includes('email đã được sử dụng') ||
+          errorMessage.toLowerCase().includes('email already') ||
+          errorMessage.toLowerCase().includes('email đã được sử dụng bởi khách hàng khác')) {
+        setErrors(prev => ({ ...prev, email: 'Email này đã được sử dụng.' }));
+      } else if (errorMessage.toLowerCase().includes('số điện thoại đã được sử dụng') ||
+                 errorMessage.toLowerCase().includes('phone number already') ||
+                 errorMessage.toLowerCase().includes('số điện thoại đã được sử dụng bởi khách hàng khác')) {
+        setErrors(prev => ({ ...prev, phoneNumber: 'Số điện thoại đã tồn tại trong hệ thống.' }));
+      } else {
+        setErrors(prev => ({ ...prev, _general: errorMessage }));
+      }
     } finally {
       setLoading(false);
     }
@@ -171,6 +214,11 @@ const CreateCustomerModal = ({ show, onHide, onSave, customer = null, mode = 'cr
       </Modal.Header>
       <Form onSubmit={handleSubmit}>
         <Modal.Body style={{ maxHeight: 'calc(90vh - 200px)', overflowY: 'auto', padding: '1.5rem' }}>
+          {errors._general && (
+            <Alert variant="danger" className="mb-3">
+              {errors._general}
+            </Alert>
+          )}
           <Form.Group className="mb-3">
             <Form.Label>
               Tên công ty <span className="text-danger">*</span>
@@ -185,9 +233,11 @@ const CreateCustomerModal = ({ show, onHide, onSave, customer = null, mode = 'cr
               readOnly={isReadOnly}
               disabled={isReadOnly}
             />
-            <Form.Control.Feedback type="invalid">
-              {errors.companyName}
-            </Form.Control.Feedback>
+            {errors.companyName && (
+              <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
+                {errors.companyName}
+              </Form.Control.Feedback>
+            )}
           </Form.Group>
 
           <Form.Group className="mb-3">
@@ -204,9 +254,11 @@ const CreateCustomerModal = ({ show, onHide, onSave, customer = null, mode = 'cr
               readOnly={isReadOnly}
               disabled={isReadOnly}
             />
-            <Form.Control.Feedback type="invalid">
-              {errors.contactPerson}
-            </Form.Control.Feedback>
+            {errors.contactPerson && (
+              <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
+                {errors.contactPerson}
+              </Form.Control.Feedback>
+            )}
           </Form.Group>
 
           <Form.Group className="mb-3">
@@ -223,9 +275,11 @@ const CreateCustomerModal = ({ show, onHide, onSave, customer = null, mode = 'cr
               readOnly={isReadOnly}
               disabled={isReadOnly}
             />
-            <Form.Control.Feedback type="invalid">
-              {errors.email}
-            </Form.Control.Feedback>
+            {errors.email && (
+              <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
+                {errors.email}
+              </Form.Control.Feedback>
+            )}
           </Form.Group>
 
           <Form.Group className="mb-3">
@@ -242,9 +296,11 @@ const CreateCustomerModal = ({ show, onHide, onSave, customer = null, mode = 'cr
               readOnly={isReadOnly}
               disabled={isReadOnly}
             />
-            <Form.Control.Feedback type="invalid">
-              {errors.phoneNumber}
-            </Form.Control.Feedback>
+            {errors.phoneNumber && (
+              <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
+                {errors.phoneNumber}
+              </Form.Control.Feedback>
+            )}
           </Form.Group>
 
           <Form.Group className="mb-3">
@@ -280,10 +336,16 @@ const CreateCustomerModal = ({ show, onHide, onSave, customer = null, mode = 'cr
               name="taxCode"
               value={formData.taxCode}
               onChange={handleChange}
+              isInvalid={!!errors.taxCode}
               placeholder="Nhập mã số thuế"
               readOnly={isReadOnly}
               disabled={isReadOnly}
             />
+            {errors.taxCode && (
+              <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
+                {errors.taxCode}
+              </Form.Control.Feedback>
+            )}
           </Form.Group>
 
           <Form.Group className="mb-3">

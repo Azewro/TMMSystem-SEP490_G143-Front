@@ -22,10 +22,43 @@ const RegisterPage = () => {
     }));
   };
 
+  const validateEmail = (email) => {
+    return /\S+@\S+\.\S+/.test(email);
+  };
+
+  const validatePhone = (phone) => {
+    return /^[0-9]{10,11}$/.test(phone);
+  };
+
+  const validatePassword = (password) => {
+    return password.length >= 8;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
+
+    // Validation
+    if (!formData.email || !formData.email.trim()) {
+      setError('Email không được để trống.');
+      return;
+    }
+
+    if (!validateEmail(formData.email)) {
+      setError('Email không hợp lệ.');
+      return;
+    }
+
+    if (!formData.password || !formData.password.trim()) {
+      setError('Mật khẩu không được để trống.');
+      return;
+    }
+
+    if (!validatePassword(formData.password)) {
+      setError('Mật khẩu phải có ít nhất 8 ký tự.');
+      return;
+    }
 
     if (formData.password !== formData.confirmPassword) {
       setError('Mật khẩu xác nhận không khớp.');
@@ -40,8 +73,14 @@ const RegisterPage = () => {
         navigate('/login');
       }, 2000);
     } catch (err) {
-      // Display the specific error message from the backend
-      setError(err.message || 'Đăng ký thất bại. Vui lòng thử lại.');
+      const errorMessage = err.message || 'Đăng ký thất bại. Vui lòng thử lại.';
+      // Check for specific error messages from backend
+      if (errorMessage.toLowerCase().includes('email đã được sử dụng') || 
+          errorMessage.toLowerCase().includes('email already')) {
+        setError('Email này đã được sử dụng.');
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }

@@ -1,153 +1,165 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Container, Card, Table, Badge, Button, Form, InputGroup, Alert, Pagination } from 'react-bootstrap';
-import { FaSearch, FaPlus, FaEdit, FaUserCircle } from 'react-icons/fa';
+import { FaSearch, FaPlus, FaEdit, FaTrash, FaCog } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
-import { userService } from '../../api/userService';
-import CreateUserModal from '../../components/modals/CreateUserModal';
+import { machineService } from '../../api/machineService';
+import CreateMachineModal from '../../components/modals/CreateMachineModal';
 import toast from 'react-hot-toast';
 
-const AdminUserManagement = () => {
+const MachineManagement = () => {
   const { user: currentUser } = useAuth();
   
   // Map role from backend to sidebar role format
   const getSidebarRole = () => {
-    if (!currentUser?.role) return 'admin';
+    if (!currentUser?.role) return 'technical';
     const role = currentUser.role.toUpperCase();
-    if (role === 'ADMIN') return 'admin';
-    return 'admin'; // Default to admin for admin pages
+    if (role.includes('TECHNICAL')) return 'technical';
+    return 'technical';
   };
-  const [users, setUsers] = useState([]);
+  
+  const [machines, setMachines] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedMachine, setSelectedMachine] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
 
   useEffect(() => {
-    loadUsers();
+    loadMachines();
   }, []);
 
-  const loadUsers = async () => {
+  const loadMachines = async () => {
     setLoading(true);
     setError('');
     try {
-      const data = await userService.getAllUsers();
-      setUsers(Array.isArray(data) ? data : []);
+      const data = await machineService.getAllMachines();
+      setMachines(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error('Failed to load users:', err);
-      setError(err.message || 'Không thể tải danh sách tài khoản');
+      console.error('Failed to load machines:', err);
+      setError(err.message || 'Không thể tải danh sách máy');
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredUsers = useMemo(() => {
-    let filtered = users;
+  const filteredMachines = useMemo(() => {
+    let filtered = machines;
 
     // Search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(u => 
-        (u.name || '').toLowerCase().includes(query) ||
-        (u.email || '').toLowerCase().includes(query) ||
-        (u.phoneNumber || '').toLowerCase().includes(query) ||
-        (u.roleName || '').toLowerCase().includes(query)
+      filtered = filtered.filter(m => 
+        (m.code || '').toLowerCase().includes(query) ||
+        (m.name || '').toLowerCase().includes(query) ||
+        (m.location || '').toLowerCase().includes(query)
       );
     }
 
-    // Role filter
-    if (roleFilter) {
-      filtered = filtered.filter(u => (u.roleName || '') === roleFilter);
+    // Type filter
+    if (typeFilter) {
+      filtered = filtered.filter(m => (m.type || '') === typeFilter);
     }
 
     // Status filter
     if (statusFilter !== '') {
-      const isActive = statusFilter === 'true';
-      filtered = filtered.filter(u => u.isActive === isActive);
+      filtered = filtered.filter(m => (m.status || '') === statusFilter);
     }
 
     return filtered;
-  }, [users, searchQuery, roleFilter, statusFilter]);
+  }, [machines, searchQuery, typeFilter, statusFilter]);
 
   // Pagination
-  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredMachines.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+  const paginatedMachines = filteredMachines.slice(startIndex, endIndex);
 
   useEffect(() => {
     // Reset to page 1 when filters change
     setCurrentPage(1);
-  }, [searchQuery, roleFilter, statusFilter]);
+  }, [searchQuery, typeFilter, statusFilter]);
 
-  const uniqueRoles = useMemo(() => {
-    return [...new Set(users.map(u => u.roleName).filter(Boolean))];
-  }, [users]);
+  const uniqueTypes = useMemo(() => {
+    return [...new Set(machines.map(m => m.type).filter(Boolean))];
+  }, [machines]);
+
+  const uniqueStatuses = useMemo(() => {
+    return [...new Set(machines.map(m => m.status).filter(Boolean))];
+  }, [machines]);
 
   const handleCreate = () => {
-    setSelectedUser(null);
+    setSelectedMachine(null);
     setShowCreateModal(true);
   };
 
-  const handleEdit = (user) => {
-    setSelectedUser(user);
+  const handleEdit = (machine) => {
+    setSelectedMachine(machine);
     setShowCreateModal(true);
   };
 
-  const handleSave = async (userData) => {
+  const handleSave = async (machineData) => {
     try {
-      if (selectedUser) {
-        await userService.updateUser(selectedUser.id, userData);
-        toast.success('Cập nhật tài khoản thành công');
+      if (selectedMachine) {
+        await machineService.updateMachine(selectedMachine.id, machineData);
+        toast.success('Cập nhật máy thành công');
       } else {
-        await userService.createUser(userData);
-        toast.success('Tạo tài khoản thành công');
+        await machineService.createMachine(machineData);
+        toast.success('Tạo máy thành công');
+        setShowCreateModal(false);
       }
-      await loadUsers();
+      await loadMachines();
     } catch (err) {
       toast.error(err.message || 'Có lỗi xảy ra');
       throw err;
     }
   };
 
-  // Check if user is admin
-  const isAdmin = (user) => {
-    const roleName = (user.roleName || '').toUpperCase();
-    return roleName === 'ADMIN' || roleName.includes('ADMIN');
+  const handleDelete = async (machine) => {
+    if (window.confirm(`Bạn có chắc chắn muốn xóa máy "${machine.name}" (${machine.code})?`)) {
+      try {
+        await machineService.deleteMachine(machine.id);
+        toast.success('Xóa máy thành công');
+        await loadMachines();
+      } catch (err) {
+        toast.error(err.message || 'Không thể xóa máy');
+      }
+    }
   };
 
-  // Check if user can toggle status
-  const canToggleStatus = (user) => {
-    // Cannot toggle status for admin users
-    if (isAdmin(user)) {
-      return false;
-    }
-    // Cannot toggle status for own account
-    if (user.id === currentUser?.id) {
-      return false;
-    }
-    return true;
+  const getStatusBadge = (status) => {
+    const statusMap = {
+      'AVAILABLE': { bg: 'success', text: 'Sẵn sàng' },
+      'MAINTENANCE': { bg: 'warning', text: 'Bảo trì' },
+      'BROKEN': { bg: 'danger', text: 'Hỏng' },
+      'IN_USE': { bg: 'info', text: 'Đang sử dụng' }
+    };
+    const statusInfo = statusMap[status] || { bg: 'secondary', text: status };
+    return <Badge bg={statusInfo.bg}>{statusInfo.text}</Badge>;
   };
 
-  const handleToggleStatus = async (user) => {
-    // Double check before toggling
-    if (!canToggleStatus(user)) {
-      toast.error('Không thể thay đổi trạng thái tài khoản này');
-      return;
-    }
+  const getTypeLabel = (type) => {
+    const typeMap = {
+      'WEAVING': 'Máy dệt',
+      'WARPING': 'Máy mắc',
+      'SEWING': 'Máy may',
+      'CUTTING': 'Máy cắt'
+    };
+    return typeMap[type] || type;
+  };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return '—';
     try {
-      await userService.setUserActive(user.id, !user.isActive);
-      toast.success(`Đã ${user.isActive ? 'vô hiệu hóa' : 'kích hoạt'} tài khoản`);
-      await loadUsers();
-    } catch (err) {
-      toast.error(err.message || 'Không thể cập nhật trạng thái');
+      const date = new Date(dateString);
+      return date.toLocaleDateString('vi-VN');
+    } catch {
+      return dateString;
     }
   };
 
@@ -159,10 +171,10 @@ const AdminUserManagement = () => {
         <div className="flex-grow-1" style={{ backgroundColor: '#f8f9fa', minHeight: 'calc(100vh - 70px)' }}>
           <Container fluid className="p-4">
             <div className="d-flex justify-content-between align-items-center mb-3">
-              <h4 className="mb-0">Danh sách tài khoản</h4>
+              <h4 className="mb-0">Danh sách máy</h4>
               <Button variant="primary" onClick={handleCreate}>
                 <FaPlus className="me-2" />
-                Tạo tài khoản
+                Tạo máy mới
               </Button>
             </div>
 
@@ -176,7 +188,7 @@ const AdminUserManagement = () => {
                         <FaSearch />
                       </InputGroup.Text>
                       <Form.Control
-                        placeholder="Tìm kiếm..."
+                        placeholder="Tìm kiếm theo mã, tên, vị trí..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
@@ -184,12 +196,12 @@ const AdminUserManagement = () => {
                   </div>
                   <div className="col-md-4">
                     <Form.Select
-                      value={roleFilter}
-                      onChange={(e) => setRoleFilter(e.target.value)}
+                      value={typeFilter}
+                      onChange={(e) => setTypeFilter(e.target.value)}
                     >
-                      <option value="">Tất cả danh mục</option>
-                      {uniqueRoles.map(role => (
-                        <option key={role} value={role}>{role}</option>
+                      <option value="">Tất cả loại máy</option>
+                      {uniqueTypes.map(type => (
+                        <option key={type} value={type}>{getTypeLabel(type)}</option>
                       ))}
                     </Form.Select>
                   </div>
@@ -199,8 +211,9 @@ const AdminUserManagement = () => {
                       onChange={(e) => setStatusFilter(e.target.value)}
                     >
                       <option value="">Tất cả trạng thái</option>
-                      <option value="true">Active</option>
-                      <option value="false">De-active</option>
+                      {uniqueStatuses.map(status => (
+                        <option key={status} value={status}>{status}</option>
+                      ))}
                     </Form.Select>
                   </div>
                 </div>
@@ -219,72 +232,59 @@ const AdminUserManagement = () => {
                   <thead className="table-light">
                     <tr>
                       <th style={{ width: 60 }}>#</th>
-                      <th>Họ và tên</th>
-                      <th>Email</th>
-                      <th>Số điện thoại</th>
-                      <th>Vai trò</th>
+                      <th>Mã máy</th>
+                      <th>Tên máy</th>
+                      <th>Loại</th>
+                      <th>Vị trí</th>
                       <th>Trạng thái</th>
+                      <th>Bảo trì tiếp theo</th>
                       <th style={{ width: 140 }} className="text-center">Hành động</th>
                     </tr>
                   </thead>
                   <tbody>
                     {loading && (
                       <tr>
-                        <td colSpan={7} className="text-center py-4">
+                        <td colSpan={8} className="text-center py-4">
                           <div className="spinner-border spinner-border-sm me-2"></div>
                           Đang tải...
                         </td>
                       </tr>
                     )}
-                    {!loading && filteredUsers.length === 0 && (
+                    {!loading && filteredMachines.length === 0 && (
                       <tr>
-                        <td colSpan={7} className="text-center py-4 text-muted">
-                          {users.length === 0 ? 'Chưa có tài khoản nào' : 'Không tìm thấy tài khoản'}
+                        <td colSpan={8} className="text-center py-4 text-muted">
+                          {machines.length === 0 ? 'Chưa có máy nào' : 'Không tìm thấy máy'}
                         </td>
                       </tr>
                     )}
-                    {!loading && paginatedUsers.map((user, idx) => (
-                      <tr key={user.id}>
+                    {!loading && paginatedMachines.map((machine, idx) => (
+                      <tr key={machine.id}>
                         <td>{startIndex + idx + 1}</td>
                         <td>
-                          <div className="d-flex align-items-center">
-                            <FaUserCircle className="me-2" size={20} />
-                            {user.name || '—'}
-                          </div>
+                          <strong>{machine.code || '—'}</strong>
                         </td>
-                        <td>{user.email || '—'}</td>
-                        <td>{user.phoneNumber || '—'}</td>
-                        <td>{user.roleName || '—'}</td>
-                        <td>
-                          <Badge bg={user.isActive ? 'success' : 'danger'} className="px-2 py-1">
-                            {user.isActive ? 'Active' : 'De-active'}
-                          </Badge>
-                        </td>
+                        <td>{machine.name || '—'}</td>
+                        <td>{getTypeLabel(machine.type)}</td>
+                        <td>{machine.location || '—'}</td>
+                        <td>{getStatusBadge(machine.status)}</td>
+                        <td>{formatDate(machine.nextMaintenanceAt)}</td>
                         <td className="text-center">
                           <div className="d-flex gap-2 justify-content-center">
                             <Button
                               size="sm"
-                              variant={user.isActive ? "danger" : "success"}
-                              onClick={() => handleToggleStatus(user)}
-                              disabled={!canToggleStatus(user)}
-                              title={
-                                !canToggleStatus(user)
-                                  ? isAdmin(user)
-                                    ? 'Không thể thay đổi trạng thái tài khoản Admin'
-                                    : 'Không thể thay đổi trạng thái tài khoản của chính bạn'
-                                  : user.isActive
-                                    ? 'Vô hiệu hóa tài khoản'
-                                    : 'Kích hoạt tài khoản'
-                              }
+                              variant="primary"
+                              onClick={() => handleEdit(machine)}
+                              title="Chỉnh sửa"
                             >
-                              {user.isActive ? 'Vô hiệu hóa' : 'Kích hoạt'}
+                              <FaEdit />
                             </Button>
                             <Button
                               size="sm"
-                              variant="primary"
-                              onClick={() => handleEdit(user)}
+                              variant="danger"
+                              onClick={() => handleDelete(machine)}
+                              title="Xóa"
                             >
-                              <FaEdit />
+                              <FaTrash />
                             </Button>
                           </div>
                         </td>
@@ -296,7 +296,7 @@ const AdminUserManagement = () => {
             </Card>
 
             {/* Pagination */}
-            {!loading && filteredUsers.length > itemsPerPage && (
+            {!loading && filteredMachines.length > itemsPerPage && (
               <div className="d-flex justify-content-center mt-3">
                 <Pagination>
                   <Pagination.First 
@@ -344,14 +344,18 @@ const AdminUserManagement = () => {
       </div>
 
       {/* Create/Edit Modal */}
-      <CreateUserModal
+      <CreateMachineModal
         show={showCreateModal}
-        onHide={() => setShowCreateModal(false)}
+        onHide={() => {
+          setShowCreateModal(false);
+          setSelectedMachine(null);
+        }}
         onSave={handleSave}
-        user={selectedUser}
+        machine={selectedMachine}
       />
     </div>
   );
 };
 
-export default AdminUserManagement;
+export default MachineManagement;
+

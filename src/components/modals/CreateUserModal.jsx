@@ -71,27 +71,47 @@ const CreateUserModal = ({ show, onHide, onSave, user = null }) => {
     }
   };
 
+  const validateEmail = (email) => {
+    return /\S+@\S+\.\S+/.test(email);
+  };
+
+  const validatePhone = (phone) => {
+    if (!phone) return false;
+    return /^[0-9]{10,11}$/.test(phone);
+  };
+
+  const validateName = (name) => {
+    if (!name) return false;
+    // Check for special characters like @@@ or ###
+    const specialCharPattern = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/;
+    return !specialCharPattern.test(name);
+  };
+
   const validate = () => {
     const newErrors = {};
     
     if (!formData.email) {
       newErrors.email = 'Email là bắt buộc';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email không hợp lệ';
+    } else if (!validateEmail(formData.email)) {
+      newErrors.email = 'Email không hợp lệ.';
     }
 
     if (!user && !formData.password) {
       newErrors.password = 'Mật khẩu là bắt buộc';
-    } else if (formData.password && formData.password.length < 6) {
-      newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
+    } else if (formData.password && formData.password.length < 8) {
+      newErrors.password = 'Mật khẩu phải có ít nhất 8 ký tự.';
     }
 
     if (!formData.name) {
       newErrors.name = 'Họ và tên là bắt buộc';
+    } else if (!validateName(formData.name)) {
+      newErrors.name = 'Tên người liên hệ không hợp lệ.';
     }
 
     if (!formData.phoneNumber) {
       newErrors.phoneNumber = 'Số điện thoại là bắt buộc';
+    } else if (!validatePhone(formData.phoneNumber)) {
+      newErrors.phoneNumber = 'Số điện thoại không hợp lệ.';
     }
 
     if (!formData.roleId) {
@@ -128,6 +148,17 @@ const CreateUserModal = ({ show, onHide, onSave, user = null }) => {
       handleClose();
     } catch (error) {
       console.error('Error saving user:', error);
+      const errorMessage = error.message || 'Có lỗi xảy ra';
+      // Check for specific error messages
+      if (errorMessage.toLowerCase().includes('email đã được sử dụng') ||
+          errorMessage.toLowerCase().includes('email already')) {
+        setErrors(prev => ({ ...prev, email: 'Email này đã được sử dụng.' }));
+      } else if (errorMessage.toLowerCase().includes('số điện thoại đã được sử dụng') ||
+                 errorMessage.toLowerCase().includes('phone number already')) {
+        setErrors(prev => ({ ...prev, phoneNumber: 'Số điện thoại đã tồn tại trong hệ thống.' }));
+      } else {
+        setErrors(prev => ({ ...prev, _general: errorMessage }));
+      }
     } finally {
       setLoading(false);
     }
@@ -166,6 +197,11 @@ const CreateUserModal = ({ show, onHide, onSave, user = null }) => {
       </Modal.Header>
       <Form onSubmit={handleSubmit}>
         <Modal.Body style={{ maxHeight: 'calc(90vh - 200px)', overflowY: 'auto', padding: '1.5rem' }}>
+          {errors._general && (
+            <Alert variant="danger" className="mb-3">
+              {errors._general}
+            </Alert>
+          )}
           <Form.Group className="mb-3">
             <Form.Label>
               Họ và tên <span className="text-danger">*</span>
@@ -178,9 +214,11 @@ const CreateUserModal = ({ show, onHide, onSave, user = null }) => {
               isInvalid={!!errors.name}
               placeholder="Nhập họ và tên"
             />
-            <Form.Control.Feedback type="invalid">
-              {errors.name}
-            </Form.Control.Feedback>
+            {errors.name && (
+              <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
+                {errors.name}
+              </Form.Control.Feedback>
+            )}
           </Form.Group>
 
           <Form.Group className="mb-3">
@@ -196,9 +234,11 @@ const CreateUserModal = ({ show, onHide, onSave, user = null }) => {
               placeholder="user@example.com"
               disabled={!!user}
             />
-            <Form.Control.Feedback type="invalid">
-              {errors.email}
-            </Form.Control.Feedback>
+            {errors.email && (
+              <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
+                {errors.email}
+              </Form.Control.Feedback>
+            )}
           </Form.Group>
 
           <Form.Group className="mb-3">
@@ -213,9 +253,11 @@ const CreateUserModal = ({ show, onHide, onSave, user = null }) => {
               isInvalid={!!errors.phoneNumber}
               placeholder="0123456789"
             />
-            <Form.Control.Feedback type="invalid">
-              {errors.phoneNumber}
-            </Form.Control.Feedback>
+            {errors.phoneNumber && (
+              <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
+                {errors.phoneNumber}
+              </Form.Control.Feedback>
+            )}
           </Form.Group>
 
           <Form.Group className="mb-3">
@@ -242,9 +284,11 @@ const CreateUserModal = ({ show, onHide, onSave, user = null }) => {
                 {showPassword ? <FaEyeSlash /> : <FaEye />}
               </Button>
             </div>
-            <Form.Control.Feedback type="invalid">
-              {errors.password}
-            </Form.Control.Feedback>
+            {errors.password && (
+              <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
+                {errors.password}
+              </Form.Control.Feedback>
+            )}
           </Form.Group>
 
           <Form.Group className="mb-3">
@@ -264,9 +308,11 @@ const CreateUserModal = ({ show, onHide, onSave, user = null }) => {
                 </option>
               ))}
             </Form.Select>
-            <Form.Control.Feedback type="invalid">
-              {errors.roleId}
-            </Form.Control.Feedback>
+            {errors.roleId && (
+              <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
+                {errors.roleId}
+              </Form.Control.Feedback>
+            )}
           </Form.Group>
 
           <Form.Group className="mb-3">

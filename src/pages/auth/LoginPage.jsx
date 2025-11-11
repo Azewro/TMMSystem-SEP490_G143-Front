@@ -38,6 +38,18 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    // Validation
+    if (!formData.email || !formData.email.trim()) {
+      setError('Email không được để trống.');
+      return;
+    }
+
+    if (!formData.password || !formData.password.trim()) {
+      setError('Mật khẩu không được để trống.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -120,10 +132,6 @@ const LoginPage = () => {
         <div className="login-footer">
           <Link to="/forgot-password" className="forgot-password-link">
             Quên Mật khẩu?
-          </Link>
-          <span className="separator">|</span>
-          <Link to="/register" className="register-link">
-            Đăng Ký
           </Link>
         </div>
       </div>

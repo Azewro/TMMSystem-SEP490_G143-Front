@@ -16,15 +16,38 @@ const InternalForgotPassword = () => {
     setSuccess('');
   };
 
+  const validateEmail = (email) => {
+    return /\S+@\S+\.\S+/.test(email);
+  };
+
   const handleRequest = async () => {
     resetMessages();
+
+    // Validation
+    if (!email || !email.trim()) {
+      setError('Email không được để trống.');
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      setError('Vui lòng nhập đúng định dạng Email');
+      return;
+    }
+
     setLoading(true);
     try {
       await authService.forgotPassword(email);
       setSuccess('Đã gửi mã xác minh tới email nội bộ. Vui lòng nhập mã để xác nhận.');
       setStep('verify');
     } catch (err) {
-      setError(err.message || 'Không thể gửi yêu cầu. Vui lòng thử lại.');
+      const errorMessage = err.message || 'Không thể gửi yêu cầu. Vui lòng thử lại.';
+      if (errorMessage.toLowerCase().includes('user not found') ||
+          errorMessage.toLowerCase().includes('không tìm thấy') ||
+          errorMessage.toLowerCase().includes('email not found')) {
+        setError('Không tìm thấy email.');
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
