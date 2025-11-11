@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Container, Card, Table, Badge, Button, Form, InputGroup, Alert } from 'react-bootstrap';
-import { FaSearch, FaEye, FaSignInAlt } from 'react-icons/fa';
+import { Container, Card, Table, Badge, Button, Alert, Spinner } from 'react-bootstrap'; // Removed Form, InputGroup
+import { FaEye } from 'react-icons/fa'; // Removed FaSearch, FaSignInAlt
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { quoteService } from '../../api/quoteService';
+import '../../styles/QuoteRequests.css'; // Added CSS import
 
 const statusMap = {
   DRAFT: { variant: 'secondary' },
@@ -41,8 +42,7 @@ const QuotesList = () => {
   const [quotes, setQuotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [q, setQ] = useState('');
-
+  
   useEffect(() => {
     const fetchAndEnrichQuotes = async () => {
       setLoading(true);
@@ -78,41 +78,18 @@ const QuotesList = () => {
     fetchAndEnrichQuotes();
   }, []);
 
-  const filtered = useMemo(() => {
-    const keyword = q.trim().toLowerCase();
-    if (!keyword) return quotes;
-    return quotes.filter(x => {
-      const num = (x.quotationNumber || x.id || '').toString().toLowerCase();
-      const rep = (x.customer?.contactPerson || x.customer?.companyName || '').toLowerCase();
-      return num.includes(keyword) || rep.includes(keyword);
-    });
-  }, [q, quotes]);
-
   const handleViewDetail = (quote) => {
-    console.log('Navigating to quote:', quote.id);
-    // Use navigate instead of window.location to prevent auth issues
-    navigate(`/internal/quotations/${quote.id}`);
+    navigate(`/sales/quotations/${quote.id}`);
   };
 
   return (
-    <div className="customer-layout">
+    <div>
       <Header />
       <div className="d-flex">
-        <InternalSidebar />
-        <div className="flex-grow-1" style={{ backgroundColor: '#f8f9fa', minHeight: 'calc(100vh - 70px)' }}>
-          <Container fluid className="p-4">
-            <div className="mb-3">
-              <InputGroup style={{ maxWidth: 420 }}>
-                <InputGroup.Text><FaSearch /></InputGroup.Text>
-                <Form.Control 
-                  placeholder="Tìm kiếm báo giá..." 
-                  value={q} 
-                  onChange={(e)=>setQ(e.target.value)} 
-                />
-              </InputGroup>
-            </div>
-
-            <h4 className="mb-3">Danh sách Báo giá</h4>
+        <InternalSidebar userRole="sales" />
+        <div className="flex-grow-1 p-4" style={{ backgroundColor: '#f8f9fa' }}>
+          <Container fluid>
+            <h2 className="mb-4">Danh sách Báo giá</h2>
 
             {error && (
               <Alert variant="danger" className="mb-3">
@@ -121,8 +98,11 @@ const QuotesList = () => {
             )}
 
             <Card className="shadow-sm">
+              <Card.Header>
+                Các báo giá đã được tạo
+              </Card.Header>
               <Card.Body className="p-0">
-                <Table responsive className="mb-0 align-middle">
+                <Table responsive hover className="mb-0 align-middle">
                   <thead className="table-light">
                     <tr>
                       <th style={{ width: 60 }}>#</th>
@@ -138,7 +118,7 @@ const QuotesList = () => {
                   <tbody>
                     {loading && (
                       <tr><td colSpan={8} className="text-center py-4">
-                        <div className="spinner-border spinner-border-sm me-2"></div>
+                        <Spinner animation="border" size="sm" className="me-2" />
                         Đang tải...
                       </td></tr>
                     )}
@@ -147,12 +127,12 @@ const QuotesList = () => {
                         Không thể hiển thị dữ liệu do lỗi
                       </td></tr>
                     )}
-                    {!loading && !error && filtered.length === 0 && (
+                    {!loading && !error && quotes.length === 0 && (
                       <tr><td colSpan={8} className="text-center py-4 text-muted">
-                        {quotes.length === 0 ? 'Chưa có báo giá nào' : 'Không tìm thấy báo giá'}
+                        Chưa có báo giá nào
                       </td></tr>
                     )}
-                    {!loading && !error && filtered.map((quote, idx) => {
+                    {!loading && !error && quotes.map((quote, idx) => {
                       const status = statusMap[quote.status] || { variant: 'secondary' };
                       return (
                         <tr key={quote.id || idx}>
@@ -174,7 +154,7 @@ const QuotesList = () => {
                           <td className="text-center">
                             <Button 
                               size="sm" 
-                              variant="light"
+                              variant="primary"
                               onClick={() => handleViewDetail(quote)}
                             >
                               <FaEye className="me-1" /> Chi tiết

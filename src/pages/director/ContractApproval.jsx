@@ -4,6 +4,7 @@ import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar'; // Import sidebar
 import { contractService } from '../../api/contractService';
 import { quotationService } from '../../api/quotationService'; // Import quotationService
+import { productionPlanService } from '../../api/productionPlanService'; // Import productionPlanService
 import '../../styles/QuoteRequests.css';
 
 const STATUS_LABELS = {
@@ -126,8 +127,19 @@ const DirectorContractApproval = () => {
     setSuccess('');
 
     try {
+      // Step 1: Approve the contract
       await contractService.approveContract(selectedContract.id, directorId, decision.note.trim() || undefined);
-      setSuccess('Đã phê duyệt hợp đồng thành công. Kế hoạch sản xuất sẽ được tạo tự động.');
+      
+      // Step 2: Automatically create a production plan
+      try {
+        await productionPlanService.createPlanFromContract(selectedContract.id);
+        setSuccess('Đã phê duyệt hợp đồng. Kế hoạch sản xuất đã được tự động tạo và chuyển cho bộ phận Kế hoạch.');
+      } catch (planError) {
+        console.error('Failed to auto-create production plan', planError);
+        // Show a non-blocking error, the main action (approval) was successful
+        setSuccess(`Đã phê duyệt hợp đồng. Tuy nhiên, có lỗi xảy ra khi tự động tạo kế hoạch sản xuất: ${planError.message}`);
+      }
+
       closeModal();
       loadContracts();
     } catch (err) {

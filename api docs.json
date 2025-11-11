@@ -25,6 +25,10 @@
       "description": "API quản lý kế hoạch sản xuất chi tiết với lựa chọn máy móc thông minh"
     },
     {
+      "name": "Production Lots",
+      "description": "API danh sách lô đã merge phục vụ lập kế hoạch"
+    },
+    {
       "name": "Tính toán Nguyên vật liệu & Lập kế hoạch",
       "description": "API tính toán tiêu hao nguyên vật liệu và kiểm tra khả dụng dựa trên BOM"
     }
@@ -411,8 +415,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Chi tiết RFQ",
+          "404": {
+            "description": "Không tìm thấy chi tiết RFQ",
             "content": {
               "*/*": {
                 "schema": {
@@ -421,8 +425,8 @@
               }
             }
           },
-          "404": {
-            "description": "Không tìm thấy chi tiết RFQ",
+          "200": {
+            "description": "Chi tiết RFQ",
             "content": {
               "*/*": {
                 "schema": {
@@ -546,8 +550,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Chi tiết báo giá",
+          "404": {
+            "description": "Không tìm thấy báo giá",
             "content": {
               "*/*": {
                 "schema": {
@@ -556,8 +560,8 @@
               }
             }
           },
-          "404": {
-            "description": "Không tìm thấy báo giá",
+          "200": {
+            "description": "Chi tiết báo giá",
             "content": {
               "*/*": {
                 "schema": {
@@ -1960,6 +1964,20 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "description": "Thành công - Kế hoạch đã được gửi để duyệt",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": 1,
+                  "planCode": "PP-2025-001",
+                  "status": "PENDING_APPROVAL",
+                  "submittedAt": "2025-10-26T10:30:00Z",
+                  "message": "Kế hoạch đã được gửi để phê duyệt"
+                }
+              }
+            }
+          },
           "400": {
             "description": "Kế hoạch không ở trạng thái DRAFT",
             "content": {
@@ -1976,20 +1994,6 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ProductionPlanDto"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "Thành công - Kế hoạch đã được gửi để duyệt",
-            "content": {
-              "application/json": {
-                "example": {
-                  "id": 1,
-                  "planCode": "PP-2025-001",
-                  "status": "PENDING_APPROVAL",
-                  "submittedAt": "2025-10-26T10:30:00Z",
-                  "message": "Kế hoạch đã được gửi để phê duyệt"
                 }
               }
             }
@@ -2044,21 +2048,6 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "Thành công - Kế hoạch đã bị từ chối",
-            "content": {
-              "application/json": {
-                "example": {
-                  "id": 1,
-                  "planCode": "PP-2025-001",
-                  "status": "REJECTED",
-                  "rejectedAt": "2025-10-26T11:30:00Z",
-                  "rejectionReason": "Cần điều chỉnh lại thời gian sản xuất",
-                  "message": "Kế hoạch đã bị từ chối"
-                }
-              }
-            }
-          },
           "500": {
             "description": "Lỗi server nội bộ",
             "content": {
@@ -2085,6 +2074,21 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ProductionPlanDto"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Thành công - Kế hoạch đã bị từ chối",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": 1,
+                  "planCode": "PP-2025-001",
+                  "status": "REJECTED",
+                  "rejectedAt": "2025-10-26T11:30:00Z",
+                  "rejectionReason": "Cần điều chỉnh lại thời gian sản xuất",
+                  "message": "Kế hoạch đã bị từ chối"
                 }
               }
             }
@@ -2138,6 +2142,16 @@
               }
             }
           },
+          "404": {
+            "description": "Không tìm thấy kế hoạch sản xuất",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionPlanDto"
+                }
+              }
+            }
+          },
           "200": {
             "description": "Thành công - Kế hoạch đã được phê duyệt và Production Order đã được tạo",
             "content": {
@@ -2153,8 +2167,8 @@
               }
             }
           },
-          "404": {
-            "description": "Không tìm thấy kế hoạch sản xuất",
+          "400": {
+            "description": "Kế hoạch không ở trạng thái PENDING_APPROVAL",
             "content": {
               "*/*": {
                 "schema": {
@@ -2162,13 +2176,88 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/v1/production-plans/stages/{stageId}": {
+      "put": {
+        "tags": [
+          "Quản lý Kế hoạch Sản xuất"
+        ],
+        "summary": "Cập nhật công đoạn sản xuất",
+        "description": "Cập nhật máy, người phụ trách, thời gian và ghi chú cho một stage",
+        "operationId": "updateStage_1",
+        "parameters": [
+          {
+            "name": "stageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductionPlanStageRequest"
+              }
+            }
           },
-          "400": {
-            "description": "Kế hoạch không ở trạng thái PENDING_APPROVAL",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProductionPlanDto"
+                  "$ref": "#/components/schemas/ProductionPlanStageDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/production-plans/stages/{stageId}/assign-qc": {
+      "put": {
+        "tags": [
+          "Quản lý Kế hoạch Sản xuất"
+        ],
+        "summary": "Gán QC cho công đoạn",
+        "description": "Gán người kiểm tra chất lượng (QC) cho stage",
+        "operationId": "assignQc",
+        "parameters": [
+          {
+            "name": "stageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionPlanStageDto"
                 }
               }
             }
@@ -3816,6 +3905,16 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "description": "Chi tiết RFQ đã được thêm",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RfqDetailDto"
+                }
+              }
+            }
+          },
           "400": {
             "description": "Dữ liệu không hợp lệ",
             "content": {
@@ -3828,16 +3927,6 @@
           },
           "404": {
             "description": "Không tìm thấy RFQ",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/RfqDetailDto"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "Chi tiết RFQ đã được thêm",
             "content": {
               "*/*": {
                 "schema": {
@@ -5464,19 +5553,6 @@
         "description": "Lấy danh sách tất cả kế hoạch sản xuất trong hệ thống, bao gồm cả thông tin chi tiết về hợp đồng, sản phẩm và trạng thái",
         "operationId": "getAllPlans",
         "responses": {
-          "500": {
-            "description": "Lỗi server nội bộ",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ProductionPlanDto"
-                  }
-                }
-              }
-            }
-          },
           "200": {
             "description": "Thành công - Trả về danh sách kế hoạch sản xuất",
             "content": {
@@ -5492,6 +5568,19 @@
                     "createdAt": "2025-10-26T09:45:00Z"
                   }
                 ]
+              }
+            }
+          },
+          "500": {
+            "description": "Lỗi server nội bộ",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductionPlanDto"
+                  }
+                }
               }
             }
           }
@@ -5530,6 +5619,21 @@
               }
             }
           },
+          "201": {
+            "description": "Thành công - Kế hoạch sản xuất đã được tạo",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": 1,
+                  "planCode": "PP-2025-001",
+                  "status": "DRAFT",
+                  "contractNumber": "ORD-101",
+                  "customerName": "Công ty ABC",
+                  "message": "Kế hoạch sản xuất đã được tạo thành công"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Lỗi server nội bộ",
             "content": {
@@ -5546,21 +5650,6 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ProductionPlanDto"
-                }
-              }
-            }
-          },
-          "201": {
-            "description": "Thành công - Kế hoạch sản xuất đã được tạo",
-            "content": {
-              "application/json": {
-                "example": {
-                  "id": 1,
-                  "planCode": "PP-2025-001",
-                  "status": "DRAFT",
-                  "contractNumber": "ORD-101",
-                  "customerName": "Công ty ABC",
-                  "message": "Kế hoạch sản xuất đã được tạo thành công"
                 }
               }
             }
@@ -7129,12 +7218,51 @@
         }
       }
     },
+    "/v1/customers/{id}/active": {
+      "patch": {
+        "tags": [
+          "customer-controller"
+        ],
+        "operationId": "setActive",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "value",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/admin/users/{id}/active": {
       "patch": {
         "tags": [
           "admin-user-controller"
         ],
-        "operationId": "setActive",
+        "operationId": "setActive_1",
         "parameters": [
           {
             "name": "id",
@@ -8053,6 +8181,42 @@
         }
       }
     },
+    "/v1/production-plans/{planId}/stages": {
+      "get": {
+        "tags": [
+          "Quản lý Kế hoạch Sản xuất"
+        ],
+        "summary": "Danh sách công đoạn của kế hoạch",
+        "description": "Lấy tất cả stage theo planId phục vụ hiển thị form lập kế hoạch",
+        "operationId": "listStages_1",
+        "parameters": [
+          {
+            "name": "planId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductionPlanStageDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/production-plans/{id}": {
       "get": {
         "tags": [
@@ -8075,6 +8239,26 @@
           }
         ],
         "responses": {
+          "404": {
+            "description": "Không tìm thấy kế hoạch sản xuất với ID này",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionPlanDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Lỗi server nội bộ",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionPlanDto"
+                }
+              }
+            }
+          },
           "200": {
             "description": "Thành công - Trả về chi tiết kế hoạch sản xuất",
             "content": {
@@ -8099,26 +8283,6 @@
                       ]
                     }
                   ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Không tìm thấy kế hoạch sản xuất với ID này",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProductionPlanDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Lỗi server nội bộ",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProductionPlanDto"
                 }
               }
             }
@@ -8217,32 +8381,6 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "Không tìm thấy công đoạn sản xuất",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/MachineSuggestionDto"
-                  }
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Lỗi server nội bộ",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/MachineSuggestionDto"
-                  }
-                }
-              }
-            }
-          },
           "200": {
             "description": "Thành công - Trả về danh sách gợi ý máy móc",
             "content": {
@@ -8281,6 +8419,32 @@
                     "priorityScore": 90
                   }
                 ]
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy công đoạn sản xuất",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MachineSuggestionDto"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Lỗi server nội bộ",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MachineSuggestionDto"
+                  }
+                }
               }
             }
           }
@@ -8322,6 +8486,17 @@
               }
             }
           },
+          "200": {
+            "description": "Thành công - Trả về danh sách xung đột (nếu có)",
+            "content": {
+              "application/json": {
+                "example": [
+                  "Máy CM-01 đang trong thời gian bảo trì từ 2025-10-28 08:00 đến 2025-10-28 10:00",
+                  "Máy CM-01 đã được phân công cho công đoạn khác từ 2025-10-28 14:00 đến 2025-10-28 18:00"
+                ]
+              }
+            }
+          },
           "500": {
             "description": "Lỗi server nội bộ",
             "content": {
@@ -8332,17 +8507,6 @@
                     "type": "string"
                   }
                 }
-              }
-            }
-          },
-          "200": {
-            "description": "Thành công - Trả về danh sách xung đột (nếu có)",
-            "content": {
-              "application/json": {
-                "example": [
-                  "Máy CM-01 đang trong thời gian bảo trì từ 2025-10-28 08:00 đến 2025-10-28 10:00",
-                  "Máy CM-01 đã được phân công cho công đoạn khác từ 2025-10-28 14:00 đến 2025-10-28 18:00"
-                ]
               }
             }
           }
@@ -8660,6 +8824,74 @@
                   "items": {
                     "$ref": "#/components/schemas/ProductionPlanDto"
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/production-lots": {
+      "get": {
+        "tags": [
+          "Production Lots"
+        ],
+        "summary": "Lấy danh sách lot",
+        "description": "Filter theo status nếu truyền, ví dụ READY_FOR_PLANNING",
+        "operationId": "list_6",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductionLotDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/production-lots/{id}": {
+      "get": {
+        "tags": [
+          "Production Lots"
+        ],
+        "summary": "Lấy chi tiết một lot",
+        "description": "Trả về thông tin lot, danh sách đơn liên quan và trạng thái kế hoạch hiện tại",
+        "operationId": "get_6",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionLotDto"
                 }
               }
             }
@@ -11146,6 +11378,13 @@
           "inChargeUserName": {
             "type": "string"
           },
+          "qcUserId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "qcUserName": {
+            "type": "string"
+          },
           "plannedStartTime": {
             "type": "string",
             "format": "date-time"
@@ -11188,6 +11427,51 @@
         "type": "object",
         "properties": {
           "approvalNotes": {
+            "type": "string"
+          }
+        }
+      },
+      "ProductionPlanStageRequest": {
+        "type": "object",
+        "properties": {
+          "stageType": {
+            "type": "string"
+          },
+          "sequenceNo": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "assignedMachineId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "inChargeUserId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "qcUserId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "plannedStartTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "plannedEndTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "minRequiredDurationMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "transferBatchQuantity": {
+            "type": "number"
+          },
+          "capacityPerHour": {
+            "type": "number"
+          },
+          "notes": {
             "type": "string"
           }
         }
@@ -11774,6 +12058,10 @@
           "phoneNumber": {
             "type": "string",
             "description": "SĐT"
+          },
+          "position": {
+            "type": "string",
+            "description": "Vị trí (Giám đốc, Sales, HR, ...)"
           },
           "address": {
             "type": "string",
@@ -12656,47 +12944,6 @@
           }
         }
       },
-      "ProductionPlanStageRequest": {
-        "type": "object",
-        "properties": {
-          "stageType": {
-            "type": "string"
-          },
-          "sequenceNo": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "assignedMachineId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "inChargeUserId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "plannedStartTime": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "plannedEndTime": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "minRequiredDurationMinutes": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "transferBatchQuantity": {
-            "type": "number"
-          },
-          "capacityPerHour": {
-            "type": "number"
-          },
-          "notes": {
-            "type": "string"
-          }
-        }
-      },
       "MachineAssignmentDto": {
         "type": "object",
         "properties": {
@@ -13028,6 +13275,11 @@
             "minLength": 0,
             "type": "string"
           },
+          "position": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string"
+          },
           "address": {
             "maxLength": 1000,
             "minLength": 0,
@@ -13202,6 +13454,62 @@
             "items": {
               "$ref": "#/components/schemas/RfqDetailDto"
             }
+          }
+        }
+      },
+      "ProductionLotDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "lotCode": {
+            "type": "string"
+          },
+          "productId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "productCode": {
+            "type": "string"
+          },
+          "productName": {
+            "type": "string"
+          },
+          "sizeSnapshot": {
+            "type": "string"
+          },
+          "totalQuantity": {
+            "type": "number"
+          },
+          "deliveryDateTarget": {
+            "type": "string",
+            "format": "date"
+          },
+          "contractDateMin": {
+            "type": "string",
+            "format": "date"
+          },
+          "contractDateMax": {
+            "type": "string",
+            "format": "date"
+          },
+          "status": {
+            "type": "string"
+          },
+          "orderNumbers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "currentPlanId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "currentPlanStatus": {
+            "type": "string"
           }
         }
       },
