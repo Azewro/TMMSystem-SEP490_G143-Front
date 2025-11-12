@@ -42,11 +42,13 @@ const Sidebar = () => {
             return (
               <Nav.Link
                 key={index}
-                href="#"
-                className={`sidebar-item d-flex align-items-center py-3 px-3 mb-1 rounded ${isActive ? 'active' : ''}`}
+                active={isActive}
+                className="sidebar-item d-flex align-items-center py-3 px-3 mb-1 rounded"
                 onClick={(e) => {
                   e.preventDefault();
-                  navigate(item.path);
+                  if (!isActive) {
+                    navigate(item.path);
+                  }
                 }}
               >
                 <IconComponent className="me-3" size={16} />

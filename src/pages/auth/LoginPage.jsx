@@ -121,10 +121,7 @@ const LoginPage = () => {
           <Link to="/forgot-password" className="forgot-password-link">
             Quên Mật khẩu?
           </Link>
-          <span className="separator">|</span>
-          <Link to="/register" className="register-link">
-            Đăng Ký
-          </Link>
+
         </div>
       </div>
     </div>

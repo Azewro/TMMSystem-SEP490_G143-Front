@@ -238,8 +238,8 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "Không tìm thấy RFQ",
+          "200": {
+            "description": "Chi tiết RFQ",
             "content": {
               "*/*": {
                 "schema": {
@@ -248,8 +248,8 @@
               }
             }
           },
-          "200": {
-            "description": "Chi tiết RFQ",
+          "404": {
+            "description": "Không tìm thấy RFQ",
             "content": {
               "*/*": {
                 "schema": {
@@ -361,16 +361,6 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Ngày giao hàng đã được cập nhật",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/RfqDto"
-                }
-              }
-            }
-          },
           "404": {
             "description": "Không tìm thấy RFQ",
             "content": {
@@ -383,6 +373,16 @@
           },
           "400": {
             "description": "Ngày không hợp lệ. Hỗ trợ định dạng: yyyy-MM-dd hoặc dd-MM-yyyy",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RfqDto"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Ngày giao hàng đã được cập nhật",
             "content": {
               "*/*": {
                 "schema": {
@@ -468,6 +468,16 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "description": "Chi tiết RFQ đã được cập nhật",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RfqDetailDto"
+                }
+              }
+            }
+          },
           "400": {
             "description": "Dữ liệu không hợp lệ",
             "content": {
@@ -480,16 +490,6 @@
           },
           "404": {
             "description": "Không tìm thấy chi tiết RFQ",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/RfqDetailDto"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "Chi tiết RFQ đã được cập nhật",
             "content": {
               "*/*": {
                 "schema": {
@@ -1367,7 +1367,7 @@
     "/v1/production/work-orders/{id}": {
       "get": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "operationId": "getWO",
         "parameters": [
@@ -1396,7 +1396,7 @@
       },
       "put": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "summary": "Cập nhật Work Order",
         "operationId": "updateWO",
@@ -1437,7 +1437,7 @@
       },
       "delete": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "operationId": "deleteWO",
         "parameters": [
@@ -1461,7 +1461,7 @@
     "/v1/production/work-order-details/{id}": {
       "get": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "operationId": "getWODetail",
         "parameters": [
@@ -1490,7 +1490,7 @@
       },
       "put": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "summary": "Cập nhật chi tiết WO",
         "operationId": "updateWODetail",
@@ -1531,7 +1531,7 @@
       },
       "delete": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "operationId": "deleteWODetail",
         "parameters": [
@@ -1555,7 +1555,7 @@
     "/v1/production/tech-sheets/{id}": {
       "get": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "operationId": "getTechSheet",
         "parameters": [
@@ -1584,7 +1584,7 @@
       },
       "put": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "summary": "Cập nhật Technical Sheet",
         "operationId": "updateTechSheet",
@@ -1625,7 +1625,7 @@
       },
       "delete": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "operationId": "deleteTechSheet",
         "parameters": [
@@ -1649,7 +1649,7 @@
     "/v1/production/stages/{id}": {
       "get": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "operationId": "getStage",
         "parameters": [
@@ -1678,7 +1678,7 @@
       },
       "put": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "summary": "Cập nhật Production Stage",
         "operationId": "updateStage",
@@ -1719,7 +1719,7 @@
       },
       "delete": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "operationId": "deleteStage",
         "parameters": [
@@ -1740,10 +1740,140 @@
         }
       }
     },
+    "/v1/production/risks/{riskId}/set-impact": {
+      "put": {
+        "tags": [
+          "risk-controller"
+        ],
+        "summary": "Set impact of Risk Assessment",
+        "operationId": "setImpact",
+        "parameters": [
+          {
+            "name": "riskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "impacted",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "proposedDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/StageRiskAssessment"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/production/risks/{riskId}/reject": {
+      "put": {
+        "tags": [
+          "risk-controller"
+        ],
+        "operationId": "reject",
+        "parameters": [
+          {
+            "name": "riskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "approverId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/StageRiskAssessment"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/production/risks/{riskId}/approve": {
+      "put": {
+        "tags": [
+          "risk-controller"
+        ],
+        "summary": "Approve/Reject Risk Assessment",
+        "operationId": "approve",
+        "parameters": [
+          {
+            "name": "riskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "approverId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/StageRiskAssessment"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/production/orders/{id}": {
       "get": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "operationId": "getPO",
         "parameters": [
@@ -1772,7 +1902,7 @@
       },
       "put": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "summary": "Cập nhật Production Order",
         "operationId": "updatePO",
@@ -1813,7 +1943,7 @@
       },
       "delete": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "operationId": "deletePO",
         "parameters": [
@@ -1837,7 +1967,7 @@
     "/v1/production/order-details/{id}": {
       "get": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "operationId": "getPODetail",
         "parameters": [
@@ -1866,7 +1996,7 @@
       },
       "put": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "summary": "Cập nhật chi tiết PO",
         "operationId": "updatePODetail",
@@ -1907,7 +2037,7 @@
       },
       "delete": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "operationId": "deletePODetail",
         "parameters": [
@@ -1964,20 +2094,6 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "Thành công - Kế hoạch đã được gửi để duyệt",
-            "content": {
-              "application/json": {
-                "example": {
-                  "id": 1,
-                  "planCode": "PP-2025-001",
-                  "status": "PENDING_APPROVAL",
-                  "submittedAt": "2025-10-26T10:30:00Z",
-                  "message": "Kế hoạch đã được gửi để phê duyệt"
-                }
-              }
-            }
-          },
           "400": {
             "description": "Kế hoạch không ở trạng thái DRAFT",
             "content": {
@@ -1994,6 +2110,20 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ProductionPlanDto"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Thành công - Kế hoạch đã được gửi để duyệt",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": 1,
+                  "planCode": "PP-2025-001",
+                  "status": "PENDING_APPROVAL",
+                  "submittedAt": "2025-10-26T10:30:00Z",
+                  "message": "Kế hoạch đã được gửi để phê duyệt"
                 }
               }
             }
@@ -3905,16 +4035,6 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "Chi tiết RFQ đã được thêm",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/RfqDetailDto"
-                }
-              }
-            }
-          },
           "400": {
             "description": "Dữ liệu không hợp lệ",
             "content": {
@@ -3927,6 +4047,16 @@
           },
           "404": {
             "description": "Không tìm thấy RFQ",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RfqDetailDto"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Chi tiết RFQ đã được thêm",
             "content": {
               "*/*": {
                 "schema": {
@@ -4260,6 +4390,96 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/RfqAssignRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RfqDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/rfqs/{id}/assign-sales": {
+      "post": {
+        "tags": [
+          "RFQ"
+        ],
+        "summary": "Assign Sales for RFQ (DRAFT)",
+        "description": "Assign Sales by userId or employeeCode while RFQ is in DRAFT. Planning assignment not required here.",
+        "operationId": "assignSales",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "RFQ ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Assign Sales payload",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignSalesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RfqDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/rfqs/{id}/assign-planning": {
+      "post": {
+        "tags": [
+          "RFQ"
+        ],
+        "summary": "Assign Planning for RFQ (DRAFT)",
+        "description": "Assign Planning by userId while RFQ is in DRAFT. Sales assignment not required here.",
+        "operationId": "assignPlanning",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "RFQ ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Assign Planning payload",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignPlanningRequest"
               }
             }
           },
@@ -5102,7 +5322,7 @@
     "/v1/production/work-orders": {
       "post": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "summary": "Tạo Work Order",
         "operationId": "createWO",
@@ -5131,10 +5351,132 @@
         }
       }
     },
+    "/v1/production/work-orders/{id}/submit-approval": {
+      "post": {
+        "tags": [
+          "Production"
+        ],
+        "summary": "Submit Work Order for approval",
+        "operationId": "submitWoApproval",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/production/work-orders/{id}/reject": {
+      "post": {
+        "tags": [
+          "Production"
+        ],
+        "summary": "Reject Work Order",
+        "operationId": "rejectWo",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "pmId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "reason",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/production/work-orders/{id}/approve": {
+      "post": {
+        "tags": [
+          "Production"
+        ],
+        "summary": "Approve Work Order",
+        "operationId": "approveWo",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "pmId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/production/work-order-details": {
       "post": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "summary": "Thêm chi tiết WO",
         "operationId": "createWODetail",
@@ -5166,7 +5508,7 @@
     "/v1/production/tech-sheets": {
       "post": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "summary": "Tạo Technical Sheet",
         "operationId": "createTechSheet",
@@ -5198,7 +5540,7 @@
     "/v1/production/stages": {
       "post": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "summary": "Tạo Production Stage",
         "operationId": "createStage",
@@ -5227,10 +5569,326 @@
         }
       }
     },
+    "/v1/production/stages/{stageId}/risk": {
+      "post": {
+        "tags": [
+          "risk-controller"
+        ],
+        "summary": "Create Stage Risk Assessment",
+        "operationId": "create_2",
+        "parameters": [
+          {
+            "name": "stageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "severity",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "description",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rootCause",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "solutionProposal",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "notes",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/StageRiskAssessment"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/production/stages/{id}/start": {
+      "post": {
+        "tags": [
+          "Production"
+        ],
+        "summary": "Leader bắt đầu công đoạn",
+        "operationId": "leaderStart",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "leaderUserId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "evidencePhotoUrl",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "qtyCompleted",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionStageDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/production/stages/{id}/resume": {
+      "post": {
+        "tags": [
+          "Production"
+        ],
+        "summary": "Leader tiếp tục công đoạn",
+        "operationId": "leaderResume",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "leaderUserId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionStageDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/production/stages/{id}/redo": {
+      "post": {
+        "tags": [
+          "Production"
+        ],
+        "summary": "Redo Stage (minor fail)",
+        "operationId": "redoStage",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionStageDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/production/stages/{id}/pause": {
+      "post": {
+        "tags": [
+          "Production"
+        ],
+        "summary": "Leader tạm dừng công đoạn",
+        "operationId": "leaderPause",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "leaderUserId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "pauseReason",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pauseNotes",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionStageDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/production/stages/{id}/complete": {
+      "post": {
+        "tags": [
+          "Production"
+        ],
+        "summary": "Leader hoàn thành công đoạn",
+        "operationId": "leaderComplete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "leaderUserId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "evidencePhotoUrl",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "qtyCompleted",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionStageDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/production/plans/{planId}/create-order": {
       "post": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "summary": "Create production order from approved plan",
         "description": "Create production order from an approved production plan",
@@ -5263,7 +5921,7 @@
     "/v1/production/orders": {
       "get": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "operationId": "listPO",
         "responses": {
@@ -5284,7 +5942,7 @@
       },
       "post": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "summary": "Tạo Production Order",
         "operationId": "createPO",
@@ -5313,10 +5971,51 @@
         }
       }
     },
+    "/v1/production/orders/{poId}/work-orders/create-standard": {
+      "post": {
+        "tags": [
+          "Production"
+        ],
+        "summary": "Tạo Work Order chuẩn từ PO",
+        "operationId": "createStandardWo",
+        "parameters": [
+          {
+            "name": "poId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "createdById",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/production/orders/{id}/submit-approval": {
       "post": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "summary": "Gửi lệnh sản xuất để duyệt",
         "description": "Planning Department gửi lệnh sản xuất để Director duyệt",
@@ -5349,7 +6048,7 @@
     "/v1/production/orders/{id}/reject": {
       "post": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "summary": "Từ chối lệnh sản xuất",
         "description": "Director từ chối lệnh sản xuất",
@@ -5399,7 +6098,7 @@
     "/v1/production/orders/{id}/approve": {
       "post": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "summary": "Duyệt lệnh sản xuất",
         "description": "Director duyệt lệnh sản xuất",
@@ -5449,7 +6148,7 @@
     "/v1/production/orders/create-from-contract": {
       "post": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "summary": "Tạo lệnh sản xuất từ hợp đồng",
         "description": "Planning Department tạo lệnh sản xuất từ hợp đồng đã duyệt",
@@ -5515,7 +6214,7 @@
     "/v1/production/order-details": {
       "post": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "summary": "Thêm chi tiết PO",
         "operationId": "createPODetail",
@@ -5553,6 +6252,19 @@
         "description": "Lấy danh sách tất cả kế hoạch sản xuất trong hệ thống, bao gồm cả thông tin chi tiết về hợp đồng, sản phẩm và trạng thái",
         "operationId": "getAllPlans",
         "responses": {
+          "500": {
+            "description": "Lỗi server nội bộ",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductionPlanDto"
+                  }
+                }
+              }
+            }
+          },
           "200": {
             "description": "Thành công - Trả về danh sách kế hoạch sản xuất",
             "content": {
@@ -5568,19 +6280,6 @@
                     "createdAt": "2025-10-26T09:45:00Z"
                   }
                 ]
-              }
-            }
-          },
-          "500": {
-            "description": "Lỗi server nội bộ",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ProductionPlanDto"
-                  }
-                }
               }
             }
           }
@@ -5619,21 +6318,6 @@
               }
             }
           },
-          "201": {
-            "description": "Thành công - Kế hoạch sản xuất đã được tạo",
-            "content": {
-              "application/json": {
-                "example": {
-                  "id": 1,
-                  "planCode": "PP-2025-001",
-                  "status": "DRAFT",
-                  "contractNumber": "ORD-101",
-                  "customerName": "Công ty ABC",
-                  "message": "Kế hoạch sản xuất đã được tạo thành công"
-                }
-              }
-            }
-          },
           "500": {
             "description": "Lỗi server nội bộ",
             "content": {
@@ -5650,6 +6334,21 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ProductionPlanDto"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Thành công - Kế hoạch sản xuất đã được tạo",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": 1,
+                  "planCode": "PP-2025-001",
+                  "status": "DRAFT",
+                  "contractNumber": "ORD-101",
+                  "customerName": "Công ty ABC",
+                  "message": "Kế hoạch sản xuất đã được tạo thành công"
                 }
               }
             }
@@ -5755,7 +6454,7 @@
           "product-category-controller"
         ],
         "summary": "Tạo danh mục sản phẩm",
-        "operationId": "create_2",
+        "operationId": "create_3",
         "requestBody": {
           "description": "Payload tạo danh mục",
           "content": {
@@ -5948,7 +6647,7 @@
           "machine-controller"
         ],
         "summary": "Tạo máy",
-        "operationId": "create_3",
+        "operationId": "create_4",
         "requestBody": {
           "description": "Payload tạo máy",
           "content": {
@@ -6461,7 +7160,7 @@
           "customer-controller"
         ],
         "summary": "Tạo khách hàng",
-        "operationId": "create_4",
+        "operationId": "create_5",
         "requestBody": {
           "description": "Payload tạo khách hàng",
           "content": {
@@ -6514,7 +7213,7 @@
           "contract-controller"
         ],
         "summary": "Tạo hợp đồng",
-        "operationId": "create_5",
+        "operationId": "create_6",
         "requestBody": {
           "description": "Payload tạo hợp đồng",
           "content": {
@@ -7139,7 +7838,7 @@
           "user-controller"
         ],
         "summary": "Tạo user mới",
-        "operationId": "create_6",
+        "operationId": "create_7",
         "requestBody": {
           "description": "Payload tạo user",
           "content": {
@@ -7937,7 +8636,7 @@
     "/v1/production/work-orders/{woId}/details": {
       "get": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "operationId": "listWODetails",
         "parameters": [
@@ -7971,7 +8670,7 @@
     "/v1/production/work-order-details/{woDetailId}/stages": {
       "get": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "operationId": "listStages",
         "parameters": [
@@ -8002,10 +8701,111 @@
         }
       }
     },
+    "/v1/production/stages/qr/{token}": {
+      "get": {
+        "tags": [
+          "Production"
+        ],
+        "summary": "Resolve Stage by QR token",
+        "description": "KCS quét QR để lấy stage + checklist",
+        "operationId": "getStageByQr",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionStageDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/production/stages/for-leader": {
+      "get": {
+        "tags": [
+          "Production"
+        ],
+        "summary": "List stages for Leader",
+        "operationId": "listForLeader",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductionStageDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/production/stages/for-kcs": {
+      "get": {
+        "tags": [
+          "Production"
+        ],
+        "summary": "List stages for KCS",
+        "operationId": "listForKcs",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductionStageDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/production/plans/pending-approval": {
       "get": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "summary": "Get production plans pending approval",
         "description": "Retrieve all production plans waiting for director approval",
@@ -8030,7 +8830,7 @@
     "/v1/production/orders/{poId}/work-orders": {
       "get": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "operationId": "listWOs",
         "parameters": [
@@ -8064,7 +8864,7 @@
     "/v1/production/orders/{poId}/details": {
       "get": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "operationId": "listPODetails",
         "parameters": [
@@ -8098,7 +8898,7 @@
     "/v1/production/orders/pending-approval": {
       "get": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "summary": "Lấy lệnh sản xuất chờ duyệt",
         "description": "Lấy danh sách lệnh sản xuất đang chờ duyệt",
@@ -8123,7 +8923,7 @@
     "/v1/production/orders/director/pending": {
       "get": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "summary": "Lấy lệnh sản xuất chờ duyệt (Director)",
         "description": "Director lấy danh sách lệnh sản xuất chờ duyệt",
@@ -8148,7 +8948,7 @@
     "/v1/production/contracts/{contractId}/plans": {
       "get": {
         "tags": [
-          "production-controller"
+          "Production"
         ],
         "summary": "Get production plans for contract",
         "description": "Retrieve all production plans for a specific contract",
@@ -8381,6 +9181,32 @@
           }
         ],
         "responses": {
+          "404": {
+            "description": "Không tìm thấy công đoạn sản xuất",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MachineSuggestionDto"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Lỗi server nội bộ",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MachineSuggestionDto"
+                  }
+                }
+              }
+            }
+          },
           "200": {
             "description": "Thành công - Trả về danh sách gợi ý máy móc",
             "content": {
@@ -8421,32 +9247,6 @@
                 ]
               }
             }
-          },
-          "404": {
-            "description": "Không tìm thấy công đoạn sản xuất",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/MachineSuggestionDto"
-                  }
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Lỗi server nội bộ",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/MachineSuggestionDto"
-                  }
-                }
-              }
-            }
           }
         }
       }
@@ -8473,6 +9273,17 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "Thành công - Trả về danh sách xung đột (nếu có)",
+            "content": {
+              "application/json": {
+                "example": [
+                  "Máy CM-01 đang trong thời gian bảo trì từ 2025-10-28 08:00 đến 2025-10-28 10:00",
+                  "Máy CM-01 đã được phân công cho công đoạn khác từ 2025-10-28 14:00 đến 2025-10-28 18:00"
+                ]
+              }
+            }
+          },
           "404": {
             "description": "Không tìm thấy công đoạn sản xuất",
             "content": {
@@ -8483,17 +9294,6 @@
                     "type": "string"
                   }
                 }
-              }
-            }
-          },
-          "200": {
-            "description": "Thành công - Trả về danh sách xung đột (nếu có)",
-            "content": {
-              "application/json": {
-                "example": [
-                  "Máy CM-01 đang trong thời gian bảo trì từ 2025-10-28 08:00 đến 2025-10-28 10:00",
-                  "Máy CM-01 đã được phân công cho công đoạn khác từ 2025-10-28 14:00 đến 2025-10-28 18:00"
-                ]
               }
             }
           },
@@ -9090,6 +9890,23 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "Thành công - Đã tính toán tiêu hao nguyên vật liệu với hao hụt tùy chỉnh",
+            "content": {
+              "application/json": {
+                "example": {
+                  "planId": 1,
+                  "planCode": "PP-2025-001",
+                  "totalProducts": 2,
+                  "wastePercentage": 0.15,
+                  "totalMaterialValue": 5750000,
+                  "totalBasicQuantity": 200,
+                  "totalWasteAmount": 30,
+                  "message": "Tính toán với tỷ lệ hao hụt 15%"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Lỗi server nội bộ",
             "content": {
@@ -9116,23 +9933,6 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/MaterialConsumptionResult"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "Thành công - Đã tính toán tiêu hao nguyên vật liệu với hao hụt tùy chỉnh",
-            "content": {
-              "application/json": {
-                "example": {
-                  "planId": 1,
-                  "planCode": "PP-2025-001",
-                  "totalProducts": 2,
-                  "wastePercentage": 0.15,
-                  "totalMaterialValue": 5750000,
-                  "totalBasicQuantity": 200,
-                  "totalWasteAmount": 30,
-                  "message": "Tính toán với tỷ lệ hao hụt 15%"
                 }
               }
             }
@@ -11088,6 +11888,953 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "plannedStartAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "plannedEndAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "plannedDurationHours": {
+            "type": "number"
+          },
+          "qrToken": {
+            "type": "string"
+          },
+          "qcLastResult": {
+            "type": "string"
+          },
+          "qcLastCheckedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Bom": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "product": {
+            "$ref": "#/components/schemas/Product"
+          },
+          "version": {
+            "type": "string"
+          },
+          "versionNotes": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "effectiveDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "obsoleteDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "createdBy": {
+            "$ref": "#/components/schemas/User"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Contract": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "contractNumber": {
+            "type": "string"
+          },
+          "quotation": {
+            "$ref": "#/components/schemas/Quotation"
+          },
+          "customer": {
+            "$ref": "#/components/schemas/Customer"
+          },
+          "contractDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "deliveryDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "totalAmount": {
+            "type": "number"
+          },
+          "filePath": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "directorApprovedBy": {
+            "$ref": "#/components/schemas/User"
+          },
+          "directorApprovedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "directorApprovalNotes": {
+            "type": "string"
+          },
+          "createdBy": {
+            "$ref": "#/components/schemas/User"
+          },
+          "approvedBy": {
+            "$ref": "#/components/schemas/User"
+          }
+        }
+      },
+      "Customer": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "customerCode": {
+            "type": "string"
+          },
+          "companyName": {
+            "type": "string"
+          },
+          "taxCode": {
+            "type": "string"
+          },
+          "businessLicense": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "contactPerson": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phoneNumber": {
+            "type": "string"
+          },
+          "position": {
+            "type": "string"
+          },
+          "verified": {
+            "type": "boolean"
+          },
+          "lastLoginAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "password": {
+            "type": "string"
+          },
+          "forcePasswordChange": {
+            "type": "boolean"
+          },
+          "additionalContacts": {
+            "type": "string"
+          },
+          "customerType": {
+            "type": "string"
+          },
+          "industry": {
+            "type": "string"
+          },
+          "creditLimit": {
+            "type": "number"
+          },
+          "paymentTerms": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "registrationType": {
+            "type": "string"
+          },
+          "salesInCharge": {
+            "$ref": "#/components/schemas/User"
+          },
+          "createdBy": {
+            "$ref": "#/components/schemas/User"
+          }
+        }
+      },
+      "Machine": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "specifications": {
+            "type": "string"
+          },
+          "lastMaintenanceAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "nextMaintenanceAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "maintenanceIntervalDays": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "Product": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/ProductCategory"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "standardWeight": {
+            "type": "number"
+          },
+          "standardDimensions": {
+            "type": "string"
+          },
+          "basePrice": {
+            "type": "number"
+          },
+          "active": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ProductCategory": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "parent": {
+            "$ref": "#/components/schemas/ProductCategory"
+          },
+          "displayOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "active": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ProductionOrder": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "poNumber": {
+            "type": "string"
+          },
+          "contract": {
+            "$ref": "#/components/schemas/Contract"
+          },
+          "totalQuantity": {
+            "type": "number"
+          },
+          "plannedStartDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "plannedEndDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "status": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "createdBy": {
+            "$ref": "#/components/schemas/User"
+          },
+          "approvedBy": {
+            "$ref": "#/components/schemas/User"
+          },
+          "approvedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ProductionOrderDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "productionOrder": {
+            "$ref": "#/components/schemas/ProductionOrder"
+          },
+          "product": {
+            "$ref": "#/components/schemas/Product"
+          },
+          "bom": {
+            "$ref": "#/components/schemas/Bom"
+          },
+          "bomVersion": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "noteColor": {
+            "type": "string"
+          }
+        }
+      },
+      "ProductionStage": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "workOrderDetail": {
+            "$ref": "#/components/schemas/WorkOrderDetail"
+          },
+          "stageType": {
+            "type": "string"
+          },
+          "stageSequence": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "machine": {
+            "$ref": "#/components/schemas/Machine"
+          },
+          "assignedTo": {
+            "$ref": "#/components/schemas/User"
+          },
+          "assignedLeader": {
+            "$ref": "#/components/schemas/User"
+          },
+          "batchNumber": {
+            "type": "string"
+          },
+          "plannedOutput": {
+            "type": "number"
+          },
+          "actualOutput": {
+            "type": "number"
+          },
+          "startAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completeAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string"
+          },
+          "outsourced": {
+            "type": "boolean"
+          },
+          "outsourceVendor": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "plannedStartAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "plannedEndAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "plannedDurationHours": {
+            "type": "number"
+          },
+          "qrToken": {
+            "type": "string"
+          },
+          "qcLastResult": {
+            "type": "string"
+          },
+          "qcLastCheckedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Quotation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "quotationNumber": {
+            "type": "string"
+          },
+          "rfq": {
+            "$ref": "#/components/schemas/Rfq"
+          },
+          "customer": {
+            "$ref": "#/components/schemas/Customer"
+          },
+          "validUntil": {
+            "type": "string",
+            "format": "date"
+          },
+          "totalAmount": {
+            "type": "number"
+          },
+          "filePath": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "sentAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "accepted": {
+            "type": "boolean"
+          },
+          "acceptedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "canceled": {
+            "type": "boolean"
+          },
+          "rejectedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "rejectReason": {
+            "type": "string"
+          },
+          "capacityCheckedBy": {
+            "$ref": "#/components/schemas/User"
+          },
+          "capacityCheckedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "capacityCheckNotes": {
+            "type": "string"
+          },
+          "createdBy": {
+            "$ref": "#/components/schemas/User"
+          },
+          "approvedBy": {
+            "$ref": "#/components/schemas/User"
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuotationDetail"
+            }
+          }
+        }
+      },
+      "QuotationDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "quotation": {
+            "$ref": "#/components/schemas/Quotation"
+          },
+          "product": {
+            "$ref": "#/components/schemas/Product"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "unitPrice": {
+            "type": "number"
+          },
+          "totalPrice": {
+            "type": "number"
+          },
+          "noteColor": {
+            "type": "string"
+          },
+          "discountPercentage": {
+            "type": "number"
+          }
+        }
+      },
+      "Rfq": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "rfqNumber": {
+            "type": "string"
+          },
+          "customer": {
+            "$ref": "#/components/schemas/Customer"
+          },
+          "sourceType": {
+            "type": "string"
+          },
+          "expectedDeliveryDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "status": {
+            "type": "string"
+          },
+          "sent": {
+            "type": "boolean"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "createdBy": {
+            "$ref": "#/components/schemas/User"
+          },
+          "assignedSales": {
+            "$ref": "#/components/schemas/User"
+          },
+          "assignedPlanning": {
+            "$ref": "#/components/schemas/User"
+          },
+          "approvedBy": {
+            "$ref": "#/components/schemas/User"
+          },
+          "approvalDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "salesConfirmedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "salesConfirmedBy": {
+            "$ref": "#/components/schemas/User"
+          },
+          "locked": {
+            "type": "boolean"
+          },
+          "capacityStatus": {
+            "type": "string"
+          },
+          "capacityReason": {
+            "type": "string"
+          },
+          "proposedNewDeliveryDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RfqDetail"
+            }
+          }
+        }
+      },
+      "RfqDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "rfq": {
+            "$ref": "#/components/schemas/Rfq"
+          },
+          "product": {
+            "$ref": "#/components/schemas/Product"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "noteColor": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      },
+      "Role": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          }
+        }
+      },
+      "StageRiskAssessment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "productionStage": {
+            "$ref": "#/components/schemas/ProductionStage"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "rootCause": {
+            "type": "string"
+          },
+          "solutionProposal": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "approvedBy": {
+            "$ref": "#/components/schemas/User"
+          },
+          "approvedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "impactedDelivery": {
+            "type": "boolean"
+          },
+          "proposedNewDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "employeeCode": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phoneNumber": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "verified": {
+            "type": "boolean"
+          },
+          "resetCode": {
+            "type": "string"
+          },
+          "resetCodeExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastLoginAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "deletedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role"
+          },
+          "createdBy": {
+            "$ref": "#/components/schemas/User"
+          },
+          "updatedBy": {
+            "$ref": "#/components/schemas/User"
+          }
+        }
+      },
+      "WorkOrder": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "productionOrder": {
+            "$ref": "#/components/schemas/ProductionOrder"
+          },
+          "woNumber": {
+            "type": "string"
+          },
+          "deadline": {
+            "type": "string",
+            "format": "date"
+          },
+          "status": {
+            "type": "string"
+          },
+          "sendStatus": {
+            "type": "string"
+          },
+          "production": {
+            "type": "boolean"
+          },
+          "createdBy": {
+            "$ref": "#/components/schemas/User"
+          },
+          "approvedBy": {
+            "$ref": "#/components/schemas/User"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "WorkOrderDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "workOrder": {
+            "$ref": "#/components/schemas/WorkOrder"
+          },
+          "productionOrderDetail": {
+            "$ref": "#/components/schemas/ProductionOrderDetail"
+          },
+          "stageSequence": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "plannedStartAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "plannedEndAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completeAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "workStatus": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
           }
         }
       },
@@ -12651,6 +14398,27 @@
         },
         "description": "Request gán Sales và Planning cho RFQ ở trạng thái DRAFT"
       },
+      "AssignSalesRequest": {
+        "type": "object",
+        "properties": {
+          "assignedSalesId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "employeeCode": {
+            "type": "string"
+          }
+        }
+      },
+      "AssignPlanningRequest": {
+        "type": "object",
+        "properties": {
+          "assignedPlanningId": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "RfqPublicCreateDto": {
         "required": [
           "contactPerson"
@@ -13246,6 +15014,9 @@
           "timestamp": {
             "type": "string",
             "format": "date-time"
+          },
+          "evidencePhotoUrl": {
+            "type": "string"
           }
         }
       },
@@ -13841,97 +15612,6 @@
           },
           "noteColor": {
             "type": "string"
-          }
-        }
-      },
-      "Role": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "name": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "active": {
-            "type": "boolean"
-          }
-        }
-      },
-      "User": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "employeeCode": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "email": {
-            "type": "string"
-          },
-          "password": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "phoneNumber": {
-            "type": "string"
-          },
-          "avatar": {
-            "type": "string"
-          },
-          "active": {
-            "type": "boolean"
-          },
-          "verified": {
-            "type": "boolean"
-          },
-          "resetCode": {
-            "type": "string"
-          },
-          "resetCodeExpiresAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "lastLoginAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "deletedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "role": {
-            "$ref": "#/components/schemas/Role"
-          },
-          "createdBy": {
-            "$ref": "#/components/schemas/User"
-          },
-          "updatedBy": {
-            "$ref": "#/components/schemas/User"
           }
         }
       }

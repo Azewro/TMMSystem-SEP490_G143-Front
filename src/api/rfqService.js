@@ -32,9 +32,13 @@ export const rfqService = {
 
   async assignRfq(rfqId, salesId, planningId) {
     try {
-      const payload = { assignedSalesId: salesId, assignedPlanningId: planningId };
-      const response = await apiClient.post(`/v1/rfqs/${rfqId}/assign`, payload);
-      return response.data;
+      // Assign Sales
+      await apiClient.post(`/v1/rfqs/${rfqId}/assign-sales`, { assignedSalesId: salesId });
+
+      // Assign Planning
+      await apiClient.post(`/v1/rfqs/${rfqId}/assign-planning`, { assignedPlanningId: planningId });
+
+      return { success: true, message: 'RFQ assigned successfully' };
     } catch (error) {
       console.error(`Error assigning RFQ ${rfqId}:`, error.response?.data);
       throw new Error(error.response?.data?.message || 'Failed to assign RFQ');

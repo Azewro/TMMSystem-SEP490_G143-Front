@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Card, Table, Button, Spinner, Alert, Badge } from 'react-bootstrap';
+import { Container, Card, Table, Button, Spinner, Alert, Badge, Form, InputGroup } from 'react-bootstrap';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { rfqService } from '../../api/rfqService';
 import { customerService } from '../../api/customerService';
 import AssignRfqModal from '../../components/modals/AssignRfqModal';
 import Pagination from '../../components/Pagination'; // Import Pagination component
+import { FaSearch } from 'react-icons/fa';
 
 const DirectorRfqList = () => {
   const [allRfqs, setAllRfqs] = useState([]); // Holds all RFQs
@@ -15,7 +16,8 @@ const DirectorRfqList = () => {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedRfqId, setSelectedRfqId] = useState(null);
 
-  // Pagination state
+  // Search and Pagination state
+  const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
 
@@ -71,6 +73,11 @@ const DirectorRfqList = () => {
     fetchRfqs(); 
   };
 
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1); // Reset to first page on new search
+  };
+
   const getStatusBadge = (status) => {
     const rfqStatus = status || 'DRAFT';
     switch (rfqStatus) {
@@ -81,11 +88,21 @@ const DirectorRfqList = () => {
     }
   };
 
-  // Pagination logic
+  // Filtering and Pagination logic
+  const filteredRfqs = allRfqs.filter(rfq => {
+    const searchTermLower = searchTerm.toLowerCase();
+    const rfqNumber = rfq.rfqNumber || '';
+    const contactPerson = rfq.contactPerson || '';
+    return (
+      rfqNumber.toLowerCase().includes(searchTermLower) ||
+      contactPerson.toLowerCase().includes(searchTermLower)
+    );
+  });
+
   const indexOfLastRfq = currentPage * ITEMS_PER_PAGE;
   const indexOfFirstRfq = indexOfLastRfq - ITEMS_PER_PAGE;
-  const currentRfqs = allRfqs.slice(indexOfFirstRfq, indexOfLastRfq);
-  const totalPages = Math.ceil(allRfqs.length / ITEMS_PER_PAGE);
+  const currentRfqs = filteredRfqs.slice(indexOfFirstRfq, indexOfLastRfq);
+  const totalPages = Math.ceil(filteredRfqs.length / ITEMS_PER_PAGE);
 
   return (
     <div>
@@ -97,7 +114,22 @@ const DirectorRfqList = () => {
             <h2 className="mb-4">Quản lý Yêu cầu báo giá (RFQ)</h2>
             <Card>
               <Card.Header>
-                Danh sách RFQ chờ xử lý
+                <div className="d-flex justify-content-between align-items-center">
+                  <span>Danh sách RFQ chờ xử lý</span>
+                  <div style={{ width: '300px' }}>
+                    <InputGroup>
+                      <Form.Control
+                        type="text"
+                        placeholder="Tìm theo mã RFQ, tên khách..."
+                        value={searchTerm}
+                        onChange={handleSearchChange}
+                      />
+                      <InputGroup.Text>
+                        <FaSearch />
+                      </InputGroup.Text>
+                    </InputGroup>
+                  </div>
+                </div>
               </Card.Header>
               <Card.Body>
                 {loading ? (
@@ -119,9 +151,9 @@ const DirectorRfqList = () => {
                       <tbody>
                         {currentRfqs.length > 0 ? currentRfqs.map(rfq => (
                           <tr key={rfq.id}>
-                            <td>{rfq.id}</td>
+                            <td>{rfq.rfqNumber}</td>
                             <td>{rfq.contactPerson || 'N/A'}</td>
-                            <td>{new Date(rfq.createdAt).toLocaleDateString()}</td>
+                            <td>{new Date(rfq.createdAt).toLocaleDateString('vi-VN')}</td>
                             <td><Badge bg={getStatusBadge(rfq.status)}>{rfq.status}</Badge></td>
                             <td>
                               <Button variant="primary" size="sm" onClick={() => handleOpenAssignModal(rfq.id)}>
@@ -131,16 +163,18 @@ const DirectorRfqList = () => {
                           </tr>
                         )) : (
                           <tr>
-                            <td colSpan="5" className="text-center">Không có RFQ nào chờ xử lý.</td>
+                            <td colSpan="5" className="text-center">Không có RFQ nào phù hợp.</td>
                           </tr>
                         )}
                       </tbody>
                     </Table>
-                    <Pagination
-                      currentPage={currentPage}
-                      totalPages={totalPages}
-                      onPageChange={setCurrentPage}
-                    />
+                    {totalPages > 1 && (
+                      <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={setCurrentPage}
+                      />
+                    )}
                   </>
                 )}
               </Card.Body>

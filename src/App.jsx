@@ -8,7 +8,7 @@ import { Toaster } from 'react-hot-toast';
 import HomePage from './pages/public/HomePage';
 import LoginPage from './pages/auth/LoginPage';
 import InternalLoginPage from './pages/auth/InternalLoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
+
 
 // Internal Pages
 import PlanningRFQDetail from './pages/planning/PlanningRFQDetail';
@@ -53,13 +53,13 @@ function App() {
       <CartProvider>
         <Router>
           <div className="main-container">
-            <Toaster position="top-right" reverseOrder={false} />
+            <Toaster position="bottom-right" reverseOrder={false} />
             <Routes>
               {/* Public routes */}
               <Route path="/" element={<HomePage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/internal-login" element={<InternalLoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
+
               
 
               {/* Internal routes - NO AUTH GUARD (for now) */}

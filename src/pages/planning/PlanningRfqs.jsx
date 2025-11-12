@@ -111,7 +111,7 @@ const PlanningRfqs = () => {
                           <tr key={rfq.id}>
                             <td>{rfq.id}</td>
                             <td>{rfq.contactPerson || 'N/A'}</td>
-                            <td>{new Date(rfq.createdAt).toLocaleDateString()}</td>
+                            <td>{new Date(rfq.createdAt).toLocaleDateString('vi-VN')}</td>
                             <td><Badge bg={getStatusBadge(rfq.status)}>{rfq.status}</Badge></td>
                             <td>
                               <Button variant="primary" size="sm" onClick={() => handleViewDetails(rfq.id)}>

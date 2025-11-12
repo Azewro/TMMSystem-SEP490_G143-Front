@@ -37,7 +37,7 @@ const InternalSidebar = ({ userRole: propUserRole }) => {
       { icon: FaUserFriends, label: 'Quản lý khách hàng', path: '/admin/customers' },
     ],
     director: [
-      { icon: FaListAlt, label: 'Quản lý RFQ', path: '/director/rfqs' },
+      { icon: FaListAlt, label: 'Quản lý yêu cầu báo giá', path: '/director/rfqs' },
       { icon: FaFileSignature, label: 'Duyệt Hợp Đồng', path: '/director/contract-approval' },
       { icon: FaProjectDiagram, label: 'Duyệt Kế Hoạch SX', path: '/director/plan-approval' },
     ],
@@ -67,11 +67,13 @@ const InternalSidebar = ({ userRole: propUserRole }) => {
             return (
               <Nav.Link
                 key={index}
-                href="#"
-                className={`sidebar-item d-flex align-items-center py-2 px-3 mb-1 rounded ${isActive ? 'active' : ''}`}
+                active={isActive}
+                className="sidebar-item d-flex align-items-center py-2 px-3 mb-1 rounded"
                 onClick={(e) => {
                   e.preventDefault();
-                  navigate(item.path);
+                  if (!isActive) {
+                    navigate(item.path);
+                  }
                 }}
               >
                 <IconComponent className="me-3" size={16} />

@@ -132,9 +132,7 @@ const Header = () => {
               <Button variant="outline-light" className="me-2" onClick={() => navigate('/login')}>
                 Đăng nhập
               </Button>
-              <Button variant="primary" onClick={() => navigate('/register')}>
-                Đăng ký
-              </Button>
+
             </>
           )}
         </Nav>

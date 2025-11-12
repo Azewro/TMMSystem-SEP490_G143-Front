@@ -12,11 +12,11 @@ export const authService = {
       
       if (response.data.accessToken) {
         // Store user data
-        localStorage.setItem('userToken', response.data.accessToken);
-        localStorage.setItem('userEmail', response.data.email);
-        localStorage.setItem('userName', response.data.name || response.data.email);
-        localStorage.setItem('userRole', 'CUSTOMER');
-        localStorage.setItem('customerId', response.data.customerId);
+        sessionStorage.setItem('userToken', response.data.accessToken);
+        sessionStorage.setItem('userEmail', response.data.email);
+        sessionStorage.setItem('userName', response.data.name || response.data.email);
+        sessionStorage.setItem('userRole', 'CUSTOMER');
+        sessionStorage.setItem('customerId', response.data.customerId);
         
         return { ...response.data, customerId: response.data.customerId };
       }
@@ -37,11 +37,11 @@ export const authService = {
       
       if (response.data.accessToken) {
         // Store user data
-        localStorage.setItem('userToken', response.data.accessToken);
-        localStorage.setItem('userEmail', response.data.email);
-        localStorage.setItem('userName', response.data.name || response.data.email);
-        localStorage.setItem('userRole', response.data.role);
-        localStorage.setItem('userId', response.data.userId);
+        sessionStorage.setItem('userToken', response.data.accessToken);
+        sessionStorage.setItem('userEmail', response.data.email);
+        sessionStorage.setItem('userName', response.data.name || response.data.email);
+        sessionStorage.setItem('userRole', response.data.role);
+        sessionStorage.setItem('userId', response.data.userId);
         
         return response.data;
       }
@@ -67,29 +67,29 @@ export const authService = {
 
   // Logout
   logout: () => {
-    localStorage.removeItem('userToken');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('userName');
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('customerId');
-    localStorage.removeItem('userId');
+    sessionStorage.removeItem('userToken');
+    sessionStorage.removeItem('userEmail');
+    sessionStorage.removeItem('userName');
+    sessionStorage.removeItem('userRole');
+    sessionStorage.removeItem('customerId');
+    sessionStorage.removeItem('userId');
   },
 
   // Get current user data
   getCurrentUser: () => {
     return {
-      token: localStorage.getItem('userToken'),
-      email: localStorage.getItem('userEmail'),
-      name: localStorage.getItem('userName'),
-      role: localStorage.getItem('userRole'),
-      customerId: localStorage.getItem('customerId'),
-      userId: localStorage.getItem('userId'),
+      token: sessionStorage.getItem('userToken'),
+      email: sessionStorage.getItem('userEmail'),
+      name: sessionStorage.getItem('userName'),
+      role: sessionStorage.getItem('userRole'),
+      customerId: sessionStorage.getItem('customerId'),
+      userId: sessionStorage.getItem('userId'),
     };
   },
 
   // Check if user is authenticated
   isAuthenticated: () => {
-    return !!localStorage.getItem('userToken');
+    return !!sessionStorage.getItem('userToken');
   },
 
   // Change password for internal users
