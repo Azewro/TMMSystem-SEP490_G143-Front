@@ -16,7 +16,7 @@ export const quoteService = {
    */
   submitQuoteRequest: async (rfqData) => {
     try {
-      const userId = parseInt(localStorage.getItem('userId'), 10) || undefined;
+      const userId = parseInt(sessionStorage.getItem('userId'), 10) || undefined;
 
       // The component is now responsible for the payload structure.
       // The service just adds the user ID from local storage.
@@ -214,7 +214,7 @@ export const quoteService = {
 
   createQuote: async ({ rfqId, profitMargin, notes }) => {
     try {
-      const planningUserId = parseInt(localStorage.getItem('userId'), 10) || undefined;
+      const planningUserId = parseInt(sessionStorage.getItem('userId'), 10) || undefined;
       const response = await apiClient.post('/v1/quotations/create-from-rfq', {
         rfqId,
         planningUserId,

@@ -41,6 +41,7 @@ import DirectorRfqList from './pages/director/DirectorRfqList'; // Import the ne
 
 // Sales Pages
 import MyRfqs from './pages/sales/MyRfqs';
+import CreateRfqForCustomer from './pages/sales/CreateRfqPage'; // Import new page
 import ContractUpload from './pages/internal/ContractUpload';
 
 // Admin Pages
@@ -93,6 +94,7 @@ function App() {
 
               {/* Sales routes */}
               <Route path="/sales/rfqs" element={<MyRfqs />} />
+              <Route path="/sales/create-rfq" element={<CreateRfqForCustomer />} />
               <Route path="/sales/contracts" element={<ContractUpload />} />
 
               {/* Admin routes */}

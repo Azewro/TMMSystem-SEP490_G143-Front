@@ -25,7 +25,7 @@ const DirectorRfqList = () => {
     setLoading(true);
     setError('');
     try {
-      const data = await rfqService.getDraftsUnassignedRfqs();
+      const data = await rfqService.getRfqs();
 
       const enrichedData = await Promise.all(
         (data || []).map(async (rfq) => {
@@ -84,6 +84,8 @@ const DirectorRfqList = () => {
       case 'DRAFT': return 'secondary';
       case 'SENT': return 'info';
       case 'PENDING_ASSIGNMENT': return 'warning';
+      case 'PRELIMINARY_CHECKED': return 'primary';
+      case 'FORWARDED_TO_PLANNING': return 'dark';
       default: return 'light';
     }
   };
@@ -149,19 +151,22 @@ const DirectorRfqList = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {currentRfqs.length > 0 ? currentRfqs.map(rfq => (
-                          <tr key={rfq.id}>
-                            <td>{rfq.rfqNumber}</td>
-                            <td>{rfq.contactPerson || 'N/A'}</td>
-                            <td>{new Date(rfq.createdAt).toLocaleDateString('vi-VN')}</td>
-                            <td><Badge bg={getStatusBadge(rfq.status)}>{rfq.status}</Badge></td>
-                            <td>
-                              <Button variant="primary" size="sm" onClick={() => handleOpenAssignModal(rfq.id)}>
-                                Phân công
-                              </Button>
-                            </td>
-                          </tr>
-                        )) : (
+                        {currentRfqs.length > 0 ? currentRfqs.map(rfq => {
+                          const statusText = rfq.status === 'DRAFT' ? 'Chờ xử lý' : rfq.status === 'SENT' ? 'Đã gửi' : rfq.status;
+                          return (
+                            <tr key={rfq.id}>
+                              <td>{rfq.rfqNumber}</td>
+                              <td>{rfq.contactPerson || 'N/A'}</td>
+                              <td>{new Date(rfq.createdAt).toLocaleDateString('vi-VN')}</td>
+                              <td><Badge bg={getStatusBadge(rfq.status)}>{statusText}</Badge></td>
+                              <td>
+                                <Button variant="primary" size="sm" onClick={() => handleOpenAssignModal(rfq.id)}>
+                                  {rfq.status === 'DRAFT' ? 'Phân công' : 'Xem'}
+                                </Button>
+                              </td>
+                            </tr>
+                          );
+                        }) : (
                           <tr>
                             <td colSpan="5" className="text-center">Không có RFQ nào phù hợp.</td>
                           </tr>

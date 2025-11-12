@@ -238,8 +238,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Chi tiết RFQ",
+          "404": {
+            "description": "Không tìm thấy RFQ",
             "content": {
               "*/*": {
                 "schema": {
@@ -248,8 +248,8 @@
               }
             }
           },
-          "404": {
-            "description": "Không tìm thấy RFQ",
+          "200": {
+            "description": "Chi tiết RFQ",
             "content": {
               "*/*": {
                 "schema": {
@@ -415,8 +415,8 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "Không tìm thấy chi tiết RFQ",
+          "200": {
+            "description": "Chi tiết RFQ",
             "content": {
               "*/*": {
                 "schema": {
@@ -425,8 +425,8 @@
               }
             }
           },
-          "200": {
-            "description": "Chi tiết RFQ",
+          "404": {
+            "description": "Không tìm thấy chi tiết RFQ",
             "content": {
               "*/*": {
                 "schema": {
@@ -2188,6 +2188,21 @@
               }
             }
           },
+          "200": {
+            "description": "Thành công - Kế hoạch đã bị từ chối",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": 1,
+                  "planCode": "PP-2025-001",
+                  "status": "REJECTED",
+                  "rejectedAt": "2025-10-26T11:30:00Z",
+                  "rejectionReason": "Cần điều chỉnh lại thời gian sản xuất",
+                  "message": "Kế hoạch đã bị từ chối"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Không tìm thấy kế hoạch sản xuất",
             "content": {
@@ -2204,21 +2219,6 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ProductionPlanDto"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "Thành công - Kế hoạch đã bị từ chối",
-            "content": {
-              "application/json": {
-                "example": {
-                  "id": 1,
-                  "planCode": "PP-2025-001",
-                  "status": "REJECTED",
-                  "rejectedAt": "2025-10-26T11:30:00Z",
-                  "rejectionReason": "Cần điều chỉnh lại thời gian sản xuất",
-                  "message": "Kế hoạch đã bị từ chối"
                 }
               }
             }
@@ -2262,6 +2262,21 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "description": "Thành công - Kế hoạch đã được phê duyệt và Production Order đã được tạo",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": 1,
+                  "planCode": "PP-2025-001",
+                  "status": "APPROVED",
+                  "approvedAt": "2025-10-26T11:00:00Z",
+                  "productionOrderId": 1,
+                  "message": "Kế hoạch đã được phê duyệt và Production Order đã được tạo"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Lỗi server nội bộ",
             "content": {
@@ -2278,21 +2293,6 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ProductionPlanDto"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "Thành công - Kế hoạch đã được phê duyệt và Production Order đã được tạo",
-            "content": {
-              "application/json": {
-                "example": {
-                  "id": 1,
-                  "planCode": "PP-2025-001",
-                  "status": "APPROVED",
-                  "approvedAt": "2025-10-26T11:00:00Z",
-                  "productionOrderId": 1,
-                  "message": "Kế hoạch đã được phê duyệt và Production Order đã được tạo"
                 }
               }
             }
@@ -6378,6 +6378,22 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "Thành công - Máy móc đã được gán tự động",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": 1,
+                  "stageType": "WARPING",
+                  "assignedMachineId": 1,
+                  "assignedMachineName": "Máy cuộn mắc 01",
+                  "plannedStartTime": "2025-10-28T08:00:00",
+                  "plannedEndTime": "2025-10-28T12:00:00",
+                  "message": "Máy móc đã được gán tự động thành công"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Không tìm thấy công đoạn sản xuất",
             "content": {
@@ -6404,22 +6420,6 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ProductionPlanStageDto"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "Thành công - Máy móc đã được gán tự động",
-            "content": {
-              "application/json": {
-                "example": {
-                  "id": 1,
-                  "stageType": "WARPING",
-                  "assignedMachineId": 1,
-                  "assignedMachineName": "Máy cuộn mắc 01",
-                  "plannedStartTime": "2025-10-28T08:00:00",
-                  "plannedEndTime": "2025-10-28T12:00:00",
-                  "message": "Máy móc đã được gán tự động thành công"
                 }
               }
             }
@@ -9273,17 +9273,6 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Thành công - Trả về danh sách xung đột (nếu có)",
-            "content": {
-              "application/json": {
-                "example": [
-                  "Máy CM-01 đang trong thời gian bảo trì từ 2025-10-28 08:00 đến 2025-10-28 10:00",
-                  "Máy CM-01 đã được phân công cho công đoạn khác từ 2025-10-28 14:00 đến 2025-10-28 18:00"
-                ]
-              }
-            }
-          },
           "404": {
             "description": "Không tìm thấy công đoạn sản xuất",
             "content": {
@@ -9307,6 +9296,17 @@
                     "type": "string"
                   }
                 }
+              }
+            }
+          },
+          "200": {
+            "description": "Thành công - Trả về danh sách xung đột (nếu có)",
+            "content": {
+              "application/json": {
+                "example": [
+                  "Máy CM-01 đang trong thời gian bảo trì từ 2025-10-28 08:00 đến 2025-10-28 10:00",
+                  "Máy CM-01 đã được phân công cho công đoạn khác từ 2025-10-28 14:00 đến 2025-10-28 18:00"
+                ]
               }
             }
           }
@@ -9799,16 +9799,6 @@
               }
             }
           },
-          "404": {
-            "description": "Không tìm thấy kế hoạch sản xuất",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/MaterialConsumptionResult"
-                }
-              }
-            }
-          },
           "200": {
             "description": "Thành công - Đã tính toán tiêu hao nguyên vật liệu",
             "content": {
@@ -9854,6 +9844,16 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Không tìm thấy kế hoạch sản xuất",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaterialConsumptionResult"
+                }
+              }
+            }
           }
         }
       }
@@ -9890,6 +9890,16 @@
           }
         ],
         "responses": {
+          "500": {
+            "description": "Lỗi server nội bộ",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaterialConsumptionResult"
+                }
+              }
+            }
+          },
           "200": {
             "description": "Thành công - Đã tính toán tiêu hao nguyên vật liệu với hao hụt tùy chỉnh",
             "content": {
@@ -9903,16 +9913,6 @@
                   "totalBasicQuantity": 200,
                   "totalWasteAmount": 30,
                   "message": "Tính toán với tỷ lệ hao hụt 15%"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Lỗi server nội bộ",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/MaterialConsumptionResult"
                 }
               }
             }
@@ -11279,6 +11279,9 @@
           },
           "contactAddress": {
             "type": "string"
+          },
+          "contactMethod": {
+            "type": "string"
           }
         }
       },
@@ -12576,6 +12579,21 @@
           "proposedNewDeliveryDate": {
             "type": "string",
             "format": "date"
+          },
+          "contactPersonSnapshot": {
+            "type": "string"
+          },
+          "contactEmailSnapshot": {
+            "type": "string"
+          },
+          "contactPhoneSnapshot": {
+            "type": "string"
+          },
+          "contactAddressSnapshot": {
+            "type": "string"
+          },
+          "contactMethod": {
+            "type": "string"
           },
           "details": {
             "type": "array",
@@ -14441,6 +14459,9 @@
           "contactAddress": {
             "type": "string"
           },
+          "contactMethod": {
+            "type": "string"
+          },
           "sourceType": {
             "type": "string"
           },
@@ -14489,6 +14510,9 @@
             "type": "string"
           },
           "contactAddress": {
+            "type": "string"
+          },
+          "contactMethod": {
             "type": "string"
           },
           "expectedDeliveryDate": {
@@ -15211,6 +15235,9 @@
             "type": "string"
           },
           "contactAddress": {
+            "type": "string"
+          },
+          "contactMethod": {
             "type": "string"
           },
           "expectedDeliveryDate": {

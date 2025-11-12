@@ -1,6 +1,6 @@
 import React from 'react';
 import { Nav } from 'react-bootstrap';
-import { FaListAlt, FaFileSignature, FaProjectDiagram, FaUsers, FaUserFriends } from 'react-icons/fa';
+import { FaListAlt, FaFileSignature, FaProjectDiagram, FaUsers, FaUserFriends, FaPlusSquare } from 'react-icons/fa';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import '../../styles/Sidebar.css'; // Reuse the same dark theme
@@ -43,6 +43,7 @@ const InternalSidebar = ({ userRole: propUserRole }) => {
     ],
     sales: [
       { icon: FaListAlt, label: 'RFQ của tôi', path: '/sales/rfqs' },
+      { icon: FaPlusSquare, label: 'Tạo RFQ', path: '/sales/create-rfq' },
       { icon: FaFileSignature, label: 'Báo giá', path: '/sales/quotations' },
       { icon: FaFileSignature, label: 'Hợp đồng', path: '/sales/contracts' },
     ],

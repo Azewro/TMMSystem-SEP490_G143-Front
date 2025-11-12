@@ -7,11 +7,9 @@ import { vi } from 'date-fns/locale/vi';
 import 'react-datepicker/dist/react-datepicker.css';
 
 import Header from '../../components/common/Header';
-import Sidebar from '../../components/common/Sidebar';
+import InternalSidebar from '../../components/common/InternalSidebar'; // Changed to InternalSidebar
 import { productService } from '../../api/productService';
-import { customerService } from '../../api/customerService';
 import { useAuth } from '../../context/AuthContext';
-import { useCart } from '../../context/CartContext';
 import { rfqService } from '../../api/rfqService';
 import '../../styles/QuoteRequest.css';
 
@@ -23,11 +21,11 @@ const getMinExpectedDeliveryDate = () => {
   return today;
 };
 
-const QuoteRequest = () => {
+// Renamed component
+const CreateRfqForCustomer = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isAuthenticated, loading: authLoading } = useAuth();
-  const { clearCart } = useCart();
+  const { user } = useAuth(); // Sales user is authenticated
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -38,56 +36,35 @@ const QuoteRequest = () => {
     contactPerson: '',
     contactPhone: '',
     contactEmail: '',
-    employeeCode: '',
+    employeeCode: '', // Sales can fill this
     contactAddress: '',
     contactMethod: 'Điện thoại',
-    expectedDeliveryDate: null, // Changed to null for Date object
+    expectedDeliveryDate: null,
     notes: '',
   });
   
   const [quoteItems, setQuoteItems] = useState([{ productId: '', quantity: '1', unit: 'cai', notes: '', standardDimensions: '' }]);
-  const [isFromCart, setIsFromCart] = useState(false);
 
   useEffect(() => {
     const initialize = async () => {
       setLoading(true);
-      if (isAuthenticated && user?.customerId) {
-        try {
-          const customerData = await customerService.getCustomerById(user.customerId);
-          setFormData(prev => ({
-            ...prev,
-            contactPerson: customerData.contactPerson || user.name || '',
-            contactEmail: customerData.email || user.email || '',
-            contactPhone: customerData.phoneNumber || '',
-            contactAddress: customerData.address || ''
-          }));
-        } catch (error) {
-          console.error("Failed to fetch customer details:", error);
-        }
+      
+      // Pre-fill sales employee code if available from logged-in user
+      if (user?.employeeCode) {
+        setFormData(prev => ({ ...prev, employeeCode: user.employeeCode }));
       }
 
-      if (location.state?.cartProducts?.length > 0) {
-        const itemsFromCart = location.state.cartProducts.map(p => ({
-          productId: p.id.toString(),
-          quantity: p.quantity.toString() || '1',
-          unit: 'cai',
-          notes: '', // notes should be empty initially
-          standardDimensions: p.standardDimensions || '', // Correctly assign to standardDimensions
-          name: p.name
-        }));
-        setQuoteItems(itemsFromCart);
-        setIsFromCart(true);
-      } else if (location.state?.preSelectedProduct) {
+      // Logic for pre-selected products (if any) remains the same
+      if (location.state?.preSelectedProduct) {
         const { id, standardDimensions, name } = location.state.preSelectedProduct;
         setQuoteItems([{ 
           productId: id.toString(), 
           quantity: '1', 
           unit: 'cai', 
-          notes: '', // notes should be empty initially
+          notes: '',
           standardDimensions: standardDimensions || '', 
           name 
         }]);
-        setIsFromCart(false);
       }
       
       try {
@@ -100,7 +77,7 @@ const QuoteRequest = () => {
       setLoading(false);
     };
     initialize();
-  }, [isAuthenticated, user, location.state]);
+  }, [user, location.state]);
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
@@ -157,22 +134,19 @@ const QuoteRequest = () => {
     if (!formData.expectedDeliveryDate) {
       newErrors.expectedDeliveryDate = 'Ngày giao hàng mong muốn là bắt buộc.';
     }
+    if (quoteItems.some(item => !item.productId)) {
+        toast.error('Vui lòng chọn sản phẩm cho tất cả các mục.');
+        return false;
+    }
 
     setErrors(newErrors);
-    return newErrors;
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const validationErrors = validate();
-    if (Object.keys(validationErrors).length > 0) {
-      if (validationErrors.contactEmail) {
-        toast.error(validationErrors.contactEmail);
-      } else if (validationErrors.expectedDeliveryDate) {
-        toast.error(validationErrors.expectedDeliveryDate);
-      } else {
-        toast.error('Vui lòng điền đầy đủ thông tin bắt buộc.');
-      }
+    if (!validate()) {
+      toast.error('Vui lòng điền đầy đủ thông tin bắt buộc.');
       return;
     }
     setSubmitting(true);
@@ -184,7 +158,6 @@ const QuoteRequest = () => {
       notes: item.notes,
     }));
 
-    // Format date object to YYYY-MM-DD string for API
     const formattedDate = formData.expectedDeliveryDate 
       ? formData.expectedDeliveryDate.toISOString().split('T')[0] 
       : null;
@@ -192,38 +165,37 @@ const QuoteRequest = () => {
     const contactMethodMap = {
       'Điện thoại': 'PHONE',
       'Email': 'EMAIL',
-      'Cả hai': 'PHONE', // Default to PHONE when 'Both' is selected
+      'Cả hai': 'PHONE',
     };
     const apiContactMethod = contactMethodMap[formData.contactMethod] || 'PHONE';
 
+    // This payload is for creating an RFQ for a new/external customer
     const rfqData = {
       contactMethod: apiContactMethod,
       expectedDeliveryDate: formattedDate,
       notes: formData.notes,
       details: details,
       status: 'DRAFT',
-      ...(isAuthenticated ? { customerId: user.customerId } : {
-        contactPerson: formData.contactPerson,
-        contactEmail: formData.contactEmail,
-        contactPhone: formData.contactPhone,
-        contactAddress: formData.contactAddress,
-        employeeCode: formData.employeeCode,
-      }),
+      contactPerson: formData.contactPerson,
+      contactEmail: formData.contactEmail,
+      contactPhone: formData.contactPhone,
+      contactAddress: formData.contactAddress,
+      employeeCode: formData.employeeCode,
     };
 
     try {
-      await rfqService.createRfq(rfqData, isAuthenticated);
-      toast.success('Yêu cầu báo giá đã được gửi thành công!');
-      clearCart();
-      setTimeout(() => navigate('/'), 3000);
+      // Always use the public endpoint (isAuthenticated = false) for this form
+      await rfqService.createRfq(rfqData, false);
+      toast.success('Yêu cầu báo giá đã được tạo thành công!');
+      setTimeout(() => navigate('/sales/rfqs'), 2000); // Navigate to sales RFQ list
     } catch (err) {
-      toast.error(err.message || 'Gửi yêu cầu thất bại. Vui lòng kiểm tra lại thông tin.');
+      toast.error(err.message || 'Tạo yêu cầu thất bại. Vui lòng kiểm tra lại thông tin.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading || authLoading) {
+  if (loading) {
     return <div className="d-flex justify-content-center align-items-center vh-100"><Spinner animation="border" /></div>;
   }
 
@@ -231,28 +203,28 @@ const QuoteRequest = () => {
     <div className="customer-layout">
       <Header />
       <div className="d-flex">
-        {isAuthenticated && <Sidebar />}
+        <InternalSidebar userRole="sales" />
         <div className="flex-grow-1 p-4" style={{ backgroundColor: '#f8f9fa' }}>
           <Container>
-            <Button variant="outline-secondary" className="mb-3" onClick={() => navigate('/')}>
-              &larr; Quay lại trang chủ
+            <Button variant="outline-secondary" className="mb-3" onClick={() => navigate('/sales/rfqs')}>
+              &larr; Quay lại danh sách RFQ
             </Button>
             <Row className="justify-content-center">
               <Col lg={10} xl={8}>
                 <Card className="shadow-sm">
                   <Card.Body className="p-4">
                     <div className="text-center mb-4">
-                      <h2 className="fw-bold">Tạo Yêu Cầu Báo Giá</h2>
-                      <p className="text-muted">Điền thông tin và sản phẩm bạn muốn nhận báo giá.</p>
+                      <h2 className="fw-bold">Tạo Yêu Cầu Báo Giá (Hộ Khách Hàng)</h2>
+                      <p className="text-muted">Điền thông tin khách hàng và sản phẩm cần báo giá.</p>
                     </div>
 
                     <Form onSubmit={handleSubmit} noValidate>
-                      <h5 className="mb-3">Thông Tin Liên Hệ</h5>
+                      <h5 className="mb-3">Thông Tin Khách Hàng</h5>
                       <Row>
                         <Col md={6}><Form.Group className="mb-3"><Form.Label>Họ và tên *</Form.Label><Form.Control type="text" name="contactPerson" value={formData.contactPerson} onChange={handleFormChange} isInvalid={!!errors.contactPerson} /><Form.Control.Feedback type="invalid">{errors.contactPerson}</Form.Control.Feedback></Form.Group></Col>
                         <Col md={6}><Form.Group className="mb-3"><Form.Label>Số điện thoại *</Form.Label><Form.Control type="text" name="contactPhone" value={formData.contactPhone} onChange={handleFormChange} isInvalid={!!errors.contactPhone} /><Form.Control.Feedback type="invalid">{errors.contactPhone}</Form.Control.Feedback></Form.Group></Col>
                         <Col md={6}><Form.Group className="mb-3"><Form.Label>Email *</Form.Label><Form.Control type="email" name="contactEmail" value={formData.contactEmail} onChange={handleFormChange} isInvalid={!!errors.contactEmail} /><Form.Control.Feedback type="invalid">{errors.contactEmail}</Form.Control.Feedback></Form.Group></Col>
-                        <Col md={6}><Form.Group className="mb-3"><Form.Label>Mã nhân viên Sale (nếu có)</Form.Label><Form.Control type="text" name="employeeCode" value={formData.employeeCode} onChange={handleFormChange} /></Form.Group></Col>
+                        <Col md={6}><Form.Group className="mb-3"><Form.Label>Mã nhân viên Sale (của bạn)</Form.Label><Form.Control type="text" name="employeeCode" value={formData.employeeCode} onChange={handleFormChange} /></Form.Group></Col>
                         <Col md={6}><Form.Group className="mb-3"><Form.Label>Địa chỉ *</Form.Label><Form.Control as="textarea" rows={1} name="contactAddress" value={formData.contactAddress} onChange={handleFormChange} isInvalid={!!errors.contactAddress} /><Form.Control.Feedback type="invalid">{errors.contactAddress}</Form.Control.Feedback></Form.Group></Col>
                         <Col md={6}><Form.Group className="mb-3"><Form.Label>Phương thức liên hệ</Form.Label><Form.Select name="contactMethod" value={formData.contactMethod} onChange={handleFormChange}><option>Điện thoại</option><option>Email</option><option>Cả hai</option></Form.Select></Form.Group></Col>
                       </Row>
@@ -261,7 +233,7 @@ const QuoteRequest = () => {
                       <h5 className="mb-3">Chi Tiết Yêu Cầu</h5>
                       <div className="border rounded p-3">
                         {quoteItems.map((item, index) => (
-                          <div key={item.productId || index} className={index > 0 ? "mt-3 pt-3 border-top" : ""}>
+                          <div key={index} className={index > 0 ? "mt-3 pt-3 border-top" : ""}>
                             <div className="d-flex justify-content-between align-items-center">
                               <h6>Sản phẩm:
                                 <Form.Select
@@ -269,13 +241,12 @@ const QuoteRequest = () => {
                                   value={item.productId}
                                   onChange={(e) => handleItemChange(index, 'productId', e.target.value)}
                                   required
-                                  disabled={isFromCart} // Disable if from cart
                                 >
                                   <option value="">Chọn sản phẩm</option>
                                   {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                                 </Form.Select>
                               </h6>
-                              {!isFromCart && quoteItems.length > 1 && (
+                              {quoteItems.length > 1 && (
                                 <Button variant="link" className="text-danger p-0" onClick={() => handleRemoveProduct(index)}>
                                   Xóa
                                 </Button>
@@ -289,11 +260,9 @@ const QuoteRequest = () => {
                         ))}
                       </div>
                       
-                      {!isFromCart && (
-                        <Button variant="outline-primary" size="sm" className="mt-3" onClick={handleAddProduct}>
-                          + Thêm sản phẩm
-                        </Button>
-                      )}
+                      <Button variant="outline-primary" size="sm" className="mt-3" onClick={handleAddProduct}>
+                        + Thêm sản phẩm
+                      </Button>
 
                       <Row className="mt-3">
                         <Col md={6}>
@@ -315,7 +284,7 @@ const QuoteRequest = () => {
 
                       <div className="d-flex justify-content-end gap-2 mt-4">
                         <Button variant="primary" type="submit" disabled={submitting}>
-                          {submitting ? <><Spinner size="sm" /> Gửi Yêu Cầu...</> : "Gửi Yêu Cầu Báo Giá"}
+                          {submitting ? <><Spinner size="sm" /> Đang tạo...</> : "Tạo Yêu Cầu"}
                         </Button>
                       </div>
                     </Form>
@@ -330,4 +299,4 @@ const QuoteRequest = () => {
   );
 };
 
-export default QuoteRequest;
+export default CreateRfqForCustomer;

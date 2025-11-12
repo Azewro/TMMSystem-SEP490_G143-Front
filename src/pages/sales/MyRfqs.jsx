@@ -56,7 +56,10 @@ const MyRfqs = () => {
         })
       );
 
-      const sortedData = (enrichedData || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      // Filter for SENT status and sort
+      const sentRfqs = enrichedData.filter(rfq => rfq.status === 'SENT');
+      const sortedData = sentRfqs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      
       setAllRfqs(sortedData);
     } catch (err) {
       setError('Lỗi khi tải danh sách RFQ của bạn.');
@@ -114,7 +117,7 @@ const MyRfqs = () => {
                           <th>Mã RFQ</th>
                           <th>Tên Khách Hàng</th>
                           <th>Ngày tạo</th>
-                          <th>Trạng thái</th>
+                          <th>Trạng Thái</th>
                           <th>Hành Động</th>
                         </tr>
                       </thead>
@@ -124,7 +127,11 @@ const MyRfqs = () => {
                             <td>{rfq.id}</td>
                             <td>{rfq.contactPerson || 'N/A'}</td>
                             <td>{new Date(rfq.createdAt).toLocaleDateString('vi-VN')}</td>
-                            <td><Badge bg={getStatusBadge(rfq.status)}>{rfq.status}</Badge></td>
+                            <td>
+                              <Badge bg={getStatusBadge(rfq.status)}>
+                                {rfq.status === 'SENT' ? 'Chờ xác nhận' : rfq.status}
+                              </Badge>
+                            </td>
                             <td>
                               <Button variant="primary" size="sm" onClick={() => handleViewDetails(rfq.id)}>
                                 Xem chi tiết

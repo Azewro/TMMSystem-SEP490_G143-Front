@@ -71,6 +71,9 @@ const AssignRfqModal = ({ show, onHide, rfqId, onAssignmentSuccess }) => {
           }
           
           setRfqDetails(finalRfqData);
+          // Set selected IDs if they exist (for view mode)
+          setSelectedSalesId(rfqData.assignedSalesId || '');
+          setSelectedPlanningId(rfqData.assignedPlanningId || '');
 
         } catch (err) {
           setError('Lỗi khi tải dữ liệu chi tiết.');
@@ -91,8 +94,13 @@ const AssignRfqModal = ({ show, onHide, rfqId, onAssignmentSuccess }) => {
     setError('');
     setSubmitting(true);
     try {
+      // Assign sales and planning
       await rfqService.assignRfq(rfqId, selectedSalesId, selectedPlanningId);
-      toast.success('Phân công RFQ thành công!');
+      
+      // Also change the status to SENT as requested
+      await rfqService.sendRfq(rfqId);
+
+      toast.success('Đã phân công và gửi RFQ thành công!');
       onAssignmentSuccess();
     } catch (err) {
       setError(err.message || 'Phân công thất bại.');
@@ -110,10 +118,12 @@ const AssignRfqModal = ({ show, onHide, rfqId, onAssignmentSuccess }) => {
     onHide();
   };
 
+  const isViewMode = rfqDetails?.status !== 'DRAFT';
+
   return (
     <Modal show={show} onHide={handleClose} centered size="lg">
       <Modal.Header closeButton>
-        <Modal.Title>Phân công cho RFQ #{rfqId}</Modal.Title>
+        <Modal.Title>{isViewMode ? 'Chi tiết RFQ' : 'Phân công cho RFQ'} #{rfqId}</Modal.Title>
       </Modal.Header>
       <Modal.Body>
         {loading ? (
@@ -130,7 +140,7 @@ const AssignRfqModal = ({ show, onHide, rfqId, onAssignmentSuccess }) => {
                   <Col md={6}><strong>Số điện thoại:</strong> {rfqDetails.contactPhone || 'N/A'}</Col>
                   <Col md={6}><strong>Email:</strong> {rfqDetails.contactEmail || 'N/A'}</Col>
                   <Col md={6}><strong>Địa chỉ:</strong> {rfqDetails.contactAddress || 'N/A'}</Col>
-                  <Col md={6}><strong>Phương thức liên hệ:</strong> {rfqDetails.contactMethod || 'N/A'}</Col>
+                  <Col md={6}><strong>Phương thức liên hệ:</strong> {rfqDetails.contactMethod === 'PHONE' ? 'Điện thoại' : rfqDetails.contactMethod === 'EMAIL' ? 'Email' : rfqDetails.contactMethod || 'N/A'}</Col>
                 </Row>
                 <h6>Chi tiết sản phẩm</h6>
                 <Table striped bordered size="sm">
@@ -162,14 +172,15 @@ const AssignRfqModal = ({ show, onHide, rfqId, onAssignmentSuccess }) => {
 
             <hr className="my-4" />
 
-            <h5>Phân công nhân viên</h5>
+            <h5>{isViewMode ? 'Nhân viên được phân công' : 'Phân công nhân viên'}</h5>
             <Form>
               <Form.Group className="mb-3">
-                <Form.Label>Chọn nhân viên Sales</Form.Label>
+                <Form.Label>Nhân viên Sales</Form.Label>
                 <Form.Select 
                   value={selectedSalesId} 
                   onChange={(e) => setSelectedSalesId(e.target.value)}
                   required
+                  disabled={isViewMode}
                 >
                   <option value="">-- Chọn Sales --</option>
                   {salesUsers.map(user => (
@@ -178,11 +189,12 @@ const AssignRfqModal = ({ show, onHide, rfqId, onAssignmentSuccess }) => {
                 </Form.Select>
               </Form.Group>
               <Form.Group>
-                <Form.Label>Chọn nhân viên Kế hoạch</Form.Label>
+                <Form.Label>Nhân viên Kế hoạch</Form.Label>
                 <Form.Select 
                   value={selectedPlanningId} 
                   onChange={(e) => setSelectedPlanningId(e.target.value)}
                   required
+                  disabled={isViewMode}
                 >
                   <option value="">-- Chọn Kế hoạch --</option>
                   {planningUsers.map(user => (
@@ -195,12 +207,20 @@ const AssignRfqModal = ({ show, onHide, rfqId, onAssignmentSuccess }) => {
         )}
       </Modal.Body>
       <Modal.Footer>
-        <Button variant="secondary" onClick={handleClose} disabled={submitting}>
-          Hủy
-        </Button>
-        <Button variant="primary" onClick={handleAssign} disabled={loading || submitting}>
-          {submitting ? <><Spinner size="sm" /> Đang phân công...</> : 'Xác nhận'}
-        </Button>
+        {isViewMode ? (
+          <Button variant="secondary" onClick={handleClose}>
+            Đóng
+          </Button>
+        ) : (
+          <>
+            <Button variant="secondary" onClick={handleClose} disabled={submitting}>
+              Hủy
+            </Button>
+            <Button variant="primary" onClick={handleAssign} disabled={loading || submitting}>
+              {submitting ? <><Spinner size="sm" /> Đang phân công...</> : 'Xác nhận'}
+            </Button>
+          </>
+        )}
       </Modal.Footer>
     </Modal>
   );

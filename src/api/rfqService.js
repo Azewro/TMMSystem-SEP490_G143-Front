@@ -72,7 +72,7 @@ export const rfqService = {
 
   async getAssignedRfqsForSales() {
     try {
-      const userId = localStorage.getItem('userId');
+      const userId = sessionStorage.getItem('userId');
       if (!userId) {
         throw new Error('User ID not found. Please log in.');
       }
@@ -90,7 +90,7 @@ export const rfqService = {
 
   async getAssignedRfqsForPlanning() {
     try {
-      const userId = localStorage.getItem('userId');
+      const userId = sessionStorage.getItem('userId');
       if (!userId) {
         throw new Error('User ID not found. Please log in.');
       }
@@ -139,7 +139,7 @@ export const rfqService = {
 
   async salesEditRfq(rfqId, editData) {
     try {
-      const userId = localStorage.getItem('userId');
+      const userId = sessionStorage.getItem('userId');
       if (!userId) {
         throw new Error('User ID not found. Please log in.');
       }

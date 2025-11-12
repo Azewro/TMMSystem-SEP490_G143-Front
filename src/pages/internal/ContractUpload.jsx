@@ -126,7 +126,7 @@ const ContractUpload = () => {
       return;
     }
 
-    const saleUserId = localStorage.getItem('userId');
+    const saleUserId = sessionStorage.getItem('userId');
     if (!saleUserId) {
       setError('Không tìm thấy thông tin nhân viên kinh doanh. Vui lòng đăng nhập lại.');
       return;
