@@ -25,9 +25,10 @@ const MyRfqs = () => {
     switch (status) {
       case 'DRAFT': return 'secondary';
       case 'SENT': return 'info';
-      case 'PENDING_ASSIGNMENT': return 'warning';
+      case 'FORWARDED_TO_PLANNING': return 'warning';
       case 'PRELIMINARY_CHECKED': return 'primary';
-      case 'FORWARDED_TO_PLANNING': return 'dark';
+      case 'QUOTED': return 'success';
+      case 'REJECTED': return 'danger';
       default: return 'light';
     }
   };
@@ -56,7 +57,10 @@ const MyRfqs = () => {
         })
       );
 
-      const sortedData = (enrichedData || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      // Filter for SENT status and sort
+      const sentRfqs = enrichedData.filter(rfq => rfq.status === 'SENT');
+      const sortedData = sentRfqs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      
       setAllRfqs(sortedData);
     } catch (err) {
       setError('Lỗi khi tải danh sách RFQ của bạn.');
@@ -114,7 +118,7 @@ const MyRfqs = () => {
                           <th>Mã RFQ</th>
                           <th>Tên Khách Hàng</th>
                           <th>Ngày tạo</th>
-                          <th>Trạng thái</th>
+                          <th>Trạng Thái</th>
                           <th>Hành Động</th>
                         </tr>
                       </thead>
@@ -123,8 +127,12 @@ const MyRfqs = () => {
                           <tr key={rfq.id}>
                             <td>{rfq.id}</td>
                             <td>{rfq.contactPerson || 'N/A'}</td>
-                            <td>{new Date(rfq.createdAt).toLocaleDateString()}</td>
-                            <td><Badge bg={getStatusBadge(rfq.status)}>{rfq.status}</Badge></td>
+                            <td>{new Date(rfq.createdAt).toLocaleDateString('vi-VN')}</td>
+                            <td>
+                              <Badge bg={getStatusBadge(rfq.status)}>
+                                {rfq.status === 'SENT' ? 'Chờ xác nhận' : rfq.status}
+                              </Badge>
+                            </td>
                             <td>
                               <Button variant="primary" size="sm" onClick={() => handleViewDetails(rfq.id)}>
                                 Xem chi tiết

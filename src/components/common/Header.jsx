@@ -16,11 +16,8 @@ const Header = () => {
 
   const handleLogout = () => {
     const userRole = user?.role || user?.userRole;
-    const lastLoginType = userRole && userRole !== 'CUSTOMER'
-      ? 'internal'
-      : localStorage.getItem('lastLoginType') || 'customer';
     logout();
-    if (lastLoginType === 'internal') {
+    if (userRole && userRole.toUpperCase() !== 'CUSTOMER') {
       navigate('/internal-login');
     } else {
       navigate('/login');
@@ -135,9 +132,7 @@ const Header = () => {
               <Button variant="outline-light" className="me-2" onClick={() => navigate('/login')}>
                 Đăng nhập
               </Button>
-              <Button variant="primary" onClick={() => navigate('/register')}>
-                Đăng ký
-              </Button>
+
             </>
           )}
         </Nav>

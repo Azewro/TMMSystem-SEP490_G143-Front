@@ -157,12 +157,12 @@ const ProfileModal = ({ show, onHide, onSave }) => {
           taxCode: formData.taxCode,
           position: formData.position
         });
-        // Update localStorage
+        // Update session storage cache
         if (formData.contactPerson) {
-          localStorage.setItem('userName', formData.contactPerson);
+          sessionStorage.setItem('userName', formData.contactPerson);
         }
         if (formData.email) {
-          localStorage.setItem('userEmail', formData.email);
+          sessionStorage.setItem('userEmail', formData.email);
         }
         toast.success('Cập nhật thông tin thành công');
       } else {
@@ -172,12 +172,12 @@ const ProfileModal = ({ show, onHide, onSave }) => {
           email: formData.email,
           phoneNumber: formData.phoneNumber
         });
-        // Update localStorage
+        // Update session storage cache
         if (formData.name) {
-          localStorage.setItem('userName', formData.name);
+          sessionStorage.setItem('userName', formData.name);
         }
         if (formData.email) {
-          localStorage.setItem('userEmail', formData.email);
+          sessionStorage.setItem('userEmail', formData.email);
         }
         toast.success('Cập nhật thông tin thành công');
       }

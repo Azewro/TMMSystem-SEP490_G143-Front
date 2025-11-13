@@ -64,7 +64,7 @@ const ProductCard = ({ product }) => {
             </Button>
           ) : (
             <Button 
-              variant="outline-primary" 
+              variant="primary" 
               onClick={handleQuoteRequest}
             >
               Yêu cầu báo giá

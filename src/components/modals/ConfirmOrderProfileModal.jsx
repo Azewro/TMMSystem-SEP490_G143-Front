@@ -14,7 +14,6 @@ const ConfirmOrderProfileModal = ({ show, onHide, onConfirm }) => {
     contactPerson: '',
     email: '',
     phoneNumber: '',
-    position: '',
     address: '',
     taxCode: ''
   });
@@ -41,7 +40,6 @@ const ConfirmOrderProfileModal = ({ show, onHide, onConfirm }) => {
         contactPerson: customer.contactPerson || '',
         email: customer.email || '',
         phoneNumber: customer.phoneNumber || '',
-        position: customer.position || '',
         address: customer.address || '',
         taxCode: customer.taxCode || ''
       });
@@ -76,7 +74,7 @@ const ConfirmOrderProfileModal = ({ show, onHide, onConfirm }) => {
     if (!formData.taxCode) newErrors.taxCode = 'Mã số thuế là bắt buộc';
     if (!formData.email) {
       newErrors.email = 'Email là bắt buộc';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) { // Fixed regex
       newErrors.email = 'Email không hợp lệ';
     }
     if (!formData.phoneNumber) newErrors.phoneNumber = 'Số điện thoại là bắt buộc';
@@ -103,7 +101,7 @@ const ConfirmOrderProfileModal = ({ show, onHide, onConfirm }) => {
         phoneNumber: formData.phoneNumber,
         address: formData.address,
         taxCode: formData.taxCode,
-        position: formData.position
+        // Removed position
       });
       toast.success('Cập nhật thông tin thành công!');
 
@@ -214,17 +212,6 @@ const ConfirmOrderProfileModal = ({ show, onHide, onConfirm }) => {
                   isInvalid={!!errors.taxCode}
                 />
                 <Form.Control.Feedback type="invalid">{errors.taxCode}</Form.Control.Feedback>
-              </Form.Group>
-
-              <Form.Group className="mb-3">
-                <Form.Label>Chức vụ</Form.Label>
-                <Form.Control
-                  type="text"
-                  name="position"
-                  value={formData.position}
-                  onChange={handleChange}
-                  placeholder="Ví dụ: Giám đốc, Sales, HR, ..."
-                />
               </Form.Group>
             </>
           )}

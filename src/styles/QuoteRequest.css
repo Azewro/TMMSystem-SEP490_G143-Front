@@ -64,3 +64,9 @@
 .form-control[type="file"]:hover::before {
   background: #0b5ed7;
 }
+
+/* Custom styles for react-datepicker placeholder */
+.react-datepicker-wrapper .react-datepicker__input-container .form-control::placeholder {
+  font-size: 0.85rem; /* Match form-label font size */
+  color: #6c757d; /* Ensure consistent placeholder color */
+}

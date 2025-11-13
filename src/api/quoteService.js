@@ -16,7 +16,7 @@ export const quoteService = {
    */
   submitQuoteRequest: async (rfqData) => {
     try {
-      const userId = parseInt(localStorage.getItem('userId'), 10) || undefined;
+      const userId = parseInt(sessionStorage.getItem('userId'), 10) || undefined;
 
       // The component is now responsible for the payload structure.
       // The service just adds the user ID from local storage.
@@ -135,10 +135,10 @@ export const quoteService = {
     }
   },
 
-  evaluateCapacity: async (rfqId, { status, reason, proposedNewDate }) => {
+  evaluateCapacity: async (rfqId, { status, checkType, reason, proposedNewDate }) => {
     try {
       const response = await apiClient.post(`/v1/rfqs/${rfqId}/capacity-evaluate`, null, {
-        params: { status, reason, proposedNewDate }
+        params: { status, checkType, reason, proposedNewDate }
       });
       return response.data;
     } catch (error) {
@@ -214,7 +214,7 @@ export const quoteService = {
 
   createQuote: async ({ rfqId, profitMargin, notes }) => {
     try {
-      const planningUserId = parseInt(localStorage.getItem('userId'), 10) || undefined;
+      const planningUserId = parseInt(sessionStorage.getItem('userId'), 10) || undefined;
       const response = await apiClient.post('/v1/quotations/create-from-rfq', {
         rfqId,
         planningUserId,
@@ -227,16 +227,28 @@ export const quoteService = {
     }
   },
 
+  getSalesQuotations: async () => {
+    try {
+      const userId = sessionStorage.getItem('userId');
+      if (!userId) {
+        throw new Error('User ID not found in session storage.');
+      }
+      const response = await apiClient.get('/v1/quotations/for-sales', {
+        headers: {
+          'X-User-Id': userId
+        }
+      });
+      return Array.isArray(response.data) ? response.data : [];
+    } catch (error) {
+      throw new Error(mapApiError(error, 'Lỗi khi tải danh sách báo giá cho Sales'));
+    }
+  },
+
   /**
    * Sales – quotation management
    */
   getAllQuotes: async () => {
-    try {
-      const response = await apiClient.get('/v1/quotations');
-      return Array.isArray(response.data) ? response.data : [];
-    } catch (error) {
-      throw new Error(mapApiError(error, 'Lỗi khi tải danh sách báo giá'));
-    }
+    return quoteService.getSalesQuotations();
   },
 
   getQuoteDetails: async (quoteId) => {

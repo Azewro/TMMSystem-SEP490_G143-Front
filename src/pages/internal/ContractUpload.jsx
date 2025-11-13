@@ -9,6 +9,7 @@ import '../../styles/QuoteRequests.css';
 
 const STATUS_LABELS = {
   DRAFT: { text: 'Chưa upload', variant: 'secondary' },
+  PENDING_UPLOAD: { text: 'Chờ upload', variant: 'primary' },
   PENDING_APPROVAL: { text: 'Đang chờ duyệt', variant: 'warning' },
   APPROVED: { text: 'Đã duyệt', variant: 'success' },
   REJECTED: { text: 'Bị từ chối', variant: 'danger' }
@@ -77,7 +78,7 @@ const ContractUpload = () => {
 
   const actionableContracts = useMemo(() => {
     // Exclude PENDING_APPROVAL status
-    return contracts.filter((contract) => ['DRAFT', 'REJECTED'].includes(contract.status));
+    return contracts.filter((contract) => ['DRAFT', 'REJECTED', 'PENDING_UPLOAD'].includes(contract.status));
   }, [contracts]);
 
   // Pagination logic
@@ -126,7 +127,7 @@ const ContractUpload = () => {
       return;
     }
 
-    const saleUserId = localStorage.getItem('userId');
+    const saleUserId = sessionStorage.getItem('userId');
     if (!saleUserId) {
       setError('Không tìm thấy thông tin nhân viên kinh doanh. Vui lòng đăng nhập lại.');
       return;

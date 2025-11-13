@@ -71,7 +71,9 @@ const OrderDetail = () => {
       const newContract = await contractService.createContract(contractData);
 
       // Step 2: Upload the file
-      const userId = parseInt(localStorage.getItem('userId'), 10);
+      const userId =
+        parseInt(sessionStorage.getItem('userId'), 10) ||
+        parseInt(localStorage.getItem('userId'), 10);
       if (!userId) {
         throw new Error('Không tìm thấy ID người dùng. Vui lòng đăng nhập lại.');
       }

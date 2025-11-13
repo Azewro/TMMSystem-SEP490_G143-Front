@@ -116,7 +116,7 @@ const DirectorContractApproval = () => {
 
   const handleApprove = async () => {
     if (!selectedContract) return;
-    const directorId = localStorage.getItem('userId');
+    const directorId = sessionStorage.getItem('userId');
     if (!directorId) {
       setError('Không tìm thấy thông tin giám đốc. Vui lòng đăng nhập lại.');
       return;
@@ -157,7 +157,7 @@ const DirectorContractApproval = () => {
       return;
     }
 
-    const directorId = localStorage.getItem('userId');
+    const directorId = sessionStorage.getItem('userId');
     if (!directorId) {
       setError('Không tìm thấy thông tin giám đốc. Vui lòng đăng nhập lại.');
       return;

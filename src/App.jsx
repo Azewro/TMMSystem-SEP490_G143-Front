@@ -8,9 +8,9 @@ import { Toaster } from 'react-hot-toast';
 import HomePage from './pages/public/HomePage';
 import LoginPage from './pages/auth/LoginPage';
 import InternalLoginPage from './pages/auth/InternalLoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
 import CustomerForgotPassword from './pages/auth/CustomerForgotPassword';
 import InternalForgotPassword from './pages/auth/InternalForgotPassword';
+
 
 // Internal Pages
 import PlanningRFQDetail from './pages/planning/PlanningRFQDetail';
@@ -43,6 +43,7 @@ import DirectorRfqList from './pages/director/DirectorRfqList'; // Import the ne
 
 // Sales Pages
 import MyRfqs from './pages/sales/MyRfqs';
+import CreateRfqForCustomer from './pages/sales/CreateRfqPage'; // Import new page
 import ContractUpload from './pages/internal/ContractUpload';
 
 // Admin Pages
@@ -58,15 +59,15 @@ function App() {
       <CartProvider>
         <Router>
           <div className="main-container">
-            <Toaster position="top-right" reverseOrder={false} />
+            <Toaster position="bottom-right" reverseOrder={false} />
             <Routes>
               {/* Public routes */}
               <Route path="/" element={<HomePage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/internal-login" element={<InternalLoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
               <Route path="/forgot-password" element={<CustomerForgotPassword />} />
               <Route path="/internal-forgot-password" element={<InternalForgotPassword />} />
+
               
 
               {/* Internal routes - NO AUTH GUARD (for now) */}
@@ -100,6 +101,7 @@ function App() {
 
               {/* Sales routes */}
               <Route path="/sales/rfqs" element={<MyRfqs />} />
+              <Route path="/sales/create-rfq" element={<CreateRfqForCustomer />} />
               <Route path="/sales/contracts" element={<ContractUpload />} />
 
               {/* Admin routes */}

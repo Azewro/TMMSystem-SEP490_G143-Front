@@ -1,0 +1,105 @@
+# Test Roadmap: Luồng Đặt Hàng - TMMSystem
+
+## Giai đoạn 1: Luồng Khách vãng lai / Khách hàng mới
+
+### Test Case 1.1: Khách vãng lai xem sản phẩm và tạo Yêu cầu báo giá (RFQ)
+- **Mục tiêu:** Đảm bảo khách chưa đăng nhập có thể xem sản phẩm và gửi RFQ thành công.
+- **Các bước:**
+  1. Truy cập trang chủ.
+  2. Click "Yêu cầu báo giá" trên một sản phẩm.
+  3. Điền đầy đủ thông tin hợp lệ vào form và gửi.
+- **Case phụ:**
+  - Bỏ trống các trường bắt buộc.
+  - Nhập dữ liệu không hợp lệ (email sai định dạng, số điện thoại không phải số).
+  - Thêm/xóa sản phẩm trong form RFQ.
+
+### Test Case 1.2: Đăng ký và Đăng nhập
+- **Mục tiêu:** Kiểm tra chức năng đăng ký tài khoản mới và đăng nhập lần đầu.
+- **Các bước:**
+  1. Từ trang chủ, click "Đăng ký".
+  2. Điền thông tin đăng ký và gửi.
+  3. Đăng nhập với tài khoản vừa tạo.
+  4. (Theo tài liệu) Hệ thống có yêu cầu đổi mật khẩu lần đầu không? -> Cần xác minh.
+
+## Giai đoạn 2: Luồng Khách hàng đã có tài khoản
+
+### Test Case 2.1: Thêm sản phẩm vào giỏ và tạo RFQ
+- **Mục tiêu:** Đảm bảo khách hàng đăng nhập có thể sử dụng giỏ hàng để tạo RFQ.
+- **Các bước:**
+  1. Đăng nhập với tài khoản khách hàng.
+  2. Thêm nhiều sản phẩm vào giỏ hàng từ trang chủ.
+  3. Truy cập trang giỏ hàng (`/cart`).
+  4. Thay đổi số lượng, xóa sản phẩm khỏi giỏ.
+  5. Click "Gửi Yêu Cầu Báo Giá".
+  6. Kiểm tra thông tin khách hàng đã được điền sẵn trên form RFQ.
+  7. Gửi RFQ.
+
+## Giai đoạn 3: Luồng xử lý RFQ và Báo giá (Nội bộ)
+
+### Test Case 3.1: Sales xử lý RFQ
+- **Mục tiêu:** Nhân viên Sales có thể nhận, xác nhận và chuyển RFQ cho phòng Kế hoạch.
+- **Các bước:**
+  1. Đăng nhập với tài khoản Sales.
+  2. Vào danh sách RFQ được giao.
+  3. Mở chi tiết một RFQ.
+  4. (Theo tài liệu) Sales có thể chỉnh sửa RFQ trước khi xác nhận -> Test chức năng này.
+  5. Bấm "Xác nhận" và chuyển cho phòng Kế hoạch.
+
+### Test Case 3.2: Kế hoạch xử lý RFQ và tạo Báo giá
+- **Mục tiêu:** Phòng Kế hoạch nhận RFQ, kiểm tra năng lực và tạo báo giá.
+- **Các bước:**
+  1. Đăng nhập tài khoản Kế hoạch.
+  2. Vào danh sách RFQ cần xử lý.
+  3. Mở chi tiết RFQ.
+  4. Bấm "Xác nhận đã nhận".
+  5. Test chức năng "Kiểm tra năng lực".
+     - Case đủ năng lực.
+     - Case không đủ năng lực -> Gửi thông báo cho Sales.
+  6. Tạo báo giá từ RFQ.
+
+### Test Case 3.3: Sales gửi Báo giá cho khách
+- **Mục tiêu:** Sales nhận báo giá từ Kế hoạch và gửi cho khách hàng.
+- **Các bước:**
+  1. Đăng nhập tài khoản Sales.
+  2. Vào danh sách báo giá.
+  3. Mở chi tiết báo giá vừa được tạo.
+  4. Bấm "Gửi khách hàng".
+
+## Giai đoạn 4: Luồng Phê duyệt của Khách hàng và Hợp đồng
+
+### Test Case 4.1: Khách hàng phê duyệt Báo giá
+- **Mục tiêu:** Khách hàng nhận, xem và phê duyệt báo giá.
+- **Các bước:**
+  1. Đăng nhập tài khoản Khách hàng.
+  2. Vào danh sách báo giá.
+  3. Mở chi tiết báo giá.
+  4. Bấm "Chấp nhận báo giá".
+  5. (Theo tài liệu) Kiểm tra màn hình điền/xác nhận thông tin để làm hợp đồng.
+  6. Xác nhận thông tin.
+  7. Kiểm tra đơn hàng được tạo ở trạng thái chờ xử lý.
+
+### Test Case 4.2: Khách hàng từ chối Báo giá
+- **Mục tiêu:** Khách hàng từ chối báo giá.
+- **Các bước:**
+  1. Tương tự 4.1, nhưng ở bước 4, bấm "Từ chối".
+  2. Kiểm tra trạng thái báo giá được cập nhật.
+
+### Test Case 4.3: Sales upload Hợp đồng
+- **Mục tiêu:** Sales tải lên hợp đồng đã ký.
+- **Các bước:**
+  1. Đăng nhập tài khoản Sales.
+  2. Vào trang quản lý hợp đồng.
+  3. Tìm hợp đồng tương ứng với báo giá đã được duyệt.
+  4. Upload file PDF hợp đồng đã ký.
+
+### Test Case 4.4: Giám đốc phê duyệt Hợp đồng
+- **Mục tiêu:** Giám đốc xem và phê duyệt/từ chối hợp đồng.
+- **Các bước:**
+  1. Đăng nhập tài khoản Giám đốc.
+  2. Vào màn hình duyệt hợp đồng.
+  3. Mở chi tiết hợp đồng.
+  4. Test case "Phê duyệt".
+  5. Test case "Từ chối" (yêu cầu Sales upload lại).
+
+---
+**Lưu ý:** Mỗi bước sẽ được thực hiện tuần tự. Nếu gặp lỗi, chúng ta sẽ dừng lại, phân tích và sửa lỗi trước khi tiếp tục.

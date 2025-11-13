@@ -29,7 +29,8 @@ apiClient.interceptors.request.use(
       return config;
     }
 
-    const token = localStorage.getItem('userToken');
+    const token =
+      sessionStorage.getItem('userToken') || localStorage.getItem('userToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -57,16 +58,30 @@ apiClient.interceptors.response.use(
         requestUrl.includes('/auth/verify-reset-code');
 
       if (!isAuthRequest) {
-        const lastLoginType = localStorage.getItem('lastLoginType');
+        const userRole =
+          sessionStorage.getItem('userRole') || localStorage.getItem('userRole');
 
         // Clear auth data
+        sessionStorage.removeItem('userToken');
+        sessionStorage.removeItem('userEmail');
+        sessionStorage.removeItem('userName');
+        sessionStorage.removeItem('userRole');
+        sessionStorage.removeItem('customerId');
+        sessionStorage.removeItem('userId');
+        sessionStorage.removeItem('returnTo');
+
         localStorage.removeItem('userToken');
         localStorage.removeItem('userEmail');
         localStorage.removeItem('userName');
         localStorage.removeItem('userRole');
-        localStorage.removeItem('lastLoginType');
+        localStorage.removeItem('customerId');
+        localStorage.removeItem('userId');
 
-        window.location.href = lastLoginType === 'internal' ? '/internal-login' : '/login';
+        const redirectTo =
+          userRole && userRole.toUpperCase() !== 'CUSTOMER'
+            ? '/internal-login'
+            : '/login';
+        window.location.href = redirectTo;
       }
     }
     return Promise.reject(error);
