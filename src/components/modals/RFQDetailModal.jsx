@@ -19,6 +19,26 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
   const [newProductId, setNewProductId] = useState('');
   const [confirmLoading, setConfirmLoading] = useState(false);
   const [sendLoading, setSendLoading] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false); // New state for cancel button
+
+  const handleCancelRfq = async () => {
+    if (!rfqId) return;
+    if (!window.confirm('Bạn có chắc chắn muốn hủy RFQ này? Hành động này không thể hoàn tác.')) {
+      return;
+    }
+
+    setCancelLoading(true);
+    try {
+      await rfqService.deleteRfq(rfqId);
+      toast.success('RFQ đã được hủy thành công!');
+      handleClose(true); // Close modal and refresh list
+    } catch (error) {
+      toast.error(error.message || 'Lỗi khi hủy RFQ.');
+      console.error('Failed to cancel RFQ', error);
+    } finally {
+      setCancelLoading(false);
+    }
+  };
 
   const fetchRfqDetails = useCallback(async () => {
     if (!rfqId || !show) return;
@@ -362,6 +382,13 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
           <>
             <Button variant="outline-primary" onClick={() => handleEditToggle(true)}>
               Sửa RFQ
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleCancelRfq}
+              disabled={cancelLoading || (rfq?.status !== 'DRAFT' && rfq?.status !== 'SENT')}
+            >
+              {cancelLoading ? <Spinner as="span" animation="border" size="sm" /> : 'Hủy RFQ'}
             </Button>
             <div className="flex-grow-1"></div>
             <Button variant="secondary" onClick={() => handleClose(false)}>

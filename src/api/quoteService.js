@@ -109,14 +109,6 @@ export const quoteService = {
     }
   },
 
-  deleteRfq: async (rfqId) => {
-    try {
-      await apiClient.delete(`/v1/rfqs/${rfqId}`);
-    } catch (error) {
-      throw new Error(mapApiError(error, 'Lỗi khi xóa RFQ'));
-    }
-  },
-
   checkMachineCapacity: async (rfqId) => {
     try {
       const response = await apiClient.post(`/v1/rfqs/${rfqId}/check-machine-capacity`);

@@ -1,4 +1,5 @@
 import apiClient from './apiConfig';
+import { API_BASE_URL } from '../utils/constants';
 
 export const contractService = {
   getAllContracts: async () => {
@@ -7,6 +8,15 @@ export const contractService = {
       return Array.isArray(response.data) ? response.data : [];
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Lỗi khi tải danh sách hợp đồng');
+    }
+  },
+
+  getContractsByAssignedSalesId: async (userId) => {
+    try {
+      const response = await apiClient.get(`/v1/contracts/assigned/sales/${userId}`);
+      return Array.isArray(response.data) ? response.data : [];
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi tải danh sách hợp đồng cho sales');
     }
   },
 
@@ -20,20 +30,37 @@ export const contractService = {
   },
 
   uploadSignedContract: async (contractId, file, notes, saleUserId) => {
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('notes', notes);
-      formData.append('saleUserId', saleUserId);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('notes', notes);
+    formData.append('saleUserId', saleUserId);
 
-      const response = await apiClient.post(`/v1/contracts/${contractId}/upload-signed`, formData, {
+    const token = sessionStorage.getItem('userToken') || localStorage.getItem('userToken');
+    if (!token) {
+      throw new Error('Không tìm thấy token xác thực.');
+    }
+
+    const url = `${API_BASE_URL}/v1/contracts/${contractId}/upload-signed`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
         headers: {
-          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}`,
         },
+        body: formData,
       });
-      return response.data;
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: `Yêu cầu thất bại với status: ${response.status}` }));
+        throw new Error(errorData.message || `Lỗi không xác định từ server`);
+      }
+
+      return await response.json();
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Lỗi khi upload hợp đồng');
+      console.error("Lỗi khi thực hiện fetch:", error);
+      // Re-throw a more generic error to the UI component
+      throw new Error('Lỗi khi upload hợp đồng. Vui lòng kiểm tra console để biết chi tiết.');
     }
   },
 
@@ -60,7 +87,7 @@ export const contractService = {
   rejectContract: async (contractId, directorId, notes) => {
     try {
       const response = await apiClient.post(`/v1/contracts/${contractId}/reject`, null, {
-        params: { directorId, notes }
+        params: { directorId, rejectionNotes: notes }
       });
       return response.data;
     } catch (error) {

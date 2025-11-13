@@ -159,5 +159,14 @@ export const rfqService = {
       console.error(`Error editing RFQ ${rfqId}:`, error.response?.data);
       throw new Error(error.response?.data?.message || 'Failed to edit RFQ');
     }
+  },
+
+  async deleteRfq(rfqId) {
+    try {
+      await apiClient.delete(`/v1/rfqs/${rfqId}`);
+    } catch (error) {
+      console.error(`Error deleting RFQ ${rfqId}:`, error.response?.data);
+      throw new Error(error.response?.data?.message || 'Lỗi khi xóa RFQ');
+    }
   }
 };

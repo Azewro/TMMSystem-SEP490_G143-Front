@@ -58,10 +58,18 @@ const ContractUpload = () => {
     setError('');
 
     try {
-      const allContracts = await contractService.getAllContracts();
+      const userId = sessionStorage.getItem('userId');
+      if (!userId) {
+        setError('Không tìm thấy ID người dùng. Vui lòng đăng nhập lại.');
+        setLoading(false);
+        return;
+      }
+
+      const userContracts = await contractService.getContractsByAssignedSalesId(userId);
+
       // Sort by newest date first
-      const sortedContracts = Array.isArray(allContracts)
-        ? allContracts.sort((a, b) => new Date(b.contractDate || b.createdAt) - new Date(a.contractDate || a.createdAt))
+      const sortedContracts = Array.isArray(userContracts)
+        ? userContracts.sort((a, b) => new Date(b.contractDate || b.createdAt) - new Date(a.contractDate || a.createdAt))
         : [];
       setContracts(sortedContracts);
     } catch (err) {
