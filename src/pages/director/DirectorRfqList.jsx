@@ -79,14 +79,28 @@ const DirectorRfqList = () => {
   };
 
   const getStatusBadge = (status) => {
-    const rfqStatus = status || 'DRAFT';
-    switch (rfqStatus) {
-      case 'DRAFT': return 'secondary';
-      case 'SENT': return 'info';
-      case 'PENDING_ASSIGNMENT': return 'warning';
+    switch (status) {
+      case 'DRAFT': return 'secondary'; // Gray
+      case 'SENT': return 'info'; // Blue
+      case 'FORWARDED_TO_PLANNING': return 'warning'; // Yellow
       case 'PRELIMINARY_CHECKED': return 'primary';
-      case 'FORWARDED_TO_PLANNING': return 'dark';
+      case 'RECEIVED_BY_PLANNING': return 'info';
+      case 'QUOTED': return 'success';
+      case 'REJECTED': return 'danger';
       default: return 'light';
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'DRAFT': return 'Chờ xử lý';
+      case 'SENT': return 'Đã phân công';
+      case 'FORWARDED_TO_PLANNING': return 'Đã chuyển Kế hoạch';
+      case 'PRELIMINARY_CHECKED': return 'Đã kiểm tra sơ bộ';
+      case 'RECEIVED_BY_PLANNING': return 'Kế hoạch đã nhận';
+      case 'QUOTED': return 'Đã báo giá';
+      case 'REJECTED': return 'Đã từ chối';
+      default: return status;
     }
   };
 
@@ -151,22 +165,23 @@ const DirectorRfqList = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {currentRfqs.length > 0 ? currentRfqs.map(rfq => {
-                          const statusText = rfq.status === 'DRAFT' ? 'Chờ xử lý' : rfq.status === 'SENT' ? 'Đã gửi' : rfq.status;
-                          return (
+                        {currentRfqs.length > 0 ? currentRfqs.map(rfq => (
                             <tr key={rfq.id}>
                               <td>{rfq.rfqNumber}</td>
                               <td>{rfq.contactPerson || 'N/A'}</td>
                               <td>{new Date(rfq.createdAt).toLocaleDateString('vi-VN')}</td>
-                              <td><Badge bg={getStatusBadge(rfq.status)}>{statusText}</Badge></td>
+                              <td>
+                                <Badge bg={getStatusBadge(rfq.status)}>
+                                  {getStatusText(rfq.status)}
+                                </Badge>
+                              </td>
                               <td>
                                 <Button variant="primary" size="sm" onClick={() => handleOpenAssignModal(rfq.id)}>
                                   {rfq.status === 'DRAFT' ? 'Phân công' : 'Xem'}
                                 </Button>
                               </td>
                             </tr>
-                          );
-                        }) : (
+                          )) : (
                           <tr>
                             <td colSpan="5" className="text-center">Không có RFQ nào phù hợp.</td>
                           </tr>

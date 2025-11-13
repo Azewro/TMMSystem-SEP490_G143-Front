@@ -25,9 +25,10 @@ const MyRfqs = () => {
     switch (status) {
       case 'DRAFT': return 'secondary';
       case 'SENT': return 'info';
-      case 'PENDING_ASSIGNMENT': return 'warning';
+      case 'FORWARDED_TO_PLANNING': return 'warning';
       case 'PRELIMINARY_CHECKED': return 'primary';
-      case 'FORWARDED_TO_PLANNING': return 'dark';
+      case 'QUOTED': return 'success';
+      case 'REJECTED': return 'danger';
       default: return 'light';
     }
   };

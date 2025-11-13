@@ -361,6 +361,16 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "Ngày giao hàng đã được cập nhật",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RfqDto"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Không tìm thấy RFQ",
             "content": {
@@ -373,16 +383,6 @@
           },
           "400": {
             "description": "Ngày không hợp lệ. Hỗ trợ định dạng: yyyy-MM-dd hoặc dd-MM-yyyy",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/RfqDto"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "Ngày giao hàng đã được cập nhật",
             "content": {
               "*/*": {
                 "schema": {
@@ -415,8 +415,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Chi tiết RFQ",
+          "404": {
+            "description": "Không tìm thấy chi tiết RFQ",
             "content": {
               "*/*": {
                 "schema": {
@@ -425,8 +425,8 @@
               }
             }
           },
-          "404": {
-            "description": "Không tìm thấy chi tiết RFQ",
+          "200": {
+            "description": "Chi tiết RFQ",
             "content": {
               "*/*": {
                 "schema": {
@@ -468,16 +468,6 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "Chi tiết RFQ đã được cập nhật",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/RfqDetailDto"
-                }
-              }
-            }
-          },
           "400": {
             "description": "Dữ liệu không hợp lệ",
             "content": {
@@ -490,6 +480,16 @@
           },
           "404": {
             "description": "Không tìm thấy chi tiết RFQ",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RfqDetailDto"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Chi tiết RFQ đã được cập nhật",
             "content": {
               "*/*": {
                 "schema": {
@@ -550,8 +550,8 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "Không tìm thấy báo giá",
+          "200": {
+            "description": "Chi tiết báo giá",
             "content": {
               "*/*": {
                 "schema": {
@@ -560,8 +560,8 @@
               }
             }
           },
-          "200": {
-            "description": "Chi tiết báo giá",
+          "404": {
+            "description": "Không tìm thấy báo giá",
             "content": {
               "*/*": {
                 "schema": {
@@ -2114,6 +2114,16 @@
               }
             }
           },
+          "404": {
+            "description": "Không tìm thấy kế hoạch sản xuất",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionPlanDto"
+                }
+              }
+            }
+          },
           "200": {
             "description": "Thành công - Kế hoạch đã được gửi để duyệt",
             "content": {
@@ -2124,16 +2134,6 @@
                   "status": "PENDING_APPROVAL",
                   "submittedAt": "2025-10-26T10:30:00Z",
                   "message": "Kế hoạch đã được gửi để phê duyệt"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Không tìm thấy kế hoạch sản xuất",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProductionPlanDto"
                 }
               }
             }
@@ -4035,6 +4035,16 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "description": "Chi tiết RFQ đã được thêm",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RfqDetailDto"
+                }
+              }
+            }
+          },
           "400": {
             "description": "Dữ liệu không hợp lệ",
             "content": {
@@ -4047,16 +4057,6 @@
           },
           "404": {
             "description": "Không tìm thấy RFQ",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/RfqDetailDto"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "Chi tiết RFQ đã được thêm",
             "content": {
               "*/*": {
                 "schema": {
@@ -6378,6 +6378,16 @@
           }
         ],
         "responses": {
+          "404": {
+            "description": "Không tìm thấy công đoạn sản xuất",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionPlanStageDto"
+                }
+              }
+            }
+          },
           "200": {
             "description": "Thành công - Máy móc đã được gán tự động",
             "content": {
@@ -6390,16 +6400,6 @@
                   "plannedStartTime": "2025-10-28T08:00:00",
                   "plannedEndTime": "2025-10-28T12:00:00",
                   "message": "Máy móc đã được gán tự động thành công"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Không tìm thấy công đoạn sản xuất",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProductionPlanStageDto"
                 }
               }
             }
@@ -8343,13 +8343,85 @@
           "quotation-controller"
         ],
         "summary": "Lấy báo giá chờ gửi",
-        "description": "Sale Staff lấy danh sách báo giá đã tạo, chờ gửi cho khách hàng. Nếu header X-User-Id được cung cấp thì chỉ trả về báo giá có RFQ được gán cho Sales đó.",
+        "description": "Sale Staff lấy danh sách báo giá đã tạo, chờ gửi cho khách hàng. Nếu header X-User-Id được cung cấp thì chỉ trả về báo giá được gán cho Sales đó.",
         "operationId": "getPendingQuotations",
         "parameters": [
           {
             "name": "X-User-Id",
             "in": "header",
             "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/QuotationDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/quotations/for-sales": {
+      "get": {
+        "tags": [
+          "quotation-controller"
+        ],
+        "summary": "Danh sách báo giá theo Sales được phân công",
+        "description": "Trả về danh sách báo giá mà Sales (header X-User-Id) được gán vào",
+        "operationId": "listForSales_1",
+        "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/QuotationDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/quotations/for-planning": {
+      "get": {
+        "tags": [
+          "quotation-controller"
+        ],
+        "summary": "Danh sách báo giá theo Planning được phân công",
+        "description": "Trả về danh sách báo giá mà Planning (header X-User-Id) được gán vào",
+        "operationId": "listForPlanning_1",
+        "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": true,
             "schema": {
               "type": "integer",
               "format": "int64"
@@ -9039,26 +9111,6 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "Không tìm thấy kế hoạch sản xuất với ID này",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProductionPlanDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Lỗi server nội bộ",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProductionPlanDto"
-                }
-              }
-            }
-          },
           "200": {
             "description": "Thành công - Trả về chi tiết kế hoạch sản xuất",
             "content": {
@@ -9083,6 +9135,26 @@
                       ]
                     }
                   ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy kế hoạch sản xuất với ID này",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionPlanDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Lỗi server nội bộ",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionPlanDto"
                 }
               }
             }
@@ -9900,6 +9972,16 @@
               }
             }
           },
+          "400": {
+            "description": "Tỷ lệ hao hụt không hợp lệ (phải từ 0% đến 50%)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaterialConsumptionResult"
+                }
+              }
+            }
+          },
           "200": {
             "description": "Thành công - Đã tính toán tiêu hao nguyên vật liệu với hao hụt tùy chỉnh",
             "content": {
@@ -9913,16 +9995,6 @@
                   "totalBasicQuantity": 200,
                   "totalWasteAmount": 30,
                   "message": "Tính toán với tỷ lệ hao hụt 15%"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Tỷ lệ hao hụt không hợp lệ (phải từ 0% đến 50%)",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/MaterialConsumptionResult"
                 }
               }
             }
@@ -11361,6 +11433,14 @@
           "capacityCheckNotes": {
             "type": "string"
           },
+          "assignedSalesId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "assignedPlanningId": {
+            "type": "integer",
+            "format": "int64"
+          },
           "createdById": {
             "type": "integer",
             "format": "int64"
@@ -11368,6 +11448,28 @@
           "approvedById": {
             "type": "integer",
             "format": "int64"
+          },
+          "sentAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "filePath": {
+            "type": "string"
+          },
+          "contactPersonSnapshot": {
+            "type": "string"
+          },
+          "contactEmailSnapshot": {
+            "type": "string"
+          },
+          "contactPhoneSnapshot": {
+            "type": "string"
+          },
+          "contactAddressSnapshot": {
+            "type": "string"
+          },
+          "contactMethod": {
+            "type": "string"
           },
           "createdAt": {
             "type": "string",
@@ -12460,11 +12562,32 @@
           "capacityCheckNotes": {
             "type": "string"
           },
+          "assignedSales": {
+            "$ref": "#/components/schemas/User"
+          },
+          "assignedPlanning": {
+            "$ref": "#/components/schemas/User"
+          },
           "createdBy": {
             "$ref": "#/components/schemas/User"
           },
           "approvedBy": {
             "$ref": "#/components/schemas/User"
+          },
+          "contactPersonSnapshot": {
+            "type": "string"
+          },
+          "contactEmailSnapshot": {
+            "type": "string"
+          },
+          "contactPhoneSnapshot": {
+            "type": "string"
+          },
+          "contactAddressSnapshot": {
+            "type": "string"
+          },
+          "contactMethod": {
+            "type": "string"
           },
           "details": {
             "type": "array",

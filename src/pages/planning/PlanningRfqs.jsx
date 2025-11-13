@@ -20,9 +20,13 @@ const PlanningRfqs = () => {
 
   const getStatusBadge = (status) => {
     switch (status) {
+      case 'DRAFT': return 'secondary';
+      case 'SENT': return 'info';
       case 'FORWARDED_TO_PLANNING': return 'warning';
+      case 'PRELIMINARY_CHECKED': return 'primary';
       case 'RECEIVED_BY_PLANNING': return 'info';
       case 'QUOTED': return 'success';
+      case 'REJECTED': return 'danger';
       default: return 'light';
     }
   };
@@ -31,7 +35,6 @@ const PlanningRfqs = () => {
     setLoading(true);
     setError('');
     try {
-      // Use the new service function for planning
       const data = await rfqService.getAssignedRfqsForPlanning();
 
       const enrichedData = await Promise.all(
@@ -52,7 +55,10 @@ const PlanningRfqs = () => {
         })
       );
 
-      const sortedData = (enrichedData || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      // Filter for RFQs that are ready for planning and sort
+      const planningRfqs = enrichedData.filter(rfq => rfq.status === 'FORWARDED_TO_PLANNING');
+      const sortedData = planningRfqs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      
       setAllRfqs(sortedData);
     } catch (err) {
       setError('Lỗi khi tải danh sách RFQ.');
@@ -67,7 +73,6 @@ const PlanningRfqs = () => {
   }, [fetchPlanningRfqs]);
 
   const handleViewDetails = (rfqId) => {
-    // Navigate to the detail page for planning
     navigate(`/planning/rfqs/${rfqId}`);
   };
 
@@ -109,10 +114,14 @@ const PlanningRfqs = () => {
                       <tbody>
                         {currentRfqs.length > 0 ? currentRfqs.map(rfq => (
                           <tr key={rfq.id}>
-                            <td>{rfq.id}</td>
+                            <td>{rfq.rfqNumber}</td>
                             <td>{rfq.contactPerson || 'N/A'}</td>
                             <td>{new Date(rfq.createdAt).toLocaleDateString('vi-VN')}</td>
-                            <td><Badge bg={getStatusBadge(rfq.status)}>{rfq.status}</Badge></td>
+                            <td>
+                              <Badge bg={getStatusBadge(rfq.status)}>
+                                {rfq.status === 'FORWARDED_TO_PLANNING' ? 'Chờ xử lý' : rfq.status}
+                              </Badge>
+                            </td>
                             <td>
                               <Button variant="primary" size="sm" onClick={() => handleViewDetails(rfq.id)}>
                                 Xem chi tiết

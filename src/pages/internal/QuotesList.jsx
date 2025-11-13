@@ -1,21 +1,38 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Container, Card, Table, Badge, Button, Alert, Spinner } from 'react-bootstrap'; // Removed Form, InputGroup
-import { FaEye } from 'react-icons/fa'; // Removed FaSearch, FaSignInAlt
+import React, { useEffect, useState, useCallback } from 'react';
+import { Container, Card, Table, Badge, Button, Alert, Spinner, Form, InputGroup } from 'react-bootstrap';
+import { FaEye, FaSearch } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { quoteService } from '../../api/quoteService';
-import '../../styles/QuoteRequests.css'; // Added CSS import
+import { userService } from '../../api/userService'; // Import userService
+import Pagination from '../../components/Pagination';
+import toast from 'react-hot-toast';
 
-const statusMap = {
-  DRAFT: { variant: 'secondary' },
-  SENT: { variant: 'primary' },
-  ACCEPTED: { variant: 'success' },
-  REJECTED: { variant: 'danger' },
-  EXPIRED: { variant: 'light', text: 'dark' },
-  CANCELED: { variant: 'dark' },
-  ORDER_CREATED: { variant: 'info' },
-  QUOTED: { variant: 'info' }
+const getStatusBadge = (status) => {
+  switch (status) {
+    case 'DRAFT': return 'secondary';
+    case 'SENT': return 'info';
+    case 'ACCEPTED': return 'success';
+    case 'REJECTED': return 'danger';
+    case 'EXPIRED': return 'light';
+    case 'CANCELED': return 'dark';
+    case 'ORDER_CREATED': return 'primary';
+    default: return 'light';
+  }
+};
+
+const getStatusText = (status) => {
+  switch (status) {
+    case 'DRAFT': return 'Chờ gửi khách hàng';
+    case 'SENT': return 'Đã gửi';
+    case 'ACCEPTED': return 'Đã chấp nhận';
+    case 'REJECTED': return 'Đã từ chối';
+    case 'EXPIRED': return 'Hết hạn';
+    case 'CANCELED': return 'Đã hủy';
+    case 'ORDER_CREATED': return 'Đã tạo đơn hàng';
+    default: return status;
+  }
 };
 
 const formatDate = (iso) => {
@@ -39,48 +56,81 @@ const formatCurrency = (amount) => {
 
 const QuotesList = () => {
   const navigate = useNavigate();
-  const [quotes, setQuotes] = useState([]);
+  const [allQuotes, setAllQuotes] = useState([]); // Holds all quotes
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
-  useEffect(() => {
-    const fetchAndEnrichQuotes = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const [quotesData, customersData] = await Promise.all([
-          quoteService.getAllQuotes(),
-          quoteService.getAllCustomers()
-        ]);
+  // Search and Pagination state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
-        if (Array.isArray(quotesData) && Array.isArray(customersData)) {
-          const customerMap = new Map(customersData.map(c => [c.id, c]));
-          const enrichedQuotes = quotesData.map(quote => ({
-            ...quote,
-            customer: customerMap.get(quote.customerId)
-          }));
+  const fetchAndEnrichQuotes = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const [quotesData, customersData, usersData] = await Promise.all([ // Fetch usersData
+        quoteService.getAllQuotes(),
+        quoteService.getAllCustomers(),
+        userService.getAllUsers() // Fetch all users
+      ]);
 
-          const sortedData = enrichedQuotes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-          setQuotes(sortedData);
-        } else {
-          console.warn('API returned non-array data for quotes or customers.');
-          setQuotes([]);
-        }
-      } catch (e) {
-        console.error('Fetch error:', e);
-        setError('Không thể tải danh sách báo giá: ' + (e?.message || 'Lỗi không xác định'));
-        setQuotes([]);
-      } finally {
-        setLoading(false);
+      if (Array.isArray(quotesData) && Array.isArray(customersData) && Array.isArray(usersData)) {
+        const customerMap = new Map(customersData.map(c => [c.id, c]));
+        const userMap = new Map(usersData.map(u => [u.id, u])); // Create user map
+
+        const enrichedQuotes = quotesData.map(quote => ({
+          ...quote,
+          customer: customerMap.get(quote.customerId),
+          creator: userMap.get(quote.createdById) // Enrich with creator info
+        }));
+
+        const sortedData = enrichedQuotes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        setAllQuotes(sortedData);
+      } else {
+        console.warn('API returned non-array data for quotes, customers, or users.');
+        setAllQuotes([]);
       }
-    };
-
-    fetchAndEnrichQuotes();
+    } catch (e) {
+      console.error('Fetch error:', e);
+      setError('Không thể tải danh sách báo giá: ' + (e?.message || 'Lỗi không xác định'));
+      toast.error('Không thể tải danh sách báo giá: ' + (e?.message || 'Lỗi không xác định'));
+      setAllQuotes([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchAndEnrichQuotes();
+  }, [fetchAndEnrichQuotes]);
 
   const handleViewDetail = (quote) => {
     navigate(`/sales/quotations/${quote.id}`);
   };
+
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1); // Reset to first page on new search
+  };
+
+  // Filtering and Pagination logic
+  const filteredQuotes = allQuotes.filter(quote => {
+    const searchTermLower = searchTerm.toLowerCase();
+    const quoteNumber = quote.quotationNumber || '';
+    const customerName = quote.customer?.contactPerson || ''; // Use contactPerson for customer name
+    const creatorName = quote.creator?.name || ''; // Use creator name
+    return (
+      quoteNumber.toLowerCase().includes(searchTermLower) ||
+      customerName.toLowerCase().includes(searchTermLower) ||
+      creatorName.toLowerCase().includes(searchTermLower)
+    );
+  });
+
+  const indexOfLastQuote = currentPage * ITEMS_PER_PAGE;
+  const indexOfFirstQuote = indexOfLastQuote - ITEMS_PER_PAGE;
+  const currentQuotes = filteredQuotes.slice(indexOfFirstQuote, indexOfLastQuote);
+  const totalPages = Math.ceil(filteredQuotes.length / ITEMS_PER_PAGE);
 
   return (
     <div>
@@ -99,56 +149,66 @@ const QuotesList = () => {
 
             <Card className="shadow-sm">
               <Card.Header>
-                Các báo giá đã được tạo
+                <div className="d-flex justify-content-between align-items-center">
+                  <span>Các báo giá đã được tạo</span>
+                  <div style={{ width: '300px' }}>
+                    <InputGroup>
+                      <Form.Control
+                        type="text"
+                        placeholder="Tìm theo mã báo giá, khách hàng, người tạo..."
+                        value={searchTerm}
+                        onChange={handleSearchChange}
+                      />
+                      <InputGroup.Text>
+                        <FaSearch />
+                      </InputGroup.Text>
+                    </InputGroup>
+                  </div>
+                </div>
               </Card.Header>
               <Card.Body className="p-0">
                 <Table responsive hover className="mb-0 align-middle">
                   <thead className="table-light">
                     <tr>
-                      <th style={{ width: 60 }}>#</th>
                       <th>Mã báo giá</th>
-                      <th>Người đại diện</th>
-                      <th>Công ty</th>
-                      <th>Ngày tạo</th>
-                      <th>Tổng giá trị</th>
+                      <th>Khách hàng</th>
+                      <th>Người tạo</th>
+                      <th>Tổng tiền</th>
                       <th>Trạng thái</th>
-                      <th style={{ width: 140 }} className="text-center">Hành động</th>
+                      <th style={{ width: 140 }} className="text-center">Thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
                     {loading && (
-                      <tr><td colSpan={8} className="text-center py-4">
+                      <tr><td colSpan={6} className="text-center py-4">
                         <Spinner animation="border" size="sm" className="me-2" />
                         Đang tải...
                       </td></tr>
                     )}
                     {!loading && error && (
-                      <tr><td colSpan={8} className="text-center py-4 text-muted">
+                      <tr><td colSpan={6} className="text-center py-4 text-muted">
                         Không thể hiển thị dữ liệu do lỗi
                       </td></tr>
                     )}
-                    {!loading && !error && quotes.length === 0 && (
-                      <tr><td colSpan={8} className="text-center py-4 text-muted">
-                        Chưa có báo giá nào
+                    {!loading && !error && filteredQuotes.length === 0 && (
+                      <tr><td colSpan={6} className="text-center py-4 text-muted">
+                        Chưa có báo giá nào phù hợp.
                       </td></tr>
                     )}
-                    {!loading && !error && quotes.map((quote, idx) => {
-                      const status = statusMap[quote.status] || { variant: 'secondary' };
+                    {!loading && !error && currentQuotes.map((quote) => {
                       return (
-                        <tr key={quote.id || idx}>
-                          <td>{idx + 1}</td>
+                        <tr key={quote.id}>
                           <td className="fw-semibold text-primary">
                             {quote.quotationNumber || `QUOTE-${quote.id}`}
                           </td>
                           <td>{quote.customer?.contactPerson || '—'}</td>
-                          <td>{quote.customer?.companyName || '—'}</td>
-                          <td>{formatDate(quote.createdAt)}</td>
+                          <td>{quote.creator?.name || '—'}</td>
                           <td className="text-success fw-semibold">
                             {formatCurrency(quote.totalAmount)}
                           </td>
                           <td>
-                            <Badge bg={status.variant} text={status.text || null} className="px-2 py-1">
-                              {quote.status}
+                            <Badge bg={getStatusBadge(quote.status)} className="px-2 py-1">
+                              {getStatusText(quote.status)}
                             </Badge>
                           </td>
                           <td className="text-center">
@@ -165,6 +225,13 @@ const QuotesList = () => {
                     })}
                   </tbody>
                 </Table>
+                {totalPages > 1 && (
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                  />
+                )}
               </Card.Body>
             </Card>
           </Container>
