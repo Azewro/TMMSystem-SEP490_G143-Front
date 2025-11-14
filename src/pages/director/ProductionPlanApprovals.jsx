@@ -20,6 +20,42 @@ const formatDate = (value) => {
   }
 };
 
+const formatDateTime = (value) => {
+  if (!value) return '—';
+  try {
+    return new Date(value).toLocaleDateString('vi-VN');
+  } catch (error) {
+    return value;
+  }
+};
+
+// Map stage type to Vietnamese name
+const getStageTypeName = (stageType) => {
+  const stageTypeMap = {
+    'WARPING': 'Cuồng mắc',
+    'WEAVING': 'Dệt',
+    'DYEING': 'Nhuộm',
+    'CUTTING': 'Cắt',
+    'HEMMING': 'May',
+    'PACKAGING': 'Đóng gói'
+  };
+  return stageTypeMap[stageType] || stageType;
+};
+
+// Calculate duration in hours from start and end time
+const calculateDuration = (startTime, endTime) => {
+  if (!startTime || !endTime) return '—';
+  try {
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    const diffMs = end - start;
+    const diffHours = Math.round(diffMs / (1000 * 60 * 60));
+    return diffHours;
+  } catch (error) {
+    return '—';
+  }
+};
+
 const DirectorProductionPlanApprovals = () => {
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -57,7 +93,34 @@ const DirectorProductionPlanApprovals = () => {
     setDetailsLoading(true);
 
     try {
-      const detail = await productionPlanService.getById(plan.id);
+      // Fetch plan details and material consumption in parallel
+      const [detail, consumptionData] = await Promise.all([
+        productionPlanService.getById(plan.id),
+        productionPlanService.getMaterialConsumption(plan.id).catch(() => null)
+      ]);
+      
+      // Format material consumption info
+      if (consumptionData && consumptionData.materialSummaries?.length > 0) {
+        const materialInfo = consumptionData.materialSummaries
+          .map(m => `${m.totalQuantityRequired.toLocaleString()} ${m.unit} ${m.materialName}`)
+          .join(', ');
+        detail.materialConsumption = materialInfo;
+      } else {
+        detail.materialConsumption = 'Đang tính toán...';
+      }
+      
+      // Fetch stages if not included in plan details
+      if (!detail.details || !detail.details[0]?.stages) {
+        try {
+          const stages = await productionPlanService.getPlanStages(plan.id);
+          if (detail.details && detail.details.length > 0) {
+            detail.details[0].stages = stages;
+          }
+        } catch (err) {
+          console.warn('Could not fetch stages separately:', err);
+        }
+      }
+      
       setPlanDetails(detail);
     } catch (err) {
       console.error('Failed to fetch plan detail', err);
@@ -122,9 +185,9 @@ const DirectorProductionPlanApprovals = () => {
       <div className="d-flex">
         <div className="flex-grow-1" style={{ backgroundColor: '#f8f9fa', minHeight: 'calc(100vh - 70px)' }}>
           <Container fluid className="p-4">
-            <div className="d-flex justify-content-between align-items-center mb-4">
-              <h1 className="mb-0">Phê duyệt kế hoạch sản xuất</h1>
-              <div className="text-muted">Các kế hoạch đã được phòng kế hoạch gửi lên.</div>
+            <div className="mb-4">
+              <h1 className="mb-2">Danh Sách Kế Hoạch Sản Xuất</h1>
+              <p className="text-muted mb-0">Xem xét và phê duyệt kế hoạch sản xuất từ Planning</p>
             </div>
 
             {error && (
@@ -144,44 +207,56 @@ const DirectorProductionPlanApprovals = () => {
                 <Table responsive hover className="mb-0 align-middle">
                   <thead className="table-light">
                     <tr>
-                      <th style={{ width: 60 }}>#</th>
-                      <th style={{ width: 160 }}>Mã kế hoạch</th>
-                      <th style={{ width: 160 }}>Hợp đồng</th>
-                      <th style={{ width: 180 }}>Khách hàng</th>
-                      <th style={{ width: 160 }}>Ngày tạo</th>
-                      <th style={{ width: 160 }}>Trạng thái</th>
-                      <th style={{ width: 140 }} className="text-center">Hành động</th>
+                      <th>Mã KH</th>
+                      <th>Mã lô</th>
+                      <th>Sản phẩm</th>
+                      <th>Số lượng</th>
+                      <th>Ngày bắt đầu</th>
+                      <th>Ngày kết thúc</th>
+                      <th>Trạng thái</th>
+                      <th className="text-center">Thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
                     {loading ? (
                       <tr>
-                        <td colSpan={7} className="text-center py-4">
+                        <td colSpan={8} className="text-center py-4">
                           <Spinner animation="border" size="sm" className="me-2" /> Đang tải kế hoạch...
                         </td>
                       </tr>
                     ) : plans.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="text-center py-4 text-muted">
+                        <td colSpan={8} className="text-center py-4 text-muted">
                           Không có kế hoạch nào cần phê duyệt.
                         </td>
                       </tr>
                     ) : (
-                      plans.map((plan, index) => {
+                      plans.map((plan) => {
                         const statusConfig = STATUS_LABELS[plan.status] || STATUS_LABELS.PENDING_APPROVAL;
+                        const statusText = plan.status === 'APPROVED' ? 'Đã phê duyệt' : 
+                                         plan.status === 'PENDING_APPROVAL' ? 'Chờ phê duyệt' : 
+                                         statusConfig.text;
+                        const statusVariant = plan.status === 'APPROVED' ? 'dark' : statusConfig.variant;
+                        // Extract data from plan or lot object (according to guide: plan.lot.*)
+                        const lotCode = plan.lot?.lotCode || plan.lotCode || '—';
+                        const productName = plan.lot?.productName || plan.productName || plan.details?.[0]?.productName || '—';
+                        const plannedQuantity = plan.lot?.totalQuantity || plan.plannedQuantity || plan.details?.[0]?.plannedQuantity || '—';
+                        const startDate = plan.proposedStartDate || plan.details?.[0]?.proposedStartDate || plan.lot?.deliveryDateTarget;
+                        const endDate = plan.proposedEndDate || plan.details?.[0]?.proposedEndDate;
                         return (
                           <tr key={plan.id}>
-                            <td>{index + 1}</td>
-                            <td className="fw-semibold text-primary">{plan.planCode || `PLAN-${plan.id}`}</td>
-                            <td>{plan.contractNumber || '—'}</td>
-                            <td>{plan.customerName || '—'}</td>
-                            <td>{formatDate(plan.createdAt)}</td>
+                            <td className="fw-semibold">{plan.planCode || `PP-${plan.id}`}</td>
+                            <td>{lotCode}</td>
+                            <td>{productName}</td>
+                            <td>{plannedQuantity}</td>
+                            <td>{formatDate(startDate)}</td>
+                            <td>{formatDate(endDate)}</td>
                             <td>
-                              <Badge bg={statusConfig.variant}>{statusConfig.text}</Badge>
+                              <Badge bg={statusVariant}>{statusText}</Badge>
                             </td>
                             <td className="text-center">
-                              <Button variant="primary" size="sm" onClick={() => openPlan(plan)}>
-                                Xem chi tiết
+                              <Button variant="outline-primary" size="sm" onClick={() => openPlan(plan)}>
+                                👁 Chi tiết
                               </Button>
                             </td>
                           </tr>
@@ -196,9 +271,9 @@ const DirectorProductionPlanApprovals = () => {
         </div>
       </div>
 
-      <Modal show={!!selectedPlan} onHide={closeModal} size="lg" centered>
+      <Modal show={!!selectedPlan} onHide={closeModal} size="xl" centered>
         <Modal.Header closeButton>
-          <Modal.Title>Chi tiết kế hoạch</Modal.Title>
+          <Modal.Title>Chi Tiết Kế Hoạch Sản Xuất - {selectedPlan?.planCode || `PP-${selectedPlan?.id}`}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {detailsLoading ? (
@@ -207,49 +282,70 @@ const DirectorProductionPlanApprovals = () => {
             </div>
           ) : planDetails ? (
             <>
-              <div className="mb-3">
-                <strong>Kế hoạch:</strong> {planDetails.planCode || `PLAN-${planDetails.id}`}
-              </div>
-              <div className="mb-3">
-                <strong>Hợp đồng:</strong> {planDetails.contractNumber || '—'}
-              </div>
-              {planDetails.details && planDetails.details.map((detail) => (
-                <Card key={detail.id} className="mb-3">
-                  <Card.Header>
-                    <strong>{detail.productName}</strong> • Số lượng: {detail.plannedQuantity}
-                  </Card.Header>
-                  <Card.Body>
-                    <Table responsive size="sm" bordered>
+              {/* Thông Tin Chung Section */}
+              <Card className="mb-3">
+                <Card.Header>
+                  <h5 className="mb-0">Thông Tin Chung</h5>
+                </Card.Header>
+                <Card.Body>
+                  <div className="row">
+                    <div className="col-md-6">
+                      <p className="mb-2"><strong>Mã lô:</strong> {planDetails.lot?.lotCode || planDetails.lotCode || planDetails.details?.[0]?.lotCode || '—'}</p>
+                      <p className="mb-2"><strong>Số lượng:</strong> {planDetails.lot?.totalQuantity || planDetails.plannedQuantity || planDetails.details?.[0]?.plannedQuantity || '—'}</p>
+                      <p className="mb-2"><strong>NVL tiêu hao:</strong> {planDetails.materialConsumption || 'Đang tính toán...'}</p>
+                    </div>
+                    <div className="col-md-6">
+                      <p className="mb-2"><strong>Sản phẩm:</strong> {planDetails.lot?.productName || planDetails.productName || planDetails.details?.[0]?.productName || '—'}</p>
+                      <p className="mb-2"><strong>Kích thước:</strong> {planDetails.lot?.sizeSnapshot || planDetails.sizeSnapshot || planDetails.details?.[0]?.sizeSnapshot || '—'}</p>
+                      <p className="mb-2"><strong>Ngày bắt đầu:</strong> {formatDate(planDetails.proposedStartDate || planDetails.details?.[0]?.proposedStartDate)}</p>
+                      <p className="mb-2"><strong>Ngày kết thúc:</strong> {formatDate(planDetails.proposedEndDate || planDetails.details?.[0]?.proposedEndDate)}</p>
+                    </div>
+                  </div>
+                </Card.Body>
+              </Card>
+
+              {/* Chi Tiết Công Đoạn Section */}
+              <Card className="mb-3">
+                <Card.Header>
+                  <h5 className="mb-0">Chi Tiết Công Đoạn</h5>
+                </Card.Header>
+                <Card.Body>
+                  {planDetails.details && planDetails.details.map((detail) => (
+                    <Table key={detail.id} responsive size="sm" bordered className="mb-0">
                       <thead className="table-light">
                         <tr>
-                          <th style={{ width: 80 }}>Thứ tự</th>
-                          <th>Công đoạn</th>
+                          <th style={{ width: 80 }}>Công đoạn</th>
                           <th>Máy móc</th>
-                          <th>Phụ trách</th>
+                          <th>Người phụ trách</th>
+                          <th>Người kiểm tra</th>
                           <th>Bắt đầu</th>
                           <th>Kết thúc</th>
+                          <th>Thời lượng (h)</th>
+                          <th>Ghi chú</th>
                         </tr>
                       </thead>
                       <tbody>
                         {detail.stages?.map((stage) => (
                           <tr key={stage.id}>
-                            <td>{stage.sequenceNo || stage.sequence || '-'}</td>
-                            <td>{stage.stageType || stage.stage}</td>
-                            <td>{stage.assignedMachineName || '—'}</td>
-                            <td>{stage.inChargeUserName || '—'}</td>
-                            <td>{stage.plannedStartTime ? new Date(stage.plannedStartTime).toLocaleString('vi-VN') : '—'}</td>
-                            <td>{stage.plannedEndTime ? new Date(stage.plannedEndTime).toLocaleString('vi-VN') : '—'}</td>
+                            <td>{getStageTypeName(stage.stageType || stage.stage || stage.stageTypeName)}</td>
+                            <td>{stage.assignedMachineName || stage.assignedMachine?.name || stage.assignedMachine?.code || '—'}</td>
+                            <td>{stage.inChargeUserName || stage.inChargeUser?.name || stage.inChargeUser?.fullName || '—'}</td>
+                            <td>{stage.qcUserName || stage.qcUser?.name || stage.qcUser?.fullName || '—'}</td>
+                            <td>{formatDateTime(stage.plannedStartTime || stage.startTime)}</td>
+                            <td>{formatDateTime(stage.plannedEndTime || stage.endTime)}</td>
+                            <td>{stage.durationMinutes ? Math.round(stage.durationMinutes / 60) : (stage.durationHours || calculateDuration(stage.plannedStartTime || stage.startTime, stage.plannedEndTime || stage.endTime))}</td>
+                            <td>{stage.notes || stage.note || '—'}</td>
                           </tr>
                         )) || (
                           <tr>
-                            <td colSpan={6} className="text-center text-muted">Chưa có công đoạn chi tiết.</td>
+                            <td colSpan={8} className="text-center text-muted">Chưa có công đoạn chi tiết.</td>
                           </tr>
                         )}
                       </tbody>
                     </Table>
-                  </Card.Body>
-                </Card>
-              ))}
+                  ))}
+                </Card.Body>
+              </Card>
             </>
           ) : (
             <Alert variant="warning">Không thể tải chi tiết kế hoạch.</Alert>
@@ -271,10 +367,10 @@ const DirectorProductionPlanApprovals = () => {
             Đóng
           </Button>
           <Button variant="danger" onClick={handleReject} disabled={processing}>
-            {processing && decision.trim() ? 'Đang xử lý...' : 'Từ chối'}
+            ✖ {processing && decision.trim() ? 'Đang xử lý...' : 'Từ chối'}
           </Button>
           <Button variant="success" onClick={handleApprove} disabled={processing}>
-            {processing && !decision.trim() ? 'Đang xử lý...' : 'Phê duyệt'}
+            ✔ {processing && !decision.trim() ? 'Đang xử lý...' : 'Phê duyệt'}
           </Button>
         </Modal.Footer>
       </Modal>

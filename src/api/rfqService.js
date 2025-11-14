@@ -144,11 +144,23 @@ export const rfqService = {
         throw new Error('User ID not found. Please log in.');
       }
 
-      // The endpoint might be expecting a specific format for the date.
-      // Assuming yyyy-MM-dd from the previous findings.
+      // Ensure expectedDeliveryDate is in YYYY-MM-DD format if provided
+      // Don't modify if already formatted correctly
       if (editData.expectedDeliveryDate) {
-        editData.expectedDeliveryDate = new Date(editData.expectedDeliveryDate).toISOString().split('T')[0];
+        const dateStr = editData.expectedDeliveryDate;
+        // If it's already in YYYY-MM-DD format, keep it
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+          // Otherwise, try to format it
+          try {
+            editData.expectedDeliveryDate = new Date(dateStr).toISOString().split('T')[0];
+          } catch (e) {
+            console.warn('Could not format expectedDeliveryDate:', e);
+          }
+        }
       }
+
+      console.log(`PATCH /v1/rfqs/${rfqId}/sales-edit with payload:`, editData);
+      
       const response = await apiClient.patch(`/v1/rfqs/${rfqId}/sales-edit`, editData, {
         headers: {
           'X-User-Id': userId
@@ -156,8 +168,12 @@ export const rfqService = {
       });
       return response.data;
     } catch (error) {
-      console.error(`Error editing RFQ ${rfqId}:`, error.response?.data);
-      throw new Error(error.response?.data?.message || 'Failed to edit RFQ');
+      console.error(`Error editing RFQ ${rfqId}:`, error.response?.data || error.message);
+      const errorMessage = error.response?.data?.message || 
+                           error.response?.data?.error || 
+                           error.message || 
+                           'Failed to edit RFQ';
+      throw new Error(errorMessage);
     }
   },
 

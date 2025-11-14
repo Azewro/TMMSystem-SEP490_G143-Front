@@ -40,6 +40,16 @@ export const productionPlanService = {
     }
   },
 
+  // Create plan from lot - according to Production Planning Guide
+  createPlanFromLot: async (lotId) => {
+    try {
+      const response = await apiClient.post(`/v1/production-plans/create-from-lot?lotId=${lotId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi tạo kế hoạch sản xuất từ lô.');
+    }
+  },
+
   getProductionLots: async (status = 'READY_FOR_PLANNING') => {
     try {
       const response = await apiClient.get('/v1/production-lots', { params: { status } });
@@ -58,6 +68,76 @@ export const productionPlanService = {
     }
   },
 
+  // Get contracts/orders for a lot - according to Production Planning Guide
+  getLotContracts: async (lotId) => {
+    try {
+      const response = await apiClient.get(`/v1/production-lots/${lotId}/contracts`);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi tải danh sách hợp đồng của lô.');
+    }
+  },
+
+  // Get stages for a plan - according to Production Planning Guide
+  getPlanStages: async (planId) => {
+    try {
+      const response = await apiClient.get(`/v1/production-plans/${planId}/stages`);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi tải danh sách công đoạn.');
+    }
+  },
+
+  // Get machine suggestions for a stage - according to Production Planning Guide
+  getMachineSuggestions: async (stageId) => {
+    try {
+      const response = await apiClient.get(`/v1/production-plans/stages/${stageId}/machine-suggestions`);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi tải gợi ý máy móc.');
+    }
+  },
+
+  // Auto-assign machine to a stage - according to Production Planning Guide
+  autoAssignMachine: async (stageId) => {
+    try {
+      const response = await apiClient.post(`/v1/production-plans/stages/${stageId}/auto-assign-machine`);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi tự động gán máy móc.');
+    }
+  },
+
+  // Assign in-charge user to a stage - according to Production Planning Guide
+  assignInCharge: async (stageId, userId) => {
+    try {
+      const response = await apiClient.put(`/v1/production-plans/stages/${stageId}/assign-incharge?userId=${userId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi gán người phụ trách.');
+    }
+  },
+
+  // Assign QC user to a stage - according to Production Planning Guide
+  assignQC: async (stageId, userId) => {
+    try {
+      const response = await apiClient.put(`/v1/production-plans/stages/${stageId}/assign-qc?userId=${userId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi gán người kiểm tra chất lượng.');
+    }
+  },
+
+  // Check conflicts for a stage - according to Production Planning Guide
+  checkConflicts: async (stageId) => {
+    try {
+      const response = await apiClient.get(`/v1/production-plans/stages/${stageId}/check-conflicts`);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi kiểm tra xung đột.');
+    }
+  },
+
   getMaterialConsumption: async (planId) => {
     try {
       const response = await apiClient.get(`/v1/material-consumption/production-plan/${planId}`);
@@ -67,6 +147,29 @@ export const productionPlanService = {
     }
   },
 
+  // Get material consumption with custom waste percentage - according to Production Planning Guide
+  getMaterialConsumptionWithWaste: async (planId, wastePercentage = 0.1) => {
+    try {
+      const response = await apiClient.get(`/v1/material-consumption/production-plan/${planId}/with-waste`, {
+        params: { wastePercentage }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi tải dữ liệu tiêu hao NVL với tỷ lệ hao hụt.');
+    }
+  },
+
+  // Get material availability - according to Production Planning Guide
+  getMaterialAvailability: async (planId) => {
+    try {
+      const response = await apiClient.get(`/v1/material-consumption/production-plan/${planId}/availability`);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi kiểm tra khả dụng NVL.');
+    }
+  },
+
+  // Update stage - according to Production Planning Guide
   updateStage: async (stageId, stageData) => {
     try {
       const response = await apiClient.put(`/v1/production-plans/stages/${stageId}`, stageData);

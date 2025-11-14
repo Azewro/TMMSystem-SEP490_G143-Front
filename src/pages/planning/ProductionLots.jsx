@@ -58,12 +58,21 @@ const ProductionLots = () => {
   const currentLots = productionLots.slice(indexOfFirstLot, indexOfLastLot);
   const totalPages = Math.ceil(productionLots.length / ITEMS_PER_PAGE);
 
-  const handleEditPlan = (planId) => {
-    if (!planId) {
-      setError('Lô này chưa có kế hoạch sản xuất đi kèm.');
-      return;
+  const handleEditPlan = async (lot) => {
+    try {
+      let planId = lot.currentPlanId;
+      
+      // If no plan exists, create one from the lot
+      if (!planId) {
+        const newPlan = await productionPlanService.createPlanFromLot(lot.id);
+        planId = newPlan.id;
+      }
+      
+      navigate(`/planning/production-plans/${planId}`);
+    } catch (err) {
+      console.error('Failed to create or navigate to plan', err);
+      setError(err.message || 'Lỗi khi tạo kế hoạch sản xuất.');
     }
-    navigate(`/planning/production-plans/${planId}`);
   };
 
   return (
@@ -73,7 +82,10 @@ const ProductionLots = () => {
         <InternalSidebar userRole="planning" />
         <div className="flex-grow-1 p-4" style={{ backgroundColor: '#f8f9fa' }}>
           <Container fluid>
-            <h2 className="mb-4">Danh sách Lô sản xuất</h2>
+            <div className="mb-4">
+              <h2 className="mb-2">Đơn Hàng Đã Merge (Auto)</h2>
+              <p className="text-muted mb-0">Hệ thống tự động merge các đơn hàng: cùng sản phẩm, cùng ngày giao (±1), cùng ngày ký (±1)</p>
+            </div>
 
             {error && (
               <Alert variant="danger" onClose={() => setError('')} dismissible>
@@ -83,7 +95,7 @@ const ProductionLots = () => {
 
             <Card>
               <Card.Header>
-                Các lô sản xuất sẵn sàng để lập kế hoạch chi tiết
+                <strong>Danh Sách Lô Sản Xuất</strong>
               </Card.Header>
               <Card.Body>
                 {loading ? (
@@ -99,9 +111,10 @@ const ProductionLots = () => {
                         <tr>
                           <th>Mã lô</th>
                           <th>Tên sản phẩm</th>
+                          <th>Kích thước</th>
                           <th>Tổng SL</th>
-                          <th>Số đơn hàng</th>
-                          <th>Ngày tạo lô</th>
+                          <th>Đơn hàng</th>
+                          <th>Ngày giao</th>
                           <th>Trạng thái</th>
                           <th className="text-center">Thao tác</th>
                         </tr>
@@ -109,17 +122,40 @@ const ProductionLots = () => {
                       <tbody>
                         {currentLots.map((lot) => {
                           const statusConfig = STATUS_LABELS[lot.status] || { text: lot.status, variant: 'secondary' };
+                          const statusText = lot.currentPlanId ? 'Đã lập kế hoạch' : 'Chờ lập kế hoạch';
+                          const statusVariant = lot.currentPlanId ? 'dark' : statusConfig.variant;
                           return (
                             <tr key={lot.id}>
                               <td>{lot.lotCode}</td>
                               <td>{lot.productName}</td>
+                              <td>{lot.sizeSnapshot || '—'}</td>
                               <td>{lot.totalQuantity}</td>
-                              <td>{lot.orderNumbers ? lot.orderNumbers.length : 0}</td>
-                              <td>{formatDate(lot.contractDateMin)}</td>
-                              <td><Badge bg={statusConfig.variant}>{statusConfig.text}</Badge></td>
+                              <td>
+                                {lot.orderNumbers && lot.orderNumbers.length > 0 ? (
+                                  lot.orderNumbers.map((orderNum, idx) => (
+                                    <Badge key={idx} bg="light" text="dark" className="me-1">
+                                      {orderNum.startsWith('ORD-') ? orderNum : `ORD-${orderNum}`}
+                                    </Badge>
+                                  ))
+                                ) : lot.contractNumbers && lot.contractNumbers.length > 0 ? (
+                                  lot.contractNumbers.map((contractNum, idx) => (
+                                    <Badge key={idx} bg="light" text="dark" className="me-1">
+                                      {contractNum}
+                                    </Badge>
+                                  ))
+                                ) : (
+                                  '—'
+                                )}
+                              </td>
+                              <td>{formatDate(lot.deliveryDateTarget || lot.contractDateMin)}</td>
+                              <td><Badge bg={statusVariant}>{statusText}</Badge></td>
                               <td className="text-center">
-                                <Button variant="success" size="sm" onClick={() => handleEditPlan(lot.currentPlanId)}>
-                                  Lập kế hoạch
+                                <Button 
+                                  variant={lot.currentPlanId ? "secondary" : "success"} 
+                                  size="sm" 
+                                  onClick={() => handleEditPlan(lot)}
+                                >
+                                  {lot.currentPlanId ? 'Xem' : 'Lập kế hoạch'}
                                 </Button>
                               </td>
                             </tr>

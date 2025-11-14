@@ -37,6 +37,19 @@ const formatDateTimeForInput = (isoDate) => {
     }
 };
 
+// Map stage type to Vietnamese name
+const getStageTypeName = (stageType) => {
+    const stageTypeMap = {
+        'WARPING': 'Cuồng mắc',
+        'WEAVING': 'Dệt',
+        'DYEING': 'Nhuộm',
+        'CUTTING': 'Cắt',
+        'HEMMING': 'May',
+        'PACKAGING': 'Đóng gói'
+    };
+    return stageTypeMap[stageType] || stageType;
+};
+
 
 const ProductionPlanDetail = () => {
     const { id } = useParams();
@@ -61,6 +74,14 @@ const ProductionPlanDetail = () => {
         try {
             // Fetch plan data first to get the contractId
             const planData = await productionPlanService.getById(id);
+            
+            // Fetch stages separately according to Production Planning Guide
+            let stagesData = [];
+            try {
+                stagesData = await productionPlanService.getPlanStages(id);
+            } catch (err) {
+                console.warn('Could not fetch stages separately, using plan details:', err);
+            }
             
             // Then fetch products, contract details, users, and material consumption in parallel
             const [allProducts, contractDetails, consumptionData, allUsers, allMachines] = await Promise.all([
@@ -87,8 +108,12 @@ const ProductionPlanDetail = () => {
                 setMaterialInfo('Không có thông tin hoặc không cần NVL.');
             }
 
-            // If details are null (for a new plan), create default stages based on Figma
-            if (!planData.details || planData.details.length === 0) {
+            // Use stages from API if available, otherwise use plan details
+            let planStages = stagesData && stagesData.length > 0 ? stagesData : 
+                (planData.details && planData.details.length > 0 && planData.details[0].stages ? planData.details[0].stages : []);
+            
+            // If no stages exist, create default stages (backend should auto-create, but fallback for UI)
+            if (planStages.length === 0) {
                 const mainProductItem = contractDetails?.orderItems?.[0];
                 const mainProduct = mainProductItem ? productMap.get(mainProductItem.productId) : null;
                 const totalContractQuantity = contractDetails?.orderItems?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
@@ -97,33 +122,58 @@ const ProductionPlanDetail = () => {
                 planData.sizeSnapshot = mainProduct?.standardDimensions || 'Không có kích thước';
                 planData.plannedQuantity = totalContractQuantity;
 
+                planStages = [
+                    { id: `new-stage-${Date.now()}-1`, stageType: 'WARPING', sequenceNo: 1, status: 'PENDING' },
+                    { id: `new-stage-${Date.now()}-2`, stageType: 'WEAVING', sequenceNo: 2, status: 'PENDING' },
+                    { id: `new-stage-${Date.now()}-3`, stageType: 'DYEING', sequenceNo: 3, status: 'PENDING' },
+                    { id: `new-stage-${Date.now()}-4`, stageType: 'CUTTING', sequenceNo: 4, status: 'PENDING' },
+                    { id: `new-stage-${Date.now()}-5`, stageType: 'HEMMING', sequenceNo: 5, status: 'PENDING' },
+                    { id: `new-stage-${Date.now()}-6`, stageType: 'PACKAGING', sequenceNo: 6, status: 'PENDING' },
+                ];
+            }
+            
+            // Extract lot information from plan data (according to guide: plan.lot.*)
+            const lotInfo = planData.lot || {};
+            const lotCode = lotInfo.lotCode || planData.lotCode || planData.planCode?.replace('PP', 'BATCH') || '';
+            const productName = lotInfo.productName || planData.productName || planData.details?.[0]?.productName || '';
+            const sizeSnapshot = lotInfo.sizeSnapshot || planData.sizeSnapshot || planData.details?.[0]?.sizeSnapshot || '';
+            const plannedQuantity = lotInfo.totalQuantity || planData.plannedQuantity || planData.details?.[0]?.plannedQuantity || 0;
+            
+            // Ensure planData.details structure exists
+            if (!planData.details || planData.details.length === 0) {
+                const mainProductItem = contractDetails?.orderItems?.[0];
+                const mainProduct = mainProductItem ? productMap.get(mainProductItem.productId) : null;
+                const totalContractQuantity = contractDetails?.orderItems?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+                
                 planData.details = [{
                     id: `new-detail-${Date.now()}`,
-                    lotCode: planData.planCode?.replace('PP', 'BATCH') || '',
-                    productId: mainProduct?.id,
-                    productName: planData.productName,
-                    sizeSnapshot: planData.sizeSnapshot,
-                    plannedQuantity: planData.plannedQuantity,
-                    stages: [
-                        { id: `new-stage-${Date.now()}-1`, stageType: 'Cường mác', status: 'PENDING' },
-                        { id: `new-stage-${Date.now()}-2`, stageType: 'Dệt', status: 'PENDING' },
-                        { id: `new-stage-${Date.now()}-3`, stageType: 'Nhuộm', status: 'PENDING' },
-                        { id: `new-stage-${Date.now()}-4`, stageType: 'Cắt', status: 'PENDING' },
-                        { id: `new-stage-${Date.now()}-5`, stageType: 'May', status: 'PENDING' },
-                        { id: `new-stage-${Date.now()}-6`, stageType: 'Đóng gói', status: 'PENDING' },
-                    ]
+                    lotCode: lotCode,
+                    productId: mainProduct?.id || lotInfo.productId,
+                    productName: productName || mainProduct?.name || 'Không có tên sản phẩm',
+                    sizeSnapshot: sizeSnapshot || mainProduct?.standardDimensions || 'Không có kích thước',
+                    plannedQuantity: plannedQuantity || totalContractQuantity,
+                    stages: planStages
                 }];
-                console.log("Created mock stages with real product info:", planData);
             } else {
-                // For existing plans, enrich details with sizeSnapshot
+                // For existing plans, enrich details with lot info, sizeSnapshot and update stages
                 planData.details = planData.details.map(detail => {
                     const product = productMap.get(detail.productId);
                     return {
                         ...detail,
-                        sizeSnapshot: product?.standardDimensions || 'Không có kích thước'
+                        lotCode: detail.lotCode || lotCode,
+                        productName: detail.productName || productName || product?.name || 'Không có tên sản phẩm',
+                        sizeSnapshot: detail.sizeSnapshot || sizeSnapshot || product?.standardDimensions || 'Không có kích thước',
+                        plannedQuantity: detail.plannedQuantity || plannedQuantity,
+                        stages: detail.stages || planStages
                     };
                 });
             }
+            
+            // Also set top-level properties for easier access
+            planData.lotCode = lotCode;
+            planData.productName = productName || planData.details[0]?.productName;
+            planData.sizeSnapshot = sizeSnapshot || planData.details[0]?.sizeSnapshot;
+            planData.plannedQuantity = plannedQuantity || planData.details[0]?.plannedQuantity;
 
             setInitialPlan(planData);
             setEditablePlan(JSON.parse(JSON.stringify(planData))); // Deep copy for editing
@@ -160,7 +210,8 @@ const ProductionPlanDetail = () => {
         }));
     };
 
-    const handleStageChange = (stageId, field, value) => {
+    const handleStageChange = async (stageId, field, value) => {
+        // Update local state immediately for UI responsiveness
         setEditablePlan(prev => {
             const newStages = prev.details[0].stages.map(stage => {
                 if (stage.id === stageId) {
@@ -176,6 +227,30 @@ const ProductionPlanDetail = () => {
                 }]
             };
         });
+        
+        // For machine assignment, in-charge, QC - can use dedicated endpoints or updateStage
+        // According to guide, both methods are supported. We'll use updateStage for consistency
+        // unless it's a simple assignment that can be done via dedicated endpoint
+        const stage = editablePlan?.details?.[0]?.stages?.find(s => s.id === stageId);
+        if (!stage) return;
+        
+        // If assigning in-charge or QC, we can use dedicated API for immediate feedback
+        // But we'll also save via updateStage in handleSubmit for consistency
+        if (field === 'inChargeId' && value) {
+            try {
+                await productionPlanService.assignInCharge(stageId, value);
+            } catch (err) {
+                console.error('Failed to assign in-charge:', err);
+                setError('Lỗi khi gán người phụ trách: ' + (err.message || ''));
+            }
+        } else if (field === 'inspectionById' && value) {
+            try {
+                await productionPlanService.assignQC(stageId, value);
+            } catch (err) {
+                console.error('Failed to assign QC:', err);
+                setError('Lỗi khi gán người kiểm tra: ' + (err.message || ''));
+            }
+        }
     };
 
     const handleSubmit = async () => {
@@ -191,18 +266,22 @@ const ProductionPlanDetail = () => {
             // Step 1: Save all stage details
             const stages = editablePlan.details[0].stages;
             const updatePromises = stages.map(stage => {
-                // The API expects a specific request body, not the whole stage object
+                // According to Production Planning Guide, payload should include:
+                // plannedStartTime, plannedEndTime, assignedMachineId, inChargeUserId, qcUserId, notes
                 const stageData = {
-                    stageType: stage.stageType,
-                    sequenceNo: stage.sequenceNo,
-                    assignedMachineId: stage.assignedMachineId,
-                    inChargeUserId: stage.inChargeId, // The API might expect inChargeUserId
-                    qcUserId: stage.inspectionById, // The API might expect qcUserId
-                    plannedStartTime: stage.plannedStartTime,
-                    plannedEndTime: stage.plannedEndTime,
-                    notes: stage.notes,
-                    durationMinutes: stage.durationInHours ? stage.durationInHours * 60 : null
+                    plannedStartTime: stage.plannedStartTime || null,
+                    plannedEndTime: stage.plannedEndTime || null,
+                    assignedMachineId: stage.assignedMachineId ? parseInt(stage.assignedMachineId) : null,
+                    inChargeUserId: stage.inChargeId ? parseInt(stage.inChargeId) : null,
+                    qcUserId: stage.inspectionById ? parseInt(stage.inspectionById) : null,
+                    notes: stage.notes || null
                 };
+                // Only include fields that have values
+                Object.keys(stageData).forEach(key => {
+                    if (stageData[key] === null || stageData[key] === undefined || stageData[key] === '') {
+                        delete stageData[key];
+                    }
+                });
                 return productionPlanService.updateStage(stage.id, stageData);
             });
 
@@ -288,7 +367,7 @@ const ProductionPlanDetail = () => {
                         {mainDetail.stages?.map((stage, index) => (
                             <Card key={stage.id} className="stage-card">
                                 <Card.Body>
-                                    <h4 className="card-title-custom">{index + 1}. {stage.stageType}</h4>
+                                    <h4 className="card-title-custom">{index + 1}. {getStageTypeName(stage.stageType)}</h4>
                                     <Row>
                                         <Col md={4} className="form-group-custom">
                                             <Form.Label className="form-label-custom">Máy móc</Form.Label>

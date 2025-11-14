@@ -58,6 +58,8 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
         contactEmail: rfqData.contactEmail || customerData?.email || '',
         contactPhone: rfqData.contactPhone || customerData?.phoneNumber || '',
         contactAddress: rfqData.contactAddress || customerData?.address || '',
+        // Ensure expectedDeliveryDate is preserved in correct format
+        expectedDeliveryDate: rfqData.expectedDeliveryDate || null,
       };
 
       const details = rfqData.details || [];
@@ -124,7 +126,16 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setEditedRfq(prev => ({ ...prev, [name]: value }));
+    // For date inputs, ensure we store the value correctly
+    if (name === 'expectedDeliveryDate') {
+      // Date input returns YYYY-MM-DD format string or empty string
+      // Store it as-is (string format) for date input compatibility
+      const dateValue = value || null; // Convert empty string to null
+      console.log('Date input changed:', { name, value, dateValue });
+      setEditedRfq(prev => ({ ...prev, [name]: dateValue }));
+    } else {
+      setEditedRfq(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleDetailChange = (index, field, value) => {
@@ -163,24 +174,220 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
   const handleSave = async () => {
     setEditLoading(true);
     try {
-      const payload = {
-        contactPerson: editedRfq.contactPerson,
-        contactEmail: editedRfq.contactEmail,
-        contactPhone: editedRfq.contactPhone,
-        contactAddress: editedRfq.contactAddress,
-        notes: editedRfq.notes,
-        expectedDeliveryDate: editedRfq.expectedDeliveryDate,
-        details: editedRfq.rfqDetails.map(({ id, productId, quantity, unit, noteColor, notes }) => ({
-          id: typeof id === 'string' && id.startsWith('new-') ? null : id, // Send null for new items
-          productId, quantity, unit, noteColor, notes
-        })),
-      };
+      // Format expectedDeliveryDate properly
+      // Date input returns YYYY-MM-DD format string, but we need to ensure it's valid
+      console.log('Raw expectedDeliveryDate from editedRfq:', editedRfq.expectedDeliveryDate);
+      let formattedDate = editedRfq.expectedDeliveryDate;
+      
+      if (formattedDate) {
+        // Handle different date formats
+        if (typeof formattedDate === 'string') {
+          // Trim whitespace
+          formattedDate = formattedDate.trim();
+          
+          // If it's already in YYYY-MM-DD format, use it directly
+          if (/^\d{4}-\d{2}-\d{2}$/.test(formattedDate)) {
+            // Already correct format, keep it
+            console.log('Date is already in YYYY-MM-DD format:', formattedDate);
+          } else if (formattedDate.includes('T')) {
+            // ISO format with time, extract date part
+            formattedDate = new Date(formattedDate).toISOString().split('T')[0];
+            console.log('Converted ISO date to YYYY-MM-DD:', formattedDate);
+          } else if (formattedDate === '') {
+            // Empty string, set to null
+            formattedDate = null;
+            console.log('Date is empty string, setting to null');
+          } else {
+            // Try to parse other formats
+            try {
+              const parsed = new Date(formattedDate);
+              if (!isNaN(parsed.getTime())) {
+                formattedDate = parsed.toISOString().split('T')[0];
+                console.log('Parsed date to YYYY-MM-DD:', formattedDate);
+              } else {
+                formattedDate = null; // Invalid date
+                console.log('Invalid date format, setting to null');
+              }
+            } catch (e) {
+              formattedDate = null;
+              console.log('Error parsing date, setting to null:', e);
+            }
+          }
+        } else if (formattedDate instanceof Date) {
+          // Date object, convert to YYYY-MM-DD
+          formattedDate = formattedDate.toISOString().split('T')[0];
+          console.log('Converted Date object to YYYY-MM-DD:', formattedDate);
+        } else {
+          formattedDate = null;
+          console.log('Date is not string or Date object, setting to null');
+        }
+        
+        // Final validation - ensure it's a valid date string
+        if (formattedDate && !/^\d{4}-\d{2}-\d{2}$/.test(formattedDate)) {
+          console.log('Date failed final validation, setting to null');
+          formattedDate = null;
+        }
+      } else {
+        formattedDate = null;
+        console.log('expectedDeliveryDate is falsy, setting to null');
+      }
+      
+      console.log('Final formattedDate:', formattedDate);
+
+      // Prepare details array - ensure proper types
+      // Backend uses BigDecimal for quantity and recreates all details (doesn't need id)
+      const details = editedRfq.rfqDetails.map(({ id, productId, quantity, unit, noteColor, notes }) => {
+        // Validate required fields
+        if (!productId) {
+          throw new Error('Tất cả sản phẩm phải có productId hợp lệ.');
+        }
+        
+        const parsedProductId = parseInt(productId, 10);
+        if (isNaN(parsedProductId) || parsedProductId <= 0) {
+          throw new Error(`ProductId không hợp lệ: ${productId}`);
+        }
+        
+        const parsedQuantity = parseFloat(quantity);
+        if (isNaN(parsedQuantity) || parsedQuantity <= 0) {
+          throw new Error(`Số lượng phải là số lớn hơn 0. Giá trị hiện tại: ${quantity}`);
+        }
+        
+        const detail = {
+          productId: parsedProductId, // Required - backend checks if null
+          quantity: parsedQuantity, // Required - backend uses BigDecimal, send as number (not string)
+          unit: unit && unit.trim() !== '' ? unit.trim() : 'cái' // Required - ensure not null/empty
+        };
+        
+        // Backend code: if (d.getProductId() != null) { ... }
+        // So productId can be null in DTO, but we always provide it
+        // Backend calls: nd.setQuantity(d.getQuantity()) - quantity should not be null
+        // Backend calls: nd.setUnit(d.getUnit()) - unit should not be null
+        
+        // Backend deletes all existing details and recreates, so id is not needed
+        // Don't include id field - backend ignores it anyway
+        
+        // Include optional fields only if they have values
+        if (noteColor && (typeof noteColor === 'string' ? noteColor.trim() !== '' : noteColor)) {
+          detail.noteColor = noteColor;
+        }
+        if (notes && (typeof notes === 'string' ? notes.trim() !== '' : notes)) {
+          detail.notes = notes;
+        }
+        
+        return detail;
+      });
+
+      // Validate email format if provided (backend has @Email validation)
+      // Backend validation: @Email annotation
+      if (editedRfq.contactEmail && editedRfq.contactEmail.trim() !== '') {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(editedRfq.contactEmail)) {
+          throw new Error('Email không hợp lệ. Vui lòng nhập đúng định dạng email.');
+        }
+      }
+
+      // Validate phone format if provided (backend pattern: ^$|^[0-9+\-() ]{6,20}$)
+      // Backend validation: @Pattern(regexp = "^$|^[0-9+\\-() ]{6,20}$")
+      if (editedRfq.contactPhone && editedRfq.contactPhone.trim() !== '') {
+        const phoneRegex = /^[0-9+\-() ]{6,20}$/;
+        if (!phoneRegex.test(editedRfq.contactPhone)) {
+          throw new Error('Số điện thoại không hợp lệ. Chỉ được chứa số, dấu +, -, (), khoảng trắng và từ 6-20 ký tự.');
+        }
+      }
+
+      // Backend only updates fields that are not null
+      // So we only include fields that have actual values
+      const payload = {};
+      
+      if (editedRfq.contactPerson && editedRfq.contactPerson.trim() !== '') {
+        payload.contactPerson = editedRfq.contactPerson.trim();
+      }
+      
+      if (editedRfq.contactEmail && editedRfq.contactEmail.trim() !== '') {
+        payload.contactEmail = editedRfq.contactEmail.trim();
+      }
+      
+      if (editedRfq.contactPhone && editedRfq.contactPhone.trim() !== '') {
+        payload.contactPhone = editedRfq.contactPhone.trim();
+      }
+      
+      if (editedRfq.contactAddress && editedRfq.contactAddress.trim() !== '') {
+        payload.contactAddress = editedRfq.contactAddress.trim();
+      }
+      
+      if (editedRfq.notes && editedRfq.notes.trim() !== '') {
+        payload.notes = editedRfq.notes.trim();
+      }
+      
+      // Validate and add expectedDeliveryDate - backend requires it to be at least 30 days from today
+      // Always include expectedDeliveryDate if it exists (even if unchanged)
+      // Date input type="date" returns YYYY-MM-DD string format
+      if (formattedDate) {
+        // Ensure it's a string and not empty
+        const dateStr = typeof formattedDate === 'string' ? formattedDate.trim() : String(formattedDate).trim();
+        
+        if (dateStr && dateStr !== '') {
+          // Validate date format (YYYY-MM-DD)
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+            throw new Error('Ngày giao hàng không hợp lệ. Vui lòng chọn lại ngày.');
+          }
+          
+          // Validate it's at least 30 days from today
+          const deliveryDate = new Date(dateStr + 'T00:00:00'); // Add time to avoid timezone issues
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const minDate = new Date(today);
+          minDate.setDate(today.getDate() + 30);
+          
+          if (deliveryDate < minDate) {
+            throw new Error(`Ngày giao hàng phải ít nhất 30 ngày kể từ hôm nay. Ngày tối thiểu: ${minDate.toLocaleDateString('vi-VN')}`);
+          }
+          
+          // Always include expectedDeliveryDate in payload
+          payload.expectedDeliveryDate = dateStr;
+          console.log('Including expectedDeliveryDate in payload:', dateStr);
+        } else {
+          console.log('expectedDeliveryDate is empty string, not including in payload');
+        }
+      } else {
+        console.log('expectedDeliveryDate is null/undefined, not including in payload');
+      }
+      
+      // Details is optional - backend only replaces if provided
+      // But if we're editing, we should always include details
+      if (details && details.length > 0) {
+        payload.details = details;
+      } else {
+        // If no details, don't send details field - backend will keep existing ones
+        // But typically we want to update details, so throw error
+        throw new Error('RFQ phải có ít nhất một sản phẩm.');
+      }
+
+      console.log('Sending payload to sales-edit:', JSON.stringify(payload, null, 2));
+      
+      // Final validation before sending
+      if (payload.details) {
+        payload.details.forEach((detail, index) => {
+          if (!detail.productId || detail.productId <= 0) {
+            throw new Error(`Sản phẩm thứ ${index + 1}: ProductId không hợp lệ`);
+          }
+          if (!detail.quantity || detail.quantity <= 0) {
+            throw new Error(`Sản phẩm thứ ${index + 1}: Số lượng phải lớn hơn 0`);
+          }
+          if (!detail.unit || detail.unit.trim() === '') {
+            throw new Error(`Sản phẩm thứ ${index + 1}: Đơn vị không được để trống`);
+          }
+        });
+      }
+      
       await rfqService.salesEditRfq(rfqId, payload);
       toast.success("RFQ updated successfully!");
       setIsEditMode(false);
       fetchRfqDetails(); // Refresh data
     } catch (error) {
-      toast.error(error.message || "Failed to update RFQ.");
+      console.error('Error saving RFQ:', error);
+      const errorMessage = error.response?.data?.message || error.message || "Failed to update RFQ.";
+      toast.error(errorMessage);
     } finally {
       setEditLoading(false);
     }
@@ -380,9 +587,12 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
           </>
         ) : (
           <>
-            <Button variant="outline-primary" onClick={() => handleEditToggle(true)}>
-              Sửa RFQ
-            </Button>
+            {/* Sales can edit RFQ before preliminary check (status DRAFT or SENT) */}
+            {(rfq?.status === 'DRAFT' || rfq?.status === 'SENT') && (
+              <Button variant="outline-primary" onClick={() => handleEditToggle(true)}>
+                Sửa RFQ
+              </Button>
+            )}
             <Button
               variant="danger"
               onClick={handleCancelRfq}
@@ -401,9 +611,12 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
               </Button>
             )}
 
-            <Button variant="primary" onClick={handleConfirm} disabled={loading || rfq?.status !== 'SENT' || confirmLoading}>
-              {confirmLoading ? <Spinner as="span" animation="border" size="sm" /> : 'Xác nhận và Gửi đi'}
-            </Button>
+            {/* Sales can confirm RFQ when status is SENT (before preliminary check) */}
+            {rfq?.status === 'SENT' && (
+              <Button variant="primary" onClick={handleConfirm} disabled={loading || confirmLoading}>
+                {confirmLoading ? <Spinner as="span" animation="border" size="sm" /> : 'Xác nhận và Gửi đi'}
+              </Button>
+            )}
           </>
         )}
       </Modal.Footer>

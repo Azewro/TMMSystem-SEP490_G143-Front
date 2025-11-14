@@ -40,6 +40,7 @@ import ProductionLots from './pages/planning/ProductionLots'; // Import new comp
 // Director Pages
 import ContractApproval from './pages/director/ContractApproval';
 import DirectorRfqList from './pages/director/DirectorRfqList'; // Import the new page
+import DirectorProductionPlanApprovals from './pages/director/ProductionPlanApprovals';
 
 // Sales Pages
 import MyRfqs from './pages/sales/MyRfqs';
@@ -98,6 +99,7 @@ function App() {
               {/* Director routes */}
               <Route path="/director/contract-approval" element={<ContractApproval />} />
               <Route path="/director/rfqs" element={<DirectorRfqList />} />
+              <Route path="/director/production-plan-approvals" element={<DirectorProductionPlanApprovals />} />
 
               {/* Sales routes */}
               <Route path="/sales/rfqs" element={<MyRfqs />} />
