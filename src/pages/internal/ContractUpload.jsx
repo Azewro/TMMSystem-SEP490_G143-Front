@@ -97,10 +97,8 @@ const ContractUpload = () => {
     // Filter by status
     if (statusFilter) {
       filtered = filtered.filter(contract => contract.status === statusFilter);
-    } else {
-      // Default: Exclude PENDING_APPROVAL status (only show actionable contracts)
-      filtered = filtered.filter((contract) => ['DRAFT', 'REJECTED', 'PENDING_UPLOAD'].includes(contract.status));
     }
+    // If no statusFilter, show all contracts (no filtering)
 
     // Filter by search term
     if (searchTerm.trim()) {

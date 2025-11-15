@@ -3,11 +3,13 @@ import { Modal, Button, Spinner, Alert, Table, Row, Col, Form, Badge } from 'rea
 import { rfqService } from '../../api/rfqService';
 import { customerService } from '../../api/customerService';
 import { productService } from '../../api/productService';
+import { userService } from '../../api/userService';
 import toast from 'react-hot-toast';
 
 const RFQDetailModal = ({ rfqId, show, handleClose }) => {
   const [rfq, setRfq] = useState(null);
   const [customer, setCustomer] = useState(null);
+  const [salesEmployeeCode, setSalesEmployeeCode] = useState(null); // Store sales employee code
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -48,12 +50,24 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
     if (!rfqId || !show) return;
     setLoading(true);
     setError('');
+    setSalesEmployeeCode(null); // Reset sales employee code
     try {
       const rfqData = await rfqService.getRfqById(rfqId);
       let customerData = null;
       if (rfqData.customerId) {
         customerData = await customerService.getCustomerById(rfqData.customerId);
         setCustomer(customerData);
+      }
+
+      // Fetch sales user info to get employeeCode
+      if (rfqData.assignedSalesId) {
+        try {
+          const salesUser = await userService.getUserById(rfqData.assignedSalesId);
+          setSalesEmployeeCode(salesUser.employeeCode || null);
+        } catch (userError) {
+          console.error('Failed to fetch sales user:', userError);
+          // Continue without employeeCode if fetch fails
+        }
       }
 
       const initialFormState = {
@@ -457,7 +471,7 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
           <Col md={6} className="mt-2">
             <Form.Group>
               <Form.Label>Mã nhân viên Sale</Form.Label>
-              <Form.Control type="text" value={data.employeeCode || 'N/A'} readOnly />
+              <Form.Control type="text" value={salesEmployeeCode || data.employeeCode || 'N/A'} readOnly />
             </Form.Group>
           </Col>
           <Col md={12} className="mt-2">
@@ -481,7 +495,7 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
           <thead>
             <tr>
               <th>Tên sản phẩm</th>
-              <th>Mã</th>
+              <th>Mã sản phẩm</th>
               <th>Kích thước</th>
               <th>Số lượng</th>
               {isEditMode ? <th>Hành động</th> : null}
@@ -621,7 +635,11 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
       <Modal.Header closeButton={!isEditMode}>
         <Modal.Title>
           Chi tiết RFQ #{rfqId}
-          {rfq?.status && <Badge bg="info" className="ms-3">{rfq.status}</Badge>}
+          {rfq?.status && (
+            <Badge bg={rfq.status === 'DRAFT' ? 'secondary' : rfq.status === 'SENT' ? 'info' : rfq.status === 'FORWARDED_TO_PLANNING' ? 'warning' : rfq.status === 'PRELIMINARY_CHECKED' ? 'primary' : rfq.status === 'QUOTED' ? 'success' : rfq.status === 'REJECTED' ? 'danger' : 'secondary'} className="ms-3">
+              {rfq.status === 'DRAFT' ? 'Bản nháp' : rfq.status === 'SENT' ? 'Chờ xác nhận' : rfq.status === 'FORWARDED_TO_PLANNING' ? 'Đã chuyển Planning' : rfq.status === 'PRELIMINARY_CHECKED' ? 'Đã kiểm tra sơ bộ' : rfq.status === 'QUOTED' ? 'Đã báo giá' : rfq.status === 'REJECTED' ? 'Đã từ chối' : rfq.status}
+            </Badge>
+          )}
         </Modal.Title>
       </Modal.Header>
       <Modal.Body>
@@ -654,14 +672,16 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
                 Sửa RFQ
               </Button>
             )}
-            {/* Cho phép hủy khi status là DRAFT hoặc SENT (bao gồm cả khi được trả về từ Planning do không đủ năng lực) */}
-            <Button
-              variant="danger"
-              onClick={handleCancelRfq}
-              disabled={cancelLoading || (rfq?.status !== 'DRAFT' && rfq?.status !== 'SENT')}
-            >
-              {cancelLoading ? <Spinner as="span" animation="border" size="sm" /> : 'Hủy RFQ'}
-            </Button>
+            {/* Cho phép hủy khi status là DRAFT hoặc SENT (KHÔNG hiển thị khi QUOTED) */}
+            {rfq?.status !== 'QUOTED' && (
+              <Button
+                variant="danger"
+                onClick={handleCancelRfq}
+                disabled={cancelLoading || (rfq?.status !== 'DRAFT' && rfq?.status !== 'SENT')}
+              >
+                {cancelLoading ? <Spinner as="span" animation="border" size="sm" /> : 'Hủy RFQ'}
+              </Button>
+            )}
             <div className="flex-grow-1"></div>
             <Button variant="secondary" onClick={() => handleClose(false)}>
               Đóng

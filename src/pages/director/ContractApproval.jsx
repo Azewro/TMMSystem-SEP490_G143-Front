@@ -52,7 +52,7 @@ const DirectorContractApproval = () => {
   // Search and Filter state
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [contractDateFilter, setContractDateFilter] = useState('');
+  const [createdDateFilter, setCreatedDateFilter] = useState('');
   const [deliveryDateFilter, setDeliveryDateFilter] = useState('');
   
   // Pagination state
@@ -73,7 +73,7 @@ const DirectorContractApproval = () => {
         ITEMS_PER_PAGE, 
         searchTerm || undefined, 
         statusFilter || undefined, 
-        contractDateFilter || undefined, 
+        createdDateFilter || undefined, 
         deliveryDateFilter || undefined
       );
       
@@ -119,12 +119,12 @@ const DirectorContractApproval = () => {
 
   useEffect(() => {
     loadContracts();
-  }, [currentPage, searchTerm, statusFilter, contractDateFilter, deliveryDateFilter]);
+  }, [currentPage, searchTerm, statusFilter, createdDateFilter, deliveryDateFilter]);
   
   useEffect(() => {
     // Reset to page 1 when filters change
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, contractDateFilter, deliveryDateFilter]);
+  }, [searchTerm, statusFilter, createdDateFilter, deliveryDateFilter]);
 
   const openContract = async (contract) => {
     setSelectedContract(contract);
@@ -204,9 +204,9 @@ const DirectorContractApproval = () => {
     }
   };
 
-  const handleReject = async () => {
+  const handleReject = async (rejectionReason) => {
     if (!selectedContract) return;
-    if (!decision.note.trim()) {
+    if (!rejectionReason || !rejectionReason.trim()) {
       setError('Vui lòng nhập lý do từ chối hợp đồng.');
       return;
     }
@@ -222,7 +222,7 @@ const DirectorContractApproval = () => {
     setSuccess('');
 
     try {
-      await contractService.rejectContract(selectedContract.id, directorId, decision.note.trim());
+      await contractService.rejectContract(selectedContract.id, directorId, rejectionReason.trim());
       setSuccess('Đã trả lại hợp đồng cho nhân viên kinh doanh.');
       closeModal();
       loadContracts();
@@ -293,11 +293,11 @@ const DirectorContractApproval = () => {
                   </Col>
                   <Col md={2}>
                     <Form.Group>
-                      <Form.Label className="mb-1 small">Lọc theo ngày ký</Form.Label>
+                      <Form.Label className="mb-1 small">Lọc theo ngày tạo</Form.Label>
                       <Form.Control
                         type="date"
-                        value={contractDateFilter}
-                        onChange={(e) => setContractDateFilter(e.target.value)}
+                        value={createdDateFilter}
+                        onChange={(e) => setCreatedDateFilter(e.target.value)}
                       />
                     </Form.Group>
                   </Col>
@@ -326,24 +326,23 @@ const DirectorContractApproval = () => {
                       <th style={{ width: 60 }}>#</th>
                       <th style={{ width: 180 }}>Tên hợp đồng</th>
                       <th style={{ width: 160 }}>Khách hàng</th>
-                      <th style={{ width: 160 }}>Ngày ký</th>
+                      <th style={{ width: 160 }}>Ngày tạo</th>
                       <th style={{ width: 160 }}>Ngày giao</th>
                       <th style={{ width: 160 }}>Trạng thái</th>
-                      <th style={{ width: 160 }}>Giá trị</th>
-                      <th style={{ width: 180 }}>Ghi chú</th>
+                      <th style={{ width: 160 }}>Tổng tiền</th>
                       <th style={{ width: 140 }} className="text-center">Hành động</th>
                     </tr>
                   </thead>
                   <tbody>
                     {loading ? (
                       <tr>
-                        <td colSpan={9} className="text-center py-4">
+                        <td colSpan={8} className="text-center py-4">
                           <Spinner animation="border" size="sm" className="me-2" /> Đang tải hợp đồng...
                         </td>
                       </tr>
                     ) : contracts.length === 0 ? (
                       <tr>
-                        <td colSpan={9} className="text-center py-4 text-muted">
+                        <td colSpan={8} className="text-center py-4 text-muted">
                           {totalElements === 0 ? 'Không có hợp đồng nào cần phê duyệt.' : 'Không tìm thấy hợp đồng nào phù hợp.'}
                         </td>
                       </tr>
@@ -352,16 +351,15 @@ const DirectorContractApproval = () => {
                         const statusConfig = STATUS_LABELS[contract.status] || STATUS_LABELS.PENDING_APPROVAL;
                         return (
                           <tr key={contract.id}>
-                            <td>{index + 1}</td>
+                            <td>{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
                             <td className="fw-semibold text-primary">{contract.contractNumber}</td>
                             <td>{contract.customerName || 'N/A'}</td>
-                            <td>{formatDate(contract.contractDate)}</td>
+                            <td>{formatDate(contract.createdAt)}</td>
                             <td>{formatDate(contract.deliveryDate)}</td>
                             <td>
                               <Badge bg={statusConfig.variant}>{statusConfig.text}</Badge>
                             </td>
                             <td className="text-success fw-semibold">{formatCurrency(contract.totalAmount)}</td>
-                            <td>{contract.directorApprovalNotes || '—'}</td>
                             <td className="text-center">
                               <Button variant="primary" size="sm" onClick={() => openContract(contract)}>
                                 Xem chi tiết
@@ -460,26 +458,28 @@ const DirectorContractApproval = () => {
             <Alert variant="warning">Không thể tải chi tiết hợp đồng.</Alert>
           )}
 
-          <Form.Group className="mt-4">
-            <Form.Label>Ghi chú phê duyệt / Lý do từ chối</Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={3}
-              value={decision.note}
-              onChange={(event) => setDecision((prev) => ({ ...prev, note: event.target.value }))}
-              placeholder="Nhập ghi chú cho nhân viên kinh doanh"
-            />
-          </Form.Group>
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={closeModal} disabled={processing}>
             Đóng
           </Button>
-          <Button variant="danger" onClick={handleReject} disabled={processing}>
-            {processing && decision.note.trim() ? 'Đang xử lý...' : 'Từ chối'}
+          <Button 
+            variant="danger" 
+            onClick={() => {
+              const reason = window.prompt('Vui lòng nhập lý do từ chối hợp đồng:');
+              if (reason && reason.trim()) {
+                handleReject(reason.trim());
+              } else if (reason !== null) {
+                // User clicked OK but didn't enter anything
+                setError('Vui lòng nhập lý do từ chối hợp đồng.');
+              }
+            }} 
+            disabled={processing}
+          >
+            {processing ? 'Đang xử lý...' : 'Từ chối'}
           </Button>
           <Button variant="success" onClick={handleApprove} disabled={processing}>
-            {processing && !decision.note.trim() ? 'Đang xử lý...' : 'Phê duyệt'}
+            {processing ? 'Đang xử lý...' : 'Phê duyệt'}
           </Button>
         </Modal.Footer>
       </Modal>

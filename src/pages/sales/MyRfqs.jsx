@@ -5,11 +5,14 @@ import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { rfqService } from '../../api/rfqService';
 import { customerService } from '../../api/customerService';
+import { quotationService } from '../../api/quotationService';
+import { useNavigate } from 'react-router-dom';
 import Pagination from '../../components/Pagination';
 import RFQDetailModal from '../../components/modals/RFQDetailModal';
 import toast from 'react-hot-toast';
 
 const MyRfqs = () => {
+  const navigate = useNavigate();
   const [allRfqs, setAllRfqs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -21,6 +24,7 @@ const MyRfqs = () => {
   // Search and filter state
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [createdDateFilter, setCreatedDateFilter] = useState('');
 
   // Pagination state - Note: Backend uses 0-based page index
   const [currentPage, setCurrentPage] = useState(1);
@@ -36,7 +40,7 @@ const MyRfqs = () => {
       case 'PRELIMINARY_CHECKED': return 'primary';
       case 'QUOTED': return 'success';
       case 'REJECTED': return 'danger';
-      default: return 'light';
+      default: return 'secondary'; // Changed from 'light' to 'secondary' to avoid white color
     }
   };
 
@@ -59,6 +63,15 @@ const MyRfqs = () => {
         rfqs = response;
         setTotalPages(1);
         setTotalElements(response.length);
+      }
+
+      // Filter by created date (client-side, backend doesn't support this filter yet)
+      if (createdDateFilter) {
+        rfqs = rfqs.filter(rfq => {
+          if (!rfq.createdAt) return false;
+          const rfqDate = new Date(rfq.createdAt).toISOString().split('T')[0];
+          return rfqDate === createdDateFilter;
+        });
       }
 
       const enrichedData = await Promise.all(
@@ -86,7 +99,7 @@ const MyRfqs = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, searchTerm, statusFilter]);
+  }, [currentPage, searchTerm, statusFilter, createdDateFilter]);
 
   useEffect(() => {
     fetchMyRfqs();
@@ -95,7 +108,25 @@ const MyRfqs = () => {
   useEffect(() => {
     // Reset to page 1 when filters change
     setCurrentPage(1);
-  }, [searchTerm, statusFilter]);
+  }, [searchTerm, statusFilter, createdDateFilter]);
+
+  const handleViewQuotation = async (rfq) => {
+    try {
+      // Try to find quotation for this RFQ
+      const quotationsResponse = await quotationService.getAllQuotations(0, 1000); // Get all quotations
+      const quotations = quotationsResponse?.content || (Array.isArray(quotationsResponse) ? quotationsResponse : []);
+      const quotation = quotations.find(q => q.rfqId === rfq.id || q.rfq?.id === rfq.id);
+      
+      if (quotation) {
+        navigate(`/sales/quotations/${quotation.id}`);
+      } else {
+        toast.error('Không tìm thấy báo giá cho yêu cầu này');
+      }
+    } catch (error) {
+      console.error('Error fetching quotations:', error);
+      toast.error('Lỗi khi tải thông tin báo giá');
+    }
+  };
 
   const handleViewDetails = (rfqId) => {
     setSelectedRfqId(rfqId);
@@ -139,7 +170,7 @@ const MyRfqs = () => {
               <Card.Body>
                 {/* Search and Filter Section */}
                 <Row className="mb-3">
-                  <Col md={6}>
+                  <Col md={4}>
                     <InputGroup>
                       <InputGroup.Text><FaSearch /></InputGroup.Text>
                       <Form.Control
@@ -153,7 +184,18 @@ const MyRfqs = () => {
                       />
                     </InputGroup>
                   </Col>
-                  <Col md={4}>
+                  <Col md={3}>
+                    <Form.Label className="mb-1 small">Lọc theo ngày tạo</Form.Label>
+                    <Form.Control
+                      type="date"
+                      value={createdDateFilter}
+                      onChange={(e) => {
+                        setCreatedDateFilter(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                    />
+                  </Col>
+                  <Col md={3}>
                     <Form.Select
                       value={statusFilter}
                       onChange={(e) => {
@@ -199,9 +241,15 @@ const MyRfqs = () => {
                               </Badge>
                             </td>
                             <td>
-                              <Button variant="primary" size="sm" onClick={() => handleViewDetails(rfq.id)}>
-                                Xem chi tiết
-                              </Button>
+                              {rfq.status === 'QUOTED' ? (
+                                <Button variant="success" size="sm" onClick={() => handleViewQuotation(rfq)}>
+                                  Xem báo giá
+                                </Button>
+                              ) : (
+                                <Button variant="primary" size="sm" onClick={() => handleViewDetails(rfq.id)}>
+                                  Xem chi tiết
+                                </Button>
+                              )}
                             </td>
                           </tr>
                         )) : (

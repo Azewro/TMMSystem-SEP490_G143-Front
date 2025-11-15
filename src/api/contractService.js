@@ -74,13 +74,13 @@ export const contractService = {
     }
   },
 
-  getDirectorPendingContracts: async (page = 0, size = 10, search, status, contractDate, deliveryDate) => {
-    try {
-      const params = { page, size };
-      if (search) params.search = search;
-      if (status) params.status = status;
-      if (contractDate) params.contractDate = contractDate;
-      if (deliveryDate) params.deliveryDate = deliveryDate;
+      getDirectorPendingContracts: async (page = 0, size = 10, search, status, createdDate, deliveryDate) => {
+        try {
+          const params = { page, size };
+          if (search) params.search = search;
+          if (status) params.status = status;
+          if (createdDate) params.createdDate = createdDate;
+          if (deliveryDate) params.deliveryDate = deliveryDate;
       
       const response = await apiClient.get('/v1/contracts/director/pending', { params });
       // Handle PageResponse

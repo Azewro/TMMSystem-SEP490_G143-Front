@@ -27,17 +27,41 @@ const AdminCustomerManagement = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     loadCustomers();
-  }, []);
+  }, [currentPage, searchQuery, statusFilter]);
+
+  useEffect(() => {
+    // Reset to page 1 when filters change
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter]);
 
   const loadCustomers = async () => {
     setLoading(true);
     setError('');
     try {
-      const data = await customerService.getAllCustomers();
-      setCustomers(Array.isArray(data) ? data : []);
+      // Convert 1-based page to 0-based for backend
+      const page = currentPage - 1;
+      const response = await customerService.getAllCustomers(page, itemsPerPage, searchQuery || undefined, statusFilter !== '' ? statusFilter === 'true' : undefined);
+      
+      // Handle PageResponse
+      let customersData = [];
+      if (response && response.content) {
+        customersData = response.content;
+        setTotalPages(response.totalPages || 1);
+        setTotalElements(response.totalElements || 0);
+      } else if (Array.isArray(response)) {
+        customersData = response;
+        setTotalPages(1);
+        setTotalElements(response.length);
+      }
+      
+      setCustomers(customersData);
     } catch (err) {
       console.error('Failed to load customers:', err);
       setError(err.message || 'Không thể tải danh sách khách hàng');
@@ -46,29 +70,7 @@ const AdminCustomerManagement = () => {
     }
   };
 
-  const filteredCustomers = useMemo(() => {
-    let filtered = customers;
-
-    // Search filter
-    if (searchQuery.trim()) {
-      const normalizedQuery = searchQuery.trim().replace(/\s+/g, ' ').toLowerCase();
-      filtered = filtered.filter(c => 
-        (c.companyName || '').trim().toLowerCase().includes(normalizedQuery) ||
-        (c.contactPerson || '').trim().toLowerCase().includes(normalizedQuery) ||
-        (c.email || '').trim().toLowerCase().includes(normalizedQuery) ||
-        (c.phoneNumber || '').trim().toLowerCase().includes(normalizedQuery) ||
-        (c.taxCode || '').trim().toLowerCase().includes(normalizedQuery)
-      );
-    }
-
-    // Status filter
-    if (statusFilter !== '') {
-      const isActive = statusFilter === 'true';
-      filtered = filtered.filter(c => c.isActive === isActive);
-    }
-
-    return filtered;
-  }, [customers, searchQuery, statusFilter]);
+  // Note: Search and filter are now server-side, no client-side filtering needed
 
   const handleCreate = () => {
     setSelectedCustomer(null);
@@ -185,16 +187,16 @@ const AdminCustomerManagement = () => {
                         </td>
                       </tr>
                     )}
-                    {!loading && filteredCustomers.length === 0 && (
+                    {!loading && customers.length === 0 && (
                       <tr>
                         <td colSpan={7} className="text-center py-4 text-muted">
-                          {customers.length === 0 ? 'Chưa có khách hàng nào' : 'Không tìm thấy khách hàng'}
+                          {totalElements === 0 ? 'Chưa có khách hàng nào' : 'Không tìm thấy khách hàng phù hợp với bộ lọc'}
                         </td>
                       </tr>
                     )}
-                    {!loading && filteredCustomers.map((customer, idx) => (
+                    {!loading && customers.map((customer, idx) => (
                       <tr key={customer.id}>
-                        <td>{idx + 1}</td>
+                        <td>{(currentPage - 1) * itemsPerPage + idx + 1}</td>
                         <td>
                           <div className="d-flex align-items-center">
                             <FaBuilding className="me-2" size={20} />
@@ -239,6 +241,51 @@ const AdminCustomerManagement = () => {
                 </Table>
               </Card.Body>
             </Card>
+
+            {/* Pagination */}
+            {!loading && totalPages > 1 && (
+              <div className="d-flex justify-content-center mt-3">
+                <Pagination>
+                  <Pagination.First 
+                    onClick={() => setCurrentPage(1)} 
+                    disabled={currentPage === 1}
+                  />
+                  <Pagination.Prev 
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} 
+                    disabled={currentPage === 1}
+                  />
+                  {[...Array(totalPages)].map((_, idx) => {
+                    const page = idx + 1;
+                    if (
+                      page === 1 ||
+                      page === totalPages ||
+                      (page >= currentPage - 1 && page <= currentPage + 1)
+                    ) {
+                      return (
+                        <Pagination.Item
+                          key={page}
+                          active={page === currentPage}
+                          onClick={() => setCurrentPage(page)}
+                        >
+                          {page}
+                        </Pagination.Item>
+                      );
+                    } else if (page === currentPage - 2 || page === currentPage + 2) {
+                      return <Pagination.Ellipsis key={page} />;
+                    }
+                    return null;
+                  })}
+                  <Pagination.Next 
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} 
+                    disabled={currentPage === totalPages}
+                  />
+                  <Pagination.Last 
+                    onClick={() => setCurrentPage(totalPages)} 
+                    disabled={currentPage === totalPages}
+                  />
+                </Pagination>
+              </div>
+            )}
           </Container>
         </div>
       </div>

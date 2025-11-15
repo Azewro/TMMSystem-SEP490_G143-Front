@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { quoteService } from '../../api/quoteService';
+import { quotationService } from '../../api/quotationService';
 import { userService } from '../../api/userService'; // Import userService
 import Pagination from '../../components/Pagination';
 import toast from 'react-hot-toast';
@@ -77,7 +78,7 @@ const QuotesList = () => {
       const [quotesResponse, customersData, usersData] = await Promise.all([
         quotationService.getAllQuotes(page, ITEMS_PER_PAGE, searchTerm || undefined, statusFilter || undefined),
         quoteService.getAllCustomers(),
-        userService.getAllUsers()
+        userService.getAllUsers(0, 1000) // Get all users for enrichment (with pagination)
       ]);
 
       // Handle PageResponse
@@ -92,9 +93,17 @@ const QuotesList = () => {
         setTotalElements(quotesResponse.length);
       }
 
-      if (Array.isArray(customersData) && Array.isArray(usersData)) {
+      // Handle PageResponse for usersData
+      let usersArray = [];
+      if (usersData && usersData.content) {
+        usersArray = usersData.content;
+      } else if (Array.isArray(usersData)) {
+        usersArray = usersData;
+      }
+
+      if (Array.isArray(customersData) && Array.isArray(usersArray)) {
         const customerMap = new Map(customersData.map(c => [c.id, c]));
-        const userMap = new Map(usersData.map(u => [u.id, u]));
+        const userMap = new Map(usersArray.map(u => [u.id, u]));
 
         const enrichedQuotes = quotesData.map(quote => ({
           ...quote,
@@ -105,7 +114,7 @@ const QuotesList = () => {
         setAllQuotes(enrichedQuotes);
       } else {
         console.warn('API returned non-array data for customers or users.');
-        setAllQuotes([]);
+        setAllQuotes(quotesData); // Still set quotes even if enrichment fails
       }
     } catch (e) {
       console.error('Fetch error:', e);
@@ -135,30 +144,7 @@ const QuotesList = () => {
     setCurrentPage(1); // Reset to first page on new search
   };
 
-  // Filtering and Pagination logic
-  const filteredQuotes = allQuotes.filter(quote => {
-    // Filter by status
-    if (statusFilter && quote.status !== statusFilter) {
-      return false;
-    }
-
-    // Filter by search term
-    if (searchTerm.trim()) {
-      const normalizedSearch = searchTerm.trim().replace(/\s+/g, ' ').toLowerCase();
-      const quoteNumber = (quote.quotationNumber || '').trim().toLowerCase();
-      const customerName = (quote.customer?.contactPerson || '').trim().toLowerCase();
-      const creatorName = (quote.creator?.name || '').trim().toLowerCase();
-      return (
-        quoteNumber.includes(normalizedSearch) ||
-        customerName.includes(normalizedSearch) ||
-        creatorName.includes(normalizedSearch)
-      );
-    }
-
-    return true;
-  });
-
-  // Note: Pagination is now server-side, but we still filter/search client-side on current page
+  // Note: Search and filter are now server-side, no client-side filtering needed
 
   return (
     <div>

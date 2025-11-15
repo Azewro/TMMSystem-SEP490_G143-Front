@@ -20,7 +20,8 @@ const ProfileModal = ({ show, onHide, onSave }) => {
     companyName: '',
     contactPerson: '',
     address: '',
-    taxCode: ''
+    taxCode: '',
+    employeeCode: ''
   });
   const [errors, setErrors] = useState({});
 
@@ -79,7 +80,8 @@ const ProfileModal = ({ show, onHide, onSave }) => {
             companyName: '',
             contactPerson: '',
             address: '',
-            taxCode: ''
+            taxCode: '',
+            employeeCode: user.employeeCode || ''
           });
         }
       }
@@ -330,6 +332,18 @@ const ProfileModal = ({ show, onHide, onSave }) => {
                   {errors.phoneNumber}
                 </Form.Control.Feedback>
               </Form.Group>
+
+              {!isCustomer && formData.employeeCode && (
+                <Form.Group className="mb-3">
+                  <Form.Label>Mã nhân viên</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={formData.employeeCode}
+                    readOnly
+                    disabled
+                  />
+                </Form.Group>
+              )}
 
               {isCustomer && (
                 <>

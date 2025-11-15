@@ -285,7 +285,7 @@ const MachineManagement = () => {
             </Card>
 
             {/* Pagination */}
-            {!loading && filteredMachines.length > itemsPerPage && (
+            {!loading && totalPages > 1 && (
               <div className="d-flex justify-content-center mt-3">
                 <Pagination>
                   <Pagination.First 

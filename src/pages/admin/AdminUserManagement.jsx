@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { userService } from '../../api/userService';
+import { roleService } from '../../api/roleService';
 import CreateUserModal from '../../components/modals/CreateUserModal';
 import toast from 'react-hot-toast';
 
@@ -29,11 +30,30 @@ const AdminUserManagement = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
+  const [allRoles, setAllRoles] = useState([]);
   const itemsPerPage = 10;
 
   useEffect(() => {
     loadUsers();
   }, [currentPage, searchQuery, roleFilter, statusFilter]);
+
+  useEffect(() => {
+    // Reset to page 1 when filters change
+    setCurrentPage(1);
+  }, [searchQuery, roleFilter, statusFilter]);
+
+  useEffect(() => {
+    // Load all roles for filter dropdown
+    const loadRoles = async () => {
+      try {
+        const roles = await roleService.getAllRoles();
+        setAllRoles(Array.isArray(roles) ? roles : []);
+      } catch (err) {
+        console.error('Failed to load roles:', err);
+      }
+    };
+    loadRoles();
+  }, []);
 
   const loadUsers = async () => {
     setLoading(true);
@@ -65,12 +85,6 @@ const AdminUserManagement = () => {
   };
 
   // Note: Search and filter are now server-side, no client-side filtering needed
-
-  // Reset to page 1 when filters change (handled in loadUsers useEffect)
-
-  const uniqueRoles = useMemo(() => {
-    return [...new Set(users.map(u => u.roleName).filter(Boolean))];
-  }, [users]);
 
   const handleCreate = () => {
     setSelectedUser(null);
@@ -169,9 +183,9 @@ const AdminUserManagement = () => {
                       value={roleFilter}
                       onChange={(e) => setRoleFilter(e.target.value)}
                     >
-                      <option value="">Tất cả danh mục</option>
-                      {uniqueRoles.map(role => (
-                        <option key={role} value={role}>{role}</option>
+                      <option value="">Tất cả vai trò</option>
+                      {allRoles.map(role => (
+                        <option key={role.id} value={role.name}>{role.name}</option>
                       ))}
                     </Form.Select>
                   </div>
@@ -218,7 +232,7 @@ const AdminUserManagement = () => {
                         </td>
                       </tr>
                     )}
-                    {!loading && filteredUsers.length === 0 && (
+                    {!loading && users.length === 0 && (
                       <tr>
                         <td colSpan={7} className="text-center py-4 text-muted">
                           {totalElements === 0 ? 'Chưa có tài khoản nào' : 'Không tìm thấy tài khoản phù hợp với bộ lọc'}
@@ -278,7 +292,7 @@ const AdminUserManagement = () => {
             </Card>
 
             {/* Pagination */}
-            {!loading && filteredUsers.length > itemsPerPage && (
+            {!loading && totalPages > 1 && (
               <div className="d-flex justify-content-center mt-3">
                 <Pagination>
                   <Pagination.First 

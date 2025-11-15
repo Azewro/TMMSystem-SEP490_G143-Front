@@ -28,10 +28,15 @@ const AssignRfqModal = ({ show, onHide, rfqId, onAssignmentSuccess }) => {
         setError('');
         try {
           // Fetch users and base RFQ data
-          const [allUsers, rfqData] = await Promise.all([
-            userService.getAllUsers(),
+          const [allUsersResponse, rfqData] = await Promise.all([
+            userService.getAllUsers(0, 1000), // Get all users with pagination (1000 should be enough)
             rfqService.getRfqById(rfqId)
           ]);
+          
+          // Handle PageResponse or array
+          const allUsers = (allUsersResponse && allUsersResponse.content) 
+            ? allUsersResponse.content 
+            : (Array.isArray(allUsersResponse) ? allUsersResponse : []);
 
           // Process users
           const sales = allUsers.filter(user => user.roleName?.toUpperCase() === 'SALE STAFF');

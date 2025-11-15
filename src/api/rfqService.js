@@ -25,9 +25,14 @@ export const rfqService = {
       // Ensure pagination parameters
       const paginationParams = {
         page: params.page !== undefined ? params.page : 0,
-        size: params.size !== undefined ? params.size : 10,
-        ...params
+        size: params.size !== undefined ? params.size : 10
       };
+      // Add optional parameters
+      if (params.search) paginationParams.search = params.search;
+      if (params.status) paginationParams.status = params.status;
+      if (params.customerId) paginationParams.customerId = params.customerId;
+      if (params.createdDate) paginationParams.createdDate = params.createdDate;
+      
       const response = await apiClient.get('/v1/rfqs', { params: paginationParams });
       return response.data;
     } catch (error) {

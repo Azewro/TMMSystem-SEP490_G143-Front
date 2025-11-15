@@ -19,6 +19,7 @@ const DirectorRfqList = () => {
   // Search, Filter and Pagination state
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [createdDateFilter, setCreatedDateFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
@@ -30,7 +31,13 @@ const DirectorRfqList = () => {
     try {
       // Convert 1-based page to 0-based for backend
       const page = currentPage - 1;
-      const response = await rfqService.getRfqs({ page, size: ITEMS_PER_PAGE, search: searchTerm || undefined, status: statusFilter || undefined });
+      const response = await rfqService.getRfqs({ 
+        page, 
+        size: ITEMS_PER_PAGE, 
+        search: searchTerm || undefined, 
+        status: statusFilter || undefined,
+        createdDate: createdDateFilter || undefined
+      });
 
       // Handle PageResponse
       let rfqs = [];
@@ -65,7 +72,8 @@ const DirectorRfqList = () => {
 
       setAllRfqs(enrichedData);
     } catch (err) {
-      setError('Lỗi khi tải danh sách RFQ.');
+      console.error('Error fetching RFQs:', err);
+      setError('Lỗi khi tải danh sách RFQ: ' + (err.message || 'Lỗi không xác định'));
     } finally {
       setLoading(false);
     }
@@ -73,12 +81,12 @@ const DirectorRfqList = () => {
 
   useEffect(() => {
     fetchRfqs();
-  }, [currentPage, searchTerm, statusFilter]);
+  }, [currentPage, searchTerm, statusFilter, createdDateFilter]);
   
   useEffect(() => {
     // Reset to page 1 when filters change
     setCurrentPage(1);
-  }, [searchTerm, statusFilter]);
+  }, [searchTerm, statusFilter, createdDateFilter]);
 
   const handleOpenAssignModal = (rfqId) => {
     setSelectedRfqId(rfqId);
@@ -109,7 +117,7 @@ const DirectorRfqList = () => {
       case 'RECEIVED_BY_PLANNING': return 'info';
       case 'QUOTED': return 'success';
       case 'REJECTED': return 'danger';
-      default: return 'light';
+      default: return 'secondary'; // Changed from 'light' to 'secondary' to avoid white color
     }
   };
 
@@ -137,32 +145,7 @@ const DirectorRfqList = () => {
     { value: 'REJECTED', label: 'Đã từ chối' },
   ];
 
-  // Filtering logic (client-side on current page)
-  const filteredRfqs = useMemo(() => {
-    let filtered = [...allRfqs];
-
-    // Search filter
-    if (searchTerm.trim()) {
-      const normalizedSearch = searchTerm.trim().replace(/\s+/g, ' ').toLowerCase();
-      filtered = filtered.filter(rfq => {
-        const rfqNumber = (rfq.rfqNumber || '').trim().toLowerCase();
-        const contactPerson = (rfq.contactPerson || '').trim().toLowerCase();
-        return (
-          rfqNumber.includes(normalizedSearch) ||
-          contactPerson.includes(normalizedSearch)
-        );
-      });
-    }
-
-    // Status filter
-    if (statusFilter) {
-      filtered = filtered.filter(rfq => rfq.status === statusFilter);
-    }
-
-    return filtered;
-  }, [allRfqs, searchTerm, statusFilter]);
-
-  // Note: Pagination is now server-side
+  // Note: Search and filter are now server-side, no client-side filtering needed
 
   return (
     <div>
@@ -176,7 +159,7 @@ const DirectorRfqList = () => {
             <Card className="mb-3">
               <Card.Body>
                 <Row className="g-3">
-                  <Col md={4}>
+                  <Col md={3}>
                     <InputGroup>
                       <InputGroup.Text><FaSearch /></InputGroup.Text>
                       <Form.Control
@@ -184,11 +167,23 @@ const DirectorRfqList = () => {
                         placeholder="Tìm theo mã RFQ, tên khách..."
                         value={searchTerm}
                         onChange={(e) => {
-                          setSearchTerm(e.target.value);
+                          const value = e.target.value.trim().replace(/\s+/g, ' ');
+                          setSearchTerm(value);
                           setCurrentPage(1);
                         }}
                       />
                     </InputGroup>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Label className="mb-1 small">Lọc theo ngày tạo</Form.Label>
+                    <Form.Control
+                      type="date"
+                      value={createdDateFilter}
+                      onChange={(e) => {
+                        setCreatedDateFilter(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                    />
                   </Col>
                   <Col md={3}>
                     <Form.Select

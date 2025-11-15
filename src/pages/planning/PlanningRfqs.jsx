@@ -201,27 +201,23 @@ const PlanningRfqs = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredRfqs.length > 0 ? filteredRfqs.map(rfq => {
-                          // Filter out SENT status (these are handled by Sales)
-                          if (rfq.status === 'SENT') return null;
-                          return (
+                        {filteredRfqs.length > 0 ? filteredRfqs.map(rfq => (
                             <tr key={rfq.id}>
-                            <td>{rfq.rfqNumber}</td>
-                            <td>{rfq.contactPerson || 'N/A'}</td>
-                            <td>{new Date(rfq.createdAt).toLocaleDateString('vi-VN')}</td>
-                            <td>
-                              <Badge bg={getStatusBadge(rfq.status)}>
-                                {getStatusText(rfq.status)}
-                              </Badge>
-                            </td>
-                            <td>
-                              <Button variant="primary" size="sm" onClick={() => handleViewDetails(rfq.id)}>
-                                Xem chi tiết
-                              </Button>
-                            </td>
-                          </tr>
-                          );
-                        }).filter(Boolean) : (
+                              <td>{rfq.rfqNumber}</td>
+                              <td>{rfq.contactPerson || 'N/A'}</td>
+                              <td>{new Date(rfq.createdAt).toLocaleDateString('vi-VN')}</td>
+                              <td>
+                                <Badge bg={getStatusBadge(rfq.status)}>
+                                  {getStatusText(rfq.status)}
+                                </Badge>
+                              </td>
+                              <td>
+                                <Button variant="primary" size="sm" onClick={() => handleViewDetails(rfq.id)}>
+                                  Xem chi tiết
+                                </Button>
+                              </td>
+                            </tr>
+                          )) : (
                           <tr>
                             <td colSpan="5" className="text-center">
                               {totalElements === 0 

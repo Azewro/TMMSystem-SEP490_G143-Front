@@ -1,10 +1,36 @@
 import apiClient from './apiConfig';
 
 export const customerService = {
-  // Get all customers
-  getAllCustomers: async () => {
-    const response = await apiClient.get('/v1/customers');
-    return response.data;
+  // Get all customers (with pagination and filters)
+  // If no pagination params provided, gets all customers (for backward compatibility)
+  getAllCustomers: async (page, size, search, isActive) => {
+    try {
+      // If page is undefined/null, get all customers without pagination (backward compatibility)
+      if (page === undefined || page === null) {
+        const response = await apiClient.get('/v1/customers', { params: { page: 0, size: 10000 } });
+        // Handle PageResponse
+        if (response.data && response.data.content) {
+          return response.data.content; // Return array for backward compatibility
+        }
+        return Array.isArray(response.data) ? response.data : [];
+      }
+      
+      // With pagination
+      const params = { page, size: size || 10 };
+      if (search) params.search = search;
+      if (isActive !== undefined) params.isActive = isActive;
+      
+      const response = await apiClient.get('/v1/customers', { params });
+      // Handle PageResponse
+      if (response.data && response.data.content) {
+        return response.data;
+      }
+      // Fallback for backward compatibility
+      return Array.isArray(response.data) ? response.data : [];
+    } catch (error) {
+      console.error("Error fetching customers:", error.response?.data);
+      throw new Error(error.response?.data?.message || 'Failed to fetch customers');
+    }
   },
 
   // Get customer by ID
