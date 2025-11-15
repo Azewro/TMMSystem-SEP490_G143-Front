@@ -46,10 +46,6 @@ const DirectorRfqList = () => {
         params.status = statusFilter.trim();
       }
       
-      if (createdDateFilter && createdDateFilter.trim()) {
-        params.createdDate = createdDateFilter.trim();
-      }
-      
       const response = await rfqService.getRfqs(params);
 
       // Handle PageResponse
@@ -65,8 +61,28 @@ const DirectorRfqList = () => {
         setTotalElements(response.length);
       }
 
+      // Filter by created date (client-side)
+      let filteredRfqs = rfqs;
+      if (createdDateFilter) {
+        filteredRfqs = rfqs.filter(rfq => {
+          if (!rfq.createdAt) return false;
+          try {
+            const rfqDate = new Date(rfq.createdAt).toISOString().split('T')[0];
+            return rfqDate === createdDateFilter;
+          } catch (e) {
+            console.error('Error parsing date:', rfq.createdAt, e);
+            return false;
+          }
+        });
+        // Update pagination info after filtering (approximate, since we only filter current page)
+        if (filteredRfqs.length !== rfqs.length) {
+          setTotalPages(Math.ceil(filteredRfqs.length / ITEMS_PER_PAGE) || 1);
+          setTotalElements(filteredRfqs.length);
+        }
+      }
+
       const enrichedData = await Promise.all(
-        (rfqs || []).map(async (rfq) => {
+        (filteredRfqs || []).map(async (rfq) => {
           if (rfq.customerId) {
             try {
               const customer = await customerService.getCustomerById(rfq.customerId);
