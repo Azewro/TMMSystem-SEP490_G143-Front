@@ -415,8 +415,8 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "Không tìm thấy chi tiết RFQ",
+          "200": {
+            "description": "Chi tiết RFQ",
             "content": {
               "*/*": {
                 "schema": {
@@ -425,8 +425,8 @@
               }
             }
           },
-          "200": {
-            "description": "Chi tiết RFQ",
+          "404": {
+            "description": "Không tìm thấy chi tiết RFQ",
             "content": {
               "*/*": {
                 "schema": {
@@ -550,8 +550,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Chi tiết báo giá",
+          "404": {
+            "description": "Không tìm thấy báo giá",
             "content": {
               "*/*": {
                 "schema": {
@@ -560,8 +560,8 @@
               }
             }
           },
-          "404": {
-            "description": "Không tìm thấy báo giá",
+          "200": {
+            "description": "Chi tiết báo giá",
             "content": {
               "*/*": {
                 "schema": {
@@ -2114,16 +2114,6 @@
               }
             }
           },
-          "404": {
-            "description": "Không tìm thấy kế hoạch sản xuất",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProductionPlanDto"
-                }
-              }
-            }
-          },
           "200": {
             "description": "Thành công - Kế hoạch đã được gửi để duyệt",
             "content": {
@@ -2134,6 +2124,16 @@
                   "status": "PENDING_APPROVAL",
                   "submittedAt": "2025-10-26T10:30:00Z",
                   "message": "Kế hoạch đã được gửi để phê duyệt"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy kế hoạch sản xuất",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionPlanDto"
                 }
               }
             }
@@ -2316,7 +2316,7 @@
           "Quản lý Kế hoạch Sản xuất"
         ],
         "summary": "Cập nhật công đoạn sản xuất",
-        "description": "Cập nhật máy, người phụ trách, thời gian và ghi chú cho một stage",
+        "description": "Cập nhật máy, người phụ trách, QC, thời gian và ghi chú cho một stage bằng một endpoint duy nhất",
         "operationId": "updateStage_1",
         "parameters": [
           {
@@ -2342,114 +2342,6 @@
         "responses": {
           "200": {
             "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProductionPlanStageDto"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/production-plans/stages/{stageId}/assign-qc": {
-      "put": {
-        "tags": [
-          "Quản lý Kế hoạch Sản xuất"
-        ],
-        "summary": "Gán QC cho công đoạn",
-        "description": "Gán người kiểm tra chất lượng (QC) cho stage",
-        "operationId": "assignQc",
-        "parameters": [
-          {
-            "name": "stageId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          },
-          {
-            "name": "userId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProductionPlanStageDto"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/production-plans/stages/{stageId}/assign-incharge": {
-      "put": {
-        "tags": [
-          "Quản lý Kế hoạch Sản xuất"
-        ],
-        "summary": "Gán người phụ trách cho công đoạn",
-        "description": "Gán user phụ trách (in-charge) cho một công đoạn trong kế hoạch sản xuất",
-        "operationId": "assignInCharge",
-        "parameters": [
-          {
-            "name": "stageId",
-            "in": "path",
-            "description": "ID của công đoạn",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            },
-            "example": 1
-          },
-          {
-            "name": "userId",
-            "in": "query",
-            "description": "ID của người phụ trách",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            },
-            "example": 5
-          }
-        ],
-        "responses": {
-          "404": {
-            "description": "Không tìm thấy công đoạn hoặc người dùng",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProductionPlanStageDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Lỗi server nội bộ",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProductionPlanStageDto"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "Thành công - Trả về công đoạn sau khi cập nhật",
             "content": {
               "*/*": {
                 "schema": {
@@ -5351,6 +5243,41 @@
         }
       }
     },
+    "/v1/production/work-orders/{woId}/assign-leaders": {
+      "post": {
+        "tags": [
+          "Production"
+        ],
+        "summary": "Bulk phân công leader cho các stage của Work Order",
+        "operationId": "bulkAssignLeaders",
+        "parameters": [
+          {
+            "name": "woId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductionStageDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/production/work-orders/{id}/submit-approval": {
       "post": {
         "tags": [
@@ -5885,6 +5812,88 @@
         }
       }
     },
+    "/v1/production/stages/{id}/assign-leader": {
+      "post": {
+        "tags": [
+          "Production"
+        ],
+        "summary": "Phân công leader cho Stage",
+        "operationId": "assignLeader",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "leaderUserId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionStageDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/production/stages/{id}/assign-kcs": {
+      "post": {
+        "tags": [
+          "Production"
+        ],
+        "summary": "Phân công QC cho Stage",
+        "operationId": "assignKcs",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "kcsUserId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionStageDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/production/plans/{planId}/create-order": {
       "post": {
         "tags": [
@@ -6078,6 +6087,47 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionOrderDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/production/orders/{id}/assign-technician": {
+      "post": {
+        "tags": [
+          "Production"
+        ],
+        "summary": "PM phân công kỹ thuật viên cho PO",
+        "operationId": "assignTechnician",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "technicianUserId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
             }
           }
         ],
@@ -6362,7 +6412,7 @@
           "Quản lý Kế hoạch Sản xuất"
         ],
         "summary": "Tự động gán máy móc cho công đoạn sản xuất",
-        "description": "Tự động gán máy móc phù hợp nhất cho một công đoạn sản xuất dựa trên thuật toán thông minh. Hệ thống sẽ chọn máy có điểm số cao nhất và cập nhật thông tin công đoạn",
+        "description": "Chọn máy có điểm số cao nhất cho stage",
         "operationId": "autoAssignMachineToStage",
         "parameters": [
           {
@@ -6378,34 +6428,8 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "Không tìm thấy công đoạn sản xuất",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProductionPlanStageDto"
-                }
-              }
-            }
-          },
           "200": {
-            "description": "Thành công - Máy móc đã được gán tự động",
-            "content": {
-              "application/json": {
-                "example": {
-                  "id": 1,
-                  "stageType": "WARPING",
-                  "assignedMachineId": 1,
-                  "assignedMachineName": "Máy cuộn mắc 01",
-                  "plannedStartTime": "2025-10-28T08:00:00",
-                  "plannedEndTime": "2025-10-28T12:00:00",
-                  "message": "Máy móc đã được gán tự động thành công"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Lỗi server nội bộ",
+            "description": "OK",
             "content": {
               "*/*": {
                 "schema": {
@@ -6413,13 +6437,36 @@
                 }
               }
             }
-          },
-          "400": {
-            "description": "Không có máy móc phù hợp",
+          }
+        }
+      }
+    },
+    "/v1/production-plans/create-from-lot": {
+      "post": {
+        "tags": [
+          "Quản lý Kế hoạch Sản xuất"
+        ],
+        "summary": "Tạo kế hoạch từ Lot",
+        "description": "Tạo bản kế hoạch DRAFT và lock Lot sang PLANNING",
+        "operationId": "createFromLot",
+        "parameters": [
+          {
+            "name": "lotId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProductionPlanStageDto"
+                  "$ref": "#/components/schemas/ProductionPlanDto"
                 }
               }
             }
@@ -8337,6 +8384,75 @@
         }
       }
     },
+    "/v1/quotations/{id}/file-url": {
+      "get": {
+        "tags": [
+          "quotation-controller"
+        ],
+        "summary": "Lấy URL file báo giá",
+        "description": "Lấy URL để download file báo giá đã ký",
+        "operationId": "getQuotationFileUrl",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID báo giá",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/quotations/{id}/download": {
+      "get": {
+        "tags": [
+          "quotation-controller"
+        ],
+        "summary": "Download báo giá đã ký",
+        "description": "Tải trực tiếp file báo giá đã ký",
+        "operationId": "downloadSignedQuotation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID báo giá",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "byte"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/quotations/pending": {
       "get": {
         "tags": [
@@ -9111,6 +9227,26 @@
           }
         ],
         "responses": {
+          "404": {
+            "description": "Không tìm thấy kế hoạch sản xuất với ID này",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionPlanDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Lỗi server nội bộ",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionPlanDto"
+                }
+              }
+            }
+          },
           "200": {
             "description": "Thành công - Trả về chi tiết kế hoạch sản xuất",
             "content": {
@@ -9135,26 +9271,6 @@
                       ]
                     }
                   ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Không tìm thấy kế hoạch sản xuất với ID này",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProductionPlanDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Lỗi server nội bộ",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProductionPlanDto"
                 }
               }
             }
@@ -9237,7 +9353,7 @@
           "Quản lý Kế hoạch Sản xuất"
         ],
         "summary": "Lấy gợi ý máy móc cho công đoạn sản xuất",
-        "description": "Lấy danh sách gợi ý máy móc thông minh cho một công đoạn sản xuất cụ thể, bao gồm phân tích khả dụng và công suất. Hệ thống sẽ tự động tính toán và xếp hạng các máy phù hợp nhất",
+        "description": "Gợi ý máy móc theo stageId với phân tích khả dụng và công suất",
         "operationId": "getMachineSuggestionsForStage",
         "parameters": [
           {
@@ -9253,70 +9369,16 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "Không tìm thấy công đoạn sản xuất",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/MachineSuggestionDto"
-                  }
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Lỗi server nội bộ",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/MachineSuggestionDto"
-                  }
-                }
-              }
-            }
-          },
           "200": {
             "description": "Thành công - Trả về danh sách gợi ý máy móc",
             "content": {
-              "application/json": {
-                "example": [
-                  {
-                    "machineId": 1,
-                    "machineCode": "CM-01",
-                    "machineName": "Máy cuộn mắc 01",
-                    "machineType": "WARPING",
-                    "location": "Khu A",
-                    "capacityPerHour": 200,
-                    "estimatedDurationHours": 4,
-                    "canHandleQuantity": true,
-                    "available": true,
-                    "availabilityScore": 100,
-                    "conflicts": [],
-                    "suggestedStartTime": "2025-10-28T08:00:00",
-                    "suggestedEndTime": "2025-10-28T12:00:00",
-                    "priorityScore": 95.5
-                  },
-                  {
-                    "machineId": null,
-                    "machineCode": "OUTSOURCE-DYEING",
-                    "machineName": "Nhà cung cấp nhuộm bên ngoài",
-                    "machineType": "DYEING",
-                    "location": "Outsourced",
-                    "capacityPerHour": 999999,
-                    "estimatedDurationHours": 24,
-                    "canHandleQuantity": true,
-                    "available": true,
-                    "availabilityScore": 100,
-                    "conflicts": [
-                      "Cần liên hệ nhà cung cấp nhuộm trước"
-                    ],
-                    "priorityScore": 90
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MachineSuggestionDto"
                   }
-                ]
+                }
               }
             }
           }
@@ -9329,7 +9391,7 @@
           "Quản lý Kế hoạch Sản xuất"
         ],
         "summary": "Kiểm tra xung đột lịch trình cho công đoạn sản xuất",
-        "description": "Kiểm tra xem có xung đột lịch trình nào cho một công đoạn sản xuất cụ thể không. Bao gồm kiểm tra bảo trì máy, công đoạn khác và phân công máy",
+        "description": "Trả về danh sách xung đột (nếu có) cho stage",
         "operationId": "checkStageScheduleConflicts",
         "parameters": [
           {
@@ -9345,40 +9407,16 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "Không tìm thấy công đoạn sản xuất",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Lỗi server nội bộ",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          },
           "200": {
-            "description": "Thành công - Trả về danh sách xung đột (nếu có)",
+            "description": "OK",
             "content": {
-              "application/json": {
-                "example": [
-                  "Máy CM-01 đang trong thời gian bảo trì từ 2025-10-28 08:00 đến 2025-10-28 10:00",
-                  "Máy CM-01 đã được phân công cho công đoạn khác từ 2025-10-28 14:00 đến 2025-10-28 18:00"
-                ]
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
               }
             }
           }
@@ -9415,120 +9453,6 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/ProductionPlanDto"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/production-plans/machine-suggestions": {
-      "get": {
-        "tags": [
-          "Quản lý Kế hoạch Sản xuất"
-        ],
-        "summary": "Get machine suggestions for new stage",
-        "description": "Get machine suggestions when creating a new production stage",
-        "operationId": "getMachineSuggestions",
-        "parameters": [
-          {
-            "name": "stageType",
-            "in": "query",
-            "description": "Type of production stage",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "WARPING",
-                "WEAVING",
-                "DYEING",
-                "CUTTING",
-                "SEWING",
-                "PACKAGING"
-              ]
-            },
-            "example": "WARPING"
-          },
-          {
-            "name": "productId",
-            "in": "query",
-            "description": "ID of the product",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            },
-            "example": 1
-          },
-          {
-            "name": "requiredQuantity",
-            "in": "query",
-            "description": "Required quantity to produce",
-            "required": true,
-            "schema": {
-              "type": "number"
-            },
-            "example": 1000
-          },
-          {
-            "name": "preferredStartTime",
-            "in": "query",
-            "description": "Preferred start time (optional)",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "date-time"
-            },
-            "example": "2025-10-28T08:00:00"
-          },
-          {
-            "name": "preferredEndTime",
-            "in": "query",
-            "description": "Preferred end time (optional)",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "date-time"
-            },
-            "example": "2025-10-28T17:00:00"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successfully retrieved machine suggestions",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/MachineSuggestionDto"
-                  }
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/MachineSuggestionDto"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid parameters",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/MachineSuggestionDto"
                   }
                 }
               }
@@ -9771,6 +9695,42 @@
         }
       }
     },
+    "/v1/production-lots/{id}/contracts": {
+      "get": {
+        "tags": [
+          "Production Lots"
+        ],
+        "summary": "Lấy danh sách hợp đồng đã merge",
+        "description": "Trả về chi tiết các contract nằm trong lot với số lượng đã phân bổ",
+        "operationId": "mergedContracts",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductionLotContractDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/payments/contracts/{contractId}": {
       "get": {
         "tags": [
@@ -9972,16 +9932,6 @@
               }
             }
           },
-          "400": {
-            "description": "Tỷ lệ hao hụt không hợp lệ (phải từ 0% đến 50%)",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/MaterialConsumptionResult"
-                }
-              }
-            }
-          },
           "200": {
             "description": "Thành công - Đã tính toán tiêu hao nguyên vật liệu với hao hụt tùy chỉnh",
             "content": {
@@ -9995,6 +9945,16 @@
                   "totalBasicQuantity": 200,
                   "totalWasteAmount": 30,
                   "message": "Tính toán với tỷ lệ hao hụt 15%"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Tỷ lệ hao hụt không hợp lệ (phải từ 0% đến 50%)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaterialConsumptionResult"
                 }
               }
             }
@@ -11064,6 +11024,76 @@
         }
       }
     },
+    "/v1/contracts/assigned/sales/{userId}": {
+      "get": {
+        "tags": [
+          "contract-controller"
+        ],
+        "summary": "Danh sách hợp đồng theo Sales được phân công",
+        "operationId": "getByAssignedSales",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ContractDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/contracts/assigned/planning/{userId}": {
+      "get": {
+        "tags": [
+          "contract-controller"
+        ],
+        "summary": "Danh sách hợp đồng theo Planning được phân công",
+        "operationId": "getByAssignedPlanning",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ContractDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/auth/customer/verify": {
       "get": {
         "tags": [
@@ -11152,13 +11182,13 @@
         "tags": [
           "file-controller"
         ],
-        "summary": "Get file by filename - Display inline for images, download for others",
+        "summary": "Serve stored file by filename",
         "operationId": "getFile",
         "parameters": [
           {
             "name": "filename",
             "in": "path",
-            "description": "Filename to retrieve",
+            "description": "Tên file",
             "required": true,
             "schema": {
               "type": "string"
@@ -11167,20 +11197,9 @@
         ],
         "responses": {
           "200": {
-            "description": "File retrieved successfully",
+            "description": "OK",
             "content": {
-              "*/*": {
-                "schema": {
-                  "type": "string",
-                  "format": "byte"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "File not found",
-            "content": {
-              "*/*": {
+              "application/octet-stream": {
                 "schema": {
                   "type": "string",
                   "format": "byte"
@@ -12014,6 +12033,10 @@
           "qcLastCheckedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "qcAssigneeId": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -12098,6 +12121,12 @@
           "status": {
             "type": "string"
           },
+          "assignedSales": {
+            "$ref": "#/components/schemas/User"
+          },
+          "assignedPlanning": {
+            "$ref": "#/components/schemas/User"
+          },
           "directorApprovedBy": {
             "$ref": "#/components/schemas/User"
           },
@@ -12107,6 +12136,20 @@
           },
           "directorApprovalNotes": {
             "type": "string"
+          },
+          "salesApprovedBy": {
+            "$ref": "#/components/schemas/User"
+          },
+          "salesApprovedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "planningApprovedBy": {
+            "$ref": "#/components/schemas/User"
+          },
+          "planningApprovedAt": {
+            "type": "string",
+            "format": "date-time"
           },
           "createdBy": {
             "$ref": "#/components/schemas/User"
@@ -12375,6 +12418,13 @@
           "approvedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "assignedTechnician": {
+            "$ref": "#/components/schemas/User"
+          },
+          "assignedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -12491,6 +12541,9 @@
           "qcLastCheckedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "qcAssignee": {
+            "$ref": "#/components/schemas/User"
           }
         }
       },
@@ -13072,6 +13125,14 @@
             "items": {
               "$ref": "#/components/schemas/ProductionOrderDetailDto"
             }
+          },
+          "assignedTechnicianId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "assignedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -14120,11 +14181,35 @@
             "type": "integer",
             "format": "int64"
           },
+          "assignedSalesId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "assignedPlanningId": {
+            "type": "integer",
+            "format": "int64"
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
           },
           "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "salesApprovedById": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "salesApprovedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "planningApprovedById": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "planningApprovedAt": {
             "type": "string",
             "format": "date-time"
           }
@@ -15378,6 +15463,29 @@
           }
         }
       },
+      "ProductionLotContractDto": {
+        "type": "object",
+        "properties": {
+          "contractId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "contractNumber": {
+            "type": "string"
+          },
+          "allocatedQuantity": {
+            "type": "number"
+          },
+          "contractDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "deliveryDate": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
       "ProductionLotDto": {
         "type": "object",
         "properties": {
@@ -15431,6 +15539,16 @@
           },
           "currentPlanStatus": {
             "type": "string"
+          },
+          "mergedContracts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductionLotContractDto"
+            }
+          },
+          "totalContractsCount": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },

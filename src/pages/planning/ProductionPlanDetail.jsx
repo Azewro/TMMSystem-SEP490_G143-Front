@@ -9,6 +9,7 @@ import { userService } from '../../api/userService';
 import { contractService } from '../../api/contractService';
 import { machineService } from '../../api/machineService';
 import { FaPaperPlane, FaTimes } from 'react-icons/fa';
+import toast from 'react-hot-toast';
 import '../../styles/ProductionPlanDetail.css'; // Import the new CSS file
 
 const formatDateForInput = (isoDate) => {
@@ -228,29 +229,30 @@ const ProductionPlanDetail = () => {
             };
         });
         
-        // For machine assignment, in-charge, QC - can use dedicated endpoints or updateStage
-        // According to guide, both methods are supported. We'll use updateStage for consistency
-        // unless it's a simple assignment that can be done via dedicated endpoint
         const stage = editablePlan?.details?.[0]?.stages?.find(s => s.id === stageId);
         if (!stage) return;
         
-        // If assigning in-charge or QC, we can use dedicated API for immediate feedback
-        // But we'll also save via updateStage in handleSubmit for consistency
-        if (field === 'inChargeId' && value) {
+        // Use the consolidated updateStage endpoint as per documentation
+        if (field === 'inChargeId') {
             try {
-                await productionPlanService.assignInCharge(stageId, value);
+                await productionPlanService.updateStage(stageId, { inChargeUserId: value ? parseInt(value, 10) : null });
+                toast.success('Đã cập nhật người phụ trách.');
             } catch (err) {
                 console.error('Failed to assign in-charge:', err);
                 setError('Lỗi khi gán người phụ trách: ' + (err.message || ''));
+                toast.error('Lỗi khi gán người phụ trách.');
             }
-        } else if (field === 'inspectionById' && value) {
+        } else if (field === 'inspectionById') {
             try {
-                await productionPlanService.assignQC(stageId, value);
+                await productionPlanService.updateStage(stageId, { qcUserId: value ? parseInt(value, 10) : null });
+                toast.success('Đã cập nhật người kiểm tra.');
             } catch (err) {
                 console.error('Failed to assign QC:', err);
                 setError('Lỗi khi gán người kiểm tra: ' + (err.message || ''));
+                toast.error('Lỗi khi gán người kiểm tra.');
             }
         }
+        // Other fields like assignedMachineId, plannedStartTime, etc. will be saved on final submit
     };
 
     const handleSubmit = async () => {

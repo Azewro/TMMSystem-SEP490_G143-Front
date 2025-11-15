@@ -125,7 +125,7 @@ const MyRfqs = () => {
                       <tbody>
                         {currentRfqs.length > 0 ? currentRfqs.map(rfq => (
                           <tr key={rfq.id}>
-                            <td>{rfq.id}</td>
+                            <td>{rfq.rfqNumber}</td>
                             <td>{rfq.contactPerson || 'N/A'}</td>
                             <td>{new Date(rfq.createdAt).toLocaleDateString('vi-VN')}</td>
                             <td>

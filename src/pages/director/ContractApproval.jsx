@@ -130,15 +130,9 @@ const DirectorContractApproval = () => {
       // Step 1: Approve the contract
       await contractService.approveContract(selectedContract.id, directorId, decision.note.trim() || undefined);
       
-      // Step 2: Automatically create a production plan
-      try {
-        await productionPlanService.createPlanFromContract(selectedContract.id);
-        setSuccess('Đã phê duyệt hợp đồng. Kế hoạch sản xuất đã được tự động tạo và chuyển cho bộ phận Kế hoạch.');
-      } catch (planError) {
-        console.error('Failed to auto-create production plan', planError);
-        // Show a non-blocking error, the main action (approval) was successful
-        setSuccess(`Đã phê duyệt hợp đồng. Tuy nhiên, có lỗi xảy ra khi tự động tạo kế hoạch sản xuất: ${planError.message}`);
-      }
+      // The backend will now automatically merge the lot and create a plan.
+      // We just need to show a success message.
+      setSuccess('Đã phê duyệt hợp đồng. Hệ thống sẽ tự động tạo kế hoạch sản xuất và chuyển cho bộ phận Kế hoạch.');
 
       closeModal();
       loadContracts();

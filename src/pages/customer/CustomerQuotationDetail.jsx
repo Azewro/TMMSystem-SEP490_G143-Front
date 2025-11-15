@@ -332,14 +332,14 @@ const CustomerQuotationDetail = () => {
 
             {quote && (
               <div className="d-flex justify-content-end gap-2 mt-4">
-                <Button 
-                  variant="danger" 
-                  size="lg"
-                  disabled={working || quote.status !== 'SENT'}
-                >
-                  <FaTimesCircle className="me-2" /> Từ Chối
-                </Button>
-                <Button 
+                                <Button
+                                  variant="danger"
+                                  size="lg"
+                                  onClick={() => setConfirm({ type: 'REJECTED', open: true })}
+                                  disabled={working || quote.status !== 'SENT'}
+                                >
+                                  <FaTimesCircle className="me-2" /> Từ Chối
+                                </Button>                <Button 
                   variant="success" 
                   size="lg"
                   onClick={handleAcceptClick} 

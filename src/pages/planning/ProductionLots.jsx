@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Container, Card, Table, Button, Spinner, Alert, Badge } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import Pagination from '../../components/Pagination';
 import { productionPlanService } from '../../api/productionPlanService';
+import { FaSync } from 'react-icons/fa';
 import '../../styles/QuoteRequests.css';
 
 const STATUS_LABELS = {
@@ -32,7 +33,7 @@ const ProductionLots = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
 
-  const loadProductionLots = async () => {
+  const loadProductionLots = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -47,11 +48,11 @@ const ProductionLots = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadProductionLots();
-  }, []);
+  }, [loadProductionLots]);
 
   const indexOfLastLot = currentPage * ITEMS_PER_PAGE;
   const indexOfFirstLot = indexOfLastLot - ITEMS_PER_PAGE;
@@ -71,7 +72,7 @@ const ProductionLots = () => {
       navigate(`/planning/production-plans/${planId}`);
     } catch (err) {
       console.error('Failed to create or navigate to plan', err);
-      setError(err.message || 'Lỗi khi tạo kế hoạch sản xuất.');
+      setError(err.message || 'Lỗi khi tạo kế hoạch sản xuất từ lô.');
     }
   };
 
@@ -82,9 +83,15 @@ const ProductionLots = () => {
         <InternalSidebar userRole="planning" />
         <div className="flex-grow-1 p-4" style={{ backgroundColor: '#f8f9fa' }}>
           <Container fluid>
-            <div className="mb-4">
-              <h2 className="mb-2">Đơn Hàng Đã Merge (Auto)</h2>
-              <p className="text-muted mb-0">Hệ thống tự động merge các đơn hàng: cùng sản phẩm, cùng ngày giao (±1), cùng ngày ký (±1)</p>
+            <div className="d-flex justify-content-between align-items-center mb-4">
+              <div>
+                <h2 className="mb-2">Đơn Hàng Đã Merge (Auto)</h2>
+                <p className="text-muted mb-0">Hệ thống tự động merge các đơn hàng: cùng sản phẩm, cùng ngày giao (±1), cùng ngày ký (±1)</p>
+              </div>
+              <Button variant="outline-primary" onClick={loadProductionLots} disabled={loading}>
+                <FaSync className={loading ? 'fa-spin' : ''} />
+                <span className="ms-2">Làm mới</span>
+              </Button>
             </div>
 
             {error && (
@@ -102,7 +109,8 @@ const ProductionLots = () => {
                   <div className="text-center"><Spinner animation="border" /></div>
                 ) : productionLots.length === 0 ? (
                   <Alert variant="info" className="text-center">
-                    Không có lô sản xuất nào cần lập kế hoạch.
+                    <p className="mb-1">Không có lô sản xuất nào cần lập kế hoạch.</p>
+                    <small className="text-muted">Lưu ý: Có thể mất vài phút để hệ thống tự động gộp đơn hàng sau khi hợp đồng được duyệt.</small>
                   </Alert>
                 ) : (
                   <>

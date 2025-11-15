@@ -43,7 +43,13 @@ export const productionPlanService = {
   // Create plan from lot - according to Production Planning Guide
   createPlanFromLot: async (lotId) => {
     try {
-      const response = await apiClient.post(`/v1/production-plans/create-from-lot?lotId=${lotId}`);
+      // The API spec confirms this is a POST with a query param and no body.
+      // The 400 error might be due to the Content-Type header. Let's try removing it for this call.
+      const response = await apiClient.post(`/v1/production-plans/create-from-lot?lotId=${lotId}`, null, {
+        headers: {
+          'Content-Type': null
+        }
+      });
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Lỗi khi tạo kế hoạch sản xuất từ lô.');
@@ -111,7 +117,7 @@ export const productionPlanService = {
   // Assign in-charge user to a stage - according to Production Planning Guide
   assignInCharge: async (stageId, userId) => {
     try {
-      const response = await apiClient.put(`/v1/production-plans/stages/${stageId}/assign-incharge?userId=${userId}`);
+      const response = await apiClient.put(`/v1/production-plans/stages/${stageId}/assign-incharge?userId=${userId}`, null);
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Lỗi khi gán người phụ trách.');
@@ -121,7 +127,7 @@ export const productionPlanService = {
   // Assign QC user to a stage - according to Production Planning Guide
   assignQC: async (stageId, userId) => {
     try {
-      const response = await apiClient.put(`/v1/production-plans/stages/${stageId}/assign-qc?userId=${userId}`);
+      const response = await apiClient.put(`/v1/production-plans/stages/${stageId}/assign-qc?userId=${userId}`, null);
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Lỗi khi gán người kiểm tra chất lượng.');
