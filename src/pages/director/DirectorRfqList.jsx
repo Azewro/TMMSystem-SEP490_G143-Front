@@ -31,13 +31,26 @@ const DirectorRfqList = () => {
     try {
       // Convert 1-based page to 0-based for backend
       const page = currentPage - 1;
-      const response = await rfqService.getRfqs({ 
-        page, 
-        size: ITEMS_PER_PAGE, 
-        search: searchTerm || undefined, 
-        status: statusFilter || undefined,
-        createdDate: createdDateFilter || undefined
-      });
+      
+      // Prepare parameters - only include non-empty values
+      const params = {
+        page,
+        size: ITEMS_PER_PAGE
+      };
+      
+      if (searchTerm && searchTerm.trim()) {
+        params.search = searchTerm.trim();
+      }
+      
+      if (statusFilter && statusFilter.trim()) {
+        params.status = statusFilter.trim();
+      }
+      
+      if (createdDateFilter && createdDateFilter.trim()) {
+        params.createdDate = createdDateFilter.trim();
+      }
+      
+      const response = await rfqService.getRfqs(params);
 
       // Handle PageResponse
       let rfqs = [];
@@ -73,7 +86,11 @@ const DirectorRfqList = () => {
       setAllRfqs(enrichedData);
     } catch (err) {
       console.error('Error fetching RFQs:', err);
-      setError('Lỗi khi tải danh sách RFQ: ' + (err.message || 'Lỗi không xác định'));
+      const errorMessage = err.response?.data?.message || err.message || 'Lỗi không xác định';
+      setError('Lỗi khi tải danh sách RFQ: ' + errorMessage);
+      setAllRfqs([]);
+      setTotalPages(1);
+      setTotalElements(0);
     } finally {
       setLoading(false);
     }
@@ -167,9 +184,25 @@ const DirectorRfqList = () => {
                         placeholder="Tìm theo mã RFQ, tên khách..."
                         value={searchTerm}
                         onChange={(e) => {
-                          const value = e.target.value.trim().replace(/\s+/g, ' ');
-                          setSearchTerm(value);
-                          setCurrentPage(1);
+                          setSearchTerm(e.target.value);
+                        }}
+                        onBlur={(e) => {
+                          // Normalize on blur, not on every keystroke
+                          const normalized = e.target.value.trim().replace(/\s+/g, ' ');
+                          if (normalized !== searchTerm) {
+                            setSearchTerm(normalized);
+                            setCurrentPage(1);
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const normalized = searchTerm.trim().replace(/\s+/g, ' ');
+                            if (normalized !== searchTerm) {
+                              setSearchTerm(normalized);
+                            }
+                            setCurrentPage(1);
+                          }
                         }}
                       />
                     </InputGroup>

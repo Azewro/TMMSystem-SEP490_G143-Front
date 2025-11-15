@@ -27,17 +27,18 @@ export const rfqService = {
         page: params.page !== undefined ? params.page : 0,
         size: params.size !== undefined ? params.size : 10
       };
-      // Add optional parameters
-      if (params.search) paginationParams.search = params.search;
-      if (params.status) paginationParams.status = params.status;
+      // Add optional parameters (only if they have truthy values)
+      if (params.search && params.search.trim()) paginationParams.search = params.search.trim();
+      if (params.status && params.status.trim()) paginationParams.status = params.status.trim();
       if (params.customerId) paginationParams.customerId = params.customerId;
-      if (params.createdDate) paginationParams.createdDate = params.createdDate;
+      if (params.createdDate && params.createdDate.trim()) paginationParams.createdDate = params.createdDate.trim();
       
       const response = await apiClient.get('/v1/rfqs', { params: paginationParams });
       return response.data;
     } catch (error) {
-      console.error("Error fetching RFQs:", error.response?.data);
-      throw new Error(error.response?.data?.message || 'Failed to fetch RFQs');
+      console.error("Error fetching RFQs:", error.response?.data || error.message);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch RFQs';
+      throw new Error(errorMessage);
     }
   },
 
