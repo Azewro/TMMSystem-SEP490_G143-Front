@@ -139,7 +139,7 @@ const AssignRfqModal = ({ show, onHide, rfqId, onAssignmentSuccess }) => {
                   <Col md={6}><strong>Khách hàng:</strong> {rfqDetails.contactPerson || 'N/A'}</Col>
                   <Col md={6}><strong>Số điện thoại:</strong> {rfqDetails.contactPhone || 'N/A'}</Col>
                   <Col md={6}><strong>Email:</strong> {rfqDetails.contactEmail || 'N/A'}</Col>
-                  <Col md={6}><strong>Địa chỉ:</strong> {rfqDetails.contactAddress || 'N/A'}</Col>
+                  <Col md={6}><strong>Địa chỉ nhận hàng:</strong> {rfqDetails.contactAddress || 'N/A'}</Col>
                   <Col md={6}><strong>Phương thức liên hệ:</strong> {rfqDetails.contactMethod === 'PHONE' ? 'Điện thoại' : rfqDetails.contactMethod === 'EMAIL' ? 'Email' : rfqDetails.contactMethod || 'N/A'}</Col>
                 </Row>
                 <h6>Chi tiết sản phẩm</h6>

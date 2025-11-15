@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Container, Row, Col, Card, Table, Button, Alert, Spinner, Modal, Form, Badge } from 'react-bootstrap';
-import { FaArrowLeft, FaCogs, FaWarehouse, FaFileInvoice, FaInbox, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+import { FaArrowLeft, FaCogs, FaFileInvoice, FaInbox, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
@@ -26,6 +26,9 @@ const PlanningRFQDetail = () => {
   const [quoteData, setQuoteData] = useState({ profitMargin: 10, notes: '' });
   const [pricingData, setPricingData] = useState(null);
   const [pricingLoading, setPricingLoading] = useState(false);
+
+  const [showCapacityReportModal, setShowCapacityReportModal] = useState(false);
+  const [capacityReportData, setCapacityReportData] = useState(null);
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -95,38 +98,42 @@ const PlanningRFQDetail = () => {
     }
   };
 
-  const handleCapacityCheck = async (checkType) => {
+  const handleCapacityCheck = async () => {
     setWorking(true);
     try {
-      let result;
-      let isSufficient = false;
-
-      if (checkType === 'machine') {
-        result = await quoteService.checkMachineCapacity(id);
-        isSufficient = result?.machineCapacity?.sufficient;
-      } else {
-        result = await quoteService.checkWarehouseCapacity(id);
-        isSufficient = result?.warehouseCapacity?.sufficient;
-      }
+      const result = await quoteService.checkMachineCapacity(id);
+      const isSufficient = result?.machineCapacity?.sufficient;
+      
+      // Lưu dữ liệu báo cáo để hiển thị sau
+      setCapacityReportData(result?.machineCapacity);
       
       if (isSufficient) {
-        toast.success(`Kiểm tra ${checkType === 'machine' ? 'máy móc' : 'kho'}: Đủ năng lực.`);
+        toast.success('Kiểm tra máy móc: Đủ năng lực.');
         // Call the evaluation endpoint but don't use its response, as it's missing the required flags.
-        await quoteService.evaluateCapacity(id, { status: 'SUFFICIENT', checkType });
+        await quoteService.evaluateCapacity(id, { status: 'SUFFICIENT', checkType: 'machine' });
         
         // Manually update the state to reflect the successful check.
         setRFQData(prevRfqData => ({
           ...prevRfqData,
-          ...(checkType === 'machine' && { machineCapacitySufficient: true }),
-          ...(checkType === 'warehouse' && { warehouseCapacitySufficient: true }),
+          machineCapacitySufficient: true,
         }));
 
+        // Tự động mở modal báo cáo chi tiết
+        setShowCapacityReportModal(true);
       } else {
-        setShowInsufficientModal(true);
+        // Không đủ năng lực - chỉ mở modal báo cáo, không tự động mở modal insufficient
+        toast.error('Kiểm tra máy móc: Không đủ năng lực.');
+        setShowCapacityReportModal(true);
+        
+        // Cập nhật state để hiển thị nút gửi thông báo
+        setRFQData(prevRfqData => ({
+          ...prevRfqData,
+          machineCapacitySufficient: false,
+        }));
       }
     } catch (err) {
-      toast.error(err.message || `Lỗi khi kiểm tra năng lực ${checkType}.`);
-      setShowInsufficientModal(true);
+      toast.error(err.message || 'Lỗi khi kiểm tra năng lực máy móc.');
+      // Không tự động mở modal insufficient khi có lỗi
     } finally {
       setWorking(false);
     }
@@ -140,9 +147,14 @@ const PlanningRFQDetail = () => {
         reason,
         proposedNewDate: proposedNewDate || undefined
       });
-      toast.success('Đã gửi thông báo năng lực không đủ cho bộ phận Sales.');
+      toast.success('Đã gửi thông báo năng lực không đủ cho bộ phận Sales. RFQ đã được trả về cho Sales để xử lý.');
       setShowInsufficientModal(false);
-      loadRFQ();
+      // Reload RFQ data để cập nhật trạng thái
+      await loadRFQ();
+      // Chuyển về danh sách sau 2 giây vì RFQ đã không còn trong danh sách Planning
+      setTimeout(() => {
+        navigate('/planning/rfqs');
+      }, 2000);
     } catch (err) {
       toast.error(err.message || 'Lỗi khi gửi thông báo.');
     } finally {
@@ -210,6 +222,35 @@ const PlanningRFQDetail = () => {
     try { return new Date(dateString).toLocaleDateString('vi-VN'); } catch { return dateString; }
   };
 
+  // Quy đổi ngày sang giờ làm việc (1 ngày = 8 giờ)
+  const daysToHours = (days) => {
+    if (!days || days === 0) return '0 giờ';
+    const hours = days * 8;
+    return `${hours.toFixed(2)} giờ`;
+  };
+
+  // Format năng lực với đơn vị phù hợp
+  const formatCapacity = (stageType, capacity) => {
+    if (capacity === null || capacity === undefined) return 'N/A';
+    
+    // Nhuộm vải là outsource
+    if (stageType === 'DYEING') {
+      return 'Khác';
+    }
+    
+    // Mắc cuồng và Dệt vải: Kg
+    if (stageType === 'WARPING' || stageType === 'WEAVING') {
+      return `${capacity.toFixed(2)} Kg`;
+    }
+    
+    // Cắt vải và May thành phẩm: khăn
+    if (stageType === 'CUTTING' || stageType === 'SEWING') {
+      return `${capacity.toFixed(2)} khăn`;
+    }
+    
+    return `${capacity.toFixed(2)}`;
+  };
+
   if (loading) {
     return <div className="d-flex vh-100 justify-content-center align-items-center"><Spinner animation="border" /></div>;
   }
@@ -221,7 +262,10 @@ const PlanningRFQDetail = () => {
   const currentStatus = rfqData?.status || 'FORWARDED_TO_PLANNING';
   const canReceive = currentStatus === 'FORWARDED_TO_PLANNING';
   const canCheckCapacity = currentStatus === 'RECEIVED_BY_PLANNING';
-  const canCreateQuote = rfqData?.machineCapacitySufficient && rfqData?.warehouseCapacitySufficient && currentStatus === 'RECEIVED_BY_PLANNING';
+  const canCreateQuote = rfqData?.machineCapacitySufficient && currentStatus === 'RECEIVED_BY_PLANNING';
+  const canShowReport = capacityReportData !== null; // Hiển thị báo cáo cả khi đủ và không đủ
+  const hasCheckedCapacity = capacityReportData !== null; // Đã kiểm tra năng lực
+  const isInsufficient = hasCheckedCapacity && rfqData?.machineCapacitySufficient === false; // Không đủ năng lực
 
   return (
     <div>
@@ -247,7 +291,7 @@ const PlanningRFQDetail = () => {
                                   <p className="mb-1"><strong>Khách hàng:</strong> {rfqData?.contactPerson || '—'}</p>
                                   <p className="mb-1"><strong>Số điện thoại:</strong> {rfqData?.contactPhone || '—'}</p>
                                   <p className="mb-1"><strong>Email:</strong> {rfqData?.contactEmail || '—'}</p>
-                                  <p className="mb-1"><strong>Địa chỉ:</strong> {rfqData?.contactAddress || '—'}</p>
+                                  <p className="mb-1"><strong>Địa chỉ nhận hàng:</strong> {rfqData?.contactAddress || '—'}</p>
                                 </Col>
                                 <Col md={6}>
                                   <p className="mb-1"><strong>Ngày tạo RFQ:</strong> {formatDate(rfqData?.createdAt)}</p>
@@ -307,31 +351,29 @@ const PlanningRFQDetail = () => {
                                                       <Col md={12}>
                                                         <Card border={canCheckCapacity ? 'primary' : 'light'}>
                                                           <Card.Body>
-                                                            <h6 className="mb-3"><FaCogs className="me-2" />Bước 2: Kiểm tra năng lực</h6>
+                                                            <h6 className="mb-3"><FaCogs className="me-2" />Bước 2: Kiểm tra năng lực máy móc</h6>
                                                             <Row>
-                                                              <Col md={6} className="d-flex flex-column mb-2 mb-md-0">
-                                                                <div className="d-flex justify-content-between align-items-center">
+                                                              <Col md={12} className="d-flex flex-column">
+                                                                <div className="d-flex justify-content-between align-items-center mb-2">
                                                                   <span>Kiểm tra máy móc:</span>
                                                                   <span>
                                                                     {rfqData?.machineCapacitySufficient === true && <FaCheckCircle className="text-success" />}
                                                                     {rfqData?.machineCapacitySufficient === false && <FaTimesCircle className="text-danger" />}
                                                                   </span>
                                                                 </div>
-                                                                <Button variant="outline-info" size="sm" className="mt-2" onClick={() => handleCapacityCheck('machine')} disabled={!canCheckCapacity || working || rfqData?.machineCapacitySufficient === true}>
-                                                                  {working ? 'Đang chạy...' : 'Chạy kiểm tra máy móc'}
-                                                                </Button>
-                                                              </Col>
-                                                              <Col md={6} className="d-flex flex-column">
-                                                                <div className="d-flex justify-content-between align-items-center">
-                                                                  <span>Kiểm tra kho:</span>
-                                                                  <span>
-                                                                    {rfqData?.warehouseCapacitySufficient === true && <FaCheckCircle className="text-success" />}
-                                                                    {rfqData?.warehouseCapacitySufficient === false && <FaTimesCircle className="text-danger" />}
-                                                                  </span>
+                                                                <div className="d-flex gap-2">
+                                                                  <Button variant="outline-info" size="sm" onClick={handleCapacityCheck} disabled={!canCheckCapacity || working || rfqData?.machineCapacitySufficient === true}>
+                                                                    {working ? 'Đang chạy...' : 'Chạy kiểm tra máy móc'}
+                                                                  </Button>
+                                                                  {canShowReport && (
+                                                                    <Button variant="outline-primary" size="sm" onClick={() => setShowCapacityReportModal(true)}>
+                                                                      Báo cáo chi tiết
+                                                                    </Button>
+                                                                  )}
+                                                                  {rfqData?.machineCapacitySufficient === false && (
+                                                                    <FaTimesCircle className="text-danger ms-2" style={{ fontSize: '1.2rem', marginTop: '0.25rem' }} />
+                                                                  )}
                                                                 </div>
-                                                                <Button variant="outline-secondary" size="sm" className="mt-2" onClick={() => handleCapacityCheck('warehouse')} disabled={!canCheckCapacity || working || rfqData?.warehouseCapacitySufficient === true}>
-                                                                  {working ? 'Đang chạy...' : 'Chạy kiểm tra kho'}
-                                                                </Button>
                                                               </Col>
                                                             </Row>
                                                           </Card.Body>
@@ -344,11 +386,24 @@ const PlanningRFQDetail = () => {
                                       <div className="d-flex justify-content-between align-items-center">
                                         <div>
                                           <h6 className="mb-1"><FaFileInvoice className="me-2" />Bước 3: Tạo báo giá</h6>
-                                          <p className="text-muted mb-0 small">Sau khi đủ năng lực, tạo báo giá chi tiết.</p>
+                                          <p className="text-muted mb-0 small">
+                                            {canCreateQuote 
+                                              ? 'Sau khi đủ năng lực, tạo báo giá chi tiết.' 
+                                              : isInsufficient 
+                                                ? 'Năng lực không đủ. Vui lòng gửi thông báo cho Sales hoặc kiểm tra lại.'
+                                                : 'Vui lòng kiểm tra năng lực máy móc trước.'}
+                                          </p>
                                         </div>
-                                        <Button variant="success" disabled={!canCreateQuote || working} onClick={openQuoteModal}>
-                                          <span className="ms-2">Tạo báo giá</span>
-                                        </Button>
+                                        <div className="d-flex gap-2">
+                                          {isInsufficient && (
+                                            <Button variant="warning" disabled={working} onClick={() => setShowInsufficientModal(true)}>
+                                              Gửi thông báo cho Sales
+                                            </Button>
+                                          )}
+                                          <Button variant="success" disabled={!canCreateQuote || working} onClick={openQuoteModal}>
+                                            <span className="ms-2">Tạo báo giá</span>
+                                          </Button>
+                                        </div>
                                       </div>
                                     </Card.Body>
                                   </Card>
@@ -368,6 +423,169 @@ const PlanningRFQDetail = () => {
         onSubmit={handleInsufficientCapacitySubmit}
         loading={evaluationLoading}
       />
+      {/* Capacity Report Modal */}
+      <Modal show={showCapacityReportModal} onHide={() => setShowCapacityReportModal(false)} size="lg" centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Báo cáo chi tiết năng lực máy móc</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {capacityReportData ? (
+            <div>
+              <Row className="mb-3">
+                <Col md={6}>
+                  <p><strong>Trạng thái:</strong> 
+                    <Badge bg={capacityReportData.sufficient ? 'success' : 'danger'} className="ms-2">
+                      {capacityReportData.status === 'SUFFICIENT' ? 'Đủ năng lực' : 'Không đủ năng lực'}
+                    </Badge>
+                  </p>
+                  <p><strong>Nút thắt cổ chai:</strong> {capacityReportData.bottleneck || 'N/A'}</p>
+                  <p><strong>Số ngày cần thiết:</strong> {capacityReportData.requiredDays?.toFixed(2) || 'N/A'} ngày ({daysToHours(capacityReportData.requiredDays)})</p>
+                  <p><strong>Số ngày có sẵn:</strong> {capacityReportData.availableDays?.toFixed(2) || 'N/A'} ngày ({daysToHours(capacityReportData.availableDays)})</p>
+                </Col>
+                <Col md={6}>
+                  <p><strong>Ngày bắt đầu sản xuất:</strong> {capacityReportData.productionStartDate ? new Date(capacityReportData.productionStartDate).toLocaleDateString('vi-VN') : 'N/A'}</p>
+                  <p><strong>Ngày kết thúc sản xuất:</strong> {capacityReportData.productionEndDate ? new Date(capacityReportData.productionEndDate).toLocaleDateString('vi-VN') : 'N/A'}</p>
+                  <p><strong>Tổng thời gian chờ:</strong> {capacityReportData.totalWaitTime?.toFixed(2) || 'N/A'} ngày ({daysToHours(capacityReportData.totalWaitTime)})</p>
+                  {capacityReportData.mergeSuggestion && (
+                    <p><strong>Gợi ý:</strong> {capacityReportData.mergeSuggestion}</p>
+                  )}
+                </Col>
+              </Row>
+
+              {capacityReportData.conflicts && capacityReportData.conflicts.length > 0 && (
+                <div className="mb-3">
+                  <h6 className="text-danger">Xung đột phát hiện:</h6>
+                  <Table striped bordered size="sm">
+                    <thead>
+                      <tr>
+                        <th>Ngày</th>
+                        <th>Loại máy</th>
+                        <th>Yêu cầu</th>
+                        <th>Có sẵn</th>
+                        <th>Đã sử dụng</th>
+                        <th>Thông báo</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {capacityReportData.conflicts.map((conflict, idx) => (
+                        <tr key={idx}>
+                          <td>{conflict.date ? new Date(conflict.date).toLocaleDateString('vi-VN') : 'N/A'}</td>
+                          <td>{conflict.machineType || 'N/A'}</td>
+                          <td>{conflict.required?.toFixed(2) || 'N/A'}</td>
+                          <td>{conflict.available?.toFixed(2) || 'N/A'}</td>
+                          <td>{conflict.used?.toFixed(2) || 'N/A'}</td>
+                          <td>{conflict.conflictMessage || 'N/A'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                </div>
+              )}
+
+              <div className="mb-3">
+                <h6>Chi tiết các công đoạn:</h6>
+                <Table striped bordered size="sm">
+                  <thead>
+                    <tr>
+                      <th>Công đoạn</th>
+                      <th>Thời gian xử lý</th>
+                      <th>Thời gian chờ</th>
+                      <th>Ngày bắt đầu</th>
+                      <th>Ngày kết thúc</th>
+                      <th>Năng lực</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {capacityReportData.warpingStage && (
+                      <tr>
+                        <td>{capacityReportData.warpingStage.stageName}</td>
+                        <td>{daysToHours(capacityReportData.warpingStage.processingDays)}</td>
+                        <td>{daysToHours(capacityReportData.warpingStage.waitTime)}</td>
+                        <td>{capacityReportData.warpingStage.startDate ? new Date(capacityReportData.warpingStage.startDate).toLocaleDateString('vi-VN') : 'N/A'}</td>
+                        <td>{capacityReportData.warpingStage.endDate ? new Date(capacityReportData.warpingStage.endDate).toLocaleDateString('vi-VN') : 'N/A'}</td>
+                        <td>{formatCapacity(capacityReportData.warpingStage.stageType, capacityReportData.warpingStage.capacity)}</td>
+                      </tr>
+                    )}
+                    {capacityReportData.weavingStage && (
+                      <tr>
+                        <td>{capacityReportData.weavingStage.stageName}</td>
+                        <td>{daysToHours(capacityReportData.weavingStage.processingDays)}</td>
+                        <td>{daysToHours(capacityReportData.weavingStage.waitTime)}</td>
+                        <td>{capacityReportData.weavingStage.startDate ? new Date(capacityReportData.weavingStage.startDate).toLocaleDateString('vi-VN') : 'N/A'}</td>
+                        <td>{capacityReportData.weavingStage.endDate ? new Date(capacityReportData.weavingStage.endDate).toLocaleDateString('vi-VN') : 'N/A'}</td>
+                        <td>{formatCapacity(capacityReportData.weavingStage.stageType, capacityReportData.weavingStage.capacity)}</td>
+                      </tr>
+                    )}
+                    {capacityReportData.dyeingStage && (
+                      <tr>
+                        <td>{capacityReportData.dyeingStage.stageName}</td>
+                        <td>{daysToHours(capacityReportData.dyeingStage.processingDays)}</td>
+                        <td>{daysToHours(capacityReportData.dyeingStage.waitTime)}</td>
+                        <td>{capacityReportData.dyeingStage.startDate ? new Date(capacityReportData.dyeingStage.startDate).toLocaleDateString('vi-VN') : 'N/A'}</td>
+                        <td>{capacityReportData.dyeingStage.endDate ? new Date(capacityReportData.dyeingStage.endDate).toLocaleDateString('vi-VN') : 'N/A'}</td>
+                        <td>{formatCapacity(capacityReportData.dyeingStage.stageType, capacityReportData.dyeingStage.capacity)}</td>
+                      </tr>
+                    )}
+                    {capacityReportData.cuttingStage && (
+                      <tr>
+                        <td>{capacityReportData.cuttingStage.stageName}</td>
+                        <td>{daysToHours(capacityReportData.cuttingStage.processingDays)}</td>
+                        <td>{daysToHours(capacityReportData.cuttingStage.waitTime)}</td>
+                        <td>{capacityReportData.cuttingStage.startDate ? new Date(capacityReportData.cuttingStage.startDate).toLocaleDateString('vi-VN') : 'N/A'}</td>
+                        <td>{capacityReportData.cuttingStage.endDate ? new Date(capacityReportData.cuttingStage.endDate).toLocaleDateString('vi-VN') : 'N/A'}</td>
+                        <td>{formatCapacity(capacityReportData.cuttingStage.stageType, capacityReportData.cuttingStage.capacity)}</td>
+                      </tr>
+                    )}
+                    {capacityReportData.sewingStage && (
+                      <tr>
+                        <td>{capacityReportData.sewingStage.stageName}</td>
+                        <td>{daysToHours(capacityReportData.sewingStage.processingDays)}</td>
+                        <td>{daysToHours(capacityReportData.sewingStage.waitTime)}</td>
+                        <td>{capacityReportData.sewingStage.startDate ? new Date(capacityReportData.sewingStage.startDate).toLocaleDateString('vi-VN') : 'N/A'}</td>
+                        <td>{capacityReportData.sewingStage.endDate ? new Date(capacityReportData.sewingStage.endDate).toLocaleDateString('vi-VN') : 'N/A'}</td>
+                        <td>{formatCapacity(capacityReportData.sewingStage.stageType, capacityReportData.sewingStage.capacity)}</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </Table>
+              </div>
+
+              {capacityReportData.dailyCapacities && capacityReportData.dailyCapacities.length > 0 && (
+                <div>
+                  <h6>Năng lực theo ngày:</h6>
+                  <Table striped bordered size="sm">
+                    <thead>
+                      <tr>
+                        <th>Ngày</th>
+                        <th>Mắc cuồng (Yêu cầu/Có sẵn)</th>
+                        <th>Dệt vải (Yêu cầu/Có sẵn)</th>
+                        <th>May thành phẩm (Yêu cầu/Có sẵn)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {capacityReportData.dailyCapacities.map((daily, idx) => (
+                        <tr key={idx}>
+                          <td>{daily.date ? new Date(daily.date).toLocaleDateString('vi-VN') : 'N/A'}</td>
+                          <td>{daily.warpingRequired?.toFixed(2) || '0'} / {daily.warpingAvailable?.toFixed(2) || '0'}</td>
+                          <td>{daily.weavingRequired?.toFixed(2) || '0'} / {daily.weavingAvailable?.toFixed(2) || '0'}</td>
+                          <td>{daily.sewingRequired?.toFixed(2) || '0'} / {daily.sewingAvailable?.toFixed(2) || '0'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Alert variant="warning">Không có dữ liệu báo cáo.</Alert>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowCapacityReportModal(false)}>
+            Đóng
+          </Button>
+        </Modal.Footer>
+      </Modal>
       <Modal show={showQuoteModal} onHide={closeQuoteModal} centered>
         <Modal.Header closeButton>
           <Modal.Title>Lập Báo Giá</Modal.Title>

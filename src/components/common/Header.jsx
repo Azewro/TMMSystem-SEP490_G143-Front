@@ -6,6 +6,7 @@ import { useCart } from '../../context/CartContext';
 import { useNavigate } from 'react-router-dom';
 import ProfileModal from '../modals/ProfileModal';
 import ChangePasswordModal from '../modals/ChangePasswordModal';
+import NotificationDropdown from './NotificationDropdown';
 
 const Header = () => {
   const { user, logout } = useAuth();
@@ -91,13 +92,12 @@ const Header = () => {
                 </Nav.Link>
               )}
 
-              {/* Notifications */}
-              <Nav.Link href="#" className="position-relative me-3">
-                <FaBell size={20} />
-                <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                  3
-                </span>
-              </Nav.Link>
+              {/* Notifications - Chỉ hiển thị cho internal users */}
+              {user?.role !== 'CUSTOMER' && (
+                <div className="me-3 d-flex align-items-center">
+                  <NotificationDropdown userId={user?.id || sessionStorage.getItem('userId')} />
+                </div>
+              )}
 
               {/* User Dropdown */}
               <Dropdown align="end">

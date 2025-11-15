@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Container, Card, Table, Button, Spinner, Alert, Badge } from 'react-bootstrap';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Container, Card, Table, Button, Spinner, Alert, Badge, Form, InputGroup, Row, Col } from 'react-bootstrap';
+import { FaSearch } from 'react-icons/fa';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { rfqService } from '../../api/rfqService';
@@ -16,6 +17,10 @@ const MyRfqs = () => {
   // Modal state
   const [showModal, setShowModal] = useState(false);
   const [selectedRfqId, setSelectedRfqId] = useState(null);
+
+  // Search and filter state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -57,9 +62,8 @@ const MyRfqs = () => {
         })
       );
 
-      // Filter for SENT status and sort
-      const sentRfqs = enrichedData.filter(rfq => rfq.status === 'SENT');
-      const sortedData = sentRfqs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      // Sort by newest first
+      const sortedData = enrichedData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       
       setAllRfqs(sortedData);
     } catch (err) {
@@ -87,11 +91,45 @@ const MyRfqs = () => {
     }
   };
 
+  // Filtering logic
+  const filteredRfqs = useMemo(() => {
+    let filtered = allRfqs;
+
+    // Filter by status
+    if (statusFilter) {
+      filtered = filtered.filter(rfq => rfq.status === statusFilter);
+    }
+
+    // Filter by search term
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(rfq => {
+        const rfqNumber = (rfq.rfqNumber || '').toLowerCase();
+        const contactPerson = (rfq.contactPerson || '').toLowerCase();
+        return rfqNumber.includes(searchLower) || contactPerson.includes(searchLower);
+      });
+    }
+
+    return filtered;
+  }, [allRfqs, statusFilter, searchTerm]);
+
   // Pagination logic
   const indexOfLastRfq = currentPage * ITEMS_PER_PAGE;
   const indexOfFirstRfq = indexOfLastRfq - ITEMS_PER_PAGE;
-  const currentRfqs = allRfqs.slice(indexOfFirstRfq, indexOfLastRfq);
-  const totalPages = Math.ceil(allRfqs.length / ITEMS_PER_PAGE);
+  const currentRfqs = filteredRfqs.slice(indexOfFirstRfq, indexOfLastRfq);
+  const totalPages = Math.ceil(filteredRfqs.length / ITEMS_PER_PAGE);
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'DRAFT': return 'Bản nháp';
+      case 'SENT': return 'Chờ xác nhận';
+      case 'FORWARDED_TO_PLANNING': return 'Đã chuyển Planning';
+      case 'PRELIMINARY_CHECKED': return 'Đã kiểm tra sơ bộ';
+      case 'QUOTED': return 'Đã báo giá';
+      case 'REJECTED': return 'Đã từ chối';
+      default: return status;
+    }
+  };
 
   return (
     <div>
@@ -106,6 +144,40 @@ const MyRfqs = () => {
                 Các RFQ cần bạn xử lý
               </Card.Header>
               <Card.Body>
+                {/* Search and Filter Section */}
+                <Row className="mb-3">
+                  <Col md={6}>
+                    <InputGroup>
+                      <InputGroup.Text><FaSearch /></InputGroup.Text>
+                      <Form.Control
+                        type="text"
+                        placeholder="Tìm kiếm theo mã RFQ, tên khách hàng..."
+                        value={searchTerm}
+                        onChange={(e) => {
+                          setSearchTerm(e.target.value);
+                          setCurrentPage(1);
+                        }}
+                      />
+                    </InputGroup>
+                  </Col>
+                  <Col md={4}>
+                    <Form.Select
+                      value={statusFilter}
+                      onChange={(e) => {
+                        setStatusFilter(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <option value="">Tất cả trạng thái</option>
+                      <option value="DRAFT">Bản nháp</option>
+                      <option value="SENT">Chờ xác nhận</option>
+                      <option value="FORWARDED_TO_PLANNING">Đã chuyển Planning</option>
+                      <option value="PRELIMINARY_CHECKED">Đã kiểm tra sơ bộ</option>
+                      <option value="QUOTED">Đã báo giá</option>
+                      <option value="REJECTED">Đã từ chối</option>
+                    </Form.Select>
+                  </Col>
+                </Row>
                 {loading && !showModal ? (
                   <div className="text-center"><Spinner animation="border" /></div>
                 ) : error ? (
@@ -130,7 +202,7 @@ const MyRfqs = () => {
                             <td>{new Date(rfq.createdAt).toLocaleDateString('vi-VN')}</td>
                             <td>
                               <Badge bg={getStatusBadge(rfq.status)}>
-                                {rfq.status === 'SENT' ? 'Chờ xác nhận' : rfq.status}
+                                {getStatusText(rfq.status)}
                               </Badge>
                             </td>
                             <td>
@@ -141,7 +213,11 @@ const MyRfqs = () => {
                           </tr>
                         )) : (
                           <tr>
-                            <td colSpan="5" className="text-center">Bạn không có RFQ nào cần xử lý.</td>
+                            <td colSpan="5" className="text-center">
+                              {allRfqs.length === 0 
+                                ? 'Bạn không có RFQ nào cần xử lý.' 
+                                : 'Không tìm thấy RFQ phù hợp với bộ lọc.'}
+                            </td>
                           </tr>
                         )}
                       </tbody>

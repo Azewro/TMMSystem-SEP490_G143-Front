@@ -60,8 +60,9 @@ const QuotesList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
-  // Search and Pagination state
+  // Search, Filter and Pagination state
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
 
@@ -116,15 +117,25 @@ const QuotesList = () => {
 
   // Filtering and Pagination logic
   const filteredQuotes = allQuotes.filter(quote => {
-    const searchTermLower = searchTerm.toLowerCase();
-    const quoteNumber = quote.quotationNumber || '';
-    const customerName = quote.customer?.contactPerson || ''; // Use contactPerson for customer name
-    const creatorName = quote.creator?.name || ''; // Use creator name
-    return (
-      quoteNumber.toLowerCase().includes(searchTermLower) ||
-      customerName.toLowerCase().includes(searchTermLower) ||
-      creatorName.toLowerCase().includes(searchTermLower)
-    );
+    // Filter by status
+    if (statusFilter && quote.status !== statusFilter) {
+      return false;
+    }
+
+    // Filter by search term
+    if (searchTerm.trim()) {
+      const searchTermLower = searchTerm.toLowerCase();
+      const quoteNumber = quote.quotationNumber || '';
+      const customerName = quote.customer?.contactPerson || '';
+      const creatorName = quote.creator?.name || '';
+      return (
+        quoteNumber.toLowerCase().includes(searchTermLower) ||
+        customerName.toLowerCase().includes(searchTermLower) ||
+        creatorName.toLowerCase().includes(searchTermLower)
+      );
+    }
+
+    return true;
   });
 
   const indexOfLastQuote = currentPage * ITEMS_PER_PAGE;
@@ -149,20 +160,39 @@ const QuotesList = () => {
 
             <Card className="shadow-sm">
               <Card.Header>
-                <div className="d-flex justify-content-between align-items-center">
+                <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
                   <span>Các báo giá đã được tạo</span>
-                  <div style={{ width: '300px' }}>
-                    <InputGroup>
-                      <Form.Control
-                        type="text"
-                        placeholder="Tìm theo mã báo giá, khách hàng, người tạo..."
-                        value={searchTerm}
-                        onChange={handleSearchChange}
-                      />
-                      <InputGroup.Text>
-                        <FaSearch />
-                      </InputGroup.Text>
-                    </InputGroup>
+                  <div className="d-flex gap-2">
+                    <div style={{ width: '300px' }}>
+                      <InputGroup>
+                        <Form.Control
+                          type="text"
+                          placeholder="Tìm theo mã báo giá, khách hàng, người tạo..."
+                          value={searchTerm}
+                          onChange={handleSearchChange}
+                        />
+                        <InputGroup.Text>
+                          <FaSearch />
+                        </InputGroup.Text>
+                      </InputGroup>
+                    </div>
+                    <Form.Select
+                      style={{ width: '200px' }}
+                      value={statusFilter}
+                      onChange={(e) => {
+                        setStatusFilter(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <option value="">Tất cả trạng thái</option>
+                      <option value="DRAFT">Chờ gửi khách hàng</option>
+                      <option value="SENT">Đã gửi</option>
+                      <option value="ACCEPTED">Đã chấp nhận</option>
+                      <option value="REJECTED">Đã từ chối</option>
+                      <option value="EXPIRED">Hết hạn</option>
+                      <option value="CANCELED">Đã hủy</option>
+                      <option value="ORDER_CREATED">Đã tạo đơn hàng</option>
+                    </Form.Select>
                   </div>
                 </div>
               </Card.Header>
@@ -192,7 +222,9 @@ const QuotesList = () => {
                     )}
                     {!loading && !error && filteredQuotes.length === 0 && (
                       <tr><td colSpan={6} className="text-center py-4 text-muted">
-                        Chưa có báo giá nào phù hợp.
+                        {allQuotes.length === 0 
+                          ? 'Chưa có báo giá nào.' 
+                          : 'Không tìm thấy báo giá phù hợp với bộ lọc.'}
                       </td></tr>
                     )}
                     {!loading && !error && currentQuotes.map((quote) => {

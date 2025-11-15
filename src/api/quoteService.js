@@ -118,14 +118,6 @@ export const quoteService = {
     }
   },
 
-  checkWarehouseCapacity: async (rfqId) => {
-    try {
-      const response = await apiClient.post(`/v1/rfqs/${rfqId}/check-warehouse-capacity`);
-      return response.data;
-    } catch (error) {
-      throw new Error(mapApiError(error, 'Lỗi khi kiểm tra năng lực kho'));
-    }
-  },
 
   evaluateCapacity: async (rfqId, { status, checkType, reason, proposedNewDate }) => {
     try {

@@ -23,13 +23,17 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
 
   const handleCancelRfq = async () => {
     if (!rfqId) return;
-    if (!window.confirm('Bạn có chắc chắn muốn hủy RFQ này? Hành động này không thể hoàn tác.')) {
+    const confirmMessage = rfq?.capacityStatus === 'INSUFFICIENT' 
+      ? 'Bạn có chắc chắn muốn hủy RFQ này vì không đủ năng lực sản xuất? Hành động này không thể hoàn tác.'
+      : 'Bạn có chắc chắn muốn hủy RFQ này? Hành động này không thể hoàn tác.';
+    
+    if (!window.confirm(confirmMessage)) {
       return;
     }
 
     setCancelLoading(true);
     try {
-      await rfqService.deleteRfq(rfqId);
+      await rfqService.cancelRfq(rfqId);
       toast.success('RFQ đã được hủy thành công!');
       handleClose(true); // Close modal and refresh list
     } catch (error) {
@@ -440,7 +444,7 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
           </Col>
           <Col md={6} className="mt-2">
             <Form.Group>
-              <Form.Label>Địa chỉ</Form.Label>
+              <Form.Label>Địa chỉ nhận hàng</Form.Label>
               <Form.Control type="text" name="contactAddress" value={data.contactAddress || ''} onChange={handleInputChange} readOnly={!isEditMode} />
             </Form.Group>
           </Col>
@@ -534,6 +538,8 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
     const data = isEditMode ? editedRfq : rfq;
     // Format date for input type="date" which requires YYYY-MM-DD
     const dateValue = data.expectedDeliveryDate ? new Date(data.expectedDeliveryDate).toISOString().split('T')[0] : '';
+    const proposedDateValue = data.proposedNewDeliveryDate ? new Date(data.proposedNewDeliveryDate).toISOString().split('T')[0] : '';
+    const isInsufficient = data.capacityStatus === 'INSUFFICIENT';
 
     return (
       <div className="mb-4">
@@ -552,6 +558,60 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
             </Form.Group>
           </Col>
         </Row>
+        
+        {/* Hiển thị thông tin năng lực nếu có */}
+        {data.capacityStatus && (
+          <Row className="mt-3">
+            <Col md={12}>
+              <div className={`p-3 rounded ${isInsufficient ? 'bg-warning bg-opacity-10 border border-warning' : 'bg-success bg-opacity-10 border border-success'}`}>
+                <h6 className={`mb-2 ${isInsufficient ? 'text-warning' : 'text-success'}`}>
+                  <strong>Trạng thái năng lực sản xuất:</strong> {' '}
+                  <Badge bg={isInsufficient ? 'warning' : 'success'}>
+                    {isInsufficient ? 'Không đủ năng lực' : 'Đủ năng lực'}
+                  </Badge>
+                </h6>
+                {isInsufficient && (
+                  <>
+                    {data.capacityReason && (
+                      <p className="mb-2">
+                        <strong>Lý do:</strong> {data.capacityReason}
+                      </p>
+                    )}
+                    {proposedDateValue && (
+                      <p className="mb-2">
+                        <strong>Ngày giao hàng đề xuất:</strong> {new Date(data.proposedNewDeliveryDate).toLocaleDateString('vi-VN')}
+                      </p>
+                    )}
+                    {dateValue !== proposedDateValue && proposedDateValue && (
+                      <Alert variant="warning" className="mb-0 mt-2">
+                        <small>
+                          <strong>Lưu ý:</strong> Planning đã đề xuất ngày giao hàng mới ({new Date(data.proposedNewDeliveryDate).toLocaleDateString('vi-VN')}).
+                          {data.status === 'SENT' ? (
+                            <span className="d-block mt-1">
+                              Vui lòng liên hệ với khách hàng để xác nhận ngày giao hàng mới. Nếu khách đồng ý, bạn có thể chỉnh sửa RFQ để cập nhật ngày giao hàng. Nếu khách không đồng ý, bạn có thể hủy RFQ này.
+                            </span>
+                          ) : (
+                            <span className="d-block mt-1">
+                              Vui lòng liên hệ với planning để cập nhật ngày giao hàng.
+                            </span>
+                          )}
+                        </small>
+                      </Alert>
+                    )}
+                    {data.status === 'SENT' && isInsufficient && (
+                      <Alert variant="info" className="mb-0 mt-2">
+                        <small>
+                          <strong>Hướng dẫn:</strong> RFQ này đã được trả về từ Planning do không đủ năng lực sản xuất. 
+                          Bạn có thể chỉnh sửa ngày giao hàng nếu khách hàng đồng ý với ngày đề xuất mới, hoặc hủy RFQ nếu khách hàng không đồng ý.
+                        </small>
+                      </Alert>
+                    )}
+                  </>
+                )}
+              </div>
+            </Col>
+          </Row>
+        )}
       </div>
     );
   };
@@ -588,11 +648,13 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
         ) : (
           <>
             {/* Sales can edit RFQ before preliminary check (status DRAFT or SENT) */}
+            {/* Cho phép chỉnh sửa khi status là DRAFT hoặc SENT (bao gồm cả khi được trả về từ Planning) */}
             {(rfq?.status === 'DRAFT' || rfq?.status === 'SENT') && (
               <Button variant="outline-primary" onClick={() => handleEditToggle(true)}>
                 Sửa RFQ
               </Button>
             )}
+            {/* Cho phép hủy khi status là DRAFT hoặc SENT (bao gồm cả khi được trả về từ Planning do không đủ năng lực) */}
             <Button
               variant="danger"
               onClick={handleCancelRfq}

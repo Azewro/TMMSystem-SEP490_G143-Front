@@ -130,7 +130,7 @@ const CreateRfqForCustomer = () => {
     } else if (!/\S+@\S+\.\S+/.test(formData.contactEmail)) {
         newErrors.contactEmail = 'Email không hợp lệ.';
     }
-    if (!formData.contactAddress.trim()) newErrors.contactAddress = 'Địa chỉ là bắt buộc.';
+    if (!formData.contactAddress.trim()) newErrors.contactAddress = 'Địa chỉ nhận hàng là bắt buộc.';
     if (!formData.expectedDeliveryDate) {
       newErrors.expectedDeliveryDate = 'Ngày giao hàng mong muốn là bắt buộc.';
     }
@@ -225,7 +225,7 @@ const CreateRfqForCustomer = () => {
                         <Col md={6}><Form.Group className="mb-3"><Form.Label>Số điện thoại *</Form.Label><Form.Control type="text" name="contactPhone" value={formData.contactPhone} onChange={handleFormChange} isInvalid={!!errors.contactPhone} /><Form.Control.Feedback type="invalid">{errors.contactPhone}</Form.Control.Feedback></Form.Group></Col>
                         <Col md={6}><Form.Group className="mb-3"><Form.Label>Email *</Form.Label><Form.Control type="email" name="contactEmail" value={formData.contactEmail} onChange={handleFormChange} isInvalid={!!errors.contactEmail} /><Form.Control.Feedback type="invalid">{errors.contactEmail}</Form.Control.Feedback></Form.Group></Col>
                         <Col md={6}><Form.Group className="mb-3"><Form.Label>Mã nhân viên Sale (của bạn)</Form.Label><Form.Control type="text" name="employeeCode" value={formData.employeeCode} onChange={handleFormChange} /></Form.Group></Col>
-                        <Col md={6}><Form.Group className="mb-3"><Form.Label>Địa chỉ *</Form.Label><Form.Control as="textarea" rows={1} name="contactAddress" value={formData.contactAddress} onChange={handleFormChange} isInvalid={!!errors.contactAddress} /><Form.Control.Feedback type="invalid">{errors.contactAddress}</Form.Control.Feedback></Form.Group></Col>
+                        <Col md={6}><Form.Group className="mb-3"><Form.Label>Địa chỉ nhận hàng *</Form.Label><Form.Control as="textarea" rows={1} name="contactAddress" value={formData.contactAddress} onChange={handleFormChange} isInvalid={!!errors.contactAddress} /><Form.Control.Feedback type="invalid">{errors.contactAddress}</Form.Control.Feedback></Form.Group></Col>
                         <Col md={6}><Form.Group className="mb-3"><Form.Label>Phương thức liên hệ</Form.Label><Form.Select name="contactMethod" value={formData.contactMethod} onChange={handleFormChange}><option>Điện thoại</option><option>Email</option><option>Cả hai</option></Form.Select></Form.Group></Col>
                       </Row>
                       <hr />

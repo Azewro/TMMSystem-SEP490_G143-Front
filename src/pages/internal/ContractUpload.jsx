@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Container, Card, Table, Button, Modal, Form, Alert, Badge, Spinner } from 'react-bootstrap';
+import { Container, Card, Table, Button, Modal, Form, Alert, Badge, Spinner, InputGroup, Row, Col } from 'react-bootstrap';
+import { FaSearch } from 'react-icons/fa';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { contractService } from '../../api/contractService';
@@ -49,6 +50,11 @@ const ContractUpload = () => {
   const [submitting, setSubmitting] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
 
+  // Search and Filter state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [deliveryDateFilter, setDeliveryDateFilter] = useState('');
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
@@ -84,16 +90,44 @@ const ContractUpload = () => {
     loadContracts();
   }, []);
 
-  const actionableContracts = useMemo(() => {
-    // Exclude PENDING_APPROVAL status
-    return contracts.filter((contract) => ['DRAFT', 'REJECTED', 'PENDING_UPLOAD'].includes(contract.status));
-  }, [contracts]);
+  // Filtering logic
+  const filteredContracts = useMemo(() => {
+    let filtered = contracts;
+
+    // Filter by status
+    if (statusFilter) {
+      filtered = filtered.filter(contract => contract.status === statusFilter);
+    } else {
+      // Default: Exclude PENDING_APPROVAL status (only show actionable contracts)
+      filtered = filtered.filter((contract) => ['DRAFT', 'REJECTED', 'PENDING_UPLOAD'].includes(contract.status));
+    }
+
+    // Filter by search term
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(contract => {
+        const contractNumber = (contract.contractNumber || '').toLowerCase();
+        return contractNumber.includes(searchLower);
+      });
+    }
+
+    // Filter by delivery date
+    if (deliveryDateFilter) {
+      filtered = filtered.filter(contract => {
+        if (!contract.deliveryDate) return false;
+        const contractDate = new Date(contract.deliveryDate).toISOString().split('T')[0];
+        return contractDate === deliveryDateFilter;
+      });
+    }
+
+    return filtered;
+  }, [contracts, statusFilter, searchTerm, deliveryDateFilter]);
 
   // Pagination logic
   const indexOfLastContract = currentPage * ITEMS_PER_PAGE;
   const indexOfFirstContract = indexOfLastContract - ITEMS_PER_PAGE;
-  const currentContracts = actionableContracts.slice(indexOfFirstContract, indexOfLastContract);
-  const totalPages = Math.ceil(actionableContracts.length / ITEMS_PER_PAGE);
+  const currentContracts = filteredContracts.slice(indexOfFirstContract, indexOfLastContract);
+  const totalPages = Math.ceil(filteredContracts.length / ITEMS_PER_PAGE);
 
 
   const openUploadModal = async (contract) => {
@@ -201,6 +235,54 @@ const ContractUpload = () => {
             )}
 
             <Card className="shadow-sm">
+              <Card.Body>
+                {/* Search and Filter Section */}
+                <Row className="mb-3">
+                  <Col md={4}>
+                    <InputGroup>
+                      <InputGroup.Text><FaSearch /></InputGroup.Text>
+                      <Form.Control
+                        type="text"
+                        placeholder="Tìm kiếm theo số hợp đồng..."
+                        value={searchTerm}
+                        onChange={(e) => {
+                          setSearchTerm(e.target.value);
+                          setCurrentPage(1);
+                        }}
+                      />
+                    </InputGroup>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Select
+                      value={statusFilter}
+                      onChange={(e) => {
+                        setStatusFilter(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <option value="">Tất cả trạng thái</option>
+                      <option value="DRAFT">Chưa upload</option>
+                      <option value="PENDING_UPLOAD">Chờ upload</option>
+                      <option value="PENDING_APPROVAL">Đang chờ duyệt</option>
+                      <option value="APPROVED">Đã duyệt</option>
+                      <option value="REJECTED">Bị từ chối</option>
+                    </Form.Select>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label className="mb-1">Lọc theo ngày giao hàng</Form.Label>
+                      <Form.Control
+                        type="date"
+                        value={deliveryDateFilter}
+                        onChange={(e) => {
+                          setDeliveryDateFilter(e.target.value);
+                          setCurrentPage(1);
+                        }}
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+              </Card.Body>
               <Card.Body className="p-0">
                 <Table responsive hover className="mb-0 align-middle">
                   <thead className="table-light">
@@ -225,7 +307,9 @@ const ContractUpload = () => {
                     ) : currentContracts.length === 0 ? (
                       <tr>
                         <td colSpan={8} className="text-center py-4 text-muted">
-                          Không có hợp đồng cần upload.
+                          {contracts.length === 0 
+                            ? 'Không có hợp đồng cần upload.' 
+                            : 'Không tìm thấy hợp đồng phù hợp với bộ lọc.'}
                         </td>
                       </tr>
                     ) : (

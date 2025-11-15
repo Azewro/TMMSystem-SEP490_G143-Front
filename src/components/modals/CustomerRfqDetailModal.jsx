@@ -299,7 +299,7 @@ const CustomerRfqDetailModal = ({ rfqId, show, handleClose }) => {
                     </Col>
                     <Col md={6} className="mt-2">
                         <Form.Group>
-                            <Form.Label>Địa chỉ</Form.Label>
+                            <Form.Label>Địa chỉ nhận hàng</Form.Label>
                             <Form.Control type="text" name="contactAddress" value={data.contactAddress || ''} onChange={handleInputChange} readOnly={!isEditMode} />
                         </Form.Group>
                     </Col>

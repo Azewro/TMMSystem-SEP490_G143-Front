@@ -184,5 +184,15 @@ export const rfqService = {
       console.error(`Error deleting RFQ ${rfqId}:`, error.response?.data);
       throw new Error(error.response?.data?.message || 'Lỗi khi xóa RFQ');
     }
+  },
+
+  async cancelRfq(rfqId) {
+    try {
+      const response = await apiClient.post(`/v1/rfqs/${rfqId}/cancel`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error canceling RFQ ${rfqId}:`, error.response?.data);
+      throw new Error(error.response?.data?.message || 'Lỗi khi hủy RFQ');
+    }
   }
 };
