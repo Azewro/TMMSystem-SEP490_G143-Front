@@ -67,7 +67,13 @@ const DirectorRfqList = () => {
         filteredRfqs = rfqs.filter(rfq => {
           if (!rfq.createdAt) return false;
           try {
-            const rfqDate = new Date(rfq.createdAt).toISOString().split('T')[0];
+            // Convert createdAt to local date string (YYYY-MM-DD) for comparison
+            const rfqDateObj = new Date(rfq.createdAt);
+            // Get local date components to avoid timezone issues
+            const year = rfqDateObj.getFullYear();
+            const month = String(rfqDateObj.getMonth() + 1).padStart(2, '0');
+            const day = String(rfqDateObj.getDate()).padStart(2, '0');
+            const rfqDate = `${year}-${month}-${day}`;
             return rfqDate === createdDateFilter;
           } catch (e) {
             console.error('Error parsing date:', rfq.createdAt, e);

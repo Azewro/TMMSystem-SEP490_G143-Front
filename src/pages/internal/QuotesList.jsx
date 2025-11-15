@@ -7,6 +7,7 @@ import InternalSidebar from '../../components/common/InternalSidebar';
 import { quoteService } from '../../api/quoteService';
 import { quotationService } from '../../api/quotationService';
 import { userService } from '../../api/userService'; // Import userService
+import { customerService } from '../../api/customerService'; // Import customerService
 import Pagination from '../../components/Pagination';
 import toast from 'react-hot-toast';
 
@@ -77,7 +78,7 @@ const QuotesList = () => {
       const page = currentPage - 1;
       const [quotesResponse, customersData, usersData] = await Promise.all([
         quotationService.getAllQuotes(page, ITEMS_PER_PAGE, searchTerm || undefined, statusFilter || undefined),
-        quoteService.getAllCustomers(),
+        customerService.getAllCustomers(), // Use customerService instead of quoteService
         userService.getAllUsers(0, 1000) // Get all users for enrichment (with pagination)
       ]);
 
@@ -101,19 +102,70 @@ const QuotesList = () => {
         usersArray = usersData;
       }
 
-      if (Array.isArray(customersData) && Array.isArray(usersArray)) {
-        const customerMap = new Map(customersData.map(c => [c.id, c]));
-        const userMap = new Map(usersArray.map(u => [u.id, u]));
+      // Handle customersData - could be array or PageResponse
+      let customersArray = [];
+      if (customersData && customersData.content) {
+        customersArray = customersData.content;
+      } else if (Array.isArray(customersData)) {
+        customersArray = customersData;
+      }
 
-        const enrichedQuotes = quotesData.map(quote => ({
-          ...quote,
-          customer: customerMap.get(quote.customerId),
-          creator: userMap.get(quote.createdById)
-        }));
+      if (Array.isArray(customersArray) && Array.isArray(usersArray)) {
+        // Create maps with both string and number keys to handle type mismatches
+        const customerMap = new Map();
+        customersArray.forEach(c => {
+          if (c.id != null) {
+            customerMap.set(c.id, c);
+            customerMap.set(String(c.id), c); // Also add as string
+            customerMap.set(Number(c.id), c); // Also add as number
+          }
+        });
+        
+        const userMap = new Map();
+        usersArray.forEach(u => {
+          if (u.id != null) {
+            userMap.set(u.id, u);
+            userMap.set(String(u.id), u); // Also add as string
+            userMap.set(Number(u.id), u); // Also add as number
+          }
+        });
+
+        const enrichedQuotes = quotesData.map(quote => {
+          // Try multiple ways to get customer
+          const customer = customerMap.get(quote.customerId) 
+            || customerMap.get(String(quote.customerId))
+            || customerMap.get(Number(quote.customerId));
+            
+          const creator = userMap.get(quote.createdById)
+            || userMap.get(String(quote.createdById))
+            || userMap.get(Number(quote.createdById));
+          
+          // Debug log to check enrichment
+          if (!customer && quote.customerId) {
+            console.warn(`Customer not found for quote ${quote.id}`, {
+              quoteCustomerId: quote.customerId,
+              quoteCustomerIdType: typeof quote.customerId,
+              availableCustomerIds: Array.from(customerMap.keys()).slice(0, 10),
+              customersCount: customersArray.length
+            });
+          }
+          
+          return {
+            ...quote,
+            customer: customer,
+            creator: creator
+          };
+        });
 
         setAllQuotes(enrichedQuotes);
       } else {
-        console.warn('API returned non-array data for customers or users.');
+        console.warn('API returned non-array data for customers or users.', { 
+          customersData, 
+          usersData,
+          customersDataType: typeof customersData,
+          customersDataIsArray: Array.isArray(customersData),
+          customersDataContent: customersData?.content
+        });
         setAllQuotes(quotesData); // Still set quotes even if enrichment fails
       }
     } catch (e) {
@@ -231,12 +283,26 @@ const QuotesList = () => {
                       </td></tr>
                     )}
                     {!loading && !error && allQuotes.map((quote) => {
+                      // Debug: Log customer info
+                      if (quote.customerId && !quote.customer) {
+                        console.log('Quote missing customer:', {
+                          quoteId: quote.id,
+                          customerId: quote.customerId,
+                          quote: quote
+                        });
+                      }
+                      
                       return (
                         <tr key={quote.id}>
                           <td className="fw-semibold text-primary">
                             {quote.quotationNumber || `QUOTE-${quote.id}`}
                           </td>
-                          <td>{quote.customer?.contactPerson || '—'}</td>
+                          <td>
+                            {quote.customer 
+                              ? (quote.customer.contactPerson || quote.customer.companyName || '—')
+                              : (quote.customerId ? `[ID: ${quote.customerId}]` : '—')
+                            }
+                          </td>
                           <td>{quote.creator?.name || '—'}</td>
                           <td className="text-success fw-semibold">
                             {formatCurrency(quote.totalAmount)}
