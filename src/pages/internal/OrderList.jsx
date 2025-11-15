@@ -64,12 +64,12 @@ const OrderList = () => {
   }, []);
 
   const filtered = useMemo(() => {
-    const keyword = q.trim().toLowerCase();
-    if (!keyword) return orders;
+    if (!q.trim()) return orders;
+    const normalizedKeyword = q.trim().replace(/\s+/g, ' ').toLowerCase();
     return orders.filter(x => {
-      const num = (x.productionOrderCode || x.id || '').toString().toLowerCase();
-      const rep = (x.customer?.contactPerson || x.customer?.companyName || '').toLowerCase();
-      return num.includes(keyword) || rep.includes(keyword);
+      const num = (x.productionOrderCode || x.id || '').toString().trim().toLowerCase();
+      const rep = (x.customer?.contactPerson || x.customer?.companyName || '').trim().toLowerCase();
+      return num.includes(normalizedKeyword) || rep.includes(normalizedKeyword);
     });
   }, [q, orders]);
 

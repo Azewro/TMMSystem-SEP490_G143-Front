@@ -1,10 +1,20 @@
 import apiClient from './apiConfig';
 
 export const userService = {
-  async getAllUsers() {
+  async getAllUsers(page = 0, size = 10, search, roleName, isActive) {
     try {
-      const response = await apiClient.get('/api/admin/users');
-      return response.data;
+      const params = { page, size };
+      if (search) params.search = search;
+      if (roleName) params.roleName = roleName;
+      if (isActive !== undefined) params.isActive = isActive;
+      
+      const response = await apiClient.get('/api/admin/users', { params });
+      // Handle PageResponse
+      if (response.data && response.data.content) {
+        return response.data;
+      }
+      // Fallback for backward compatibility
+      return Array.isArray(response.data) ? response.data : [];
     } catch (error) {
       console.error("Error fetching all users:", error.response?.data);
       throw new Error(error.response?.data?.message || 'Failed to fetch users');

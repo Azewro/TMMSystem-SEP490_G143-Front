@@ -1,10 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { Container, Card, Table, Button, Modal, Form, Alert, Spinner, Badge } from 'react-bootstrap';
+import React, { useEffect, useState, useMemo } from 'react';
+import { Container, Card, Table, Button, Modal, Form, Alert, Spinner, Badge, InputGroup, Row, Col } from 'react-bootstrap';
+import { FaSearch } from 'react-icons/fa';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar'; // Import sidebar
 import { contractService } from '../../api/contractService';
 import { quotationService } from '../../api/quotationService'; // Import quotationService
 import { productionPlanService } from '../../api/productionPlanService'; // Import productionPlanService
+import { customerService } from '../../api/customerService';
+import Pagination from '../../components/Pagination';
 import '../../styles/QuoteRequests.css';
 
 const STATUS_LABELS = {
@@ -45,15 +48,67 @@ const DirectorContractApproval = () => {
   const [decision, setDecision] = useState({ type: null, note: '' });
   const [processing, setProcessing] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
+  
+  // Search and Filter state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [contractDateFilter, setContractDateFilter] = useState('');
+  const [deliveryDateFilter, setDeliveryDateFilter] = useState('');
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
+  const ITEMS_PER_PAGE = 10;
 
   const loadContracts = async () => {
     setLoading(true);
     setError('');
 
     try {
-      const pending = await contractService.getDirectorPendingContracts();
-      const sortedContracts = Array.isArray(pending) ? pending.sort((a, b) => new Date(b.deliveryDate) - new Date(a.deliveryDate)) : [];
-      setContracts(sortedContracts);
+      // Convert 1-based page to 0-based for backend
+      const page = currentPage - 1;
+      const response = await contractService.getDirectorPendingContracts(
+        page, 
+        ITEMS_PER_PAGE, 
+        searchTerm || undefined, 
+        statusFilter || undefined, 
+        contractDateFilter || undefined, 
+        deliveryDateFilter || undefined
+      );
+      
+      // Handle PageResponse
+      let contractsArray = [];
+      if (response && response.content) {
+        contractsArray = response.content;
+        setTotalPages(response.totalPages || 1);
+        setTotalElements(response.totalElements || 0);
+      } else if (Array.isArray(response)) {
+        contractsArray = response;
+        setTotalPages(1);
+        setTotalElements(response.length);
+      }
+      
+      // Enrich contracts with customer info
+      const enrichedContracts = await Promise.all(
+        contractsArray.map(async (contract) => {
+          if (contract.customerId) {
+            try {
+              const customer = await customerService.getCustomerById(contract.customerId);
+              return {
+                ...contract,
+                customerName: customer.companyName || customer.contactPerson || 'N/A'
+              };
+            } catch (customerError) {
+              console.error(`Failed to fetch customer for contract ${contract.id}`, customerError);
+              return { ...contract, customerName: 'N/A' };
+            }
+          }
+          return { ...contract, customerName: 'N/A' };
+        })
+      );
+      
+      setContracts(enrichedContracts);
     } catch (err) {
       console.error('Failed to fetch contracts', err);
       setError(err.message || 'Không thể tải danh sách hợp đồng chờ duyệt.');
@@ -64,7 +119,12 @@ const DirectorContractApproval = () => {
 
   useEffect(() => {
     loadContracts();
-  }, []);
+  }, [currentPage, searchTerm, statusFilter, contractDateFilter, deliveryDateFilter]);
+  
+  useEffect(() => {
+    // Reset to page 1 when filters change
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, contractDateFilter, deliveryDateFilter]);
 
   const openContract = async (contract) => {
     setSelectedContract(contract);
@@ -174,6 +234,15 @@ const DirectorContractApproval = () => {
     }
   };
 
+  // Note: Search and filter are now server-side, no client-side filtering needed
+
+  const statusOptions = [
+    { value: '', label: 'Tất cả trạng thái' },
+    { value: 'PENDING_APPROVAL', label: 'Chờ duyệt' },
+    { value: 'APPROVED', label: 'Đã duyệt' },
+    { value: 'REJECTED', label: 'Đã từ chối' },
+  ];
+
   return (
     <div>
       <Header />
@@ -195,16 +264,68 @@ const DirectorContractApproval = () => {
               </Alert>
             )}
 
+            {/* Search and Filters */}
+            <Card className="mb-3">
+              <Card.Body>
+                <Row className="g-3">
+                  <Col md={3}>
+                    <InputGroup>
+                      <InputGroup.Text><FaSearch /></InputGroup.Text>
+                      <Form.Control
+                        type="text"
+                        placeholder="Tìm theo tên hợp đồng, tên khách hàng..."
+                        value={searchTerm}
+                        onChange={(e) => {
+                          setSearchTerm(e.target.value);
+                        }}
+                      />
+                    </InputGroup>
+                  </Col>
+                  <Col md={2}>
+                    <Form.Select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                    >
+                      {statusOptions.map(option => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </Form.Select>
+                  </Col>
+                  <Col md={2}>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Lọc theo ngày ký</Form.Label>
+                      <Form.Control
+                        type="date"
+                        value={contractDateFilter}
+                        onChange={(e) => setContractDateFilter(e.target.value)}
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={2}>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Lọc theo ngày giao hàng</Form.Label>
+                      <Form.Control
+                        type="date"
+                        value={deliveryDateFilter}
+                        onChange={(e) => setDeliveryDateFilter(e.target.value)}
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+              </Card.Body>
+            </Card>
+
             <Card>
               <Card.Header>
                 Danh sách hợp đồng đã được nhân viên kinh doanh upload
               </Card.Header>
-              <Card.Body>
+              <Card.Body className="p-0">
                 <Table responsive hover className="mb-0 align-middle">
                   <thead className="table-light">
                     <tr>
                       <th style={{ width: 60 }}>#</th>
                       <th style={{ width: 180 }}>Tên hợp đồng</th>
+                      <th style={{ width: 160 }}>Khách hàng</th>
                       <th style={{ width: 160 }}>Ngày ký</th>
                       <th style={{ width: 160 }}>Ngày giao</th>
                       <th style={{ width: 160 }}>Trạng thái</th>
@@ -216,14 +337,14 @@ const DirectorContractApproval = () => {
                   <tbody>
                     {loading ? (
                       <tr>
-                        <td colSpan={8} className="text-center py-4">
+                        <td colSpan={9} className="text-center py-4">
                           <Spinner animation="border" size="sm" className="me-2" /> Đang tải hợp đồng...
                         </td>
                       </tr>
                     ) : contracts.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="text-center py-4 text-muted">
-                          Không có hợp đồng nào cần phê duyệt.
+                        <td colSpan={9} className="text-center py-4 text-muted">
+                          {totalElements === 0 ? 'Không có hợp đồng nào cần phê duyệt.' : 'Không tìm thấy hợp đồng nào phù hợp.'}
                         </td>
                       </tr>
                     ) : (
@@ -233,6 +354,7 @@ const DirectorContractApproval = () => {
                           <tr key={contract.id}>
                             <td>{index + 1}</td>
                             <td className="fw-semibold text-primary">{contract.contractNumber}</td>
+                            <td>{contract.customerName || 'N/A'}</td>
                             <td>{formatDate(contract.contractDate)}</td>
                             <td>{formatDate(contract.deliveryDate)}</td>
                             <td>
@@ -251,6 +373,15 @@ const DirectorContractApproval = () => {
                     )}
                   </tbody>
                 </Table>
+                {totalPages > 1 && (
+                  <div className="p-3">
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={setCurrentPage}
+                    />
+                  </div>
+                )}
               </Card.Body>
             </Card>
           </Container>

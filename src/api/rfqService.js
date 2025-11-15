@@ -22,7 +22,13 @@ export const rfqService = {
 
   async getRfqs(params = {}) {
     try {
-      const response = await apiClient.get('/v1/rfqs', { params });
+      // Ensure pagination parameters
+      const paginationParams = {
+        page: params.page !== undefined ? params.page : 0,
+        size: params.size !== undefined ? params.size : 10,
+        ...params
+      };
+      const response = await apiClient.get('/v1/rfqs', { params: paginationParams });
       return response.data;
     } catch (error) {
       console.error("Error fetching RFQs:", error.response?.data);
@@ -60,9 +66,11 @@ export const rfqService = {
     }
   },
 
-  async getDraftsUnassignedRfqs() {
+  async getDraftsUnassignedRfqs(page = 0, size = 10) {
     try {
-      const response = await apiClient.get('/v1/rfqs/drafts/unassigned');
+      const response = await apiClient.get('/v1/rfqs/drafts/unassigned', {
+        params: { page, size }
+      });
       return response.data;
     } catch (error) {
       console.error("Error fetching unassigned DRAFT RFQs:", error.response?.data);
@@ -70,16 +78,21 @@ export const rfqService = {
     }
   },
 
-  async getAssignedRfqsForSales() {
+  async getAssignedRfqsForSales(page = 0, size = 10, search, status) {
     try {
       const userId = sessionStorage.getItem('userId');
       if (!userId) {
         throw new Error('User ID not found. Please log in.');
       }
+      const params = { page, size };
+      if (search) params.search = search;
+      if (status) params.status = status;
+      
       const response = await apiClient.get('/v1/rfqs/for-sales', {
         headers: {
           'X-User-Id': userId
-        }
+        },
+        params
       });
       return response.data;
     } catch (error) {
@@ -88,16 +101,21 @@ export const rfqService = {
     }
   },
 
-  async getAssignedRfqsForPlanning() {
+  async getAssignedRfqsForPlanning(page = 0, size = 10, search, status) {
     try {
       const userId = sessionStorage.getItem('userId');
       if (!userId) {
         throw new Error('User ID not found. Please log in.');
       }
+      const params = { page, size };
+      if (search) params.search = search;
+      if (status) params.status = status;
+      
       const response = await apiClient.get('/v1/rfqs/for-planning', {
         headers: {
           'X-User-Id': userId
-        }
+        },
+        params
       });
       return response.data;
     } catch (error) {

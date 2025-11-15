@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Navbar, Nav, Form, FormControl, Button, Dropdown } from 'react-bootstrap';
-import { FaSearch, FaBell, FaUserCircle, FaTachometerAlt, FaCog, FaSignOutAlt, FaShoppingCart, FaUser, FaKey } from 'react-icons/fa';
+import { Navbar, Nav, Button, Dropdown } from 'react-bootstrap';
+import { FaBell, FaUserCircle, FaTachometerAlt, FaCog, FaSignOutAlt, FaShoppingCart, FaUser, FaKey } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useNavigate } from 'react-router-dom';
@@ -61,21 +61,6 @@ const Header = () => {
 
       <Navbar.Toggle aria-controls="basic-navbar-nav" />
       <Navbar.Collapse id="basic-navbar-nav">
-        {/* Search Bar - Only for Customers */}
-        {user?.role === 'CUSTOMER' && (
-          <Form className="d-flex me-auto" style={{ maxWidth: '400px', width: '100%' }}>
-            <FormControl
-              type="search"
-              placeholder="Tìm kiếm sản phẩm..."
-              className="me-2"
-              aria-label="Search"
-            />
-            <Button variant="outline-light" type="submit">
-              <FaSearch />
-            </Button>
-          </Form>
-        )}
-
         {/* Right Side Navigation */}
         <Nav className="ms-auto align-items-center">
           {user ? (

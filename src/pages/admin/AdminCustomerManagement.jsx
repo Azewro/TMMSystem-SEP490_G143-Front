@@ -51,13 +51,13 @@ const AdminCustomerManagement = () => {
 
     // Search filter
     if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
+      const normalizedQuery = searchQuery.trim().replace(/\s+/g, ' ').toLowerCase();
       filtered = filtered.filter(c => 
-        (c.companyName || '').toLowerCase().includes(query) ||
-        (c.contactPerson || '').toLowerCase().includes(query) ||
-        (c.email || '').toLowerCase().includes(query) ||
-        (c.phoneNumber || '').toLowerCase().includes(query) ||
-        (c.taxCode || '').toLowerCase().includes(query)
+        (c.companyName || '').trim().toLowerCase().includes(normalizedQuery) ||
+        (c.contactPerson || '').trim().toLowerCase().includes(normalizedQuery) ||
+        (c.email || '').trim().toLowerCase().includes(normalizedQuery) ||
+        (c.phoneNumber || '').trim().toLowerCase().includes(normalizedQuery) ||
+        (c.taxCode || '').trim().toLowerCase().includes(normalizedQuery)
       );
     }
 

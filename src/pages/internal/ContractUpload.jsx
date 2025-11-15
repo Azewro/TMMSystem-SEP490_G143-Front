@@ -104,10 +104,10 @@ const ContractUpload = () => {
 
     // Filter by search term
     if (searchTerm.trim()) {
-      const searchLower = searchTerm.toLowerCase();
+      const normalizedSearch = searchTerm.trim().replace(/\s+/g, ' ').toLowerCase();
       filtered = filtered.filter(contract => {
-        const contractNumber = (contract.contractNumber || '').toLowerCase();
-        return contractNumber.includes(searchLower);
+        const contractNumber = (contract.contractNumber || '').trim().toLowerCase();
+        return contractNumber.includes(normalizedSearch);
       });
     }
 

@@ -28,18 +28,35 @@ const MachineManagement = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedMachine, setSelectedMachine] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     loadMachines();
-  }, []);
+  }, [currentPage, searchQuery, typeFilter, statusFilter]);
 
   const loadMachines = async () => {
     setLoading(true);
     setError('');
     try {
-      const data = await machineService.getAllMachines();
-      setMachines(Array.isArray(data) ? data : []);
+      // Convert 1-based page to 0-based for backend
+      const page = currentPage - 1;
+      const response = await machineService.getAllMachines(page, itemsPerPage, searchQuery || undefined, typeFilter || undefined, statusFilter || undefined);
+      
+      // Handle PageResponse
+      let machinesData = [];
+      if (response && response.content) {
+        machinesData = response.content;
+        setTotalPages(response.totalPages || 1);
+        setTotalElements(response.totalElements || 0);
+      } else if (Array.isArray(response)) {
+        machinesData = response;
+        setTotalPages(1);
+        setTotalElements(response.length);
+      }
+      
+      setMachines(machinesData);
     } catch (err) {
       console.error('Failed to load machines:', err);
       setError(err.message || 'Không thể tải danh sách máy');
@@ -48,41 +65,13 @@ const MachineManagement = () => {
     }
   };
 
-  const filteredMachines = useMemo(() => {
-    let filtered = machines;
-
-    // Search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(m => 
-        (m.code || '').toLowerCase().includes(query) ||
-        (m.name || '').toLowerCase().includes(query) ||
-        (m.location || '').toLowerCase().includes(query)
-      );
-    }
-
-    // Type filter
-    if (typeFilter) {
-      filtered = filtered.filter(m => (m.type || '') === typeFilter);
-    }
-
-    // Status filter
-    if (statusFilter !== '') {
-      filtered = filtered.filter(m => (m.status || '') === statusFilter);
-    }
-
-    return filtered;
-  }, [machines, searchQuery, typeFilter, statusFilter]);
-
-  // Pagination
-  const totalPages = Math.ceil(filteredMachines.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedMachines = filteredMachines.slice(startIndex, endIndex);
+  // Note: Search and filter are now server-side, no client-side filtering needed
 
   useEffect(() => {
     // Reset to page 1 when filters change
-    setCurrentPage(1);
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
   }, [searchQuery, typeFilter, statusFilter]);
 
   const uniqueTypes = useMemo(() => {
@@ -250,16 +239,16 @@ const MachineManagement = () => {
                         </td>
                       </tr>
                     )}
-                    {!loading && filteredMachines.length === 0 && (
+                    {!loading && machines.length === 0 && (
                       <tr>
                         <td colSpan={8} className="text-center py-4 text-muted">
-                          {machines.length === 0 ? 'Chưa có máy nào' : 'Không tìm thấy máy'}
+                          {totalElements === 0 ? 'Chưa có máy nào' : 'Không tìm thấy máy phù hợp với bộ lọc'}
                         </td>
                       </tr>
                     )}
-                    {!loading && paginatedMachines.map((machine, idx) => (
+                    {!loading && machines.map((machine, idx) => (
                       <tr key={machine.id}>
-                        <td>{startIndex + idx + 1}</td>
+                        <td>{(currentPage - 1) * itemsPerPage + idx + 1}</td>
                         <td>
                           <strong>{machine.code || '—'}</strong>
                         </td>

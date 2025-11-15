@@ -64,32 +64,47 @@ const QuotesList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
   const ITEMS_PER_PAGE = 10;
 
   const fetchAndEnrichQuotes = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const [quotesData, customersData, usersData] = await Promise.all([ // Fetch usersData
-        quoteService.getAllQuotes(),
+      // Convert 1-based page to 0-based for backend
+      const page = currentPage - 1;
+      const [quotesResponse, customersData, usersData] = await Promise.all([
+        quotationService.getAllQuotes(page, ITEMS_PER_PAGE, searchTerm || undefined, statusFilter || undefined),
         quoteService.getAllCustomers(),
-        userService.getAllUsers() // Fetch all users
+        userService.getAllUsers()
       ]);
 
-      if (Array.isArray(quotesData) && Array.isArray(customersData) && Array.isArray(usersData)) {
+      // Handle PageResponse
+      let quotesData = [];
+      if (quotesResponse && quotesResponse.content) {
+        quotesData = quotesResponse.content;
+        setTotalPages(quotesResponse.totalPages || 1);
+        setTotalElements(quotesResponse.totalElements || 0);
+      } else if (Array.isArray(quotesResponse)) {
+        quotesData = quotesResponse;
+        setTotalPages(1);
+        setTotalElements(quotesResponse.length);
+      }
+
+      if (Array.isArray(customersData) && Array.isArray(usersData)) {
         const customerMap = new Map(customersData.map(c => [c.id, c]));
-        const userMap = new Map(usersData.map(u => [u.id, u])); // Create user map
+        const userMap = new Map(usersData.map(u => [u.id, u]));
 
         const enrichedQuotes = quotesData.map(quote => ({
           ...quote,
           customer: customerMap.get(quote.customerId),
-          creator: userMap.get(quote.createdById) // Enrich with creator info
+          creator: userMap.get(quote.createdById)
         }));
 
-        const sortedData = enrichedQuotes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        setAllQuotes(sortedData);
+        setAllQuotes(enrichedQuotes);
       } else {
-        console.warn('API returned non-array data for quotes, customers, or users.');
+        console.warn('API returned non-array data for customers or users.');
         setAllQuotes([]);
       }
     } catch (e) {
@@ -100,11 +115,16 @@ const QuotesList = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentPage, searchTerm, statusFilter]);
+  
+  useEffect(() => {
+    // Reset to page 1 when filters change
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
 
   useEffect(() => {
     fetchAndEnrichQuotes();
-  }, [fetchAndEnrichQuotes]);
+  }, [fetchAndEnrichQuotes, currentPage]);
 
   const handleViewDetail = (quote) => {
     navigate(`/sales/quotations/${quote.id}`);
@@ -124,24 +144,21 @@ const QuotesList = () => {
 
     // Filter by search term
     if (searchTerm.trim()) {
-      const searchTermLower = searchTerm.toLowerCase();
-      const quoteNumber = quote.quotationNumber || '';
-      const customerName = quote.customer?.contactPerson || '';
-      const creatorName = quote.creator?.name || '';
+      const normalizedSearch = searchTerm.trim().replace(/\s+/g, ' ').toLowerCase();
+      const quoteNumber = (quote.quotationNumber || '').trim().toLowerCase();
+      const customerName = (quote.customer?.contactPerson || '').trim().toLowerCase();
+      const creatorName = (quote.creator?.name || '').trim().toLowerCase();
       return (
-        quoteNumber.toLowerCase().includes(searchTermLower) ||
-        customerName.toLowerCase().includes(searchTermLower) ||
-        creatorName.toLowerCase().includes(searchTermLower)
+        quoteNumber.includes(normalizedSearch) ||
+        customerName.includes(normalizedSearch) ||
+        creatorName.includes(normalizedSearch)
       );
     }
 
     return true;
   });
 
-  const indexOfLastQuote = currentPage * ITEMS_PER_PAGE;
-  const indexOfFirstQuote = indexOfLastQuote - ITEMS_PER_PAGE;
-  const currentQuotes = filteredQuotes.slice(indexOfFirstQuote, indexOfLastQuote);
-  const totalPages = Math.ceil(filteredQuotes.length / ITEMS_PER_PAGE);
+  // Note: Pagination is now server-side, but we still filter/search client-side on current page
 
   return (
     <div>
@@ -220,14 +237,14 @@ const QuotesList = () => {
                         Không thể hiển thị dữ liệu do lỗi
                       </td></tr>
                     )}
-                    {!loading && !error && filteredQuotes.length === 0 && (
+                    {!loading && !error && allQuotes.length === 0 && (
                       <tr><td colSpan={6} className="text-center py-4 text-muted">
-                        {allQuotes.length === 0 
+                        {totalElements === 0 
                           ? 'Chưa có báo giá nào.' 
                           : 'Không tìm thấy báo giá phù hợp với bộ lọc.'}
                       </td></tr>
                     )}
-                    {!loading && !error && currentQuotes.map((quote) => {
+                    {!loading && !error && allQuotes.map((quote) => {
                       return (
                         <tr key={quote.id}>
                           <td className="fw-semibold text-primary">

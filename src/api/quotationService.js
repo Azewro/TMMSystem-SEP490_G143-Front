@@ -2,9 +2,23 @@ import apiClient from './apiConfig';
 
 export const quotationService = {
   // Get all quotations
-  getAllQuotations: async () => {
-    const response = await apiClient.get('/v1/quotations');
+  getAllQuotations: async (page = 0, size = 10, search, status) => {
+    const params = { page, size };
+    if (search) params.search = search;
+    if (status) params.status = status;
+    
+    const response = await apiClient.get('/v1/quotations', { params });
+    // Handle PageResponse
+    if (response.data && response.data.content) {
+      return response.data;
+    }
+    // Fallback for backward compatibility
     return response.data;
+  },
+  
+  // Alias for getAllQuotations
+  getAllQuotes: async function(page = 0, size = 10, search, status) {
+    return this.getAllQuotations(page, size, search, status);
   },
 
   // Get quotation by ID
@@ -26,8 +40,16 @@ export const quotationService = {
   },
 
   // Get customer quotations
-  getCustomerQuotations: async (customerId) => {
-    const response = await apiClient.get(`/v1/quotations/customer/${customerId}`);
+  getCustomerQuotations: async (customerId, page = 0, size = 10, search) => {
+    const params = { page, size };
+    if (search) params.search = search;
+    
+    const response = await apiClient.get(`/v1/quotations/customer/${customerId}`, { params });
+    // Handle PageResponse
+    if (response.data && response.data.content) {
+      return response.data;
+    }
+    // Fallback for backward compatibility
     return response.data;
   },
 

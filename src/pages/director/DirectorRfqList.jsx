@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Card, Table, Button, Spinner, Alert, Badge, Form, InputGroup } from 'react-bootstrap';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Container, Card, Table, Button, Spinner, Alert, Badge, Form, InputGroup, Row, Col } from 'react-bootstrap';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { rfqService } from '../../api/rfqService';
@@ -16,19 +16,37 @@ const DirectorRfqList = () => {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedRfqId, setSelectedRfqId] = useState(null);
 
-  // Search and Pagination state
+  // Search, Filter and Pagination state
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
   const ITEMS_PER_PAGE = 10;
 
   const fetchRfqs = async () => {
     setLoading(true);
     setError('');
     try {
-      const data = await rfqService.getRfqs();
+      // Convert 1-based page to 0-based for backend
+      const page = currentPage - 1;
+      const response = await rfqService.getRfqs({ page, size: ITEMS_PER_PAGE, search: searchTerm || undefined, status: statusFilter || undefined });
+
+      // Handle PageResponse
+      let rfqs = [];
+      if (response && response.content) {
+        rfqs = response.content;
+        setTotalPages(response.totalPages || 1);
+        setTotalElements(response.totalElements || 0);
+      } else if (Array.isArray(response)) {
+        // Fallback for backward compatibility
+        rfqs = response;
+        setTotalPages(1);
+        setTotalElements(response.length);
+      }
 
       const enrichedData = await Promise.all(
-        (data || []).map(async (rfq) => {
+        (rfqs || []).map(async (rfq) => {
           if (rfq.customerId) {
             try {
               const customer = await customerService.getCustomerById(rfq.customerId);
@@ -45,8 +63,7 @@ const DirectorRfqList = () => {
         })
       );
 
-      const sortedData = (enrichedData || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      setAllRfqs(sortedData);
+      setAllRfqs(enrichedData);
     } catch (err) {
       setError('Lỗi khi tải danh sách RFQ.');
     } finally {
@@ -56,7 +73,12 @@ const DirectorRfqList = () => {
 
   useEffect(() => {
     fetchRfqs();
-  }, []);
+  }, [currentPage, searchTerm, statusFilter]);
+  
+  useEffect(() => {
+    // Reset to page 1 when filters change
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
 
   const handleOpenAssignModal = (rfqId) => {
     setSelectedRfqId(rfqId);
@@ -104,21 +126,43 @@ const DirectorRfqList = () => {
     }
   };
 
-  // Filtering and Pagination logic
-  const filteredRfqs = allRfqs.filter(rfq => {
-    const searchTermLower = searchTerm.toLowerCase();
-    const rfqNumber = rfq.rfqNumber || '';
-    const contactPerson = rfq.contactPerson || '';
-    return (
-      rfqNumber.toLowerCase().includes(searchTermLower) ||
-      contactPerson.toLowerCase().includes(searchTermLower)
-    );
-  });
+  const statusOptions = [
+    { value: '', label: 'Tất cả trạng thái' },
+    { value: 'DRAFT', label: 'Chờ xử lý' },
+    { value: 'SENT', label: 'Đã phân công' },
+    { value: 'FORWARDED_TO_PLANNING', label: 'Đã chuyển Kế hoạch' },
+    { value: 'PRELIMINARY_CHECKED', label: 'Đã kiểm tra sơ bộ' },
+    { value: 'RECEIVED_BY_PLANNING', label: 'Kế hoạch đã nhận' },
+    { value: 'QUOTED', label: 'Đã báo giá' },
+    { value: 'REJECTED', label: 'Đã từ chối' },
+  ];
 
-  const indexOfLastRfq = currentPage * ITEMS_PER_PAGE;
-  const indexOfFirstRfq = indexOfLastRfq - ITEMS_PER_PAGE;
-  const currentRfqs = filteredRfqs.slice(indexOfFirstRfq, indexOfLastRfq);
-  const totalPages = Math.ceil(filteredRfqs.length / ITEMS_PER_PAGE);
+  // Filtering logic (client-side on current page)
+  const filteredRfqs = useMemo(() => {
+    let filtered = [...allRfqs];
+
+    // Search filter
+    if (searchTerm.trim()) {
+      const normalizedSearch = searchTerm.trim().replace(/\s+/g, ' ').toLowerCase();
+      filtered = filtered.filter(rfq => {
+        const rfqNumber = (rfq.rfqNumber || '').trim().toLowerCase();
+        const contactPerson = (rfq.contactPerson || '').trim().toLowerCase();
+        return (
+          rfqNumber.includes(normalizedSearch) ||
+          contactPerson.includes(normalizedSearch)
+        );
+      });
+    }
+
+    // Status filter
+    if (statusFilter) {
+      filtered = filtered.filter(rfq => rfq.status === statusFilter);
+    }
+
+    return filtered;
+  }, [allRfqs, searchTerm, statusFilter]);
+
+  // Note: Pagination is now server-side
 
   return (
     <div>
@@ -128,24 +172,44 @@ const DirectorRfqList = () => {
         <div className="flex-grow-1 p-4" style={{ backgroundColor: '#f8f9fa' }}>
           <Container fluid>
             <h2 className="mb-4">Quản lý Yêu cầu báo giá (RFQ)</h2>
-            <Card>
-              <Card.Header>
-                <div className="d-flex justify-content-between align-items-center">
-                  <span>Danh sách RFQ chờ xử lý</span>
-                  <div style={{ width: '300px' }}>
+            {/* Search and Filter */}
+            <Card className="mb-3">
+              <Card.Body>
+                <Row className="g-3">
+                  <Col md={4}>
                     <InputGroup>
+                      <InputGroup.Text><FaSearch /></InputGroup.Text>
                       <Form.Control
                         type="text"
                         placeholder="Tìm theo mã RFQ, tên khách..."
                         value={searchTerm}
-                        onChange={handleSearchChange}
+                        onChange={(e) => {
+                          setSearchTerm(e.target.value);
+                          setCurrentPage(1);
+                        }}
                       />
-                      <InputGroup.Text>
-                        <FaSearch />
-                      </InputGroup.Text>
                     </InputGroup>
-                  </div>
-                </div>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Select
+                      value={statusFilter}
+                      onChange={(e) => {
+                        setStatusFilter(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                    >
+                      {statusOptions.map(option => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </Form.Select>
+                  </Col>
+                </Row>
+              </Card.Body>
+            </Card>
+
+            <Card>
+              <Card.Header>
+                Danh sách RFQ chờ xử lý
               </Card.Header>
               <Card.Body>
                 {loading ? (
@@ -165,7 +229,7 @@ const DirectorRfqList = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {currentRfqs.length > 0 ? currentRfqs.map(rfq => (
+                        {allRfqs.length > 0 ? allRfqs.map(rfq => (
                             <tr key={rfq.id}>
                               <td>{rfq.rfqNumber}</td>
                               <td>{rfq.contactPerson || 'N/A'}</td>
@@ -183,7 +247,11 @@ const DirectorRfqList = () => {
                             </tr>
                           )) : (
                           <tr>
-                            <td colSpan="5" className="text-center">Không có RFQ nào phù hợp.</td>
+                            <td colSpan="5" className="text-center">
+                              {totalElements === 0 
+                                ? 'Không có RFQ nào.' 
+                                : 'Không tìm thấy RFQ phù hợp với bộ lọc.'}
+                            </td>
                           </tr>
                         )}
                       </tbody>

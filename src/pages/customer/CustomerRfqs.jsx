@@ -21,6 +21,8 @@ const CustomerRfqs = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
   const ITEMS_PER_PAGE = 10;
 
   // Modal state
@@ -31,9 +33,30 @@ const CustomerRfqs = () => {
     setLoading(true);
     setError('');
     try {
-      const data = await rfqService.getRfqs({ customerId: user.customerId });
-      const sortedData = (data || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      setRfqs(sortedData);
+      // Convert 1-based page to 0-based for backend
+      const page = currentPage - 1;
+      const response = await rfqService.getRfqs({ 
+        customerId: user.customerId, 
+        page, 
+        size: ITEMS_PER_PAGE,
+        search: searchTerm || undefined,
+        status: statusFilter || undefined
+      });
+      
+      // Handle PageResponse
+      let rfqs = [];
+      if (response && response.content) {
+        rfqs = response.content;
+        setTotalPages(response.totalPages || 1);
+        setTotalElements(response.totalElements || 0);
+      } else if (Array.isArray(response)) {
+        rfqs = response;
+        setTotalPages(1);
+        setTotalElements(response.length);
+      }
+      
+      // Backend already sorts by createdAt DESC, no need to sort again
+      setRfqs(rfqs);
     } catch (err) {
       setError('Lỗi khi tải danh sách yêu cầu báo giá.');
     } finally {
@@ -54,33 +77,7 @@ const CustomerRfqs = () => {
     return `RFQ-${rfq.id}`;
   };
 
-  // Filter and search RFQs
-  const filteredRfqs = useMemo(() => {
-    let filtered = [...rfqs];
-
-    // Search filter
-    if (searchTerm.trim()) {
-      const searchLower = searchTerm.toLowerCase().trim();
-      filtered = filtered.filter(rfq => {
-        const rfqCode = formatRfqCode(rfq).toLowerCase();
-        const createdAt = new Date(rfq.createdAt).toLocaleDateString('vi-VN').toLowerCase();
-        return rfqCode.includes(searchLower) || createdAt.includes(searchLower);
-      });
-    }
-
-    // Status filter
-    if (statusFilter) {
-      filtered = filtered.filter(rfq => rfq.status === statusFilter);
-    }
-
-    return filtered;
-  }, [rfqs, searchTerm, statusFilter]);
-
-  // Pagination
-  const indexOfLastRfq = currentPage * ITEMS_PER_PAGE;
-  const indexOfFirstRfq = indexOfLastRfq - ITEMS_PER_PAGE;
-  const currentRfqs = filteredRfqs.slice(indexOfFirstRfq, indexOfLastRfq);
-  const totalPages = Math.ceil(filteredRfqs.length / ITEMS_PER_PAGE);
+  // Note: Search and filter are now server-side, no client-side filtering needed
 
   // Handle cancel RFQ
   const handleCancelRfq = async (rfqId) => {
@@ -120,7 +117,14 @@ const CustomerRfqs = () => {
       setLoading(false);
       setError('Bạn cần đăng nhập để xem các yêu cầu báo giá.');
     }
-  }, [user]);
+  }, [user, currentPage, searchTerm, statusFilter]);
+  
+  useEffect(() => {
+    // Reset to page 1 when filters change
+    if (user && user.customerId) {
+      setCurrentPage(1);
+    }
+  }, [searchTerm, statusFilter]);
 
   const handleViewDetails = (rfqId) => {
     setSelectedRfqId(rfqId);
@@ -229,7 +233,7 @@ const CustomerRfqs = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredRfqs.length > 0 ? currentRfqs.map(rfq => {
+                        {rfqs.length > 0 ? rfqs.map(rfq => {
                           const rfqStatus = rfq.status || 'DRAFT';
                           const badge = getStatusBadge(rfqStatus);
                           return (
@@ -265,7 +269,7 @@ const CustomerRfqs = () => {
                         }) : (
                           <tr>
                             <td colSpan="4" className="text-center py-4 text-muted">
-                              {rfqs.length === 0 ? 'Bạn chưa có yêu cầu báo giá nào.' : 'Không tìm thấy yêu cầu báo giá nào.'}
+                              {totalElements === 0 ? 'Bạn chưa có yêu cầu báo giá nào.' : 'Không tìm thấy yêu cầu báo giá nào.'}
                             </td>
                           </tr>
                         )}

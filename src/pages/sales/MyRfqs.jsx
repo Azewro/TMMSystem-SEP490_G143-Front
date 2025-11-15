@@ -22,8 +22,10 @@ const MyRfqs = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
-  // Pagination state
+  // Pagination state - Note: Backend uses 0-based page index
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
   const ITEMS_PER_PAGE = 10;
 
   const getStatusBadge = (status) => {
@@ -42,10 +44,25 @@ const MyRfqs = () => {
     setLoading(true);
     setError('');
     try {
-      const data = await rfqService.getAssignedRfqsForSales();
+      // Convert 1-based page to 0-based for backend
+      const page = currentPage - 1;
+      const response = await rfqService.getAssignedRfqsForSales(page, ITEMS_PER_PAGE, searchTerm || undefined, statusFilter || undefined);
+      
+      // Handle PageResponse
+      let rfqs = [];
+      if (response && response.content) {
+        rfqs = response.content;
+        setTotalPages(response.totalPages || 1);
+        setTotalElements(response.totalElements || 0);
+      } else if (Array.isArray(response)) {
+        // Fallback for backward compatibility
+        rfqs = response;
+        setTotalPages(1);
+        setTotalElements(response.length);
+      }
 
       const enrichedData = await Promise.all(
-        (data || []).map(async (rfq) => {
+        (rfqs || []).map(async (rfq) => {
           if (rfq.customerId) {
             try {
               const customer = await customerService.getCustomerById(rfq.customerId);
@@ -61,22 +78,24 @@ const MyRfqs = () => {
           return rfq;
         })
       );
-
-      // Sort by newest first
-      const sortedData = enrichedData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       
-      setAllRfqs(sortedData);
+      setAllRfqs(enrichedData);
     } catch (err) {
       setError('Lỗi khi tải danh sách RFQ của bạn.');
       toast.error('Lỗi khi tải danh sách RFQ của bạn.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentPage, searchTerm, statusFilter]);
 
   useEffect(() => {
     fetchMyRfqs();
   }, [fetchMyRfqs]);
+  
+  useEffect(() => {
+    // Reset to page 1 when filters change
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
 
   const handleViewDetails = (rfqId) => {
     setSelectedRfqId(rfqId);
@@ -91,33 +110,7 @@ const MyRfqs = () => {
     }
   };
 
-  // Filtering logic
-  const filteredRfqs = useMemo(() => {
-    let filtered = allRfqs;
-
-    // Filter by status
-    if (statusFilter) {
-      filtered = filtered.filter(rfq => rfq.status === statusFilter);
-    }
-
-    // Filter by search term
-    if (searchTerm.trim()) {
-      const searchLower = searchTerm.toLowerCase();
-      filtered = filtered.filter(rfq => {
-        const rfqNumber = (rfq.rfqNumber || '').toLowerCase();
-        const contactPerson = (rfq.contactPerson || '').toLowerCase();
-        return rfqNumber.includes(searchLower) || contactPerson.includes(searchLower);
-      });
-    }
-
-    return filtered;
-  }, [allRfqs, statusFilter, searchTerm]);
-
-  // Pagination logic
-  const indexOfLastRfq = currentPage * ITEMS_PER_PAGE;
-  const indexOfFirstRfq = indexOfLastRfq - ITEMS_PER_PAGE;
-  const currentRfqs = filteredRfqs.slice(indexOfFirstRfq, indexOfLastRfq);
-  const totalPages = Math.ceil(filteredRfqs.length / ITEMS_PER_PAGE);
+  // Note: Search and filter are now server-side, no client-side filtering needed
 
   const getStatusText = (status) => {
     switch (status) {
@@ -195,7 +188,7 @@ const MyRfqs = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {currentRfqs.length > 0 ? currentRfqs.map(rfq => (
+                        {allRfqs.length > 0 ? allRfqs.map(rfq => (
                           <tr key={rfq.id}>
                             <td>{rfq.rfqNumber}</td>
                             <td>{rfq.contactPerson || 'N/A'}</td>
@@ -214,7 +207,7 @@ const MyRfqs = () => {
                         )) : (
                           <tr>
                             <td colSpan="5" className="text-center">
-                              {allRfqs.length === 0 
+                              {totalElements === 0 
                                 ? 'Bạn không có RFQ nào cần xử lý.' 
                                 : 'Không tìm thấy RFQ phù hợp với bộ lọc.'}
                             </td>

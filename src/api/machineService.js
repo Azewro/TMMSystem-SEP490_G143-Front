@@ -2,9 +2,19 @@ import apiClient from './apiConfig';
 
 export const machineService = {
   // Get all machines
-  getAllMachines: async () => {
-    const response = await apiClient.get('/v1/machines');
-    return response.data;
+  getAllMachines: async (page = 0, size = 10, search, type, status) => {
+    const params = { page, size };
+    if (search) params.search = search;
+    if (type) params.type = type;
+    if (status) params.status = status;
+    
+    const response = await apiClient.get('/v1/machines', { params });
+    // Handle PageResponse
+    if (response.data && response.data.content) {
+      return response.data;
+    }
+    // Fallback for backward compatibility
+    return Array.isArray(response.data) ? response.data : [];
   },
 
   // Get machine by ID

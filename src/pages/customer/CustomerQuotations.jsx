@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import Sidebar from '../../components/common/Sidebar';
 import { quoteService } from '../../api/quoteService';
+import { quotationService } from '../../api/quotationService';
 import { useAuth } from '../../context/AuthContext';
 import Pagination from '../../components/Pagination';
 import toast from 'react-hot-toast';
@@ -65,6 +66,8 @@ const CustomerQuotations = () => {
   
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
   const ITEMS_PER_PAGE = 10;
 
   const fetchCustomerQuotes = useCallback(async () => {
@@ -76,17 +79,37 @@ const CustomerQuotations = () => {
     setLoading(true);
     setError('');
     try {
-      const data = await quoteService.getCustomerQuotations(customerId);
-      const filteredData = (Array.isArray(data) ? data : []).filter(quote => quote.status !== 'DRAFT'); // Filter out DRAFT quotes
-      const sortedData = filteredData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      setAllQuotes(sortedData);
+      // Convert 1-based page to 0-based for backend
+      const page = currentPage - 1;
+      const response = await quotationService.getCustomerQuotations(customerId, page, ITEMS_PER_PAGE, searchTerm || undefined);
+      
+      // Handle PageResponse
+      let quotes = [];
+      if (response && response.content) {
+        quotes = response.content;
+        setTotalPages(response.totalPages || 1);
+        setTotalElements(response.totalElements || 0);
+      } else if (Array.isArray(response)) {
+        quotes = response;
+        setTotalPages(1);
+        setTotalElements(response.length);
+      }
+      
+      // Filter out DRAFT quotes
+      const filteredData = quotes.filter(quote => quote.status !== 'DRAFT');
+      setAllQuotes(filteredData);
     } catch (e) {
       setError(e.message || 'Không thể tải báo giá của bạn');
       toast.error(e.message || 'Không thể tải báo giá của bạn');
     } finally {
       setLoading(false);
     }
-  }, [customerId]);
+  }, [customerId, currentPage, searchTerm]);
+  
+  useEffect(() => {
+    // Reset to page 1 when search changes
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   useEffect(() => {
     fetchCustomerQuotes();
@@ -101,17 +124,7 @@ const CustomerQuotations = () => {
     setCurrentPage(1);
   };
 
-  const filteredQuotes = allQuotes.filter(quote => {
-    // Trim and normalize search term (remove extra spaces)
-    const normalizedSearch = searchTerm.trim().replace(/\s+/g, ' ').toLowerCase();
-    const normalizedQuoteNumber = (quote.quotationNumber || '').trim().toLowerCase();
-    return normalizedQuoteNumber.includes(normalizedSearch);
-  });
-
-  const indexOfLastQuote = currentPage * ITEMS_PER_PAGE;
-  const indexOfFirstQuote = indexOfLastQuote - ITEMS_PER_PAGE;
-  const currentQuotes = filteredQuotes.slice(indexOfFirstQuote, indexOfLastQuote);
-  const totalPages = Math.ceil(filteredQuotes.length / ITEMS_PER_PAGE);
+  // Note: Search is now server-side, no client-side filtering needed
 
   return (
     <div className="customer-layout">
@@ -155,8 +168,8 @@ const CustomerQuotations = () => {
                   <tbody>
                     {loading ? (
                       <tr><td colSpan="5" className="text-center py-4"><Spinner animation="border" /></td></tr>
-                    ) : currentQuotes.length > 0 ? (
-                      currentQuotes.map((quote) => (
+                    ) : allQuotes.length > 0 ? (
+                      allQuotes.map((quote) => (
                         <tr key={quote.id}>
                           <td className="fw-semibold text-primary">{quote.quotationNumber}</td>
                           <td>{formatDate(quote.validUntil)}</td>
@@ -172,7 +185,9 @@ const CustomerQuotations = () => {
                         </tr>
                       ))
                     ) : (
-                      <tr><td colSpan="5" className="text-center py-4 text-muted">Không có báo giá nào.</td></tr>
+                      <tr><td colSpan="5" className="text-center py-4 text-muted">
+                        {totalElements === 0 ? 'Không có báo giá nào.' : 'Không tìm thấy báo giá phù hợp với bộ lọc.'}
+                      </td></tr>
                     )}
                   </tbody>
                 </Table>

@@ -20,8 +20,10 @@ const PlanningRfqs = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [createdDateFilter, setCreatedDateFilter] = useState('');
 
-  // Pagination state
+  // Pagination state - Note: Backend uses 0-based page index
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
   const ITEMS_PER_PAGE = 10;
 
   const getStatusBadge = (status) => {
@@ -41,10 +43,25 @@ const PlanningRfqs = () => {
     setLoading(true);
     setError('');
     try {
-      const data = await rfqService.getAssignedRfqsForPlanning();
+      // Convert 1-based page to 0-based for backend
+      const page = currentPage - 1;
+      const response = await rfqService.getAssignedRfqsForPlanning(page, ITEMS_PER_PAGE, searchTerm || undefined, statusFilter || undefined);
+      
+      // Handle PageResponse
+      let rfqs = [];
+      if (response && response.content) {
+        rfqs = response.content;
+        setTotalPages(response.totalPages || 1);
+        setTotalElements(response.totalElements || 0);
+      } else if (Array.isArray(response)) {
+        // Fallback for backward compatibility
+        rfqs = response;
+        setTotalPages(1);
+        setTotalElements(response.length);
+      }
 
       const enrichedData = await Promise.all(
-        (data || []).map(async (rfq) => {
+        (rfqs || []).map(async (rfq) => {
           if (rfq.customerId) {
             try {
               const customer = await customerService.getCustomerById(rfq.customerId);
@@ -60,55 +77,34 @@ const PlanningRfqs = () => {
           return rfq;
         })
       );
-
-      // Sort by newest first
-      const sortedData = enrichedData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       
-      setAllRfqs(sortedData);
+      setAllRfqs(enrichedData);
     } catch (err) {
       setError('Lỗi khi tải danh sách RFQ.');
       toast.error('Lỗi khi tải danh sách RFQ.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentPage, searchTerm, statusFilter]);
 
   useEffect(() => {
     fetchPlanningRfqs();
   }, [fetchPlanningRfqs]);
+  
+  useEffect(() => {
+    // Reset to page 1 when filters change
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, createdDateFilter]);
 
   const handleViewDetails = (rfqId) => {
     navigate(`/planning/rfqs/${rfqId}`);
   };
 
-  // Filtering logic
+  // Filtering logic - Only filter by createdDate client-side (backend doesn't support it yet)
   const filteredRfqs = useMemo(() => {
     let filtered = allRfqs;
 
-    // Filter for RFQs that are ready for planning or being processed by planning
-    // Include: FORWARDED_TO_PLANNING (chờ xử lý), RECEIVED_BY_PLANNING (đang xử lý), QUOTED (đã báo giá nhưng chưa gửi)
-    filtered = filtered.filter(rfq => 
-      rfq.status === 'FORWARDED_TO_PLANNING' || 
-      rfq.status === 'RECEIVED_BY_PLANNING' || 
-      rfq.status === 'QUOTED'
-    );
-
-    // Filter by status (if selected)
-    if (statusFilter) {
-      filtered = filtered.filter(rfq => rfq.status === statusFilter);
-    }
-
-    // Filter by search term
-    if (searchTerm.trim()) {
-      const searchLower = searchTerm.toLowerCase();
-      filtered = filtered.filter(rfq => {
-        const rfqNumber = (rfq.rfqNumber || '').toLowerCase();
-        const contactPerson = (rfq.contactPerson || '').toLowerCase();
-        return rfqNumber.includes(searchLower) || contactPerson.includes(searchLower);
-      });
-    }
-
-    // Filter by created date
+    // Filter by created date (client-side only, backend doesn't support this filter yet)
     if (createdDateFilter) {
       filtered = filtered.filter(rfq => {
         if (!rfq.createdAt) return false;
@@ -118,13 +114,9 @@ const PlanningRfqs = () => {
     }
 
     return filtered;
-  }, [allRfqs, statusFilter, searchTerm, createdDateFilter]);
+  }, [allRfqs, createdDateFilter]);
 
-  // Pagination logic
-  const indexOfLastRfq = currentPage * ITEMS_PER_PAGE;
-  const indexOfFirstRfq = indexOfLastRfq - ITEMS_PER_PAGE;
-  const currentRfqs = filteredRfqs.slice(indexOfFirstRfq, indexOfLastRfq);
-  const totalPages = Math.ceil(filteredRfqs.length / ITEMS_PER_PAGE);
+  // Note: Search and status filter are now server-side
 
   const getStatusText = (status) => {
     switch (status) {
@@ -209,8 +201,11 @@ const PlanningRfqs = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {currentRfqs.length > 0 ? currentRfqs.map(rfq => (
-                          <tr key={rfq.id}>
+                        {filteredRfqs.length > 0 ? filteredRfqs.map(rfq => {
+                          // Filter out SENT status (these are handled by Sales)
+                          if (rfq.status === 'SENT') return null;
+                          return (
+                            <tr key={rfq.id}>
                             <td>{rfq.rfqNumber}</td>
                             <td>{rfq.contactPerson || 'N/A'}</td>
                             <td>{new Date(rfq.createdAt).toLocaleDateString('vi-VN')}</td>
@@ -225,10 +220,11 @@ const PlanningRfqs = () => {
                               </Button>
                             </td>
                           </tr>
-                        )) : (
+                          );
+                        }).filter(Boolean) : (
                           <tr>
                             <td colSpan="5" className="text-center">
-                              {allRfqs.length === 0 
+                              {totalElements === 0 
                                 ? 'Không có RFQ nào cần xử lý.' 
                                 : 'Không tìm thấy RFQ phù hợp với bộ lọc.'}
                             </td>

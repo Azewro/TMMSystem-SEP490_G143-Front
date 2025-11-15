@@ -27,18 +27,35 @@ const AdminUserManagement = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     loadUsers();
-  }, []);
+  }, [currentPage, searchQuery, roleFilter, statusFilter]);
 
   const loadUsers = async () => {
     setLoading(true);
     setError('');
     try {
-      const data = await userService.getAllUsers();
-      setUsers(Array.isArray(data) ? data : []);
+      // Convert 1-based page to 0-based for backend
+      const page = currentPage - 1;
+      const response = await userService.getAllUsers(page, itemsPerPage, searchQuery || undefined, roleFilter || undefined, statusFilter !== '' ? statusFilter === 'true' : undefined);
+      
+      // Handle PageResponse
+      let usersData = [];
+      if (response && response.content) {
+        usersData = response.content;
+        setTotalPages(response.totalPages || 1);
+        setTotalElements(response.totalElements || 0);
+      } else if (Array.isArray(response)) {
+        usersData = response;
+        setTotalPages(1);
+        setTotalElements(response.length);
+      }
+      
+      setUsers(usersData);
     } catch (err) {
       console.error('Failed to load users:', err);
       setError(err.message || 'Không thể tải danh sách tài khoản');
@@ -47,44 +64,9 @@ const AdminUserManagement = () => {
     }
   };
 
-  const filteredUsers = useMemo(() => {
-    let filtered = users;
+  // Note: Search and filter are now server-side, no client-side filtering needed
 
-    // Search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(u => 
-        (u.name || '').toLowerCase().includes(query) ||
-        (u.email || '').toLowerCase().includes(query) ||
-        (u.phoneNumber || '').toLowerCase().includes(query) ||
-        (u.roleName || '').toLowerCase().includes(query)
-      );
-    }
-
-    // Role filter
-    if (roleFilter) {
-      filtered = filtered.filter(u => (u.roleName || '') === roleFilter);
-    }
-
-    // Status filter
-    if (statusFilter !== '') {
-      const isActive = statusFilter === 'true';
-      filtered = filtered.filter(u => u.isActive === isActive);
-    }
-
-    return filtered;
-  }, [users, searchQuery, roleFilter, statusFilter]);
-
-  // Pagination
-  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
-
-  useEffect(() => {
-    // Reset to page 1 when filters change
-    setCurrentPage(1);
-  }, [searchQuery, roleFilter, statusFilter]);
+  // Reset to page 1 when filters change (handled in loadUsers useEffect)
 
   const uniqueRoles = useMemo(() => {
     return [...new Set(users.map(u => u.roleName).filter(Boolean))];
@@ -239,13 +221,13 @@ const AdminUserManagement = () => {
                     {!loading && filteredUsers.length === 0 && (
                       <tr>
                         <td colSpan={7} className="text-center py-4 text-muted">
-                          {users.length === 0 ? 'Chưa có tài khoản nào' : 'Không tìm thấy tài khoản'}
+                          {totalElements === 0 ? 'Chưa có tài khoản nào' : 'Không tìm thấy tài khoản phù hợp với bộ lọc'}
                         </td>
                       </tr>
                     )}
-                    {!loading && paginatedUsers.map((user, idx) => (
+                    {!loading && users.map((user, idx) => (
                       <tr key={user.id}>
-                        <td>{startIndex + idx + 1}</td>
+                        <td>{(currentPage - 1) * itemsPerPage + idx + 1}</td>
                         <td>
                           <div className="d-flex align-items-center">
                             <FaUserCircle className="me-2" size={20} />

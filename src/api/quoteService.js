@@ -211,17 +211,27 @@ export const quoteService = {
     }
   },
 
-  getSalesQuotations: async () => {
+  getSalesQuotations: async (page = 0, size = 10, search, status) => {
     try {
       const userId = sessionStorage.getItem('userId');
       if (!userId) {
         throw new Error('User ID not found in session storage.');
       }
+      const params = { page, size };
+      if (search) params.search = search;
+      if (status) params.status = status;
+      
       const response = await apiClient.get('/v1/quotations/for-sales', {
         headers: {
           'X-User-Id': userId
-        }
+        },
+        params
       });
+      // Handle PageResponse
+      if (response.data && response.data.content) {
+        return response.data;
+      }
+      // Fallback for backward compatibility
       return Array.isArray(response.data) ? response.data : [];
     } catch (error) {
       throw new Error(mapApiError(error, 'Lỗi khi tải danh sách báo giá cho Sales'));
@@ -231,8 +241,8 @@ export const quoteService = {
   /**
    * Sales – quotation management
    */
-  getAllQuotes: async () => {
-    return quoteService.getSalesQuotations();
+  getAllQuotes: async (page = 0, size = 10, search, status) => {
+    return quoteService.getSalesQuotations(page, size, search, status);
   },
 
   getQuoteDetails: async (quoteId) => {

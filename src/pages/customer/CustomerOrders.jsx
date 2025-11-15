@@ -59,6 +59,8 @@ const CustomerOrders = () => {
   const [sortField, setSortField] = useState('createdAt');
   const [sortDirection, setSortDirection] = useState('desc');
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
   const ITEMS_PER_PAGE = 10;
 
   useEffect(() => {
@@ -71,7 +73,22 @@ const CustomerOrders = () => {
       setLoading(true);
       setError('');
       try {
-        const allContracts = await contractService.getAllContracts();
+        // Convert 1-based page to 0-based for backend
+        const page = currentPage - 1;
+        const response = await contractService.getAllContracts(page, ITEMS_PER_PAGE, searchTerm || undefined, statusFilter || undefined);
+        
+        // Handle PageResponse
+        let allContracts = [];
+        if (response && response.content) {
+          allContracts = response.content;
+          setTotalPages(response.totalPages || 1);
+          setTotalElements(response.totalElements || 0);
+        } else if (Array.isArray(response)) {
+          allContracts = response;
+          setTotalPages(1);
+          setTotalElements(response.length);
+        }
+        
         // Filter contracts for the current customer
         const customerOrders = allContracts.filter(
           (contract) => contract.customerId === parseInt(user.customerId, 10)
@@ -87,29 +104,19 @@ const CustomerOrders = () => {
     if (user) {
       fetchOrders();
     }
-  }, [user]);
+  }, [user, currentPage, searchTerm, statusFilter]);
+  
+  useEffect(() => {
+    // Reset to page 1 when filters change
+    if (user && user.customerId) {
+      setCurrentPage(1);
+    }
+  }, [searchTerm, statusFilter]);
 
-  // Filter and sort orders
+  // Filter and sort orders - Note: Search and status filter are now server-side
+  // Only customerId filter and sorting remain client-side
   const filteredAndSortedOrders = useMemo(() => {
     let filtered = [...orders];
-
-    // Search filter
-    if (searchTerm.trim()) {
-      const searchLower = searchTerm.toLowerCase().trim();
-      filtered = filtered.filter(order => {
-        const contractNumber = (order.contractNumber || `HD-${order.id}`).toLowerCase();
-        const createdAt = formatDate(order.createdAt).toLowerCase();
-        const deliveryDate = formatDate(order.deliveryDate).toLowerCase();
-        return contractNumber.includes(searchLower) || 
-               createdAt.includes(searchLower) || 
-               deliveryDate.includes(searchLower);
-      });
-    }
-
-    // Status filter
-    if (statusFilter) {
-      filtered = filtered.filter(order => order.status === statusFilter);
-    }
 
     // Sort
     filtered.sort((a, b) => {
@@ -133,13 +140,9 @@ const CustomerOrders = () => {
     });
 
     return filtered;
-  }, [orders, searchTerm, statusFilter, sortField, sortDirection]);
+  }, [orders, sortField, sortDirection]);
 
-  // Pagination
-  const indexOfLastOrder = currentPage * ITEMS_PER_PAGE;
-  const indexOfFirstOrder = indexOfLastOrder - ITEMS_PER_PAGE;
-  const currentOrders = filteredAndSortedOrders.slice(indexOfFirstOrder, indexOfLastOrder);
-  const totalPages = Math.ceil(filteredAndSortedOrders.length / ITEMS_PER_PAGE);
+  // Note: Search and status filter are now server-side, only sorting remains client-side
 
   const handleSort = (field) => {
     if (sortField === field) {
@@ -231,9 +234,11 @@ const CustomerOrders = () => {
                     ) : error ? (
                       <tr><td colSpan="6" className="text-center py-4"><Alert variant="danger">{error}</Alert></td></tr>
                     ) : filteredAndSortedOrders.length === 0 ? (
-                      <tr><td colSpan="6" className="text-center py-4 text-muted">Không tìm thấy đơn hàng nào.</td></tr>
+                      <tr><td colSpan="6" className="text-center py-4 text-muted">
+                        {totalElements === 0 ? 'Bạn chưa có đơn hàng nào.' : 'Không tìm thấy đơn hàng nào phù hợp với bộ lọc.'}
+                      </td></tr>
                     ) : (
-                      currentOrders.map((order) => {
+                      filteredAndSortedOrders.map((order) => {
                         const badge = statusMap[order.status] || { label: order.status || 'Không xác định', variant: 'secondary' };
                         return (
                           <tr key={order.id}>
