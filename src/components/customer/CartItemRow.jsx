@@ -3,7 +3,7 @@ import { Row, Col, Card, Button, Image, Form } from 'react-bootstrap';
 import { FaTrash } from 'react-icons/fa';
 import { useCart } from '../../context/CartContext';
 
-const CartItemRow = ({ item }) => {
+const CartItemRow = ({ item, isSelected, onToggleSelect }) => {
   const { updateQuantity, removeFromCart } = useCart();
   const [localQuantity, setLocalQuantity] = useState(item.quantity);
 
@@ -34,6 +34,13 @@ const CartItemRow = ({ item }) => {
     <Card key={item.id} className="mb-3">
       <Card.Body>
         <Row className="align-items-center">
+          <Col md={1}>
+            <Form.Check
+              type="checkbox"
+              checked={isSelected}
+              onChange={onToggleSelect}
+            />
+          </Col>
           <Col md={2}>
             <Image src={item.imageUrl || '/placeholder-product.jpg'} thumbnail />
           </Col>
@@ -50,9 +57,6 @@ const CartItemRow = ({ item }) => {
               min="1"
               style={{ width: '80px' }}
             />
-          </Col>
-          <Col md={2}>
-            {/* Placeholder for price if available */}
           </Col>
           <Col md={1} className="text-end">
             <Button variant="danger" size="sm" onClick={handleRemoveClick}>

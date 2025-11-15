@@ -107,10 +107,6 @@ const Header = () => {
                 </Dropdown.Toggle>
 
                 <Dropdown.Menu>
-                  <Dropdown.Item onClick={() => navigate(getDashboardPath())}>
-                    <FaTachometerAlt className="me-2" />
-                    Bảng điều khiển
-                  </Dropdown.Item>
                   <Dropdown.Item onClick={() => setShowProfileModal(true)}>
                     <FaUser className="me-2" />
                     Thông tin cá nhân

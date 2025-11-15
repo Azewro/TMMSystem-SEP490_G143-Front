@@ -101,9 +101,12 @@ const CustomerQuotations = () => {
     setCurrentPage(1);
   };
 
-  const filteredQuotes = allQuotes.filter(quote => 
-    quote.quotationNumber?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredQuotes = allQuotes.filter(quote => {
+    // Trim and normalize search term (remove extra spaces)
+    const normalizedSearch = searchTerm.trim().replace(/\s+/g, ' ').toLowerCase();
+    const normalizedQuoteNumber = (quote.quotationNumber || '').trim().toLowerCase();
+    return normalizedQuoteNumber.includes(normalizedSearch);
+  });
 
   const indexOfLastQuote = currentPage * ITEMS_PER_PAGE;
   const indexOfFirstQuote = indexOfLastQuote - ITEMS_PER_PAGE;

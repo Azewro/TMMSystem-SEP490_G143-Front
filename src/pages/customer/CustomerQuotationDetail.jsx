@@ -220,7 +220,7 @@ const CustomerQuotationDetail = () => {
       case 'SENT': return { text: 'Đã gửi', bg: 'info' };
       case 'ACCEPTED': return { text: 'Đã chấp nhận', bg: 'success' };
       case 'REJECTED': return { text: 'Đã từ chối', bg: 'danger' };
-      case 'ORDER_CREATED': return { text: 'Đã tạo đơn hàng', bg: 'primary' };
+      case 'ORDER_CREATED': return { text: 'Đã chấp nhận', bg: 'success' };
       default: return { text: status || 'Không xác định', bg: 'secondary' };
     }
   };
@@ -315,6 +315,7 @@ const CustomerQuotationDetail = () => {
                   <p className="mb-1 fw-bold">Ghi chú:</p>
                   <ul className="list-unstyled ms-3">
                     <li>- Đơn giá chưa bao gồm thuế VAT</li>
+                    <li>- Đơn giá chưa bao gồm phí vận chuyển</li>
                     <li>- Trạng thái báo giá: <Badge bg={getStatusBadge(quote.status).bg}>{getStatusBadge(quote.status).text}</Badge></li>
                   </ul>
                 </div>
@@ -330,20 +331,21 @@ const CustomerQuotationDetail = () => {
               <div className="text-center py-5 text-muted">Không tìm thấy báo giá</div>
             )}
 
-            {quote && (
+            {quote && quote.status === 'SENT' && (
               <div className="d-flex justify-content-end gap-2 mt-4">
-                                <Button
-                                  variant="danger"
-                                  size="lg"
-                                  onClick={() => setConfirm({ type: 'REJECTED', open: true })}
-                                  disabled={working || quote.status !== 'SENT'}
-                                >
-                                  <FaTimesCircle className="me-2" /> Từ Chối
-                                </Button>                <Button 
+                <Button
+                  variant="danger"
+                  size="lg"
+                  onClick={() => setConfirm({ type: 'REJECTED', open: true })}
+                  disabled={working}
+                >
+                  <FaTimesCircle className="me-2" /> Từ Chối
+                </Button>
+                <Button 
                   variant="success" 
                   size="lg"
                   onClick={handleAcceptClick} 
-                  disabled={working || quote.status !== 'SENT'}
+                  disabled={working}
                 >
                   <FaCheckCircle className="me-2" /> Chấp Nhận Báo Giá
                 </Button>

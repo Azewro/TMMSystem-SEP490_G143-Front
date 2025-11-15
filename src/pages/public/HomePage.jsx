@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Spinner, Alert, Button } from 'react-bootstrap';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Container, Row, Col, Spinner, Alert, Button, Form, InputGroup } from 'react-bootstrap';
+import { FaSearch } from 'react-icons/fa';
 import { productService } from '../../api/productService';
 import ProductCard from '../../components/ProductCard';
 import Header from '../../components/common/Header';
@@ -20,6 +21,7 @@ const HomePage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
+    const [searchTerm, setSearchTerm] = useState('');
     const productsPerPage = 8;
     const { isAuthenticated } = useAuth();
 
@@ -41,13 +43,31 @@ const HomePage = () => {
 
     const partners = ["Vinaphone", "California Fitness", "Foxconn", "Everon", "Hải Tiến Resort"];
 
+    // Filter products by search term (search by key words in product name)
+    const filteredProducts = useMemo(() => {
+        if (!searchTerm.trim()) return products;
+        const searchLower = searchTerm.toLowerCase().trim();
+        const searchWords = searchLower.split(/\s+/).filter(word => word.length > 0);
+        
+        return products.filter(product => {
+            const productNameLower = (product.name || '').toLowerCase();
+            // Check if all search words are found in product name
+            return searchWords.every(word => productNameLower.includes(word));
+        });
+    }, [products, searchTerm]);
+
     const indexOfLastProduct = currentPage * productsPerPage;
     const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-    const currentProducts = products.slice(indexOfFirstProduct, indexOfLastProduct);
-    const totalPages = Math.ceil(products.length / productsPerPage);
+    const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
+    const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
 
     const handlePageChange = (pageNumber) => {
         setCurrentPage(pageNumber);
+    };
+
+    const handleSearchChange = (e) => {
+        setSearchTerm(e.target.value);
+        setCurrentPage(1); // Reset to first page when searching
     };
 
           const MainContent = () => (
@@ -110,12 +130,29 @@ const HomePage = () => {
 
                       <Container>
 
-                          <div className="text-center mb-5">
+                          <div className="text-center mb-4">
 
-                              <h2 className="section-title">Sản Phẩm Nổi Bật</h2>
+                              <h2 className="section-title">Danh sách sản phẩm</h2>
 
                               <p className="section-subtitle">Chất lượng tạo nên thương hiệu. Chọn sản phẩm và yêu cầu báo giá để nhận được ưu đãi tốt nhất.</p>
 
+                          </div>
+
+                          {/* Search Bar */}
+                          <div className="mb-4">
+                              <Row className="justify-content-center">
+                                  <Col md={6}>
+                                      <InputGroup>
+                                          <InputGroup.Text><FaSearch /></InputGroup.Text>
+                                          <Form.Control
+                                              type="text"
+                                              placeholder="Tìm kiếm sản phẩm..."
+                                              value={searchTerm}
+                                              onChange={handleSearchChange}
+                                          />
+                                      </InputGroup>
+                                  </Col>
+                              </Row>
                           </div>
 
                           {loading && (

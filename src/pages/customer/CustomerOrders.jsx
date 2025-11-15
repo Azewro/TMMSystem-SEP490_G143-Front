@@ -1,19 +1,39 @@
-import React, { useEffect, useState } from 'react';
-import { Container, Card, Table, Badge, Button, Spinner, Alert } from 'react-bootstrap';
-import { FaEye } from 'react-icons/fa';
+import React, { useEffect, useState, useMemo } from 'react';
+import { Container, Card, Table, Badge, Button, Spinner, Alert, Form, InputGroup, Row, Col } from 'react-bootstrap';
+import { FaEye, FaSearch, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import Sidebar from '../../components/common/Sidebar';
+import Pagination from '../../components/Pagination';
 import { contractService } from '../../api/contractService';
 import { useAuth } from '../../context/AuthContext';
 
 const statusMap = {
+  DRAFT: { label: 'Bản nháp', variant: 'secondary' },
+  PENDING_UPLOAD: { label: 'Chờ tải hợp đồng', variant: 'warning' },
+  PENDING_APPROVAL: { label: 'Chờ phê duyệt', variant: 'info' },
+  APPROVED: { label: 'Đã phê duyệt', variant: 'success' },
+  REJECTED: { label: 'Đã từ chối', variant: 'danger' },
+  SIGNED: { label: 'Đã ký', variant: 'primary' },
+  CANCELED: { label: 'Đã hủy', variant: 'dark' },
+  // Legacy statuses for backward compatibility
   PENDING: { label: 'Chờ xử lý', variant: 'warning' },
   UPLOADED_SIGNED: { label: 'Đã tải lên hợp đồng', variant: 'info' },
   DIRECTOR_APPROVED: { label: 'Giám đốc đã duyệt', variant: 'success' },
   DIRECTOR_REJECTED: { label: 'Giám đốc từ chối', variant: 'danger' },
   COMPLETED: { label: 'Hoàn thành', variant: 'primary' },
 };
+
+const statusOptions = [
+  { value: '', label: 'Tất cả trạng thái' },
+  { value: 'DRAFT', label: 'Bản nháp' },
+  { value: 'PENDING_UPLOAD', label: 'Chờ tải hợp đồng' },
+  { value: 'PENDING_APPROVAL', label: 'Chờ phê duyệt' },
+  { value: 'APPROVED', label: 'Đã phê duyệt' },
+  { value: 'REJECTED', label: 'Đã từ chối' },
+  { value: 'SIGNED', label: 'Đã ký' },
+  { value: 'CANCELED', label: 'Đã hủy' },
+];
 
 const formatDate = (iso) => {
   if (!iso) return 'N/A';
@@ -34,6 +54,12 @@ const CustomerOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [sortField, setSortField] = useState('createdAt');
+  const [sortDirection, setSortDirection] = useState('desc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -50,8 +76,7 @@ const CustomerOrders = () => {
         const customerOrders = allContracts.filter(
           (contract) => contract.customerId === parseInt(user.customerId, 10)
         );
-        const sortedOrders = customerOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        setOrders(sortedOrders);
+        setOrders(customerOrders);
       } catch (e) {
         setError(e.message || 'Không thể tải danh sách đơn hàng');
       } finally {
@@ -64,6 +89,73 @@ const CustomerOrders = () => {
     }
   }, [user]);
 
+  // Filter and sort orders
+  const filteredAndSortedOrders = useMemo(() => {
+    let filtered = [...orders];
+
+    // Search filter
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase().trim();
+      filtered = filtered.filter(order => {
+        const contractNumber = (order.contractNumber || `HD-${order.id}`).toLowerCase();
+        const createdAt = formatDate(order.createdAt).toLowerCase();
+        const deliveryDate = formatDate(order.deliveryDate).toLowerCase();
+        return contractNumber.includes(searchLower) || 
+               createdAt.includes(searchLower) || 
+               deliveryDate.includes(searchLower);
+      });
+    }
+
+    // Status filter
+    if (statusFilter) {
+      filtered = filtered.filter(order => order.status === statusFilter);
+    }
+
+    // Sort
+    filtered.sort((a, b) => {
+      let aValue, bValue;
+      
+      if (sortField === 'createdAt') {
+        aValue = new Date(a.createdAt || 0).getTime();
+        bValue = new Date(b.createdAt || 0).getTime();
+      } else if (sortField === 'deliveryDate') {
+        aValue = new Date(a.deliveryDate || 0).getTime();
+        bValue = new Date(b.deliveryDate || 0).getTime();
+      } else {
+        return 0;
+      }
+
+      if (sortDirection === 'asc') {
+        return aValue - bValue;
+      } else {
+        return bValue - aValue;
+      }
+    });
+
+    return filtered;
+  }, [orders, searchTerm, statusFilter, sortField, sortDirection]);
+
+  // Pagination
+  const indexOfLastOrder = currentPage * ITEMS_PER_PAGE;
+  const indexOfFirstOrder = indexOfLastOrder - ITEMS_PER_PAGE;
+  const currentOrders = filteredAndSortedOrders.slice(indexOfFirstOrder, indexOfLastOrder);
+  const totalPages = Math.ceil(filteredAndSortedOrders.length / ITEMS_PER_PAGE);
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
+    }
+    setCurrentPage(1);
+  };
+
+  const getSortIcon = (field) => {
+    if (sortField !== field) return <FaSort className="ms-1" style={{ opacity: 0.3 }} />;
+    return sortDirection === 'asc' ? <FaSortUp className="ms-1" /> : <FaSortDown className="ms-1" />;
+  };
+
   return (
     <div className="customer-layout">
       <Header />
@@ -73,14 +165,61 @@ const CustomerOrders = () => {
           <Container fluid className="p-4">
             <h4 className="mb-3">Danh sách đơn hàng</h4>
 
+            {/* Search and Filters */}
+            <Card className="shadow-sm mb-3">
+              <Card.Body>
+                <Row className="g-3">
+                  <Col md={4}>
+                    <InputGroup>
+                      <InputGroup.Text><FaSearch /></InputGroup.Text>
+                      <Form.Control
+                        type="text"
+                        placeholder="Tìm theo mã đơn hàng, ngày tạo, ngày giao hàng..."
+                        value={searchTerm}
+                        onChange={(e) => {
+                          setSearchTerm(e.target.value);
+                          setCurrentPage(1);
+                        }}
+                      />
+                    </InputGroup>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Select
+                      value={statusFilter}
+                      onChange={(e) => {
+                        setStatusFilter(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                    >
+                      {statusOptions.map(option => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </Form.Select>
+                  </Col>
+                </Row>
+              </Card.Body>
+            </Card>
+
             <Card className="shadow-sm">
               <Card.Body className="p-0">
                 <Table responsive hover className="mb-0 align-middle">
                   <thead className="table-light">
                     <tr>
                       <th>Mã Đơn Hàng</th>
-                      <th>Ngày Tạo</th>
-                      <th>Ngày Giao Dự Kiến</th>
+                      <th 
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => handleSort('createdAt')}
+                        className="user-select-none"
+                      >
+                        Ngày Tạo {getSortIcon('createdAt')}
+                      </th>
+                      <th 
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => handleSort('deliveryDate')}
+                        className="user-select-none"
+                      >
+                        Ngày Giao Dự Kiến {getSortIcon('deliveryDate')}
+                      </th>
                       <th>Trạng Thái</th>
                       <th>Tổng Tiền</th>
                       <th className="text-center">Hành Động</th>
@@ -91,10 +230,10 @@ const CustomerOrders = () => {
                       <tr><td colSpan="6" className="text-center py-5"><Spinner animation="border" /></td></tr>
                     ) : error ? (
                       <tr><td colSpan="6" className="text-center py-4"><Alert variant="danger">{error}</Alert></td></tr>
-                    ) : orders.length === 0 ? (
-                      <tr><td colSpan="6" className="text-center py-4 text-muted">Bạn chưa có đơn hàng nào.</td></tr>
+                    ) : filteredAndSortedOrders.length === 0 ? (
+                      <tr><td colSpan="6" className="text-center py-4 text-muted">Không tìm thấy đơn hàng nào.</td></tr>
                     ) : (
-                      orders.map((order) => {
+                      currentOrders.map((order) => {
                         const badge = statusMap[order.status] || { label: order.status || 'Không xác định', variant: 'secondary' };
                         return (
                           <tr key={order.id}>
@@ -114,6 +253,15 @@ const CustomerOrders = () => {
                     )}
                   </tbody>
                 </Table>
+                {totalPages > 1 && (
+                  <div className="p-3">
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={setCurrentPage}
+                    />
+                  </div>
+                )}
               </Card.Body>
             </Card>
           </Container>

@@ -60,7 +60,7 @@ const ProductCard = ({ product }) => {
               variant="primary"
               onClick={handleAddToCart}
             >
-              Thêm vào giỏ hàng
+              Thêm vào danh sách yêu cầu báo giá
             </Button>
           ) : (
             <Button 

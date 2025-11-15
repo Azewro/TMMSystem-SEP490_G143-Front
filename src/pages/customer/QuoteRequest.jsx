@@ -51,6 +51,30 @@ const QuoteRequest = () => {
   useEffect(() => {
     const initialize = async () => {
       setLoading(true);
+      
+      // Reset form when user logs out
+      if (!isAuthenticated) {
+        setFormData({
+          contactPerson: '',
+          contactPhone: '',
+          contactEmail: '',
+          employeeCode: '',
+          contactAddress: '',
+          contactMethod: 'Điện thoại',
+          expectedDeliveryDate: null,
+          notes: '',
+        });
+        setQuoteItems([{ productId: '', quantity: '1', unit: 'cai', notes: '', standardDimensions: '' }]);
+        setIsFromCart(false);
+        setErrors({});
+        // Navigate to home page if not authenticated and no cart products
+        if (!location.state?.cartProducts?.length && !location.state?.preSelectedProduct) {
+          navigate('/');
+          setLoading(false);
+          return;
+        }
+      }
+      
       if (isAuthenticated && user?.customerId) {
         try {
           const customerData = await customerService.getCustomerById(user.customerId);
@@ -100,7 +124,7 @@ const QuoteRequest = () => {
       setLoading(false);
     };
     initialize();
-  }, [isAuthenticated, user, location.state]);
+  }, [isAuthenticated, user, location.state, navigate]);
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
@@ -120,21 +144,40 @@ const QuoteRequest = () => {
 
   const handleItemChange = (index, field, value) => {
     const newItems = [...quoteItems];
-    newItems[index][field] = value;
-
+    
+    // Kiểm tra trùng lặp khi chọn sản phẩm
     if (field === 'productId' && value) {
-      const selectedProduct = products.find(p => p.id === parseInt(value, 10));
+      const productIdInt = parseInt(value, 10);
+      // Kiểm tra xem sản phẩm này đã được chọn ở dòng khác chưa
+      const isDuplicate = newItems.some((item, idx) => 
+        idx !== index && item.productId && parseInt(item.productId, 10) === productIdInt
+      );
+      
+      if (isDuplicate) {
+        toast.error('Sản phẩm này đã được thêm vào danh sách. Vui lòng chọn sản phẩm khác.');
+        return; // Không cập nhật nếu trùng lặp
+      }
+      
+      const selectedProduct = products.find(p => p.id === productIdInt);
       if (selectedProduct) {
         newItems[index].standardDimensions = selectedProduct.standardDimensions;
       } else {
         newItems[index].standardDimensions = '';
       }
     }
+    
+    newItems[index][field] = value;
     setQuoteItems(newItems);
   };
 
   const handleAddProduct = () => {
-    setQuoteItems([...quoteItems, { productId: '', quantity: '1', unit: 'cai', notes: '' }]);
+    // Kiểm tra xem có sản phẩm nào chưa được chọn (productId rỗng) không
+    const hasEmptyProduct = quoteItems.some(item => !item.productId || item.productId === '');
+    if (hasEmptyProduct) {
+      toast.error('Vui lòng chọn sản phẩm cho dòng hiện tại trước khi thêm sản phẩm mới.');
+      return;
+    }
+    setQuoteItems([...quoteItems, { productId: '', quantity: '1', unit: 'cai', notes: '', standardDimensions: '' }]);
   };
 
   const handleRemoveProduct = (index) => {
@@ -249,44 +292,68 @@ const QuoteRequest = () => {
                     <Form onSubmit={handleSubmit} noValidate>
                       <h5 className="mb-3">Thông Tin Liên Hệ</h5>
                       <Row>
-                        <Col md={6}><Form.Group className="mb-3"><Form.Label>Họ và tên *</Form.Label><Form.Control type="text" name="contactPerson" value={formData.contactPerson} onChange={handleFormChange} isInvalid={!!errors.contactPerson} /><Form.Control.Feedback type="invalid">{errors.contactPerson}</Form.Control.Feedback></Form.Group></Col>
-                        <Col md={6}><Form.Group className="mb-3"><Form.Label>Số điện thoại *</Form.Label><Form.Control type="text" name="contactPhone" value={formData.contactPhone} onChange={handleFormChange} isInvalid={!!errors.contactPhone} /><Form.Control.Feedback type="invalid">{errors.contactPhone}</Form.Control.Feedback></Form.Group></Col>
-                        <Col md={6}><Form.Group className="mb-3"><Form.Label>Email *</Form.Label><Form.Control type="email" name="contactEmail" value={formData.contactEmail} onChange={handleFormChange} isInvalid={!!errors.contactEmail} /><Form.Control.Feedback type="invalid">{errors.contactEmail}</Form.Control.Feedback></Form.Group></Col>
+                        <Col md={6}><Form.Group className="mb-3"><Form.Label>Họ và tên <span style={{ color: 'red' }}>*</span></Form.Label><Form.Control type="text" name="contactPerson" value={formData.contactPerson} onChange={handleFormChange} isInvalid={!!errors.contactPerson} /><Form.Control.Feedback type="invalid">{errors.contactPerson}</Form.Control.Feedback></Form.Group></Col>
+                        <Col md={6}><Form.Group className="mb-3"><Form.Label>Số điện thoại <span style={{ color: 'red' }}>*</span></Form.Label><Form.Control type="text" name="contactPhone" value={formData.contactPhone} onChange={handleFormChange} isInvalid={!!errors.contactPhone} /><Form.Control.Feedback type="invalid">{errors.contactPhone}</Form.Control.Feedback></Form.Group></Col>
+                        <Col md={6}><Form.Group className="mb-3"><Form.Label>Email <span style={{ color: 'red' }}>*</span></Form.Label><Form.Control type="email" name="contactEmail" value={formData.contactEmail} onChange={handleFormChange} isInvalid={!!errors.contactEmail} /><Form.Control.Feedback type="invalid">{errors.contactEmail}</Form.Control.Feedback></Form.Group></Col>
                         <Col md={6}><Form.Group className="mb-3"><Form.Label>Mã nhân viên Sale (nếu có)</Form.Label><Form.Control type="text" name="employeeCode" value={formData.employeeCode} onChange={handleFormChange} /></Form.Group></Col>
-                        <Col md={6}><Form.Group className="mb-3"><Form.Label>Địa chỉ nhận hàng *</Form.Label><Form.Control as="textarea" rows={1} name="contactAddress" value={formData.contactAddress} onChange={handleFormChange} isInvalid={!!errors.contactAddress} /><Form.Control.Feedback type="invalid">{errors.contactAddress}</Form.Control.Feedback></Form.Group></Col>
+                        <Col md={6}><Form.Group className="mb-3"><Form.Label>Địa chỉ nhận hàng <span style={{ color: 'red' }}>*</span></Form.Label><Form.Control as="textarea" rows={1} name="contactAddress" value={formData.contactAddress} onChange={handleFormChange} isInvalid={!!errors.contactAddress} /><Form.Control.Feedback type="invalid">{errors.contactAddress}</Form.Control.Feedback></Form.Group></Col>
                         <Col md={6}><Form.Group className="mb-3"><Form.Label>Phương thức liên hệ</Form.Label><Form.Select name="contactMethod" value={formData.contactMethod} onChange={handleFormChange}><option>Điện thoại</option><option>Email</option><option>Cả hai</option></Form.Select></Form.Group></Col>
                       </Row>
                       <hr />
 
                       <h5 className="mb-3">Chi Tiết Yêu Cầu</h5>
                       <div className="border rounded p-3">
-                        {quoteItems.map((item, index) => (
-                          <div key={item.productId || index} className={index > 0 ? "mt-3 pt-3 border-top" : ""}>
-                            <div className="d-flex justify-content-between align-items-center">
-                              <h6>Sản phẩm:
-                                <Form.Select
-                                  size="sm"
-                                  value={item.productId}
-                                  onChange={(e) => handleItemChange(index, 'productId', e.target.value)}
-                                  required
-                                  disabled={isFromCart} // Disable if from cart
-                                >
-                                  <option value="">Chọn sản phẩm</option>
-                                  {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                </Form.Select>
-                              </h6>
-                              {!isFromCart && quoteItems.length > 1 && (
-                                <Button variant="link" className="text-danger p-0" onClick={() => handleRemoveProduct(index)}>
-                                  Xóa
-                                </Button>
-                              )}
+                        {quoteItems.map((item, index) => {
+                          const selectedProduct = products.find(p => p.id === parseInt(item.productId, 10));
+                          const productName = selectedProduct?.name || item.name || 'Chưa chọn sản phẩm';
+                          
+                          return (
+                            <div key={item.productId || index} className={index > 0 ? "mt-3 pt-3 border-top" : ""}>
+                              <div className="d-flex justify-content-between align-items-center">
+                                <h6>
+                                  Sản phẩm: {isFromCart ? (
+                                    <span className="fw-normal text-muted ms-2">{productName}</span>
+                                  ) : (
+                                    <Form.Select
+                                      size="sm"
+                                      value={item.productId}
+                                      onChange={(e) => handleItemChange(index, 'productId', e.target.value)}
+                                      required
+                                      className="ms-2 d-inline-block"
+                                      style={{ width: 'auto', minWidth: '200px' }}
+                                    >
+                                      <option value="">Chọn sản phẩm</option>
+                                      {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                    </Form.Select>
+                                  )}
+                                </h6>
+                                {!isFromCart && quoteItems.length > 1 && (
+                                  <Button variant="link" className="text-danger p-0" onClick={() => handleRemoveProduct(index)}>
+                                    Xóa
+                                  </Button>
+                                )}
+                              </div>
+                              <Row className="align-items-end mt-2">
+                                <Col md={6}>
+                                  <Form.Group>
+                                    <Form.Label>Số lượng <span style={{ color: 'red' }}>*</span></Form.Label>
+                                    <div className="form-control-plaintext border rounded px-3 py-2 bg-light" style={{ pointerEvents: 'none', userSelect: 'none', WebkitUserSelect: 'none', MozUserSelect: 'none', msUserSelect: 'none' }}>
+                                      {item.quantity}
+                                    </div>
+                                  </Form.Group>
+                                </Col>
+                                <Col md={6}>
+                                  <Form.Group>
+                                    <Form.Label>Kích thước</Form.Label>
+                                    <div className="form-control-plaintext border rounded px-3 py-2 bg-light" style={{ pointerEvents: 'none', userSelect: 'none', WebkitUserSelect: 'none', MozUserSelect: 'none', msUserSelect: 'none' }}>
+                                      {item.standardDimensions || 'N/A'}
+                                    </div>
+                                  </Form.Group>
+                                </Col>
+                              </Row>
                             </div>
-                            <Row className="align-items-end mt-2">
-                              <Col md={6}><Form.Group><Form.Label>Số lượng *</Form.Label><Form.Control type="number" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} min="1" required /></Form.Group></Col>
-                              <Col md={6}><Form.Group><Form.Label>Kích thước</Form.Label><Form.Control type="text" value={item.standardDimensions || ''} readOnly /></Form.Group></Col>
-                            </Row>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                       
                       {!isFromCart && (
@@ -298,7 +365,7 @@ const QuoteRequest = () => {
                       <Row className="mt-3">
                         <Col md={6}>
                           <Form.Group className="mb-3">
-                            <Form.Label className="mb-2 w-100">Ngày giao hàng mong muốn *</Form.Label>
+                            <Form.Label className="mb-2 w-100">Ngày giao hàng mong muốn <span style={{ color: 'red' }}>*</span></Form.Label>
                             <DatePicker
                               selected={formData.expectedDeliveryDate}
                               onChange={handleDateChange}
