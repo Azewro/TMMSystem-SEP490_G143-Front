@@ -23,6 +23,7 @@ const MyRfqs = () => {
 
   // Search and filter state
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(''); // Initialize with empty string
   const [statusFilter, setStatusFilter] = useState('');
   const [createdDateFilter, setCreatedDateFilter] = useState('');
 
@@ -48,34 +49,99 @@ const MyRfqs = () => {
     setLoading(true);
     setError('');
     try {
-      // Convert 1-based page to 0-based for backend
-      const page = currentPage - 1;
-      const response = await rfqService.getAssignedRfqsForSales(page, ITEMS_PER_PAGE, searchTerm || undefined, statusFilter || undefined);
+      // Prepare search parameter - only include if it has a value after trimming
+      // Backend accepts any non-empty string (no minimum length requirement)
+      const trimmedSearch = debouncedSearchTerm?.trim() || '';
+      const searchParam = trimmedSearch.length > 0 
+        ? trimmedSearch 
+        : undefined;
       
-      // Handle PageResponse
-      let rfqs = [];
-      if (response && response.content) {
-        rfqs = response.content;
-        setTotalPages(response.totalPages || 1);
-        setTotalElements(response.totalElements || 0);
-      } else if (Array.isArray(response)) {
-        // Fallback for backward compatibility
-        rfqs = response;
-        setTotalPages(1);
-        setTotalElements(response.length);
-      }
+      // Prepare status parameter - only include if it has a value
+      const statusParam = statusFilter && statusFilter.trim() 
+        ? statusFilter.trim() 
+        : undefined;
+      
+      // If filtering by date, we need to fetch all pages and filter client-side
+      // Otherwise, use pagination normally
+      let allRfqsData = [];
+      let totalPagesFromBackend = 1;
+      let totalElementsFromBackend = 0;
 
-      // Filter by created date (client-side, backend doesn't support this filter yet)
       if (createdDateFilter) {
-        rfqs = rfqs.filter(rfq => {
-          if (!rfq.createdAt) return false;
-          const rfqDate = new Date(rfq.createdAt).toISOString().split('T')[0];
-          return rfqDate === createdDateFilter;
-        });
+        // Fetch all pages when filtering by date (client-side filter)
+        // This ensures pagination works correctly after filtering
+        let page = 0;
+        let hasMore = true;
+        
+        while (hasMore) {
+          const response = await rfqService.getAssignedRfqsForSales(
+            page, 
+            ITEMS_PER_PAGE, 
+            searchParam, 
+            statusParam
+          );
+          
+          let pageRfqs = [];
+          if (response && response.content) {
+            pageRfqs = response.content;
+            if (page === 0) {
+              totalPagesFromBackend = response.totalPages || 1;
+              totalElementsFromBackend = response.totalElements || 0;
+            }
+          } else if (Array.isArray(response)) {
+            pageRfqs = response;
+          }
+
+          // Filter by created date
+          const filteredRfqs = pageRfqs.filter(rfq => {
+            if (!rfq.createdAt) return false;
+            const rfqDate = new Date(rfq.createdAt).toISOString().split('T')[0];
+            return rfqDate === createdDateFilter;
+          });
+
+          allRfqsData = [...allRfqsData, ...filteredRfqs];
+          
+          // Check if there are more pages
+          if (pageRfqs.length < ITEMS_PER_PAGE || page >= (totalPagesFromBackend - 1)) {
+            hasMore = false;
+          } else {
+            page++;
+          }
+        }
+
+        // Recalculate pagination for filtered results
+        const totalFiltered = allRfqsData.length;
+        const newTotalPages = Math.max(1, Math.ceil(totalFiltered / ITEMS_PER_PAGE));
+        setTotalPages(newTotalPages);
+        setTotalElements(totalFiltered);
+
+        // Apply pagination to filtered results
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        const endIndex = startIndex + ITEMS_PER_PAGE;
+        allRfqsData = allRfqsData.slice(startIndex, endIndex);
+      } else {
+        // Normal pagination without date filter
+        const page = currentPage - 1;
+        const response = await rfqService.getAssignedRfqsForSales(
+          page, 
+          ITEMS_PER_PAGE, 
+          searchParam, 
+          statusParam
+        );
+        
+        if (response && response.content) {
+          allRfqsData = response.content;
+          setTotalPages(response.totalPages || 1);
+          setTotalElements(response.totalElements || 0);
+        } else if (Array.isArray(response)) {
+          allRfqsData = response;
+          setTotalPages(1);
+          setTotalElements(response.length);
+        }
       }
 
       const enrichedData = await Promise.all(
-        (rfqs || []).map(async (rfq) => {
+        (allRfqsData || []).map(async (rfq) => {
           if (rfq.customerId) {
             try {
               const customer = await customerService.getCustomerById(rfq.customerId);
@@ -94,12 +160,34 @@ const MyRfqs = () => {
       
       setAllRfqs(enrichedData);
     } catch (err) {
-      setError('Lỗi khi tải danh sách RFQ của bạn.');
-      toast.error('Lỗi khi tải danh sách RFQ của bạn.');
+      console.error('Error fetching RFQs:', err);
+      const errorMessage = err.message || 'Lỗi khi tải danh sách RFQ của bạn.';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      // Clear RFQs on error
+      setAllRfqs([]);
+      setTotalPages(1);
+      setTotalElements(0);
     } finally {
       setLoading(false);
     }
-  }, [currentPage, searchTerm, statusFilter, createdDateFilter]);
+  }, [currentPage, debouncedSearchTerm, statusFilter, createdDateFilter]);
+
+  // Debounce search term
+  useEffect(() => {
+    // If searchTerm is empty, update debouncedSearchTerm immediately
+    // Otherwise, wait 500ms after user stops typing
+    if (!searchTerm || searchTerm.trim() === '') {
+      setDebouncedSearchTerm('');
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500); // Wait 500ms after user stops typing
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   useEffect(() => {
     fetchMyRfqs();
@@ -108,7 +196,7 @@ const MyRfqs = () => {
   useEffect(() => {
     // Reset to page 1 when filters change
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, createdDateFilter]);
+  }, [debouncedSearchTerm, statusFilter, createdDateFilter]);
 
   const handleViewQuotation = async (rfq) => {
     try {
@@ -241,15 +329,16 @@ const MyRfqs = () => {
                               </Badge>
                             </td>
                             <td>
-                              {rfq.status === 'QUOTED' ? (
-                                <Button variant="success" size="sm" onClick={() => handleViewQuotation(rfq)}>
-                                  Xem báo giá
-                                </Button>
-                              ) : (
+                              <div className="d-flex gap-2">
+                                {rfq.status === 'QUOTED' && (
+                                  <Button variant="success" size="sm" onClick={() => handleViewQuotation(rfq)}>
+                                    Xem báo giá
+                                  </Button>
+                                )}
                                 <Button variant="primary" size="sm" onClick={() => handleViewDetails(rfq.id)}>
                                   Xem chi tiết
                                 </Button>
-                              )}
+                              </div>
                             </td>
                           </tr>
                         )) : (

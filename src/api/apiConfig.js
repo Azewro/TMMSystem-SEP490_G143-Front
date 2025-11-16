@@ -32,8 +32,20 @@ apiClient.interceptors.request.use(
     const token =
       sessionStorage.getItem('userToken') || localStorage.getItem('userToken');
     if (token) {
+      // Ensure headers object exists
+      if (!config.headers) {
+        config.headers = {};
+      }
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Ensure custom headers (like X-User-Id) are preserved
+    // Headers passed in config.headers should not be overwritten
+    if (config.headers && typeof config.headers === 'object') {
+      // Merge any existing headers - don't overwrite custom headers
+      config.headers = { ...config.headers };
+    }
+    
     return config;
   },
   (error) => {

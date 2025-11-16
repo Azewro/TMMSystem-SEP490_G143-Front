@@ -225,22 +225,69 @@ const QuoteRequest = () => {
   const validate = () => {
     const newErrors = { items: Array(quoteItems.length).fill(null) };
 
-    if (!formData.contactPerson.trim()) newErrors.contactPerson = 'Họ và tên là bắt buộc.';
-    if (!formData.contactPhone.trim()) {
+    // Validate contact person
+    if (!formData.contactPerson.trim()) {
+      newErrors.contactPerson = 'Họ và tên là bắt buộc.';
+    } else if (formData.contactPerson.trim().length < 2) {
+      newErrors.contactPerson = 'Họ và tên phải có ít nhất 2 ký tự.';
+    }
+
+    // Validate phone number
+    const phoneTrimmed = formData.contactPhone.trim();
+    if (!phoneTrimmed) {
       newErrors.contactPhone = 'Số điện thoại là bắt buộc.';
-    } else if (!/^0\d{9,10}$/.test(formData.contactPhone.trim())) {
-      newErrors.contactPhone = 'Số điện thoại không hợp lệ. Phải có 10-11 chữ số và bắt đầu bằng 0.';
+    } else if (!/^0\d{9,10}$/.test(phoneTrimmed)) {
+      if (!phoneTrimmed.startsWith('0')) {
+        newErrors.contactPhone = 'Số điện thoại phải bắt đầu bằng số 0.';
+      } else if (phoneTrimmed.length < 10) {
+        newErrors.contactPhone = 'Số điện thoại phải có ít nhất 10 chữ số (bao gồm số 0 đầu tiên).';
+      } else if (phoneTrimmed.length > 11) {
+        newErrors.contactPhone = 'Số điện thoại không được vượt quá 11 chữ số.';
+      } else if (!/^\d+$/.test(phoneTrimmed)) {
+        newErrors.contactPhone = 'Số điện thoại chỉ được chứa các chữ số (0-9).';
+      } else {
+        newErrors.contactPhone = 'Số điện thoại không hợp lệ. Phải bắt đầu bằng 0 và có 10-11 chữ số.';
+      }
     }
-    if (!formData.contactEmail.trim()) {
-        newErrors.contactEmail = 'Email là bắt buộc.';
-    } else if (!/\S+@\S+\.\S+/.test(formData.contactEmail)) {
-        newErrors.contactEmail = 'Email không hợp lệ.';
+
+    // Validate email
+    const emailTrimmed = formData.contactEmail.trim();
+    if (!emailTrimmed) {
+      newErrors.contactEmail = 'Email là bắt buộc.';
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(emailTrimmed)) {
+        if (!emailTrimmed.includes('@')) {
+          newErrors.contactEmail = 'Email phải chứa ký tự @.';
+        } else if (!emailTrimmed.includes('.')) {
+          newErrors.contactEmail = 'Email phải chứa dấu chấm (.) sau ký tự @.';
+        } else if (emailTrimmed.split('@').length !== 2) {
+          newErrors.contactEmail = 'Email chỉ được chứa một ký tự @.';
+        } else {
+          newErrors.contactEmail = 'Email không hợp lệ. Vui lòng nhập đúng định dạng email (ví dụ: example@email.com).';
+        }
+      }
     }
-    if (!selectedProvince) newErrors.address = 'Vui lòng chọn Tỉnh/Thành phố.';
-    if (!selectedCommune) newErrors.address = 'Vui lòng chọn Xã/Phường.';
-    if (!detailedAddress.trim()) newErrors.address = 'Vui lòng nhập địa chỉ chi tiết (số nhà, đường).';
+
+    // Validate address
+    if (!selectedProvince) {
+      newErrors.address = 'Vui lòng chọn Tỉnh/Thành phố.';
+    } else if (!selectedCommune) {
+      newErrors.address = 'Vui lòng chọn Xã/Phường.';
+    } else if (!detailedAddress.trim()) {
+      newErrors.address = 'Vui lòng nhập địa chỉ chi tiết (số nhà, tên đường).';
+    } else if (detailedAddress.trim().length < 5) {
+      newErrors.address = 'Địa chỉ chi tiết phải có ít nhất 5 ký tự.';
+    }
+
+    // Validate expected delivery date
     if (!formData.expectedDeliveryDate) {
       newErrors.expectedDeliveryDate = 'Ngày giao hàng mong muốn là bắt buộc.';
+    } else {
+      const minDate = getMinExpectedDeliveryDate();
+      if (formData.expectedDeliveryDate < minDate) {
+        newErrors.expectedDeliveryDate = `Ngày giao hàng phải sau ngày hiện tại ít nhất 30 ngày. Ngày sớm nhất có thể chọn là ${minDate.toLocaleDateString('vi-VN')}.`;
+      }
     }
 
     // Item specific validation
@@ -249,8 +296,17 @@ const QuoteRequest = () => {
       if (!item.productId) {
         itemErrors.product = 'Vui lòng chọn sản phẩm.';
       }
-      if (parseInt(item.quantity, 10) < 100) {
-        itemErrors.quantity = 'Số lượng tối thiểu là 100.';
+      if (!item.quantity || item.quantity.trim() === '') {
+        itemErrors.quantity = 'Số lượng là bắt buộc.';
+      } else {
+        const quantityNum = parseInt(item.quantity, 10);
+        if (isNaN(quantityNum)) {
+          itemErrors.quantity = 'Số lượng phải là một số hợp lệ.';
+        } else if (quantityNum < 1) {
+          itemErrors.quantity = 'Số lượng phải lớn hơn 0.';
+        } else if (quantityNum < 100) {
+          itemErrors.quantity = 'Số lượng tối thiểu là 100.';
+        }
       }
       if (Object.keys(itemErrors).length > 0) {
         newErrors.items[index] = itemErrors;
@@ -345,22 +401,94 @@ const QuoteRequest = () => {
                     <Form onSubmit={handleSubmit} noValidate>
                       <h5 className="mb-3">Thông Tin Liên Hệ</h5>
                       <Row>
-                        <Col md={6}><Form.Group className="mb-3"><Form.Label>Họ và tên <span className="text-danger">*</span></Form.Label><Form.Control type="text" name="contactPerson" value={formData.contactPerson} onChange={handleFormChange} isInvalid={!!errors.contactPerson} /></Form.Group></Col>
-                        <Col md={6}><Form.Group className="mb-3"><Form.Label>Số điện thoại <span className="text-danger">*</span></Form.Label><Form.Control type="text" name="contactPhone" value={formData.contactPhone} onChange={handleFormChange} isInvalid={!!errors.contactPhone} /></Form.Group></Col>
-                        <Col md={6}><Form.Group className="mb-3"><Form.Label>Email <span className="text-danger">*</span></Form.Label><Form.Control type="email" name="contactEmail" value={formData.contactEmail} onChange={handleFormChange} isInvalid={!!errors.contactEmail} /></Form.Group></Col>
-                        <Col md={6}><Form.Group className="mb-3"><Form.Label>Mã nhân viên Sale (nếu có)</Form.Label><Form.Control type="text" name="employeeCode" value={formData.employeeCode} onChange={handleFormChange} /></Form.Group></Col>
-                        <Col md={6}><Form.Group className="mb-3"><Form.Label>Phương thức liên hệ</Form.Label><Form.Select name="contactMethod" value={formData.contactMethod} onChange={handleFormChange}><option>Điện thoại</option><option>Email</option><option>Cả hai</option></Form.Select></Form.Group></Col>
+                        <Col md={6}>
+                          <Form.Group className="mb-3">
+                            <Form.Label>Họ và tên <span className="text-danger">*</span></Form.Label>
+                            <Form.Control 
+                              type="text" 
+                              name="contactPerson" 
+                              value={formData.contactPerson} 
+                              onChange={handleFormChange} 
+                              isInvalid={!!errors.contactPerson}
+                              placeholder="Nhập họ và tên đầy đủ"
+                            />
+                            <Form.Control.Feedback type="invalid">
+                              {errors.contactPerson}
+                            </Form.Control.Feedback>
+                          </Form.Group>
+                        </Col>
+                        <Col md={6}>
+                          <Form.Group className="mb-3">
+                            <Form.Label>Số điện thoại <span className="text-danger">*</span></Form.Label>
+                            <Form.Control 
+                              type="text" 
+                              name="contactPhone" 
+                              value={formData.contactPhone} 
+                              onChange={handleFormChange} 
+                              isInvalid={!!errors.contactPhone}
+                              placeholder="Ví dụ: 0912345678"
+                            />
+                            <Form.Control.Feedback type="invalid">
+                              {errors.contactPhone}
+                            </Form.Control.Feedback>
+                            <Form.Text className="text-muted">
+                              Số điện thoại phải bắt đầu bằng 0 và có 10-11 chữ số
+                            </Form.Text>
+                          </Form.Group>
+                        </Col>
+                        <Col md={6}>
+                          <Form.Group className="mb-3">
+                            <Form.Label>Email <span className="text-danger">*</span></Form.Label>
+                            <Form.Control 
+                              type="email" 
+                              name="contactEmail" 
+                              value={formData.contactEmail} 
+                              onChange={handleFormChange} 
+                              isInvalid={!!errors.contactEmail}
+                              placeholder="Ví dụ: example@email.com"
+                            />
+                            <Form.Control.Feedback type="invalid">
+                              {errors.contactEmail}
+                            </Form.Control.Feedback>
+                          </Form.Group>
+                        </Col>
+                        <Col md={6}>
+                          <Form.Group className="mb-3">
+                            <Form.Label>Mã nhân viên Sale (nếu có)</Form.Label>
+                            <Form.Control 
+                              type="text" 
+                              name="employeeCode" 
+                              value={formData.employeeCode} 
+                              onChange={handleFormChange}
+                              placeholder="Nhập mã nhân viên (nếu có)"
+                            />
+                          </Form.Group>
+                        </Col>
+                        <Col md={6}>
+                          <Form.Group className="mb-3">
+                            <Form.Label>Phương thức liên hệ</Form.Label>
+                            <Form.Select name="contactMethod" value={formData.contactMethod} onChange={handleFormChange}>
+                              <option>Điện thoại</option>
+                              <option>Email</option>
+                              <option>Cả hai</option>
+                            </Form.Select>
+                          </Form.Group>
+                        </Col>
                       </Row>
                       
                       <h5 className="mb-3 mt-3">Địa chỉ nhận hàng</h5>
-                      {errors.address && <Alert variant="danger" size="sm">{errors.address}</Alert>}
                       <Row>
                         <Col md={6} className="mb-3">
                           <Form.Label>Tỉnh/Thành phố <span className="text-danger">*</span></Form.Label>
                           <Select
                             options={provinceOptions}
                             value={provinceOptions.find(option => option.value === selectedProvince)}
-                            onChange={option => setSelectedProvince(option ? option.value : '')}
+                            onChange={option => {
+                              setSelectedProvince(option ? option.value : '');
+                              if (errors.address) {
+                                setErrors(prev => ({ ...prev, address: null }));
+                              }
+                            }}
                             isLoading={addressLoading.provinces}
                             placeholder={addressLoading.provinces ? 'Đang tải...' : 'Chọn Tỉnh/Thành phố'}
                             isClearable
@@ -372,7 +500,12 @@ const QuoteRequest = () => {
                           <Select
                             options={communeOptions}
                             value={communeOptions.find(option => option.value === selectedCommune)}
-                            onChange={option => setSelectedCommune(option ? option.value : '')}
+                            onChange={option => {
+                              setSelectedCommune(option ? option.value : '');
+                              if (errors.address) {
+                                setErrors(prev => ({ ...prev, address: null }));
+                              }
+                            }}
                             isDisabled={!selectedProvince || addressLoading.communes}
                             isLoading={addressLoading.communes}
                             placeholder={addressLoading.communes ? 'Đang tải...' : 'Chọn Xã/Phường'}
@@ -382,7 +515,21 @@ const QuoteRequest = () => {
                         </Col>
                         <Col md={12} className="mb-3">
                           <Form.Label>Số nhà, tên đường <span className="text-danger">*</span></Form.Label>
-                          <Form.Control type="text" value={detailedAddress} onChange={e => setDetailedAddress(e.target.value)} placeholder="Ví dụ: 123 Nguyễn Văn Cừ" />
+                          <Form.Control 
+                            type="text" 
+                            value={detailedAddress} 
+                            onChange={e => {
+                              setDetailedAddress(e.target.value);
+                              if (errors.address) {
+                                setErrors(prev => ({ ...prev, address: null }));
+                              }
+                            }}
+                            isInvalid={!!errors.address}
+                            placeholder="Ví dụ: 123 Nguyễn Văn Cừ"
+                          />
+                          <Form.Control.Feedback type="invalid">
+                            {errors.address}
+                          </Form.Control.Feedback>
                         </Col>
                       </Row>
                       <hr />
@@ -396,16 +543,32 @@ const QuoteRequest = () => {
                           return (
                             <div key={item.productId || index} className={index > 0 ? "mt-3 pt-3 border-top" : ""}>
                               <div className="d-flex justify-content-between align-items-center">
-                                <h6>
-                                  Sản phẩm: {isFromCart ? (
-                                    <span className="fw-normal text-muted ms-2">{productName}</span>
-                                  ) : (
-                                    <Form.Select size="sm" value={item.productId} onChange={(e) => handleItemChange(index, 'productId', e.target.value)} required className="ms-2 d-inline-block" style={{ width: 'auto', minWidth: '200px' }}>
-                                      <option value="">Chọn sản phẩm</option>
-                                      {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                    </Form.Select>
-                                  )}
-                                </h6>
+                                <div className="flex-grow-1">
+                                  <h6>
+                                    Sản phẩm: {isFromCart ? (
+                                      <span className="fw-normal text-muted ms-2">{productName}</span>
+                                    ) : (
+                                      <>
+                                        <Form.Select 
+                                          size="sm" 
+                                          value={item.productId} 
+                                          onChange={(e) => handleItemChange(index, 'productId', e.target.value)} 
+                                          required 
+                                          className={`ms-2 d-inline-block ${errors.items?.[index]?.product ? 'is-invalid' : ''}`}
+                                          style={{ width: 'auto', minWidth: '200px' }}
+                                        >
+                                          <option value="">Chọn sản phẩm</option>
+                                          {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                        </Form.Select>
+                                        {errors.items?.[index]?.product && (
+                                          <div className="invalid-feedback d-block ms-2">
+                                            {errors.items[index].product}
+                                          </div>
+                                        )}
+                                      </>
+                                    )}
+                                  </h6>
+                                </div>
                                 {!isFromCart && quoteItems.length > 1 && (
                                   <Button variant="link" className="text-danger p-0" onClick={() => handleRemoveProduct(index)}>Xóa</Button>
                                 )}
@@ -449,8 +612,26 @@ const QuoteRequest = () => {
                         <Col md={6}>
                           <Form.Group className="mb-3">
                             <Form.Label className="mb-2 w-100">Ngày giao hàng mong muốn <span className="text-danger">*</span></Form.Label>
-                            <DatePicker selected={formData.expectedDeliveryDate} onChange={handleDateChange} dateFormat="dd/MM/yyyy" minDate={getMinExpectedDeliveryDate()} className="form-control" placeholderText="Chọn ngày" locale="vi" />
-                            <Form.Text muted className="w-100 d-block">
+                            <DatePicker 
+                              selected={formData.expectedDeliveryDate} 
+                              onChange={(date) => {
+                                handleDateChange(date);
+                                if (errors.expectedDeliveryDate) {
+                                  setErrors(prev => ({ ...prev, expectedDeliveryDate: null }));
+                                }
+                              }} 
+                              dateFormat="dd/MM/yyyy" 
+                              minDate={getMinExpectedDeliveryDate()} 
+                              className={`form-control ${errors.expectedDeliveryDate ? 'is-invalid' : ''}`}
+                              placeholderText="Chọn ngày" 
+                              locale="vi" 
+                            />
+                            {errors.expectedDeliveryDate && (
+                              <div className="invalid-feedback d-block">
+                                {errors.expectedDeliveryDate}
+                              </div>
+                            )}
+                            <Form.Text className={`w-100 d-block ${errors.expectedDeliveryDate ? 'text-danger' : 'text-muted'}`}>
                               Lưu ý: Ngày giao hàng phải sau ngày hiện tại ít nhất 30 ngày.
                             </Form.Text>
                           </Form.Group>
