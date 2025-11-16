@@ -122,3 +122,107 @@
 .internal-layout {
   min-height: 100vh;
 }
+
+/* Side-by-side modals styling - centered */
+.modal-side-by-side-left {
+  position: fixed !important;
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(calc(-50% - 300px), -50%) !important;
+  margin: 0 !important;
+  max-width: 500px !important;
+  width: 500px !important;
+  z-index: 1051 !important;
+}
+
+.modal-side-by-side-right {
+  position: fixed !important;
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(calc(-50% + 300px), -50%) !important;
+  margin: 0 !important;
+  max-width: 500px !important;
+  width: 500px !important;
+  z-index: 1051 !important;
+}
+
+/* Ensure backdrop covers both modals */
+.modal-backdrop.show {
+  z-index: 1040;
+}
+
+.modal.show {
+  z-index: 1050;
+}
+
+/* Ensure both modals are interactive when shown */
+.modal-side-by-side-left.show,
+.modal-side-by-side-right.show {
+  z-index: 1051 !important;
+}
+
+/* Critical: Make sure modal dialogs can receive events */
+.modal-side-by-side-left.show .modal-dialog,
+.modal-side-by-side-right.show .modal-dialog {
+  pointer-events: auto !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+.modal-side-by-side-left.show .modal-content,
+.modal-side-by-side-right.show .modal-content {
+  pointer-events: auto !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* Ensure modal wrapper doesn't block interactions but allows dialog to be interactive */
+.modal-side-by-side-left,
+.modal-side-by-side-right {
+  pointer-events: none !important;
+}
+
+.modal-side-by-side-left .modal-dialog,
+.modal-side-by-side-right .modal-dialog {
+  pointer-events: auto !important;
+}
+
+/* Override Bootstrap's default modal behavior for side-by-side modals */
+.modal-side-by-side-left.show,
+.modal-side-by-side-right.show {
+  pointer-events: none !important;
+}
+
+.modal-side-by-side-left.show > .modal-dialog,
+.modal-side-by-side-right.show > .modal-dialog {
+  pointer-events: auto !important;
+}
+
+/* Responsive: stack modals on small screens */
+@media (max-width: 1400px) {
+  .modal-side-by-side-left {
+    transform: translate(calc(-50% - 250px), -50%) !important;
+    max-width: 450px !important;
+    width: 450px !important;
+  }
+  
+  .modal-side-by-side-right {
+    transform: translate(calc(-50% + 250px), -50%) !important;
+    max-width: 450px !important;
+    width: 450px !important;
+  }
+}
+
+@media (max-width: 1200px) {
+  .modal-side-by-side-left,
+  .modal-side-by-side-right {
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    max-width: 90% !important;
+    width: 90% !important;
+  }
+  
+  .modal-side-by-side-right.show {
+    z-index: 1052 !important;
+  }
+}

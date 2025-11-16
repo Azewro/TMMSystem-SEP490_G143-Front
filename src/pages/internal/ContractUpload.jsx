@@ -424,7 +424,14 @@ const ContractUpload = () => {
         </div>
       </div>
 
-      <Modal show={modalOpen} onHide={closeModal} size="lg" centered>
+      <Modal 
+        show={modalOpen} 
+        onHide={closeModal} 
+        size="lg" 
+        centered={!viewDetailsModalOpen}
+        dialogClassName={viewDetailsModalOpen ? 'modal-side-by-side-right' : ''}
+        backdrop={viewDetailsModalOpen ? false : true}
+      >
         <Modal.Header closeButton>
           <Modal.Title>
             {selectedContract?.status === 'REJECTED' ? 'Upload lại' : 'Upload hợp đồng và báo giá'}
@@ -508,7 +515,14 @@ const ContractUpload = () => {
       </Modal>
 
       {/* View Details Modal */}
-      <Modal show={viewDetailsModalOpen} onHide={closeViewDetailsModal} size="lg" centered>
+      <Modal 
+        show={viewDetailsModalOpen} 
+        onHide={closeViewDetailsModal} 
+        size="lg" 
+        centered={!modalOpen}
+        dialogClassName={modalOpen ? 'modal-side-by-side-left' : ''}
+        backdrop={true}
+      >
         <Modal.Header closeButton>
           <Modal.Title>Chi tiết đơn hàng</Modal.Title>
         </Modal.Header>
@@ -612,7 +626,7 @@ const ContractUpload = () => {
             <Button 
               variant="primary" 
               onClick={() => {
-                closeViewDetailsModal();
+                // Không đóng modal xem chi tiết, chỉ mở modal upload
                 openUploadModal(viewDetailsContract);
               }}
             >
