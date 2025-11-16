@@ -1,6 +1,6 @@
 import React from 'react';
 import { Nav } from 'react-bootstrap';
-import { FaListAlt, FaFileSignature, FaProjectDiagram, FaUsers, FaUserFriends, FaPlusSquare, FaCog } from 'react-icons/fa';
+import { FaListAlt, FaFileSignature, FaProjectDiagram, FaUsers, FaUserFriends, FaPlusSquare, FaCog, FaWarehouse } from 'react-icons/fa';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import '../../styles/Sidebar.css'; // Reuse the same dark theme
@@ -21,6 +21,8 @@ const InternalSidebar = ({ userRole: propUserRole }) => {
       return 'director';
     } else if (roleUpper.includes('PLANNING') || roleUpper === 'PLANNING_DEPARTMENT') {
       return 'planning';
+    } else if (roleUpper.includes('PRODUCTION') && roleUpper.includes('MANAGER')) {
+      return 'production';
     } else if (roleUpper.includes('SALE') || roleUpper === 'SALE_STAFF') {
       return 'sales';
     } else if (roleUpper.includes('TECHNICAL') || roleUpper === 'TECHNICAL_DEPARTMENT') {
@@ -52,6 +54,9 @@ const InternalSidebar = ({ userRole: propUserRole }) => {
     planning: [
       { icon: FaListAlt, label: 'RFQ cần xử lý', path: '/planning/rfqs' },
       { icon: FaProjectDiagram, label: 'Lô sản xuất', path: '/planning/lots' },
+    ],
+    production: [
+      { icon: FaWarehouse, label: 'Nhập kho nguyên liệu', path: '/production/material-stock' },
     ],
     technical: [
       { icon: FaCog, label: 'Quản lý máy', path: '/technical/machines' },

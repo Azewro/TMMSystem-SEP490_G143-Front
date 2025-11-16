@@ -54,6 +54,9 @@ import AdminCustomerManagement from './pages/admin/AdminCustomerManagement';
 // Technical Pages
 import MachineManagement from './pages/technical/MachineManagement';
 
+// Production Pages
+import MaterialStockManagement from './pages/production/MaterialStockManagement';
+
 function App() {
   return (
     <AuthProvider>
@@ -112,6 +115,9 @@ function App() {
 
               {/* Technical routes */}
               <Route path="/technical/machines" element={<MachineManagement />} />
+
+              {/* Production routes */}
+              <Route path="/production/material-stock" element={<MaterialStockManagement />} />
 
             </Routes>
           </div>

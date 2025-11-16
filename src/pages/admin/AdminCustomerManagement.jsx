@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Container, Card, Table, Badge, Button, Form, InputGroup, Alert } from 'react-bootstrap';
+import { Container, Card, Table, Badge, Button, Form, InputGroup, Alert, Pagination } from 'react-bootstrap';
 import { FaSearch, FaPlus, FaEye, FaBuilding } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 import Header from '../../components/common/Header';
