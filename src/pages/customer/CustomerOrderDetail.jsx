@@ -2,7 +2,7 @@ import React from 'react';
 import { useParams } from 'react-router-dom';
 import { Container, Card, Row, Col, Table, Badge, ListGroup } from 'react-bootstrap';
 import Header from '../../components/common/Header';
-import CustomerSidebar from '../../components/common/CustomerSidebar';
+import Sidebar from '../../components/common/Sidebar';
 
 // Mock data for the order detail page
 const mockOrder = {
@@ -63,7 +63,7 @@ const CustomerOrderDetail = () => {
     <div>
       <Header />
       <div className="d-flex">
-        <CustomerSidebar />
+        <Sidebar />
         <Container fluid className="p-4">
           <h2 className="mb-4">Chi tiết đơn hàng #{order.id}</h2>
 

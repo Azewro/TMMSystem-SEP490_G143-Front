@@ -22,7 +22,6 @@ import InternalDashboard from './pages/internal/Dashboard';
 import QuoteRequests from './pages/internal/QuoteRequests';
 
 // Customer Pages
-import CustomerDashboard from './pages/customer/Dashboard';
 import QuoteRequest from './pages/customer/QuoteRequest';
 import CustomerRfqs from './pages/customer/CustomerRfqs';
 import CustomerQuotations from './pages/customer/CustomerQuotations';
@@ -83,7 +82,6 @@ function App() {
               <Route path="/internal/orders/:id" element={<OrderDetail />} />
 
               {/* Customer routes */}
-              <Route path="/customer/dashboard" element={<CustomerDashboard />} />
               <Route path="/customer/quote-request" element={<QuoteRequest />} />
               <Route path="/customer/rfqs" element={<CustomerRfqs />} />
               <Route path="/customer/quotations" element={<CustomerQuotations />} />

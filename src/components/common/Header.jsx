@@ -31,7 +31,7 @@ const Header = () => {
     
     switch (role) {
       case 'CUSTOMER':
-        return '/customer/dashboard';
+        return '/customer/rfqs';
       case 'ADMIN':
         return '/admin/users';
       case 'DIRECTOR':
