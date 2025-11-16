@@ -161,7 +161,7 @@ const MyRfqs = () => {
       setAllRfqs(enrichedData);
     } catch (err) {
       console.error('Error fetching RFQs:', err);
-      const errorMessage = err.message || 'Lỗi khi tải danh sách RFQ của bạn.';
+      const errorMessage = err.message || 'Lỗi khi tải danh sách yêu cầu báo giá của bạn.';
       setError(errorMessage);
       toast.error(errorMessage);
       // Clear RFQs on error
@@ -250,10 +250,10 @@ const MyRfqs = () => {
         <InternalSidebar userRole="sales" />
         <div className="flex-grow-1 p-4" style={{ backgroundColor: '#f8f9fa' }}>
           <Container fluid>
-            <h2 className="mb-4">Danh sách RFQ được giao</h2>
+            <h2 className="mb-4">Danh sách yêu cầu báo giá</h2>
             <Card>
               <Card.Header>
-                Các RFQ cần bạn xử lý
+                Các yêu cầu báo giá cần bạn xử lý
               </Card.Header>
               <Card.Body>
                 {/* Search and Filter Section */}
@@ -263,7 +263,7 @@ const MyRfqs = () => {
                       <InputGroup.Text><FaSearch /></InputGroup.Text>
                       <Form.Control
                         type="text"
-                        placeholder="Tìm kiếm theo mã RFQ, tên khách hàng..."
+                        placeholder="Tìm kiếm theo mã yêu cầu báo giá, tên khách hàng..."
                         value={searchTerm}
                         onChange={(e) => {
                           setSearchTerm(e.target.value);
@@ -310,7 +310,7 @@ const MyRfqs = () => {
                     <Table striped bordered hover responsive>
                       <thead>
                         <tr>
-                          <th>Mã RFQ</th>
+                          <th>Mã yêu cầu báo giá</th>
                           <th>Tên Khách Hàng</th>
                           <th>Ngày tạo</th>
                           <th>Trạng Thái</th>
@@ -345,8 +345,8 @@ const MyRfqs = () => {
                           <tr>
                             <td colSpan="5" className="text-center">
                               {totalElements === 0 
-                                ? 'Bạn không có RFQ nào cần xử lý.' 
-                                : 'Không tìm thấy RFQ phù hợp với bộ lọc.'}
+                                ? 'Bạn không có yêu cầu báo giá nào cần xử lý.' 
+                                : 'Không tìm thấy yêu cầu báo giá phù hợp với bộ lọc.'}
                             </td>
                           </tr>
                         )}

@@ -31,6 +31,7 @@ export const rfqService = {
       if (params.search && params.search.trim()) paginationParams.search = params.search.trim();
       if (params.status && params.status.trim()) paginationParams.status = params.status.trim();
       if (params.customerId) paginationParams.customerId = params.customerId;
+      if (params.createdDate && params.createdDate.trim()) paginationParams.createdDate = params.createdDate.trim();
       
       const response = await apiClient.get('/v1/rfqs', { params: paginationParams });
       return response.data;

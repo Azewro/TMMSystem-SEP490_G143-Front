@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Container, Card, Table, Badge, Button, Alert, Spinner, Form, InputGroup } from 'react-bootstrap';
+import { Container, Card, Table, Badge, Button, Alert, Spinner, Form, InputGroup, Row, Col } from 'react-bootstrap';
 import { FaEye, FaSearch } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
@@ -65,6 +65,11 @@ const CustomerQuotations = () => {
   const [error, setError] = useState('');
   
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [sortBy, setSortBy] = useState('createdAt'); // 'createdAt' or 'validUntil'
+  const [sortOrder, setSortOrder] = useState('desc'); // 'asc' or 'desc'
+  const [selectedDate, setSelectedDate] = useState(''); // For date-based sorting
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
@@ -79,9 +84,31 @@ const CustomerQuotations = () => {
     setLoading(true);
     setError('');
     try {
+      // Normalize search term: trim and replace multiple spaces with single space
+      const normalizedSearch = debouncedSearchTerm 
+        ? debouncedSearchTerm.trim().replace(/\s+/g, ' ')
+        : undefined;
+      
       // Convert 1-based page to 0-based for backend
       const page = currentPage - 1;
-      const response = await quotationService.getCustomerQuotations(customerId, page, ITEMS_PER_PAGE, searchTerm || undefined);
+      
+      // Prepare sort parameters
+      let finalSortBy = sortBy;
+      let finalSortOrder = sortOrder;
+      
+      // If sorting by date and a specific date is selected, backend will handle it
+      // For now, we just pass sortBy and sortOrder to backend
+      
+      const response = await quotationService.getCustomerQuotations(
+        customerId, 
+        page, 
+        ITEMS_PER_PAGE, 
+        normalizedSearch,
+        statusFilter || undefined,
+        finalSortBy,
+        finalSortOrder,
+        selectedDate || undefined
+      );
       
       // Handle PageResponse
       let quotes = [];
@@ -95,8 +122,9 @@ const CustomerQuotations = () => {
         setTotalElements(response.length);
       }
       
-      // Filter out DRAFT quotes
+      // Filter out DRAFT quotes (backend should handle this, but keep as safety)
       const filteredData = quotes.filter(quote => quote.status !== 'DRAFT');
+      
       setAllQuotes(filteredData);
     } catch (e) {
       setError(e.message || 'Không thể tải báo giá của bạn');
@@ -104,12 +132,28 @@ const CustomerQuotations = () => {
     } finally {
       setLoading(false);
     }
-  }, [customerId, currentPage, searchTerm]);
+  }, [customerId, currentPage, debouncedSearchTerm, statusFilter, sortBy, sortOrder, selectedDate]);
   
+  // Debounce search term
   useEffect(() => {
-    // Reset to page 1 when search changes
-    setCurrentPage(1);
+    // If searchTerm is empty, update debouncedSearchTerm immediately
+    // Otherwise, wait 500ms after user stops typing
+    if (!searchTerm || searchTerm.trim() === '') {
+      setDebouncedSearchTerm('');
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500); // Wait 500ms after user stops typing
+
+    return () => clearTimeout(timer);
   }, [searchTerm]);
+
+  useEffect(() => {
+    // Reset to page 1 when filters or search change
+    setCurrentPage(1);
+  }, [debouncedSearchTerm, statusFilter, sortBy, sortOrder, selectedDate]);
 
   useEffect(() => {
     fetchCustomerQuotes();
@@ -139,18 +183,76 @@ const CustomerQuotations = () => {
 
             <Card className="shadow-sm">
               <Card.Header>
-                <div className="d-flex justify-content-between align-items-center">
-                  <span>Các báo giá đã nhận</span>
-                  <div style={{ width: '300px' }}>
-                    <InputGroup>
-                      <Form.Control
-                        type="text"
-                        placeholder="Tìm theo mã báo giá..."
-                        value={searchTerm}
-                        onChange={handleSearchChange}
-                      />
-                      <InputGroup.Text><FaSearch /></InputGroup.Text>
-                    </InputGroup>
+                <div className="d-flex flex-column gap-3">
+                  <div className="d-flex justify-content-between align-items-center">
+                    <span>Các báo giá đã nhận</span>
+                  </div>
+                  <div className="d-flex gap-3 flex-wrap">
+                    <div style={{ minWidth: '250px', flex: '1' }}>
+                      <InputGroup>
+                        <InputGroup.Text><FaSearch /></InputGroup.Text>
+                        <Form.Control
+                          type="text"
+                          placeholder="Tìm theo mã báo giá..."
+                          value={searchTerm}
+                          onChange={handleSearchChange}
+                        />
+                      </InputGroup>
+                    </div>
+                    <div style={{ minWidth: '200px' }}>
+                      <Form.Select
+                        value={statusFilter}
+                        onChange={(e) => {
+                          setStatusFilter(e.target.value);
+                          setCurrentPage(1);
+                        }}
+                      >
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="SENT">Đã gửi</option>
+                        <option value="ACCEPTED">Đã chấp nhận</option>
+                        <option value="REJECTED">Đã từ chối</option>
+                        <option value="EXPIRED">Hết hạn</option>
+                        <option value="CANCELED">Đã hủy</option>
+                        <option value="ORDER_CREATED">Đã tạo đơn hàng</option>
+                      </Form.Select>
+                    </div>
+                    <div style={{ minWidth: '200px' }}>
+                      <Form.Select
+                        value={sortBy}
+                        onChange={(e) => {
+                          setSortBy(e.target.value);
+                          setCurrentPage(1);
+                        }}
+                      >
+                        <option value="createdAt">Sắp xếp theo ngày tạo</option>
+                        <option value="validUntil">Sắp xếp theo ngày giao hàng</option>
+                      </Form.Select>
+                    </div>
+                    {sortBy === 'validUntil' && (
+                      <div style={{ minWidth: '200px' }}>
+                        <Form.Control
+                          type="date"
+                          value={selectedDate}
+                          onChange={(e) => {
+                            setSelectedDate(e.target.value);
+                            setCurrentPage(1);
+                          }}
+                          placeholder="Chọn ngày"
+                        />
+                      </div>
+                    )}
+                    <div style={{ minWidth: '150px' }}>
+                      <Form.Select
+                        value={sortOrder}
+                        onChange={(e) => {
+                          setSortOrder(e.target.value);
+                          setCurrentPage(1);
+                        }}
+                      >
+                        <option value="desc">Giảm dần</option>
+                        <option value="asc">Tăng dần</option>
+                      </Form.Select>
+                    </div>
                   </div>
                 </div>
               </Card.Header>

@@ -40,9 +40,30 @@ export const quotationService = {
   },
 
   // Get customer quotations
-  getCustomerQuotations: async (customerId, page = 0, size = 10, search) => {
+  getCustomerQuotations: async (customerId, page = 0, size = 10, search, status, sortBy, sortOrder, selectedDate) => {
     const params = { page, size };
-    if (search) params.search = search;
+    // Normalize search: trim and replace multiple spaces with single space
+    if (search && typeof search === 'string') {
+      const normalizedSearch = search.trim().replace(/\s+/g, ' ');
+      if (normalizedSearch.length > 0) {
+        params.search = normalizedSearch;
+      }
+    }
+    // Add status filter
+    if (status && typeof status === 'string' && status.trim()) {
+      params.status = status.trim();
+    }
+    // Add sort parameters
+    if (sortBy && typeof sortBy === 'string' && sortBy.trim()) {
+      params.sortBy = sortBy.trim();
+    }
+    if (sortOrder && typeof sortOrder === 'string' && sortOrder.trim()) {
+      params.sortOrder = sortOrder.trim();
+    }
+    // Add selectedDate for date-based sorting
+    if (selectedDate && typeof selectedDate === 'string' && selectedDate.trim()) {
+      params.selectedDate = selectedDate.trim();
+    }
     
     const response = await apiClient.get(`/v1/quotations/customer/${customerId}`, { params });
     // Handle PageResponse

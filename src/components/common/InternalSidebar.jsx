@@ -46,10 +46,10 @@ const InternalSidebar = ({ userRole: propUserRole }) => {
       { icon: FaProjectDiagram, label: 'Duyệt Kế Hoạch SX', path: '/director/plan-approval' },
     ],
     sales: [
-      { icon: FaListAlt, label: 'RFQ của tôi', path: '/sales/rfqs' },
-      { icon: FaPlusSquare, label: 'Tạo RFQ', path: '/sales/create-rfq' },
+      { icon: FaListAlt, label: 'Yêu cầu báo giá', path: '/sales/rfqs' },
+      { icon: FaPlusSquare, label: 'Tạo yêu cầu báo giá', path: '/sales/create-rfq' },
       { icon: FaFileSignature, label: 'Báo giá', path: '/sales/quotations' },
-      { icon: FaFileSignature, label: 'Hợp đồng', path: '/sales/contracts' },
+      { icon: FaFileSignature, label: 'Đơn hàng', path: '/sales/contracts' },
     ],
     planning: [
       { icon: FaListAlt, label: 'RFQ cần xử lý', path: '/planning/rfqs' },

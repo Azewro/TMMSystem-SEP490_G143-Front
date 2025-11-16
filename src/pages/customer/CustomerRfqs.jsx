@@ -7,7 +7,7 @@ import Sidebar from '../../components/common/Sidebar';
 import Pagination from '../../components/Pagination';
 import { useAuth } from '../../context/AuthContext';
 import { rfqService } from '../../api/rfqService';
-import { quoteService } from '../../api/quoteService';
+import { quotationService } from '../../api/quotationService';
 import CustomerRfqDetailModal from '../../components/modals/CustomerRfqDetailModal';
 import toast from 'react-hot-toast';
 import '../../styles/CustomerQuoteRequests.css';
@@ -20,6 +20,7 @@ const CustomerRfqs = () => {
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [createdDateFilter, setCreatedDateFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
@@ -40,7 +41,8 @@ const CustomerRfqs = () => {
         page, 
         size: ITEMS_PER_PAGE,
         search: searchTerm || undefined,
-        status: statusFilter || undefined
+        status: statusFilter || undefined,
+        createdDate: createdDateFilter || undefined
       });
       
       // Handle PageResponse
@@ -93,20 +95,54 @@ const CustomerRfqs = () => {
     }
   };
 
-  // Handle view/approve quotation
+  // Handle view quotation - find quotation by RFQ ID and navigate to detail page
   const handleViewQuotation = async (rfq) => {
     try {
-      // Try to find quotation for this RFQ
-      const quotations = await quoteService.getCustomerQuotations(user.customerId);
-      const quotation = quotations.find(q => q.rfqId === rfq.id || q.rfq?.id === rfq.id);
-      
-      if (quotation) {
-        navigate(`/customer/quotations/${quotation.id}`);
+      setLoading(true);
+      // Fetch all customer quotations to find the one matching this RFQ
+      let quotationFound = null;
+      let page = 0;
+      const pageSize = 50; // Fetch larger pages to find the quotation faster
+      let hasMore = true;
+
+      while (hasMore && !quotationFound) {
+        const response = await quotationService.getCustomerQuotations(
+          user.customerId,
+          page,
+          pageSize
+        );
+
+        let quotations = [];
+        if (response && response.content) {
+          quotations = response.content;
+          hasMore = page < (response.totalPages - 1);
+        } else if (Array.isArray(response)) {
+          quotations = response;
+          hasMore = false;
+        }
+
+        // Find quotation matching this RFQ
+        quotationFound = quotations.find(q => 
+          q.rfqId === rfq.id || 
+          q.rfq?.id === rfq.id ||
+          (q.rfq && typeof q.rfq === 'object' && q.rfq.id === rfq.id)
+        );
+
+        if (!quotationFound && hasMore) {
+          page++;
+        }
+      }
+
+      if (quotationFound) {
+        navigate(`/customer/quotations/${quotationFound.id}`);
       } else {
         toast.error('Không tìm thấy báo giá cho yêu cầu này');
       }
     } catch (error) {
+      console.error('Error finding quotation:', error);
       toast.error('Lỗi khi tải thông tin báo giá');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -117,14 +153,14 @@ const CustomerRfqs = () => {
       setLoading(false);
       setError('Bạn cần đăng nhập để xem các yêu cầu báo giá.');
     }
-  }, [user, currentPage, searchTerm, statusFilter]);
+  }, [user, currentPage, searchTerm, statusFilter, createdDateFilter]);
   
   useEffect(() => {
     // Reset to page 1 when filters change
     if (user && user.customerId) {
       setCurrentPage(1);
     }
-  }, [searchTerm, statusFilter]);
+  }, [searchTerm, statusFilter, createdDateFilter]);
 
   const handleViewDetails = (rfqId) => {
     setSelectedRfqId(rfqId);
@@ -208,6 +244,30 @@ const CustomerRfqs = () => {
                       ))}
                     </Form.Select>
                   </Col>
+                  <Col md={3}>
+                    <Form.Control
+                      type="date"
+                      placeholder="Lọc theo ngày tạo"
+                      value={createdDateFilter}
+                      onChange={(e) => {
+                        setCreatedDateFilter(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                    />
+                  </Col>
+                  {createdDateFilter && (
+                    <Col md={2}>
+                      <Button 
+                        variant="outline-secondary" 
+                        onClick={() => {
+                          setCreatedDateFilter('');
+                          setCurrentPage(1);
+                        }}
+                      >
+                        Xóa lọc ngày
+                      </Button>
+                    </Col>
+                  )}
                 </Row>
               </Card.Body>
             </Card>
@@ -254,7 +314,7 @@ const CustomerRfqs = () => {
                                   )}
                                   {rfqStatus === 'QUOTED' && (
                                     <Button variant="success" size="sm" onClick={() => handleViewQuotation(rfq)}>
-                                      Phê duyệt báo giá
+                                      Xem báo giá
                                     </Button>
                                   )}
                                   {rfqStatus === 'DRAFT' && (
