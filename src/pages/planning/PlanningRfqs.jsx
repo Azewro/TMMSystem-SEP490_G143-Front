@@ -45,7 +45,13 @@ const PlanningRfqs = () => {
     try {
       // Convert 1-based page to 0-based for backend
       const page = currentPage - 1;
-      const response = await rfqService.getAssignedRfqsForPlanning(page, ITEMS_PER_PAGE, searchTerm || undefined, statusFilter || undefined);
+      const response = await rfqService.getAssignedRfqsForPlanning(
+        page, 
+        ITEMS_PER_PAGE, 
+        searchTerm || undefined, 
+        statusFilter || undefined,
+        createdDateFilter || undefined
+      );
       
       // Handle PageResponse
       let rfqs = [];
@@ -85,7 +91,7 @@ const PlanningRfqs = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, searchTerm, statusFilter]);
+  }, [currentPage, searchTerm, statusFilter, createdDateFilter]);
 
   useEffect(() => {
     fetchPlanningRfqs();
@@ -100,23 +106,8 @@ const PlanningRfqs = () => {
     navigate(`/planning/rfqs/${rfqId}`);
   };
 
-  // Filtering logic - Only filter by createdDate client-side (backend doesn't support it yet)
-  const filteredRfqs = useMemo(() => {
-    let filtered = allRfqs;
-
-    // Filter by created date (client-side only, backend doesn't support this filter yet)
-    if (createdDateFilter) {
-      filtered = filtered.filter(rfq => {
-        if (!rfq.createdAt) return false;
-        const rfqDate = new Date(rfq.createdAt).toISOString().split('T')[0];
-        return rfqDate === createdDateFilter;
-      });
-    }
-
-    return filtered;
-  }, [allRfqs, createdDateFilter]);
-
-  // Note: Search and status filter are now server-side
+  // All filtering is now done server-side via API
+  const filteredRfqs = allRfqs;
 
   const getStatusText = (status) => {
     switch (status) {

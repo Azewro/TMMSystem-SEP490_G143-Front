@@ -197,26 +197,20 @@ export const rfqService = {
     }
   },
 
-  async getAssignedRfqsForPlanning(page = 0, size = 10, search, status) {
+  async getAssignedRfqsForPlanning(page = 0, size = 10, search, status, createdDate) {
     try {
-      const userId = sessionStorage.getItem('userId');
-      if (!userId) {
-        throw new Error('User ID not found. Please log in.');
-      }
+      // Use the general RFQ list endpoint with status filter for planning-related statuses
+      // Planning can view RFQs with status: FORWARDED_TO_PLANNING, RECEIVED_BY_PLANNING, QUOTED
       const params = { page, size };
       if (search) params.search = search;
       if (status) params.status = status;
+      if (createdDate) params.createdDate = createdDate;
       
-      const response = await apiClient.get('/v1/rfqs/for-planning', {
-        headers: {
-          'X-User-Id': userId
-        },
-        params
-      });
+      const response = await apiClient.get('/v1/rfqs', { params });
       return response.data;
     } catch (error) {
-      console.error("Error fetching assigned RFQs for planning:", error.response?.data);
-      throw new Error(error.response?.data?.message || 'Failed to fetch assigned RFQs for planning');
+      console.error("Error fetching RFQs for planning:", error.response?.data);
+      throw new Error(error.response?.data?.message || 'Failed to fetch RFQs for planning');
     }
   },
 
