@@ -147,8 +147,11 @@ const DirectorRfqList = () => {
     setCurrentPage(1); // Reset to first page on new search
   };
 
-  const getStatusBadge = (status) => {
-    switch (status) {
+  const getStatusBadge = (rfq) => {
+    if (rfq.status === 'DRAFT' && rfq.assignedSalesId) {
+      return 'info'; // Auto-assigned, show as 'SENT'
+    }
+    switch (rfq.status) {
       case 'DRAFT': return 'secondary'; // Gray
       case 'SENT': return 'info'; // Blue
       case 'FORWARDED_TO_PLANNING': return 'warning'; // Yellow
@@ -156,12 +159,15 @@ const DirectorRfqList = () => {
       case 'RECEIVED_BY_PLANNING': return 'info';
       case 'QUOTED': return 'success';
       case 'REJECTED': return 'danger';
-      default: return 'secondary'; // Changed from 'light' to 'secondary' to avoid white color
+      default: return 'secondary';
     }
   };
 
-  const getStatusText = (status) => {
-    switch (status) {
+  const getStatusText = (rfq) => {
+    if (rfq.status === 'DRAFT' && rfq.assignedSalesId) {
+      return 'Đã phân công'; // Auto-assigned
+    }
+    switch (rfq.status) {
       case 'DRAFT': return 'Chờ xử lý';
       case 'SENT': return 'Đã phân công';
       case 'FORWARDED_TO_PLANNING': return 'Đã chuyển Kế hoạch';
@@ -169,7 +175,7 @@ const DirectorRfqList = () => {
       case 'RECEIVED_BY_PLANNING': return 'Kế hoạch đã nhận';
       case 'QUOTED': return 'Đã báo giá';
       case 'REJECTED': return 'Đã từ chối';
-      default: return status;
+      default: return rfq.status;
     }
   };
 
@@ -197,61 +203,68 @@ const DirectorRfqList = () => {
             {/* Search and Filter */}
             <Card className="mb-3">
               <Card.Body>
-                <Row className="g-3">
-                  <Col md={3}>
-                    <InputGroup>
-                      <InputGroup.Text><FaSearch /></InputGroup.Text>
-                      <Form.Control
-                        type="text"
-                        placeholder="Tìm theo mã RFQ, tên khách..."
-                        value={searchTerm}
-                        onChange={(e) => {
-                          setSearchTerm(e.target.value);
-                        }}
-                        onBlur={(e) => {
-                          // Normalize on blur, not on every keystroke
-                          const normalized = e.target.value.trim().replace(/\s+/g, ' ');
-                          if (normalized !== searchTerm) {
-                            setSearchTerm(normalized);
-                            setCurrentPage(1);
-                          }
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            const normalized = searchTerm.trim().replace(/\s+/g, ' ');
+                <Row className="g-3 align-items-end">
+                  <Col md={4}>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Tìm kiếm</Form.Label>
+                      <InputGroup>
+                        <InputGroup.Text><FaSearch /></InputGroup.Text>
+                        <Form.Control
+                          type="text"
+                          placeholder="Tìm theo mã RFQ, tên khách..."
+                          value={searchTerm}
+                          onChange={(e) => {
+                            setSearchTerm(e.target.value);
+                          }}
+                          onBlur={(e) => {
+                            const normalized = e.target.value.trim().replace(/\s+/g, ' ');
                             if (normalized !== searchTerm) {
                               setSearchTerm(normalized);
+                              setCurrentPage(1);
                             }
-                            setCurrentPage(1);
-                          }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              const normalized = searchTerm.trim().replace(/\s+/g, ' ');
+                              if (normalized !== searchTerm) {
+                                setSearchTerm(normalized);
+                              }
+                              setCurrentPage(1);
+                            }
+                          }}
+                        />
+                      </InputGroup>
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Lọc theo ngày tạo</Form.Label>
+                      <Form.Control
+                        type="date"
+                        value={createdDateFilter}
+                        onChange={(e) => {
+                          setCreatedDateFilter(e.target.value);
+                          setCurrentPage(1);
                         }}
                       />
-                    </InputGroup>
+                    </Form.Group>
                   </Col>
                   <Col md={3}>
-                    <Form.Label className="mb-1 small">Lọc theo ngày tạo</Form.Label>
-                    <Form.Control
-                      type="date"
-                      value={createdDateFilter}
-                      onChange={(e) => {
-                        setCreatedDateFilter(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                    />
-                  </Col>
-                  <Col md={3}>
-                    <Form.Select
-                      value={statusFilter}
-                      onChange={(e) => {
-                        setStatusFilter(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                    >
-                      {statusOptions.map(option => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
-                    </Form.Select>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Lọc theo trạng thái</Form.Label>
+                      <Form.Select
+                        value={statusFilter}
+                        onChange={(e) => {
+                          setStatusFilter(e.target.value);
+                          setCurrentPage(1);
+                        }}
+                      >
+                        {statusOptions.map(option => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
                   </Col>
                 </Row>
               </Card.Body>
@@ -285,13 +298,13 @@ const DirectorRfqList = () => {
                               <td>{rfq.contactPerson || 'N/A'}</td>
                               <td>{new Date(rfq.createdAt).toLocaleDateString('vi-VN')}</td>
                               <td>
-                                <Badge bg={getStatusBadge(rfq.status)}>
-                                  {getStatusText(rfq.status)}
+                                <Badge bg={getStatusBadge(rfq)}>
+                                  {getStatusText(rfq)}
                                 </Badge>
                               </td>
                               <td>
                                 <Button variant="primary" size="sm" onClick={() => handleOpenAssignModal(rfq.id)}>
-                                  {rfq.status === 'DRAFT' ? 'Phân công' : 'Xem'}
+                                  {rfq.status === 'DRAFT' && !rfq.assignedSalesId ? 'Phân công' : 'Xem'}
                                 </Button>
                               </td>
                             </tr>

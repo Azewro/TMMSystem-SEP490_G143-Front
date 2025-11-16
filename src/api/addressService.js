@@ -1,48 +1,53 @@
-const API_URL = 'https://provinces.open-api.vn/api/v2/';
+const API_URL = '/api-address/api/v2/'; // Using proxy for the old API v2
 
 const addressService = {
+  /**
+   * Fetches the list of provinces from provinces.open-api.vn.
+   * @returns {Promise<Array>} A promise that resolves to an array of provinces.
+   */
   async getProvinces() {
     try {
       const response = await fetch(`${API_URL}p/`);
       if (!response.ok) {
-        throw new Error('Không thể tải danh sách tỉnh/thành phố.');
+        throw new Error(`[getProvinces] API Error: ${response.status}`);
       }
-      return await response.json();
+      const data = await response.json();
+      // Assuming this API returns a direct array of provinces
+      if (!Array.isArray(data)) {
+        console.error('Provinces API did not return an array.');
+        return [];
+      }
+      return data;
     } catch (error) {
       console.error('Error fetching provinces:', error);
-      throw error;
+      return [];
     }
   },
 
-  async getDistricts(provinceCode) {
-    if (!provinceCode) return [];
-    try {
-      // Speculative attempt with a different endpoint structure
-      const response = await fetch(`${API_URL}d?province_code=${provinceCode}`);
-      if (!response.ok) {
-        throw new Error(`Lỗi API: ${response.status}`);
-      }
-      const data = await response.json();
-      // Assuming this endpoint returns an array of districts directly
-      return Array.isArray(data) ? data : [];
-    } catch (error) {
-      console.error(`Lỗi khi tải quận/huyện cho tỉnh ${provinceCode}:`, error);
-      throw error;
+  /**
+   * Fetches the list of communes (wards) for a given province from provinces.open-api.vn.
+   * @param {string} provinceId The ID of the province.
+   * @returns {Promise<Array>} A promise that resolves to an array of communes/wards.
+   */
+  async getCommunes(provinceId) {
+    if (!provinceId) {
+      return [];
     }
-  },
-
-  async getWards(districtCode) {
-    if (!districtCode) return [];
     try {
-      const response = await fetch(`${API_URL}d/${districtCode}?depth=2`);
+      const response = await fetch(`${API_URL}p/${provinceId}?depth=2`);
       if (!response.ok) {
-        throw new Error('Không thể tải danh sách phường/xã.');
+        throw new Error(`[getCommunes] API Error: ${response.status}`);
       }
       const data = await response.json();
-      return data.wards || [];
+      // This API returns a province object with a 'wards' array
+      if (!data || !Array.isArray(data.wards)) {
+        console.error('API for communes did not return a valid structure (missing wards array).');
+        return [];
+      }
+      return data.wards;
     } catch (error) {
-      console.error(`Error fetching wards for district ${districtCode}:`, error);
-      throw error;
+      console.error(`Error fetching communes for province ${provinceId}:`, error);
+      return [];
     }
   },
 };

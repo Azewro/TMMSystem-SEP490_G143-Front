@@ -41,13 +41,10 @@ export const rfqService = {
     }
   },
 
-  async assignRfq(rfqId, salesId, planningId) {
+  async assignRfq(rfqId, salesId) {
     try {
       // Assign Sales
       await apiClient.post(`/v1/rfqs/${rfqId}/assign-sales`, { assignedSalesId: salesId });
-
-      // Assign Planning
-      await apiClient.post(`/v1/rfqs/${rfqId}/assign-planning`, { assignedPlanningId: planningId });
 
       return { success: true, message: 'RFQ assigned successfully' };
     } catch (error) {

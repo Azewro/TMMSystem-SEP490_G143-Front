@@ -8,7 +8,18 @@ import { quotationService } from '../../api/quotationService'; // Import quotati
 import { productionPlanService } from '../../api/productionPlanService'; // Import productionPlanService
 import { customerService } from '../../api/customerService';
 import Pagination from '../../components/Pagination';
+import toast from 'react-hot-toast';
 import '../../styles/QuoteRequests.css';
+
+const getFileExtension = (url) => {
+  if (!url) return '';
+  const parts = url.split('.');
+  return parts.length > 1 ? parts.pop().toLowerCase() : '';
+};
+
+const isPdf = (url) => getFileExtension(url) === 'pdf';
+const isImage = (url) => ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'].includes(getFileExtension(url));
+const isDocx = (url) => ['docx', 'doc'].includes(getFileExtension(url));
 
 const STATUS_LABELS = {
   PENDING_APPROVAL: { text: 'Chờ duyệt', variant: 'warning' },
@@ -60,6 +71,10 @@ const DirectorContractApproval = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
   const ITEMS_PER_PAGE = 10;
+
+  // State for file viewer modal
+  const [showFileViewer, setShowFileViewer] = useState(false);
+  const [viewerUrl, setViewerUrl] = useState('');
 
   const loadContracts = async () => {
     setLoading(true);
@@ -143,7 +158,9 @@ const DirectorContractApproval = () => {
 
       setOrderDetails(details);
       if (contractUrl) {
-        setFileUrl(contractUrl.startsWith('http') ? contractUrl : 'https://' + contractUrl);
+        const apiPathIndex = contractUrl.indexOf('/api/');
+        const relativeUrl = apiPathIndex !== -1 ? contractUrl.substring(apiPathIndex) : contractUrl;
+        setFileUrl(relativeUrl);
       }
 
       // Fetch optional quote file URL separately and handle failure gracefully
@@ -151,7 +168,9 @@ const DirectorContractApproval = () => {
         try {
           const quoteUrl = await quotationService.getQuoteFileUrl(contract.quotationId);
           if (quoteUrl) {
-            setQuoteFileUrl(quoteUrl.startsWith('http') ? quoteUrl : 'https://' + quoteUrl);
+            const apiPathIndex = quoteUrl.indexOf('/api/');
+            const relativeUrl = apiPathIndex !== -1 ? quoteUrl.substring(apiPathIndex) : quoteUrl;
+            setQuoteFileUrl(relativeUrl);
           }
         } catch (quoteUrlError) {
           console.error('Could not fetch quote file URL:', quoteUrlError);
@@ -231,6 +250,40 @@ const DirectorContractApproval = () => {
       setError(err.message || 'Không thể từ chối hợp đồng.');
     } finally {
       setProcessing(false);
+    }
+  };
+
+  const handleCloseFileViewer = () => {
+    if (viewerUrl) {
+      URL.revokeObjectURL(viewerUrl);
+    }
+    setShowFileViewer(false);
+    setViewerUrl('');
+  };
+
+  const handleViewFile = async (url) => {
+    if (!url || isDocx(url)) return;
+
+    const toastId = toast.loading('Đang chuẩn bị file để xem...');
+    try {
+      const token = sessionStorage.getItem('token');
+      const headers = { 'Authorization': `Bearer ${token}` };
+      const response = await fetch(url, { headers });
+
+      if (!response.ok) {
+        throw new Error('Không thể tải file.');
+      }
+      
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      
+      setViewerUrl(objectUrl);
+      setShowFileViewer(true);
+      toast.success('Đã mở file.', { id: toastId });
+
+    } catch (error) {
+      console.error('Error viewing file:', error);
+      toast.error('Không thể mở file để xem.', { id: toastId });
     }
   };
 
@@ -423,30 +476,51 @@ const DirectorContractApproval = () => {
                   ))}
                 </tbody>
               </Table>
-              <div className="mt-3 d-flex gap-2">
+              <div className="mt-3 d-flex gap-2 flex-wrap">
+                {/* Contract File Buttons */}
                 {fileUrl ? (
-                  <Button
-                    variant="outline-secondary"
-                    href={fileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Xem file hợp đồng
-                  </Button>
+                  <>
+                    <Button
+                      variant="outline-secondary"
+                      onClick={() => handleViewFile(fileUrl)}
+                      disabled={isDocx(fileUrl)}
+                      title={isDocx(fileUrl) ? 'File DOCX cần được tải về để xem' : 'Xem file hợp đồng'}
+                    >
+                      Xem file hợp đồng
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      href={fileUrl}
+                      download
+                    >
+                      Tải về hợp đồng
+                    </Button>
+                  </>
                 ) : (
                   <Alert variant="warning" className="py-2 px-3 mb-0">
                     Chưa có file hợp đồng.
                   </Alert>
                 )}
+
+                {/* Quote File Buttons */}
                 {quoteFileUrl ? (
-                  <Button
-                    variant="outline-info"
-                    href={quoteFileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Xem file báo giá
-                  </Button>
+                  <>
+                    <Button
+                      variant="outline-info"
+                      onClick={() => handleViewFile(quoteFileUrl)}
+                      disabled={isDocx(quoteFileUrl)}
+                      title={isDocx(quoteFileUrl) ? 'File DOCX cần được tải về để xem' : 'Xem file báo giá'}
+                    >
+                      Xem file báo giá
+                    </Button>
+                    <Button
+                      variant="info"
+                      href={quoteFileUrl}
+                      download
+                    >
+                      Tải về báo giá
+                    </Button>
+                  </>
                 ) : (
                   <Alert variant="warning" className="py-2 px-3 mb-0">
                     Chưa có file báo giá.
@@ -482,6 +556,20 @@ const DirectorContractApproval = () => {
             {processing ? 'Đang xử lý...' : 'Phê duyệt'}
           </Button>
         </Modal.Footer>
+      </Modal>
+
+      {/* File Viewer Modal */}
+      <Modal show={showFileViewer} onHide={handleCloseFileViewer} size="xl" centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Xem file</Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ height: '80vh' }}>
+          {viewerUrl ? (
+            <iframe src={viewerUrl} width="100%" height="100%" title="File Viewer" style={{ border: 'none' }}></iframe>
+          ) : (
+            <div className="text-center">Đang tải file...</div>
+          )}
+        </Modal.Body>
       </Modal>
     </div>
   );

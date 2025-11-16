@@ -3,7 +3,7 @@ import { Modal, Button, Form, Spinner, Alert, Row, Col, Table } from 'react-boot
 import { userService } from '../../api/userService';
 import { rfqService } from '../../api/rfqService';
 import { productService } from '../../api/productService';
-import { customerService } from '../../api/customerService'; // Import customerService
+import { customerService } from '../../api/customerService';
 import toast from 'react-hot-toast';
 
 const formatDate = (dateString) => {
@@ -13,10 +13,8 @@ const formatDate = (dateString) => {
 
 const AssignRfqModal = ({ show, onHide, rfqId, onAssignmentSuccess }) => {
   const [salesUsers, setSalesUsers] = useState([]);
-  const [planningUsers, setPlanningUsers] = useState([]);
   const [rfqDetails, setRfqDetails] = useState(null);
   const [selectedSalesId, setSelectedSalesId] = useState('');
-  const [selectedPlanningId, setSelectedPlanningId] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -27,26 +25,20 @@ const AssignRfqModal = ({ show, onHide, rfqId, onAssignmentSuccess }) => {
         setLoading(true);
         setError('');
         try {
-          // Fetch users and base RFQ data
           const [allUsersResponse, rfqData] = await Promise.all([
-            userService.getAllUsers(0, 1000), // Get all users with pagination (1000 should be enough)
+            userService.getAllUsers(0, 1000),
             rfqService.getRfqById(rfqId)
           ]);
           
-          // Handle PageResponse or array
           const allUsers = (allUsersResponse && allUsersResponse.content) 
             ? allUsersResponse.content 
             : (Array.isArray(allUsersResponse) ? allUsersResponse : []);
 
-          // Process users
           const sales = allUsers.filter(user => user.roleName?.toUpperCase() === 'SALE STAFF');
-          const planning = allUsers.filter(user => user.roleName?.toUpperCase().includes('PLANNING'));
           setSalesUsers(sales || []);
-          setPlanningUsers(planning || []);
 
           let finalRfqData = { ...rfqData };
 
-          // If RFQ is linked to a customer, fetch customer data for fallback
           if (rfqData.customerId) {
             try {
               const customer = await customerService.getCustomerById(rfqData.customerId);
@@ -56,11 +48,9 @@ const AssignRfqModal = ({ show, onHide, rfqId, onAssignmentSuccess }) => {
               finalRfqData.contactAddress = rfqData.contactAddress || customer.address || 'N/A';
             } catch (customerError) {
               console.error("Could not fetch customer details:", customerError);
-              // Keep going with what we have
             }
           }
 
-          // Enrich product details
           if (finalRfqData.details && finalRfqData.details.length > 0) {
             const enrichedDetails = await Promise.all(
               finalRfqData.details.map(async (detail) => {
@@ -76,9 +66,7 @@ const AssignRfqModal = ({ show, onHide, rfqId, onAssignmentSuccess }) => {
           }
           
           setRfqDetails(finalRfqData);
-          // Set selected IDs if they exist (for view mode)
           setSelectedSalesId(rfqData.assignedSalesId || '');
-          setSelectedPlanningId(rfqData.assignedPlanningId || '');
 
         } catch (err) {
           setError('Lỗi khi tải dữ liệu chi tiết.');
@@ -92,17 +80,14 @@ const AssignRfqModal = ({ show, onHide, rfqId, onAssignmentSuccess }) => {
   }, [show, rfqId]);
 
   const handleAssign = async () => {
-    if (!selectedSalesId || !selectedPlanningId) {
-      setError('Vui lòng chọn cả nhân viên Sales và Kế hoạch.');
+    if (!selectedSalesId) {
+      setError('Vui lòng chọn nhân viên Sales.');
       return;
     }
     setError('');
     setSubmitting(true);
     try {
-      // Assign sales and planning
-      await rfqService.assignRfq(rfqId, selectedSalesId, selectedPlanningId);
-      
-      // Also change the status to SENT as requested
+      await rfqService.assignRfq(rfqId, selectedSalesId);
       await rfqService.sendRfq(rfqId);
 
       toast.success('Đã phân công và gửi RFQ thành công!');
@@ -117,7 +102,6 @@ const AssignRfqModal = ({ show, onHide, rfqId, onAssignmentSuccess }) => {
 
   const handleClose = () => {
     setSelectedSalesId('');
-    setSelectedPlanningId('');
     setError('');
     setRfqDetails(null);
     onHide();
@@ -128,7 +112,7 @@ const AssignRfqModal = ({ show, onHide, rfqId, onAssignmentSuccess }) => {
   return (
     <Modal show={show} onHide={handleClose} centered size="lg">
       <Modal.Header closeButton>
-        <Modal.Title>{isViewMode ? 'Chi tiết RFQ' : 'Phân công cho RFQ'} #{rfqId}</Modal.Title>
+        <Modal.Title>{isViewMode ? 'Chi tiết RFQ' : 'Phân công cho'} {rfqDetails?.rfqNumber || rfqId}</Modal.Title>
       </Modal.Header>
       <Modal.Body>
         {loading ? (
@@ -189,20 +173,6 @@ const AssignRfqModal = ({ show, onHide, rfqId, onAssignmentSuccess }) => {
                 >
                   <option value="">-- Chọn Sales --</option>
                   {salesUsers.map(user => (
-                    <option key={user.id} value={user.id}>{user.name} ({user.email})</option>
-                  ))}
-                </Form.Select>
-              </Form.Group>
-              <Form.Group>
-                <Form.Label>Nhân viên Kế hoạch</Form.Label>
-                <Form.Select 
-                  value={selectedPlanningId} 
-                  onChange={(e) => setSelectedPlanningId(e.target.value)}
-                  required
-                  disabled={isViewMode}
-                >
-                  <option value="">-- Chọn Kế hoạch --</option>
-                  {planningUsers.map(user => (
                     <option key={user.id} value={user.id}>{user.name} ({user.email})</option>
                   ))}
                 </Form.Select>

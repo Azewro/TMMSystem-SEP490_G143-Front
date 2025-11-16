@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Container, Row, Col, Card, Form, Button, Spinner, Alert } from 'react-bootstrap';
 import { useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import { vi } from 'date-fns/locale/vi';
 import 'react-datepicker/dist/react-datepicker.css';
+import Select from 'react-select';
 
 import Header from '../../components/common/Header';
 import Sidebar from '../../components/common/Sidebar';
@@ -13,14 +14,14 @@ import { customerService } from '../../api/customerService';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { rfqService } from '../../api/rfqService';
-import addressService from '../../api/addressService'; // Import new service
+import addressService from '../../api/addressService';
 import '../../styles/QuoteRequest.css';
 
 registerLocale('vi', vi);
 
 const getMinExpectedDeliveryDate = () => {
   const today = new Date();
-  today.setDate(today.getDate() + 30); // Add 30 days
+  today.setDate(today.getDate() + 30);
   return today;
 };
 
@@ -45,16 +46,14 @@ const QuoteRequest = () => {
     notes: '',
   });
 
-  // New state for structured address
+  // State for 2-level address
   const [provinces, setProvinces] = useState([]);
-  const [districts, setDistricts] = useState([]);
-  const [wards, setWards] = useState([]);
+  const [communes, setCommunes] = useState([]);
   const [selectedProvince, setSelectedProvince] = useState('');
-  const [selectedDistrict, setSelectedDistrict] = useState('');
-  const [selectedWard, setSelectedWard] = useState('');
+  const [selectedCommune, setSelectedCommune] = useState('');
   const [detailedAddress, setDetailedAddress] = useState('');
-  const [addressLoading, setAddressLoading] = useState({ provinces: true, districts: false, wards: false });
-  
+  const [addressLoading, setAddressLoading] = useState({ provinces: true, communes: false });
+
   const [quoteItems, setQuoteItems] = useState([{ productId: '', quantity: '1', unit: 'cai', notes: '', standardDimensions: '' }]);
   const [isFromCart, setIsFromCart] = useState(false);
 
@@ -74,53 +73,38 @@ const QuoteRequest = () => {
     fetchProvinces();
   }, []);
 
-  // Fetch districts when province changes
+  // Fetch communes when province changes
   useEffect(() => {
     if (!selectedProvince) {
-      setDistricts([]);
-      setWards([]);
-      setSelectedDistrict('');
-      setSelectedWard('');
+      setCommunes([]);
+      setSelectedCommune('');
       return;
     }
-    const fetchDistricts = async () => {
+    const fetchCommunes = async () => {
       try {
-        setAddressLoading(prev => ({ ...prev, districts: true }));
-        const districtData = await addressService.getDistricts(selectedProvince);
-        setDistricts(districtData);
-        setWards([]);
-        setSelectedDistrict('');
-        setSelectedWard('');
+        setAddressLoading(prev => ({ ...prev, communes: true }));
+        const communeData = await addressService.getCommunes(selectedProvince);
+        setCommunes(communeData);
+        setSelectedCommune('');
       } catch (error) {
-        toast.error('Không thể tải danh sách Quận/Huyện.');
+        toast.error('Không thể tải danh sách Xã/Phường.');
       } finally {
-        setAddressLoading(prev => ({ ...prev, districts: false }));
+        setAddressLoading(prev => ({ ...prev, communes: false }));
       }
     };
-    fetchDistricts();
+    fetchCommunes();
   }, [selectedProvince]);
 
-  // Fetch wards when district changes
-  useEffect(() => {
-    if (!selectedDistrict) {
-      setWards([]);
-      setSelectedWard('');
-      return;
-    }
-    const fetchWards = async () => {
-      try {
-        setAddressLoading(prev => ({ ...prev, wards: true }));
-        const wardData = await addressService.getWards(selectedDistrict);
-        setWards(wardData);
-        setSelectedWard('');
-      } catch (error) {
-        toast.error('Không thể tải danh sách Phường/Xã.');
-      } finally {
-        setAddressLoading(prev => ({ ...prev, wards: false }));
-      }
-    };
-    fetchWards();
-  }, [selectedDistrict]);
+  // Memoize options for react-select to prevent re-computation
+  const provinceOptions = useMemo(() => 
+    provinces.map(p => ({ value: p.code, label: p.name })),
+    [provinces]
+  );
+
+  const communeOptions = useMemo(() => 
+    communes.map(c => ({ value: c.code, label: c.name })),
+    [communes]
+  );
 
   useEffect(() => {
     const initialize = async () => {
@@ -155,7 +139,6 @@ const QuoteRequest = () => {
             contactEmail: customerData.email || user.email || '',
             contactPhone: customerData.phoneNumber || '',
           }));
-          // Note: We don't pre-fill address dropdowns from a single string
         } catch (error) {
           console.error("Failed to fetch customer details:", error);
         }
@@ -240,7 +223,8 @@ const QuoteRequest = () => {
   };
 
   const validate = () => {
-    const newErrors = {};
+    const newErrors = { items: Array(quoteItems.length).fill(null) };
+
     if (!formData.contactPerson.trim()) newErrors.contactPerson = 'Họ và tên là bắt buộc.';
     if (!formData.contactPhone.trim()) {
       newErrors.contactPhone = 'Số điện thoại là bắt buộc.';
@@ -253,12 +237,25 @@ const QuoteRequest = () => {
         newErrors.contactEmail = 'Email không hợp lệ.';
     }
     if (!selectedProvince) newErrors.address = 'Vui lòng chọn Tỉnh/Thành phố.';
-    if (!selectedDistrict) newErrors.address = 'Vui lòng chọn Quận/Huyện.';
-    if (!selectedWard) newErrors.address = 'Vui lòng chọn Phường/Xã.';
+    if (!selectedCommune) newErrors.address = 'Vui lòng chọn Xã/Phường.';
     if (!detailedAddress.trim()) newErrors.address = 'Vui lòng nhập địa chỉ chi tiết (số nhà, đường).';
     if (!formData.expectedDeliveryDate) {
       newErrors.expectedDeliveryDate = 'Ngày giao hàng mong muốn là bắt buộc.';
     }
+
+    // Item specific validation
+    quoteItems.forEach((item, index) => {
+      const itemErrors = {};
+      if (!item.productId) {
+        itemErrors.product = 'Vui lòng chọn sản phẩm.';
+      }
+      if (parseInt(item.quantity, 10) < 100) {
+        itemErrors.quantity = 'Số lượng tối thiểu là 100.';
+      }
+      if (Object.keys(itemErrors).length > 0) {
+        newErrors.items[index] = itemErrors;
+      }
+    });
 
     setErrors(newErrors);
     return newErrors;
@@ -267,16 +264,19 @@ const QuoteRequest = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const validationErrors = validate();
-    if (Object.keys(validationErrors).length > 0) {
-      toast.error(Object.values(validationErrors)[0]); // Show first error
+    
+    const hasGeneralError = ['contactPerson', 'contactPhone', 'contactEmail', 'address', 'expectedDeliveryDate'].some(key => validationErrors[key]);
+    const hasItemError = validationErrors.items.some(item => item !== null);
+
+    if (hasGeneralError || hasItemError) {
+      toast.error('Vui lòng kiểm tra lại các thông tin bắt buộc.');
       return;
     }
     setSubmitting(true);
 
     const provinceName = provinces.find(p => p.code == selectedProvince)?.name || '';
-    const districtName = districts.find(d => d.code == selectedDistrict)?.name || '';
-    const wardName = wards.find(w => w.code == selectedWard)?.name || '';
-    const fullAddress = `${detailedAddress}, ${wardName}, ${districtName}, ${provinceName}`;
+    const communeName = communes.find(c => c.code == selectedCommune)?.name || '';
+    const fullAddress = `${detailedAddress}, ${communeName}, ${provinceName}`;
 
     const details = quoteItems.map(item => ({
       productId: parseInt(item.productId),
@@ -357,26 +357,30 @@ const QuoteRequest = () => {
                       <Row>
                         <Col md={6} className="mb-3">
                           <Form.Label>Tỉnh/Thành phố <span className="text-danger">*</span></Form.Label>
-                          <Form.Select value={selectedProvince} onChange={e => setSelectedProvince(e.target.value)} disabled={addressLoading.provinces}>
-                            <option value="">{addressLoading.provinces ? 'Đang tải...' : 'Chọn Tỉnh/Thành phố'}</option>
-                            {provinces.map(p => <option key={p.code} value={p.code}>{p.name}</option>)}
-                          </Form.Select>
+                          <Select
+                            options={provinceOptions}
+                            value={provinceOptions.find(option => option.value === selectedProvince)}
+                            onChange={option => setSelectedProvince(option ? option.value : '')}
+                            isLoading={addressLoading.provinces}
+                            placeholder={addressLoading.provinces ? 'Đang tải...' : 'Chọn Tỉnh/Thành phố'}
+                            isClearable
+                            isSearchable
+                          />
                         </Col>
                         <Col md={6} className="mb-3">
-                          <Form.Label>Quận/Huyện <span className="text-danger">*</span></Form.Label>
-                          <Form.Select value={selectedDistrict} onChange={e => setSelectedDistrict(e.target.value)} disabled={!selectedProvince || addressLoading.districts}>
-                            <option value="">{addressLoading.districts ? 'Đang tải...' : 'Chọn Quận/Huyện'}</option>
-                            {districts.map(d => <option key={d.code} value={d.code}>{d.name}</option>)}
-                          </Form.Select>
+                          <Form.Label>Xã/Phường <span className="text-danger">*</span></Form.Label>
+                          <Select
+                            options={communeOptions}
+                            value={communeOptions.find(option => option.value === selectedCommune)}
+                            onChange={option => setSelectedCommune(option ? option.value : '')}
+                            isDisabled={!selectedProvince || addressLoading.communes}
+                            isLoading={addressLoading.communes}
+                            placeholder={addressLoading.communes ? 'Đang tải...' : 'Chọn Xã/Phường'}
+                            isClearable
+                            isSearchable
+                          />
                         </Col>
-                        <Col md={6} className="mb-3">
-                          <Form.Label>Phường/Xã <span className="text-danger">*</span></Form.Label>
-                          <Form.Select value={selectedWard} onChange={e => setSelectedWard(e.target.value)} disabled={!selectedDistrict || addressLoading.wards}>
-                            <option value="">{addressLoading.wards ? 'Đang tải...' : 'Chọn Phường/Xã'}</option>
-                            {wards.map(w => <option key={w.code} value={w.code}>{w.name}</option>)}
-                          </Form.Select>
-                        </Col>
-                        <Col md={6} className="mb-3">
+                        <Col md={12} className="mb-3">
                           <Form.Label>Số nhà, tên đường <span className="text-danger">*</span></Form.Label>
                           <Form.Control type="text" value={detailedAddress} onChange={e => setDetailedAddress(e.target.value)} placeholder="Ví dụ: 123 Nguyễn Văn Cừ" />
                         </Col>
@@ -410,13 +414,17 @@ const QuoteRequest = () => {
                                 <Col md={6}>
                                   <Form.Group>
                                     <Form.Label>Số lượng <span className="text-danger">*</span></Form.Label>
-                                    {isAuthenticated ? (
-                                      <div className="form-control-plaintext border rounded px-3 py-2 bg-light" style={{ pointerEvents: 'none', userSelect: 'none' }}>
-                                        {item.quantity}
-                                      </div>
-                                    ) : (
-                                      <Form.Control type="number" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} min="1" required />
-                                    )}
+                                    <Form.Control
+                                      type="number"
+                                      value={item.quantity}
+                                      onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                                      min="1"
+                                      required
+                                      isInvalid={!!errors.items?.[index]?.quantity}
+                                    />
+                                    <Form.Control.Feedback type="invalid">
+                                      {errors.items?.[index]?.quantity}
+                                    </Form.Control.Feedback>
                                   </Form.Group>
                                 </Col>
                                 <Col md={6}>
@@ -442,6 +450,9 @@ const QuoteRequest = () => {
                           <Form.Group className="mb-3">
                             <Form.Label className="mb-2 w-100">Ngày giao hàng mong muốn <span className="text-danger">*</span></Form.Label>
                             <DatePicker selected={formData.expectedDeliveryDate} onChange={handleDateChange} dateFormat="dd/MM/yyyy" minDate={getMinExpectedDeliveryDate()} className="form-control" placeholderText="Chọn ngày" locale="vi" />
+                            <Form.Text muted className="w-100 d-block">
+                              Lưu ý: Ngày giao hàng phải sau ngày hiện tại ít nhất 30 ngày.
+                            </Form.Text>
                           </Form.Group>
                         </Col>
                         <Col md={12}><Form.Group className="mb-3"><Form.Label>Ghi chú chung</Form.Label><Form.Control as="textarea" rows={3} name="notes" value={formData.notes} onChange={handleFormChange} placeholder="Yêu cầu đặc biệt cho toàn bộ đơn hàng..." /></Form.Group></Col>

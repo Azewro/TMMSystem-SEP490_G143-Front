@@ -1,231 +1,151 @@
-import React, { useEffect, useState } from 'react';
-import { Container, Card, Button, Table, Badge, Spinner, Alert, Row, Col } from 'react-bootstrap';
-import { FaArrowLeft } from 'react-icons/fa';
-import { useParams, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { useParams } from 'react-router-dom';
+import { Container, Card, Row, Col, Table, Badge, ListGroup } from 'react-bootstrap';
 import Header from '../../components/common/Header';
-import Sidebar from '../../components/common/Sidebar';
-import { contractService } from '../../api/contractService';
-import { productService } from '../../api/productService';
-import { useAuth } from '../../context/AuthContext';
+import CustomerSidebar from '../../components/common/CustomerSidebar';
 
-const statusMap = {
-  DRAFT: { label: 'Bản nháp', variant: 'secondary' },
-  PENDING_UPLOAD: { label: 'Chờ tải hợp đồng', variant: 'warning' },
-  PENDING_APPROVAL: { label: 'Chờ phê duyệt', variant: 'info' },
-  APPROVED: { label: 'Đã phê duyệt', variant: 'success' },
-  REJECTED: { label: 'Đã từ chối', variant: 'danger' },
-  SIGNED: { label: 'Đã ký', variant: 'primary' },
-  CANCELED: { label: 'Đã hủy', variant: 'dark' },
-  // Legacy statuses for backward compatibility
-  PENDING: { label: 'Chờ xử lý', variant: 'warning' },
-  UPLOADED_SIGNED: { label: 'Đã tải lên hợp đồng', variant: 'info' },
-  DIRECTOR_APPROVED: { label: 'Giám đốc đã duyệt', variant: 'success' },
-  DIRECTOR_REJECTED: { label: 'Giám đốc từ chối', variant: 'danger' },
-  COMPLETED: { label: 'Hoàn thành', variant: 'primary' },
+// Mock data for the order detail page
+const mockOrder = {
+  id: 'DH-2025-00123',
+  orderDate: '17/11/2025',
+  expectedDeliveryDate: '17/12/2025',
+  status: 'IN_PRODUCTION',
+  customerInfo: {
+    name: 'Công ty TNHH ABC',
+    contactPerson: 'Nguyễn Văn A',
+    phone: '0987654321',
+    shippingAddress: '123 Đường XYZ, Phường 1, Quận 1, TP. Hồ Chí Minh',
+  },
+  items: [
+    { id: 1, productName: 'Khăn tắm cao cấp', quantity: 200, unitPrice: 150000, totalPrice: 30000000 },
+    { id: 2, productName: 'Khăn mặt sợi tre', quantity: 500, unitPrice: 50000, totalPrice: 25000000 },
+    { id: 3, productName: 'Thảm chân khách sạn', quantity: 150, unitPrice: 80000, totalPrice: 12000000 },
+  ],
+  summary: {
+    subtotal: 67000000,
+    shipping: 500000,
+    total: 67500000,
+  },
+  history: [
+    { status: 'Đang sản xuất', date: '20/11/2025', description: 'Đơn hàng đã được chuyển đến xưởng sản xuất.' },
+    { status: 'Đã duyệt', date: '18/11/2025', description: 'Hợp đồng đã được giám đốc phê duyệt.' },
+    { status: 'Chờ duyệt', date: '17/11/2025', description: 'Đã tạo đơn hàng, chờ giám đốc phê duyệt hợp đồng.' },
+  ],
 };
 
-const formatDate = (iso) => {
-  if (!iso) return 'N/A';
-  try { 
-    return new Date(iso).toLocaleDateString('vi-VN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    }); 
-  } catch { 
-    return iso; 
+const getStatusBadge = (status) => {
+  switch (status) {
+    case 'PENDING':
+      return { variant: 'secondary', text: 'Chờ xử lý' };
+    case 'APPROVED':
+      return { variant: 'info', text: 'Đã duyệt' };
+    case 'IN_PRODUCTION':
+      return { variant: 'primary', text: 'Đang sản xuất' };
+    case 'SHIPPED':
+      return { variant: 'warning', text: 'Đang giao hàng' };
+    case 'COMPLETED':
+      return { variant: 'success', text: 'Hoàn thành' };
+    case 'CANCELLED':
+      return { variant: 'danger', text: 'Đã hủy' };
+    default:
+      return { variant: 'light', text: 'Không xác định' };
   }
 };
 
-const formatCurrency = (value) => {
-  if (typeof value !== 'number') return '0 ₫';
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(value);
-};
+const formatCurrency = (value) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
 
 const CustomerOrderDetail = () => {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const [order, setOrder] = useState(null);
-  const [orderDetails, setOrderDetails] = useState([]);
-  const [productDetails, setProductDetails] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    const fetchOrderDetail = async () => {
-      if (!user?.customerId) {
-        setError('Không tìm thấy thông tin khách hàng.');
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      setError('');
-      try {
-        // Fetch order (contract) details
-        const allContracts = await contractService.getAllContracts();
-        const contract = allContracts.find(
-          c => c.id === parseInt(id, 10) && c.customerId === parseInt(user.customerId, 10)
-        );
-
-        if (!contract) {
-          setError('Không tìm thấy đơn hàng này.');
-          setLoading(false);
-          return;
-        }
-
-        setOrder(contract);
-
-        // Fetch order details (items)
-        try {
-          const details = await contractService.getOrderDetails(contract.id);
-          setOrderDetails(Array.isArray(details) ? details : []);
-
-          // Fetch product details for each item
-          const productPromises = (Array.isArray(details) ? details : []).map(item => 
-            productService.getProductById(item.productId).catch(() => null)
-          );
-          const products = await Promise.all(productPromises);
-          const productsMap = products.reduce((acc, product, index) => {
-            if (product && details[index]) {
-              acc[details[index].productId] = product;
-            }
-            return acc;
-          }, {});
-          setProductDetails(productsMap);
-        } catch (detailError) {
-          console.error('Error fetching order details:', detailError);
-          setOrderDetails([]);
-        }
-      } catch (e) {
-        setError(e.message || 'Không thể tải chi tiết đơn hàng');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (user) {
-      fetchOrderDetail();
-    }
-  }, [id, user]);
-
-  const totalWeight = orderDetails.reduce((total, item) => {
-    const product = productDetails[item.productId];
-    const weight = (product?.standardWeight || 0) / 1000;
-    return total + (item.quantity * weight);
-  }, 0);
-
-  const badge = order ? (statusMap[order.status] || { label: order.status || 'Không xác định', variant: 'secondary' }) : null;
+  const { id } = useParams(); // In a real app, you'd use this ID to fetch data
+  const order = mockOrder; // Using mock data for now
+  const statusInfo = getStatusBadge(order.status);
 
   return (
-    <div className="customer-layout">
+    <div>
       <Header />
       <div className="d-flex">
-        <Sidebar />
-        <div className="flex-grow-1" style={{ backgroundColor: '#f8f9fa', minHeight: 'calc(100vh - 70px)' }}>
-          <Container fluid className="p-4">
-            <Button variant="outline-secondary" className="mb-3" onClick={() => navigate('/customer/orders')}>
-              <FaArrowLeft className="me-2" /> Quay lại danh sách đơn hàng
-            </Button>
+        <CustomerSidebar />
+        <Container fluid className="p-4">
+          <h2 className="mb-4">Chi tiết đơn hàng #{order.id}</h2>
 
-            {error && <Alert variant="danger">{error}</Alert>}
+          <Card className="mb-4">
+            <Card.Header as="h5">Thông tin chung</Card.Header>
+            <Card.Body>
+              <Row>
+                <Col md={6}>
+                  <p><strong>Ngày đặt hàng:</strong> {order.orderDate}</p>
+                  <p><strong>Ngày giao dự kiến:</strong> {order.expectedDeliveryDate}</p>
+                  <p className="mb-0">
+                    <strong>Trạng thái:</strong> <Badge bg={statusInfo.variant}>{statusInfo.text}</Badge>
+                  </p>
+                </Col>
+                <Col md={6}>
+                  <p><strong>Người nhận:</strong> {order.customerInfo.contactPerson}</p>
+                  <p className="mb-0"><strong>Địa chỉ giao hàng:</strong> {order.customerInfo.shippingAddress}</p>
+                </Col>
+              </Row>
+            </Card.Body>
+          </Card>
 
-            {loading ? (
-              <div className="text-center py-5">
-                <Spinner animation="border" />
-              </div>
-            ) : order ? (
-              <>
-                <Card className="shadow-sm mb-3">
-                  <Card.Header>
-                    <h5 className="mb-0">Thông tin đơn hàng</h5>
-                  </Card.Header>
-                  <Card.Body>
-                    <Row>
-                      <Col md={6}>
-                        <p><strong>Mã đơn hàng:</strong> {order.contractNumber || `HD-${order.id}`}</p>
-                        <p><strong>Ngày tạo:</strong> {formatDate(order.createdAt)}</p>
-                        <p><strong>Ngày giao hàng dự kiến:</strong> {formatDate(order.deliveryDate)}</p>
-                      </Col>
-                      <Col md={6}>
-                        <p><strong>Trạng thái:</strong> <Badge bg={badge.variant}>{badge.label}</Badge></p>
-                        <p><strong>Tổng tiền:</strong> <span className="text-success fw-bold">{formatCurrency(order.totalAmount)}</span></p>
-                        {order.notes && (
-                          <p><strong>Ghi chú:</strong> {order.notes}</p>
-                        )}
-                      </Col>
-                    </Row>
-                  </Card.Body>
-                </Card>
+          <Card className="mb-4">
+            <Card.Header as="h5">Chi tiết sản phẩm</Card.Header>
+            <Card.Body>
+              <Table striped bordered hover responsive>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Sản phẩm</th>
+                    <th className="text-end">Số lượng</th>
+                    <th className="text-end">Đơn giá</th>
+                    <th className="text-end">Thành tiền</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {order.items.map((item, index) => (
+                    <tr key={item.id}>
+                      <td>{index + 1}</td>
+                      <td>{item.productName}</td>
+                      <td className="text-end">{item.quantity.toLocaleString('vi-VN')}</td>
+                      <td className="text-end">{formatCurrency(item.unitPrice)}</td>
+                      <td className="text-end">{formatCurrency(item.totalPrice)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colSpan="4" className="text-end fw-bold">Tổng tiền hàng</td>
+                    <td className="text-end fw-bold">{formatCurrency(order.summary.subtotal)}</td>
+                  </tr>
+                  <tr>
+                    <td colSpan="4" className="text-end">Phí vận chuyển</td>
+                    <td className="text-end">{formatCurrency(order.summary.shipping)}</td>
+                  </tr>
+                  <tr>
+                    <td colSpan="4" className="text-end fw-bold fs-5">Tổng cộng</td>
+                    <td className="text-end fw-bold fs-5">{formatCurrency(order.summary.total)}</td>
+                  </tr>
+                </tfoot>
+              </Table>
+            </Card.Body>
+          </Card>
 
-                <Card className="shadow-sm">
-                  <Card.Header>
-                    <h5 className="mb-0">Chi tiết sản phẩm</h5>
-                  </Card.Header>
-                  <Card.Body className="p-0">
-                    <Table responsive hover className="mb-0">
-                      <thead className="table-light">
-                        <tr>
-                          <th style={{ width: '5%' }}>STT</th>
-                          <th style={{ width: '35%' }}>Sản phẩm</th>
-                          <th style={{ width: '10%' }} className="text-center">Số lượng</th>
-                          <th style={{ width: '15%' }} className="text-center">Khối lượng (kg)</th>
-                          <th style={{ width: '15%' }} className="text-end">Đơn giá</th>
-                          <th style={{ width: '20%' }} className="text-end">Thành tiền</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {orderDetails.length === 0 ? (
-                          <tr>
-                            <td colSpan="6" className="text-center py-4 text-muted">
-                              Không có chi tiết sản phẩm.
-                            </td>
-                          </tr>
-                        ) : (
-                          orderDetails.map((item, idx) => {
-                            const product = productDetails[item.productId];
-                            const itemWeight = product ? (item.quantity * (product.standardWeight || 0)) / 1000 : 0;
-                            return (
-                              <tr key={item.id || idx}>
-                                <td className="text-center">{idx + 1}</td>
-                                <td>
-                                  <div>{product?.name || 'Sản phẩm không xác định'}</div>
-                                  <small className="text-muted">Kích thước: {product?.standardDimensions || 'N/A'}</small>
-                                </td>
-                                <td className="text-center">{item.quantity}</td>
-                                <td className="text-center">{itemWeight.toFixed(2)}</td>
-                                <td className="text-end">{formatCurrency(item.unitPrice || 0)}</td>
-                                <td className="text-end fw-bold">{formatCurrency((item.unitPrice || 0) * item.quantity)}</td>
-                              </tr>
-                            );
-                          })
-                        )}
-                      </tbody>
-                      {orderDetails.length > 0 && (
-                        <tfoot>
-                          <tr>
-                            <td colSpan="3" className="text-end fw-bold">TỔNG CỘNG:</td>
-                            <td className="text-center fw-bold">{totalWeight.toFixed(2)}</td>
-                            <td className="text-end fw-bold"></td>
-                            <td className="text-end fw-bold">{formatCurrency(order.totalAmount)}</td>
-                          </tr>
-                        </tfoot>
-                      )}
-                    </Table>
-                  </Card.Body>
-                </Card>
-              </>
-            ) : (
-              <Alert variant="info">Không tìm thấy đơn hàng.</Alert>
-            )}
-          </Container>
-        </div>
+          <Card>
+            <Card.Header as="h5">Lịch sử đơn hàng</Card.Header>
+            <Card.Body>
+              <ListGroup variant="flush">
+                {order.history.map((event, index) => (
+                  <ListGroup.Item key={index}>
+                    <div className="d-flex justify-content-between">
+                      <span className="fw-bold">{event.status}</span>
+                      <span className="text-muted">{event.date}</span>
+                    </div>
+                    <p className="mb-0 text-muted small">{event.description}</p>
+                  </ListGroup.Item>
+                ))}
+              </ListGroup>
+            </Card.Body>
+          </Card>
+
+        </Container>
       </div>
     </div>
   );

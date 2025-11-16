@@ -2,6 +2,7 @@ import React from 'react';
 import { Nav } from 'react-bootstrap';
 import { FaTachometerAlt, FaFileInvoice, FaPlusSquare, FaShoppingCart } from 'react-icons/fa';
 import { useNavigate, useLocation } from 'react-router-dom';
+import '../../styles/Sidebar.css'; // Import the shared sidebar styles
 
 const CustomerSidebar = () => {
   const navigate = useNavigate();
@@ -26,8 +27,9 @@ const CustomerSidebar = () => {
   ];
 
   return (
-    <div className="sidebar bg-light border-end" style={{ width: '250px', minHeight: 'calc(100vh - 70px)' }}>
+    <div className="sidebar sidebar-dark">
       <div className="sidebar-content p-3">
+        <h5 className="text-white px-3 mb-3">Menu</h5>
         <Nav className="flex-column">
           {menuItems.map((item, index) => {
             const IconComponent = item.icon;
@@ -40,7 +42,7 @@ const CustomerSidebar = () => {
             return (
               <Nav.Link
                 key={index}
-                className={`sidebar-item d-flex align-items-center py-3 px-3 mb-1 rounded ${isActive ? 'bg-primary text-white' : 'text-dark'}`}
+                className={`sidebar-item d-flex align-items-center py-3 px-3 mb-1 rounded ${isActive ? 'bg-primary text-white' : 'text-white'}`}
                 onClick={(e) => {
                   e.preventDefault();
                   if (!isActive) {
