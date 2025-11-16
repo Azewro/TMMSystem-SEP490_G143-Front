@@ -608,6 +608,17 @@ const ContractUpload = () => {
           <Button variant="secondary" onClick={closeViewDetailsModal}>
             Đóng
           </Button>
+          {viewDetailsContract && (
+            <Button 
+              variant="primary" 
+              onClick={() => {
+                closeViewDetailsModal();
+                openUploadModal(viewDetailsContract);
+              }}
+            >
+              {viewDetailsContract.status === 'REJECTED' ? 'Upload lại' : 'Upload hợp đồng'}
+            </Button>
+          )}
         </Modal.Footer>
       </Modal>
     </div>

@@ -1,6 +1,6 @@
 import React from 'react';
-import { useParams } from 'react-router-dom';
-import { Container, Card, Row, Col, Table, Badge, ListGroup } from 'react-bootstrap';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Container, Card, Row, Col, Table, Badge, ListGroup, Button } from 'react-bootstrap';
 import Header from '../../components/common/Header';
 import Sidebar from '../../components/common/Sidebar';
 
@@ -56,6 +56,7 @@ const formatCurrency = (value) => new Intl.NumberFormat('vi-VN', { style: 'curre
 
 const CustomerOrderDetail = () => {
   const { id } = useParams(); // In a real app, you'd use this ID to fetch data
+  const navigate = useNavigate();
   const order = mockOrder; // Using mock data for now
   const statusInfo = getStatusBadge(order.status);
 
@@ -65,6 +66,13 @@ const CustomerOrderDetail = () => {
       <div className="d-flex">
         <Sidebar />
         <Container fluid className="p-4">
+          <Button 
+            variant="outline-secondary" 
+            className="mb-3" 
+            onClick={() => navigate('/customer/orders')}
+          >
+            &larr; Quay lại danh sách
+          </Button>
           <h2 className="mb-4">Chi tiết đơn hàng #{order.id}</h2>
 
           <Card className="mb-4">
