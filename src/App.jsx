@@ -28,7 +28,7 @@ import CustomerRfqs from './pages/customer/CustomerRfqs';
 import CustomerQuotations from './pages/customer/CustomerQuotations';
 import CustomerQuotationDetail from './pages/customer/CustomerQuotationDetail';
 import CustomerRfqDetail from './pages/customer/CustomerRfqDetail';
-import CartPage from './pages/customer/CartPage';
+import WishlistPage from './pages/customer/WishlistPage';
 import CustomerOrders from './pages/customer/CustomerOrders';
 import CustomerOrderDetail from './pages/customer/CustomerOrderDetail';
 
@@ -89,7 +89,7 @@ function App() {
               <Route path="/customer/quotations" element={<CustomerQuotations />} />
               <Route path="/customer/quotations/:id" element={<CustomerQuotationDetail />} />
               <Route path="/customer/rfqs/:id" element={<CustomerRfqDetail />} /> {/* New route */}
-              <Route path="/cart" element={<CartPage />} />
+              <Route path="/wishlist" element={<WishlistPage />} />
               <Route path="/customer/orders" element={<CustomerOrders />} />
               <Route path="/customer/orders/:id" element={<CustomerOrderDetail />} />
 

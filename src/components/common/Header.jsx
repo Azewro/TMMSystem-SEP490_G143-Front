@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Navbar, Nav, Button, Dropdown } from 'react-bootstrap';
-import { FaBell, FaUserCircle, FaTachometerAlt, FaCog, FaSignOutAlt, FaShoppingCart, FaUser, FaKey } from 'react-icons/fa';
+import { FaBell, FaUserCircle, FaTachometerAlt, FaCog, FaSignOutAlt, FaHeart, FaUser, FaKey } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useNavigate } from 'react-router-dom';
@@ -67,8 +67,8 @@ const Header = () => {
             <>
               {/* Shopping Cart for Customers */}
               {user.role === 'CUSTOMER' && (
-                <Nav.Link onClick={() => navigate('/cart')} className="position-relative me-3">
-                  <FaShoppingCart size={20} />
+                <Nav.Link onClick={() => navigate('/wishlist')} className="position-relative me-3">
+                  <FaHeart size={20} />
                   {itemCount > 0 && (
                     <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
                       {itemCount}

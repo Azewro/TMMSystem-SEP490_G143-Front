@@ -19,7 +19,7 @@ const ProductCard = ({ product }) => {
 
   const handleAddToCart = () => {
     addToCart(product);
-    toast.success(`Đã thêm "${product.name}" vào giỏ hàng!`);
+    toast.success(`Đã thêm "${product.name}" vào danh sách mong muốn!`);
   };
 
   return (
@@ -60,7 +60,7 @@ const ProductCard = ({ product }) => {
               variant="primary"
               onClick={handleAddToCart}
             >
-              Thêm vào danh sách yêu cầu báo giá
+              Thêm vào danh sách mong muốn
             </Button>
           ) : (
             <Button 

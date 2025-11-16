@@ -8,7 +8,7 @@ import Sidebar from '../../components/common/Sidebar';
 import { useAuth } from '../../context/AuthContext';
 import CartItemRow from '../../components/customer/CartItemRow'; // Import new component
 
-const CartPage = () => {
+const WishlistPage = () => {
   const { cartItems, clearCart, itemCount } = useCart();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -70,7 +70,7 @@ const CartPage = () => {
         {isAuthenticated && <Sidebar />}
         <div className="flex-grow-1" style={{ backgroundColor: '#f8f9fa', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           <Container fluid className="p-4 flex-grow-1" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-            <h1 className="mb-4">Giỏ Hàng Của Bạn</h1>
+            <h1 className="mb-4">Danh sách mong muốn</h1>
             {itemCount === 0 ? (
               <Card className="text-center p-5">
                 <Card.Body>
@@ -136,4 +136,4 @@ const CartPage = () => {
   );
 };
 
-export default CartPage;
+export default WishlistPage;
