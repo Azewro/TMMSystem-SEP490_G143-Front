@@ -25,6 +25,10 @@
       "description": "API quản lý kế hoạch sản xuất chi tiết với lựa chọn máy móc thông minh"
     },
     {
+      "name": "Material Stock Management",
+      "description": "API quản lý nhập kho nguyên liệu cho Production Manager"
+    },
+    {
       "name": "Production Lots",
       "description": "API danh sách lô đã merge phục vụ lập kế hoạch"
     },
@@ -2058,6 +2062,107 @@
         }
       }
     },
+    "/v1/production/material-stock/{id}": {
+      "get": {
+        "tags": [
+          "Material Stock Management"
+        ],
+        "summary": "Lấy chi tiết nhập kho nguyên liệu",
+        "description": "Lấy thông tin chi tiết của một lần nhập kho nguyên liệu",
+        "operationId": "get_2",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID nhập kho",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaterialStockDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Material Stock Management"
+        ],
+        "summary": "Cập nhật nhập kho nguyên liệu",
+        "description": "Production Manager cập nhật thông tin nhập kho nguyên liệu",
+        "operationId": "update_2",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID nhập kho",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MaterialStockDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaterialStockDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Material Stock Management"
+        ],
+        "summary": "Xóa nhập kho nguyên liệu",
+        "description": "Production Manager xóa bản ghi nhập kho nguyên liệu",
+        "operationId": "delete_2",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID nhập kho",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/v1/production-plans/{id}/submit": {
       "put": {
         "tags": [
@@ -2188,6 +2293,16 @@
               }
             }
           },
+          "404": {
+            "description": "Không tìm thấy kế hoạch sản xuất",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionPlanDto"
+                }
+              }
+            }
+          },
           "200": {
             "description": "Thành công - Kế hoạch đã bị từ chối",
             "content": {
@@ -2199,16 +2314,6 @@
                   "rejectedAt": "2025-10-26T11:30:00Z",
                   "rejectionReason": "Cần điều chỉnh lại thời gian sản xuất",
                   "message": "Kế hoạch đã bị từ chối"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Không tìm thấy kế hoạch sản xuất",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProductionPlanDto"
                 }
               }
             }
@@ -2262,6 +2367,16 @@
           "required": true
         },
         "responses": {
+          "500": {
+            "description": "Lỗi server nội bộ",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionPlanDto"
+                }
+              }
+            }
+          },
           "200": {
             "description": "Thành công - Kế hoạch đã được phê duyệt và Production Order đã được tạo",
             "content": {
@@ -2273,16 +2388,6 @@
                   "approvedAt": "2025-10-26T11:00:00Z",
                   "productionOrderId": 1,
                   "message": "Kế hoạch đã được phê duyệt và Production Order đã được tạo"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Lỗi server nội bộ",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProductionPlanDto"
                 }
               }
             }
@@ -2358,7 +2463,7 @@
         "tags": [
           "product-category-controller"
         ],
-        "operationId": "get_2",
+        "operationId": "get_3",
         "parameters": [
           {
             "name": "id",
@@ -2388,7 +2493,7 @@
           "product-category-controller"
         ],
         "summary": "Cập nhật danh mục sản phẩm",
-        "operationId": "update_2",
+        "operationId": "update_3",
         "parameters": [
           {
             "name": "id",
@@ -2428,7 +2533,7 @@
         "tags": [
           "product-category-controller"
         ],
-        "operationId": "delete_2",
+        "operationId": "delete_3",
         "parameters": [
           {
             "name": "id",
@@ -2647,7 +2752,7 @@
         "tags": [
           "machine-controller"
         ],
-        "operationId": "get_3",
+        "operationId": "get_4",
         "parameters": [
           {
             "name": "id",
@@ -2677,7 +2782,7 @@
           "machine-controller"
         ],
         "summary": "Cập nhật máy",
-        "operationId": "update_3",
+        "operationId": "update_4",
         "parameters": [
           {
             "name": "id",
@@ -2717,7 +2822,7 @@
         "tags": [
           "machine-controller"
         ],
-        "operationId": "delete_3",
+        "operationId": "delete_4",
         "parameters": [
           {
             "name": "id",
@@ -3294,7 +3399,7 @@
         "tags": [
           "customer-controller"
         ],
-        "operationId": "get_4",
+        "operationId": "get_5",
         "parameters": [
           {
             "name": "id",
@@ -3324,7 +3429,7 @@
           "customer-controller"
         ],
         "summary": "Cập nhật khách hàng",
-        "operationId": "update_4",
+        "operationId": "update_5",
         "parameters": [
           {
             "name": "id",
@@ -3364,7 +3469,7 @@
         "tags": [
           "customer-controller"
         ],
-        "operationId": "delete_4",
+        "operationId": "delete_5",
         "parameters": [
           {
             "name": "id",
@@ -3395,7 +3500,7 @@
         "tags": [
           "contract-controller"
         ],
-        "operationId": "get_5",
+        "operationId": "get_6",
         "parameters": [
           {
             "name": "id",
@@ -3425,7 +3530,7 @@
           "contract-controller"
         ],
         "summary": "Cập nhật hợp đồng",
-        "operationId": "update_5",
+        "operationId": "update_6",
         "parameters": [
           {
             "name": "id",
@@ -3465,7 +3570,7 @@
         "tags": [
           "contract-controller"
         ],
-        "operationId": "delete_5",
+        "operationId": "delete_6",
         "parameters": [
           {
             "name": "id",
@@ -3519,7 +3624,7 @@
           "user-controller"
         ],
         "summary": "Cập nhật user",
-        "operationId": "update_6",
+        "operationId": "update_7",
         "parameters": [
           {
             "name": "id",
@@ -3559,7 +3664,7 @@
         "tags": [
           "user-controller"
         ],
-        "operationId": "delete_6",
+        "operationId": "delete_7",
         "parameters": [
           {
             "name": "id",
@@ -3815,13 +3920,74 @@
         "summary": "Danh sách RFQ",
         "description": "Trả về danh sách RFQ đã tạo (bao gồm trạng thái hiện tại và chi tiết nếu có)",
         "operationId": "list",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Số trang (bắt đầu từ 0)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Số lượng bản ghi mỗi trang",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Tìm kiếm theo mã RFQ hoặc tên khách hàng",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Lọc theo trạng thái",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "customerId",
+            "in": "query",
+            "description": "Lọc theo ID khách hàng",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "createdDate",
+            "in": "query",
+            "description": "Lọc theo ngày tạo (yyyy-MM-dd)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Danh sách RFQ",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/RfqDto"
+                  "$ref": "#/components/schemas/PageResponse"
                 }
               }
             }
@@ -3927,16 +4093,6 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "Chi tiết RFQ đã được thêm",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/RfqDetailDto"
-                }
-              }
-            }
-          },
           "400": {
             "description": "Dữ liệu không hợp lệ",
             "content": {
@@ -3949,6 +4105,16 @@
           },
           "404": {
             "description": "Không tìm thấy RFQ",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RfqDetailDto"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Chi tiết RFQ đã được thêm",
             "content": {
               "*/*": {
                 "schema": {
@@ -4096,40 +4262,6 @@
         }
       }
     },
-    "/v1/rfqs/{id}/check-warehouse-capacity": {
-      "post": {
-        "tags": [
-          "RFQ"
-        ],
-        "summary": "Kiểm tra năng lực kho hàng",
-        "description": "Planning Department kiểm tra năng lực kho hàng cho RFQ (luôn đủ theo giả định)",
-        "operationId": "checkWarehouseCapacity",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "ID RFQ",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/CapacityCheckResultDto"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/v1/rfqs/{id}/check-machine-capacity": {
       "post": {
         "tags": [
@@ -4262,7 +4394,7 @@
         "tags": [
           "RFQ"
         ],
-        "summary": "Gán Sales và Planning cho RFQ (chỉ khi DRAFT)",
+        "summary": "Gán Sales cho RFQ (chỉ khi DRAFT)",
         "operationId": "assign",
         "parameters": [
           {
@@ -4277,7 +4409,7 @@
           }
         ],
         "requestBody": {
-          "description": "Payload gán nhân sự",
+          "description": "Payload gán Sales",
           "content": {
             "application/json": {
               "schema": {
@@ -4327,51 +4459,6 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/AssignSalesRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/RfqDto"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/rfqs/{id}/assign-planning": {
-      "post": {
-        "tags": [
-          "RFQ"
-        ],
-        "summary": "Assign Planning for RFQ (DRAFT)",
-        "description": "Assign Planning by userId while RFQ is in DRAFT. Sales assignment not required here.",
-        "operationId": "assignPlanning",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "RFQ ID",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "requestBody": {
-          "description": "Assign Planning payload",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AssignPlanningRequest"
               }
             }
           },
@@ -4476,13 +4563,55 @@
         "summary": "Danh sách báo giá",
         "description": "Trả về danh sách tất cả báo giá trong hệ thống",
         "operationId": "list_1",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Số trang (bắt đầu từ 0)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Số lượng bản ghi mỗi trang",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Tìm kiếm theo mã báo giá hoặc tên khách hàng",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Lọc theo trạng thái",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Danh sách báo giá",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/QuotationDto"
+                  "$ref": "#/components/schemas/PageResponse"
                 }
               }
             }
@@ -4508,8 +4637,8 @@
           "required": true
         },
         "responses": {
-          "400": {
-            "description": "Dữ liệu không hợp lệ",
+          "200": {
+            "description": "Báo giá đã được tạo",
             "content": {
               "*/*": {
                 "schema": {
@@ -4518,8 +4647,8 @@
               }
             }
           },
-          "200": {
-            "description": "Báo giá đã được tạo",
+          "400": {
+            "description": "Dữ liệu không hợp lệ",
             "content": {
               "*/*": {
                 "schema": {
@@ -6293,6 +6422,100 @@
         }
       }
     },
+    "/v1/production/material-stock": {
+      "get": {
+        "tags": [
+          "Material Stock Management"
+        ],
+        "summary": "Danh sách nhập kho nguyên liệu",
+        "description": "Lấy danh sách nhập kho nguyên liệu với pagination, search và filter theo ngày nhập",
+        "operationId": "list_2",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Số trang (bắt đầu từ 0)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Số lượng bản ghi mỗi trang",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Tìm kiếm theo tên nguyên liệu, mã nguyên liệu",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "receivedDate",
+            "in": "query",
+            "description": "Lọc theo ngày nhập hàng (yyyy-MM-dd)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseMaterialStockDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Material Stock Management"
+        ],
+        "summary": "Tạo nhập kho nguyên liệu mới",
+        "description": "Production Manager tạo bản ghi nhập kho nguyên liệu mới",
+        "operationId": "create_3",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MaterialStockDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaterialStockDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/production-plans": {
       "get": {
         "tags": [
@@ -6479,7 +6702,7 @@
         "tags": [
           "product-category-controller"
         ],
-        "operationId": "list_2",
+        "operationId": "list_3",
         "responses": {
           "200": {
             "description": "OK",
@@ -6501,7 +6724,7 @@
           "product-category-controller"
         ],
         "summary": "Tạo danh mục sản phẩm",
-        "operationId": "create_3",
+        "operationId": "create_4",
         "requestBody": {
           "description": "Payload tạo danh mục",
           "content": {
@@ -6672,17 +6895,60 @@
         "tags": [
           "machine-controller"
         ],
-        "operationId": "list_3",
+        "operationId": "list_4",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "*/*": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/MachineDto"
-                  }
+                  "$ref": "#/components/schemas/PageResponseMachineDto"
                 }
               }
             }
@@ -6694,7 +6960,7 @@
           "machine-controller"
         ],
         "summary": "Tạo máy",
-        "operationId": "create_4",
+        "operationId": "create_5",
         "requestBody": {
           "description": "Payload tạo máy",
           "content": {
@@ -7185,17 +7451,56 @@
         "tags": [
           "customer-controller"
         ],
-        "operationId": "list_4",
+        "operationId": "list_5",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Số trang (bắt đầu từ 0)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Số lượng bản ghi mỗi trang",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Tìm kiếm theo tên công ty, người liên hệ, email, số điện thoại, mã số thuế",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "isActive",
+            "in": "query",
+            "description": "Lọc theo trạng thái (true/false)",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "*/*": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/CustomerDto"
-                  }
+                  "$ref": "#/components/schemas/PageResponseCustomerDto"
                 }
               }
             }
@@ -7207,7 +7512,7 @@
           "customer-controller"
         ],
         "summary": "Tạo khách hàng",
-        "operationId": "create_5",
+        "operationId": "create_6",
         "requestBody": {
           "description": "Payload tạo khách hàng",
           "content": {
@@ -7238,17 +7543,65 @@
         "tags": [
           "contract-controller"
         ],
-        "operationId": "list_5",
+        "operationId": "list_6",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Số trang (bắt đầu từ 0)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Số lượng bản ghi mỗi trang",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Tìm kiếm theo mã hợp đồng hoặc tên khách hàng",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Lọc theo trạng thái",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deliveryDate",
+            "in": "query",
+            "description": "Lọc theo ngày giao hàng (yyyy-MM-dd)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "*/*": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ContractDto"
-                  }
+                  "$ref": "#/components/schemas/PageResponseContractDto"
                 }
               }
             }
@@ -7260,7 +7613,7 @@
           "contract-controller"
         ],
         "summary": "Tạo hợp đồng",
-        "operationId": "create_6",
+        "operationId": "create_7",
         "requestBody": {
           "description": "Payload tạo hợp đồng",
           "content": {
@@ -7668,36 +8021,6 @@
         }
       }
     },
-    "/v1/auth/customer/register": {
-      "post": {
-        "tags": [
-          "auth-controller"
-        ],
-        "operationId": "registerCustomerUser",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CustomerRegisterRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/v1/auth/customer/login": {
       "post": {
         "tags": [
@@ -7864,16 +8187,59 @@
           "user-controller"
         ],
         "operationId": "getAll",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "roleName",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "isActive",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "*/*": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/UserDto"
-                  }
+                  "$ref": "#/components/schemas/PageResponseUserDto"
                 }
               }
             }
@@ -7885,7 +8251,7 @@
           "user-controller"
         ],
         "summary": "Tạo user mới",
-        "operationId": "create_7",
+        "operationId": "create_8",
         "requestBody": {
           "description": "Payload tạo user",
           "content": {
@@ -8233,49 +8599,6 @@
         }
       }
     },
-    "/v1/rfqs/{id}/for-planning": {
-      "get": {
-        "tags": [
-          "RFQ"
-        ],
-        "summary": "Lấy RFQ cho Planning được giao",
-        "description": "Chỉ Planning được gán vào RFQ mới có thể xem chi tiết thông qua endpoint này",
-        "operationId": "getForPlanning",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "ID RFQ",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          },
-          {
-            "name": "X-User-Id",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/RfqDto"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/v1/rfqs/for-sales": {
       "get": {
         "tags": [
@@ -8293,41 +8616,45 @@
               "type": "integer",
               "format": "int64"
             }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/RfqDto"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/rfqs/for-planning": {
-      "get": {
-        "tags": [
-          "RFQ"
-        ],
-        "summary": "Danh sách RFQ được gán cho Planning",
-        "description": "Trả về danh sách RFQ mà Planning (header X-User-Id) được gán vào",
-        "operationId": "listForPlanning",
-        "parameters": [
+          },
           {
-            "name": "X-User-Id",
-            "in": "header",
-            "required": true,
+            "name": "page",
+            "in": "query",
+            "description": "Số trang (bắt đầu từ 0)",
+            "required": false,
             "schema": {
               "type": "integer",
-              "format": "int64"
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Số lượng bản ghi mỗi trang",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Tìm kiếm theo mã RFQ hoặc người liên hệ",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Lọc theo trạng thái",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -8337,10 +8664,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/RfqDto"
-                  }
+                  "$ref": "#/components/schemas/PageResponseRfqDto"
                 }
               }
             }
@@ -8354,7 +8678,7 @@
           "RFQ"
         ],
         "summary": "Danh sách RFQ DRAFT chưa được gán",
-        "description": "Trả về danh sách RFQ ở trạng thái DRAFT mà Sales or Planning chưa được gán. Dành cho Director để phân công.",
+        "description": "Trả về danh sách RFQ ở trạng thái DRAFT mà Sales chưa được gán. Dành cho Director để phân công.",
         "operationId": "listDraftsUnassigned",
         "parameters": [
           {
@@ -8365,6 +8689,28 @@
               "type": "integer",
               "format": "int64"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Số trang (bắt đầu từ 0)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Số lượng bản ghi mỗi trang",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
           }
         ],
         "responses": {
@@ -8373,10 +8719,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/RfqDto"
-                  }
+                  "$ref": "#/components/schemas/PageResponseRfqDto"
                 }
               }
             }
@@ -8506,6 +8849,46 @@
               "type": "integer",
               "format": "int64"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Số trang (bắt đầu từ 0)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Số lượng bản ghi mỗi trang",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Tìm kiếm theo mã báo giá hoặc tên khách hàng",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Lọc theo trạng thái",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -8514,10 +8897,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/QuotationDto"
-                  }
+                  "$ref": "#/components/schemas/PageResponseQuotationDto"
                 }
               }
             }
@@ -8532,7 +8912,7 @@
         ],
         "summary": "Danh sách báo giá theo Planning được phân công",
         "description": "Trả về danh sách báo giá mà Planning (header X-User-Id) được gán vào",
-        "operationId": "listForPlanning_1",
+        "operationId": "listForPlanning",
         "parameters": [
           {
             "name": "X-User-Id",
@@ -8542,6 +8922,46 @@
               "type": "integer",
               "format": "int64"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Số trang (bắt đầu từ 0)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Số lượng bản ghi mỗi trang",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Tìm kiếm theo mã báo giá hoặc tên khách hàng",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Lọc theo trạng thái",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -8550,10 +8970,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/QuotationDto"
-                  }
+                  "$ref": "#/components/schemas/PageResponseQuotationDto"
                 }
               }
             }
@@ -8579,6 +8996,75 @@
               "type": "integer",
               "format": "int64"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Số trang (bắt đầu từ 0)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Số lượng bản ghi mỗi trang",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Tìm kiếm theo mã báo giá",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Lọc theo trạng thái",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "description": "Sắp xếp theo trường (createdAt, validUntil)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "createdAt"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "in": "query",
+            "description": "Thứ tự sắp xếp (asc, desc)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "desc"
+            }
+          },
+          {
+            "name": "selectedDate",
+            "in": "query",
+            "description": "Chọn ngày để sắp xếp theo khoảng cách (yyyy-MM-dd)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -8587,10 +9073,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/QuotationDto"
-                  }
+                  "$ref": "#/components/schemas/PageResponseQuotationDto"
                 }
               }
             }
@@ -9634,7 +10117,7 @@
         ],
         "summary": "Lấy danh sách lot",
         "description": "Filter theo status nếu truyền, ví dụ READY_FOR_PLANNING",
-        "operationId": "list_6",
+        "operationId": "list_7",
         "parameters": [
           {
             "name": "status",
@@ -9669,7 +10152,7 @@
         ],
         "summary": "Lấy chi tiết một lot",
         "description": "Trả về thông tin lot, danh sách đơn liên quan và trạng thái kế hoạch hiện tại",
-        "operationId": "get_6",
+        "operationId": "get_7",
         "parameters": [
           {
             "name": "id",
@@ -9831,6 +10314,16 @@
               }
             }
           },
+          "404": {
+            "description": "Không tìm thấy kế hoạch sản xuất",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaterialConsumptionResult"
+                }
+              }
+            }
+          },
           "200": {
             "description": "Thành công - Đã tính toán tiêu hao nguyên vật liệu",
             "content": {
@@ -9876,16 +10369,6 @@
                 }
               }
             }
-          },
-          "404": {
-            "description": "Không tìm thấy kế hoạch sản xuất",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/MaterialConsumptionResult"
-                }
-              }
-            }
           }
         }
       }
@@ -9922,16 +10405,6 @@
           }
         ],
         "responses": {
-          "500": {
-            "description": "Lỗi server nội bộ",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/MaterialConsumptionResult"
-                }
-              }
-            }
-          },
           "200": {
             "description": "Thành công - Đã tính toán tiêu hao nguyên vật liệu với hao hụt tùy chỉnh",
             "content": {
@@ -9945,6 +10418,16 @@
                   "totalBasicQuantity": 200,
                   "totalWasteAmount": 30,
                   "message": "Tính toán với tỷ lệ hao hụt 15%"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Lỗi server nội bộ",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaterialConsumptionResult"
                 }
               }
             }
@@ -10982,16 +11465,64 @@
         "summary": "Lấy hợp đồng chờ duyệt",
         "description": "Lấy danh sách hợp đồng đang chờ duyệt",
         "operationId": "getContractsPendingApproval",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Số trang (bắt đầu từ 0)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Số lượng bản ghi mỗi trang",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Tìm kiếm theo mã hợp đồng hoặc tên khách hàng",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Lọc theo trạng thái",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deliveryDate",
+            "in": "query",
+            "description": "Lọc theo ngày giao hàng (yyyy-MM-dd)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "*/*": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ContractDto"
-                  }
+                  "$ref": "#/components/schemas/PageResponseContractDto"
                 }
               }
             }
@@ -11007,16 +11538,73 @@
         "summary": "Lấy hợp đồng chờ duyệt (Director)",
         "description": "Director lấy danh sách hợp đồng chờ duyệt",
         "operationId": "getDirectorPendingContracts",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Số trang (bắt đầu từ 0)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Số lượng bản ghi mỗi trang",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Tìm kiếm theo mã hợp đồng hoặc tên khách hàng",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Lọc theo trạng thái",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "createdDate",
+            "in": "query",
+            "description": "Lọc theo ngày tạo (yyyy-MM-dd)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deliveryDate",
+            "in": "query",
+            "description": "Lọc theo ngày giao hàng (yyyy-MM-dd)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "*/*": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ContractDto"
-                  }
+                  "$ref": "#/components/schemas/PageResponseContractDto"
                 }
               }
             }
@@ -13136,6 +13724,52 @@
           }
         }
       },
+      "MaterialStockDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "materialId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "materialCode": {
+            "type": "string"
+          },
+          "materialName": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "unitPrice": {
+            "type": "number"
+          },
+          "location": {
+            "type": "string"
+          },
+          "batchNumber": {
+            "type": "string"
+          },
+          "receivedDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "expiryDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "lastUpdatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "SubmitForApprovalRequest": {
         "type": "object",
         "properties": {
@@ -14598,7 +15232,6 @@
       },
       "RfqAssignRequest": {
         "required": [
-          "assignedPlanningId",
           "assignedSalesId"
         ],
         "type": "object",
@@ -14609,12 +15242,6 @@
             "format": "int64",
             "example": 5
           },
-          "assignedPlanningId": {
-            "type": "integer",
-            "description": "ID Planning phụ trách kiểm tra năng lực",
-            "format": "int64",
-            "example": 8
-          },
           "approvedById": {
             "type": "integer",
             "description": "ID Giám đốc phê duyệt (tuỳ chọn)",
@@ -14622,7 +15249,7 @@
             "example": 1
           }
         },
-        "description": "Request gán Sales và Planning cho RFQ ở trạng thái DRAFT"
+        "description": "Request gán Sales cho RFQ ở trạng thái DRAFT"
       },
       "AssignSalesRequest": {
         "type": "object",
@@ -14633,15 +15260,6 @@
           },
           "employeeCode": {
             "type": "string"
-          }
-        }
-      },
-      "AssignPlanningRequest": {
-        "type": "object",
-        "properties": {
-          "assignedPlanningId": {
-            "type": "integer",
-            "format": "int64"
           }
         }
       },
@@ -15093,43 +15711,6 @@
           }
         }
       },
-      "MaterialStockDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "materialId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "quantity": {
-            "type": "number"
-          },
-          "unit": {
-            "type": "string"
-          },
-          "location": {
-            "type": "string"
-          },
-          "batchNumber": {
-            "type": "string"
-          },
-          "receivedDate": {
-            "type": "string",
-            "format": "date"
-          },
-          "expiryDate": {
-            "type": "string",
-            "format": "date"
-          },
-          "lastUpdatedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
       "FinishedGoodsTransactionDto": {
         "type": "object",
         "properties": {
@@ -15340,26 +15921,6 @@
           }
         }
       },
-      "CustomerRegisterRequest": {
-        "required": [
-          "email",
-          "password"
-        ],
-        "type": "object",
-        "properties": {
-          "email": {
-            "maxLength": 150,
-            "minLength": 0,
-            "type": "string"
-          },
-          "password": {
-            "maxLength": 100,
-            "minLength": 6,
-            "pattern": "^(?=.*[a-zA-Z])(?=.*\\d)[a-zA-Z\\d@$!%*?&]{6,100}$",
-            "type": "string"
-          }
-        }
-      },
       "ChangePasswordRequest": {
         "type": "object",
         "properties": {
@@ -15460,6 +16021,138 @@
             "items": {
               "$ref": "#/components/schemas/RfqDetailDto"
             }
+          }
+        }
+      },
+      "PageResponse": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PageResponseRfqDto": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RfqDto"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PageResponseQuotationDto": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuotationDto"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PageResponseMaterialStockDto": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MaterialStockDto"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
           }
         }
       },
@@ -15766,6 +16459,39 @@
           }
         }
       },
+      "PageResponseMachineDto": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MachineDto"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          }
+        }
+      },
       "MachineAvailabilityResponse": {
         "type": "object",
         "properties": {
@@ -15788,6 +16514,72 @@
           "suggestedEndTime": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "PageResponseCustomerDto": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerDto"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PageResponseContractDto": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContractDto"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
           }
         }
       },
@@ -15880,6 +16672,39 @@
           },
           "noteColor": {
             "type": "string"
+          }
+        }
+      },
+      "PageResponseUserDto": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserDto"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
           }
         }
       }

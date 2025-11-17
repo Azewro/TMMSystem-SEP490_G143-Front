@@ -23,7 +23,8 @@ const PlanningRFQDetail = () => {
   const [evaluationLoading, setEvaluationLoading] = useState(false);
 
   const [showQuoteModal, setShowQuoteModal] = useState(false);
-  const [quoteData, setQuoteData] = useState({ profitMargin: 10, notes: '' });
+  const [quoteData, setQuoteData] = useState({ notes: '' });
+  const [displayProfitMargin, setDisplayProfitMargin] = useState(10); // State for input display
   const [pricingData, setPricingData] = useState(null);
   const [pricingLoading, setPricingLoading] = useState(false);
 
@@ -179,16 +180,15 @@ const PlanningRFQDetail = () => {
   const closeQuoteModal = () => {
     setShowQuoteModal(false);
     setPricingData(null);
-    setQuoteData({ profitMargin: 10, notes: '' });
+    setQuoteData({ notes: '' });
+    setDisplayProfitMargin(10);
   };
 
-  const handleProfitMarginChange = async (newProfitMargin) => {
-    setQuoteData(prev => ({ ...prev, profitMargin: newProfitMargin }));
-    if (!newProfitMargin || isNaN(newProfitMargin)) return;
-
+  const calculatePrice = async (margin) => {
+    if (margin === '' || isNaN(margin)) return;
     setPricingLoading(true);
     try {
-      const marginMultiplier = 1 + (parseFloat(newProfitMargin) / 100);
+      const marginMultiplier = 1 + (parseFloat(margin) / 100);
       const data = await quoteService.calculateQuotePrice(id, marginMultiplier);
       setPricingData(data);
     } catch (err) {
@@ -198,13 +198,24 @@ const PlanningRFQDetail = () => {
     }
   };
 
+  const handleProfitMarginBlur = () => {
+    calculatePrice(displayProfitMargin);
+  };
+
   const handleCreateQuote = async () => {
     if (!pricingData) return;
+    
+    // Final calculation before creating quote
+    const finalMargin = parseFloat(displayProfitMargin) || 0;
+    const finalMarginMultiplier = 1 + (finalMargin / 100);
+
     setWorking(true);
     try {
+      // We can recalculate one last time or trust the latest pricingData if onBlur always fires.
+      // To be safe, let's just send the correct multiplier.
       await quoteService.createQuote({
         rfqId: id,
-        profitMargin: 1 + (parseFloat(quoteData.profitMargin) / 100),
+        profitMargin: finalMarginMultiplier,
         notes: quoteData.notes,
       });
       toast.success('Đã tạo báo giá thành công!');
@@ -633,7 +644,12 @@ const PlanningRFQDetail = () => {
                 </Form.Group>
                 <Form.Group className="mb-3">
                   <Form.Label>Lợi nhuận mong muốn (%)</Form.Label>
-                  <Form.Control type="number" value={quoteData.profitMargin} onChange={(e) => handleProfitMarginChange(e.target.value)} />
+                  <Form.Control 
+                    type="number" 
+                    value={displayProfitMargin} 
+                    onChange={(e) => setDisplayProfitMargin(e.target.value)}
+                    onBlur={handleProfitMarginBlur}
+                  />
                 </Form.Group>
                 <hr />
                 <h5 className="text-end">Giá tổng: <span className="text-success">{(pricingData.finalTotalPrice || 0).toLocaleString('vi-VN')} ₫</span></h5>

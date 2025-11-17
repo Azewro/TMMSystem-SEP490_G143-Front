@@ -105,24 +105,15 @@ export const rfqService = {
 
   async getAssignedRfqsForPlanning(page = 0, size = 10, search, status) {
     try {
-      const userId = sessionStorage.getItem('userId');
-      if (!userId) {
-        throw new Error('User ID not found. Please log in.');
-      }
-      const params = { page, size };
-      if (search) params.search = search;
-      if (status) params.status = status;
-      
-      const response = await apiClient.get('/v1/rfqs/for-planning', {
-        headers: {
-          'X-User-Id': userId
-        },
-        params
-      });
-      return response.data;
+      const params = { page, size, search, status };
+      // According to business logic, Planning department sees all RFQs that are ready.
+      // We can use the generic getRfqs and filter by status on the component side,
+      // or pass a specific status if the API supports it.
+      // Re-using getRfqs is the most flexible approach.
+      return await this.getRfqs(params);
     } catch (error) {
-      console.error("Error fetching assigned RFQs for planning:", error.response?.data);
-      throw new Error(error.response?.data?.message || 'Failed to fetch assigned RFQs for planning');
+      console.error("Error fetching RFQs for planning:", error.message);
+      throw new Error(error.message || 'Failed to fetch RFQs for planning');
     }
   },
 

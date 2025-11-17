@@ -56,9 +56,13 @@ export const productionPlanService = {
     }
   },
 
-  getProductionLots: async (status = 'READY_FOR_PLANNING') => {
+  getProductionLots: async (status) => {
     try {
-      const response = await apiClient.get('/v1/production-lots', { params: { status } });
+      const params = {};
+      if (status) {
+        params.status = status;
+      }
+      const response = await apiClient.get('/v1/production-lots', { params });
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Lỗi khi tải danh sách lô sản xuất.');
