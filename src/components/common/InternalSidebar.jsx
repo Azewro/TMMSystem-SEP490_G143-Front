@@ -43,7 +43,7 @@ const InternalSidebar = ({ userRole: propUserRole }) => {
     director: [
       { icon: FaListAlt, label: 'Quản lý yêu cầu báo giá', path: '/director/rfqs' },
       { icon: FaFileSignature, label: 'Duyệt Hợp Đồng', path: '/director/contract-approval' },
-      { icon: FaProjectDiagram, label: 'Duyệt Kế Hoạch SX', path: '/director/plan-approval' },
+      { icon: FaProjectDiagram, label: 'Duyệt Kế Hoạch SX', path: '/director/production-plan-approvals' },
     ],
     sales: [
       { icon: FaListAlt, label: 'Yêu cầu báo giá', path: '/sales/rfqs' },

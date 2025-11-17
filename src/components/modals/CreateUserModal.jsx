@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal, Form, Button, Alert } from 'react-bootstrap';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import { roleService } from '../../api/roleService';
+import { isVietnamesePhoneNumber } from '../../utils/validators';
 
 const CreateUserModal = ({ show, onHide, onSave, user = null }) => {
   const [formData, setFormData] = useState({
@@ -75,11 +76,6 @@ const CreateUserModal = ({ show, onHide, onSave, user = null }) => {
     return /\S+@\S+\.\S+/.test(email);
   };
 
-  const validatePhone = (phone) => {
-    if (!phone) return false;
-    return /^[0-9]{10,11}$/.test(phone);
-  };
-
   const validateName = (name) => {
     if (!name) return false;
     // Check for special characters like @@@ or ###
@@ -110,7 +106,7 @@ const CreateUserModal = ({ show, onHide, onSave, user = null }) => {
 
     if (!formData.phoneNumber) {
       newErrors.phoneNumber = 'Số điện thoại là bắt buộc';
-    } else if (!validatePhone(formData.phoneNumber)) {
+    } else if (!isVietnamesePhoneNumber(formData.phoneNumber)) {
       newErrors.phoneNumber = 'Số điện thoại không hợp lệ.';
     }
 

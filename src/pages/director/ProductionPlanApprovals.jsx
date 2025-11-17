@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Container, Card, Table, Button, Modal, Alert, Spinner, Form, Badge } from 'react-bootstrap';
 import Header from '../../components/common/Header';
 import { productionPlanService } from '../../api/productionPlanService';
+import { contractService } from '../../api/contractService';
 import '../../styles/QuoteRequests.css';
+import InternalSidebar from '../../components/common/InternalSidebar';
 
 const STATUS_LABELS = {
   PENDING_APPROVAL: { text: 'Chờ duyệt', variant: 'warning' },
@@ -56,7 +58,7 @@ const calculateDuration = (startTime, endTime) => {
   }
 };
 
-const DirectorProductionPlanApprovals = () => {
+const ProductionPlanApprovals = () => {
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -70,10 +72,24 @@ const DirectorProductionPlanApprovals = () => {
   const loadPlans = async () => {
     setLoading(true);
     setError('');
-
     try {
-      const pending = await productionPlanService.getPendingApproval();
-      setPlans(Array.isArray(pending) ? pending : []);
+      const pendingSummaries = await productionPlanService.getPendingApproval();
+      if (Array.isArray(pendingSummaries) && pendingSummaries.length > 0) {
+        const enrichedPlans = await Promise.all(
+          pendingSummaries.map(async (plan) => {
+            try {
+              const contractDetails = await contractService.getOrderDetails(plan.contractId);
+              return { ...plan, contractDetails }; // Combine plan with its contract details
+            } catch (contractError) {
+              console.error(`Failed to fetch contract details for plan ${plan.id}`, contractError);
+              return { ...plan, contractDetails: null }; // Still return the plan even if contract details fail
+            }
+          })
+        );
+        setPlans(enrichedPlans);
+      } else {
+        setPlans([]);
+      }
     } catch (err) {
       console.error('Failed to fetch pending plans', err);
       setError(err.message || 'Không thể tải danh sách kế hoạch chờ duyệt.');
@@ -180,14 +196,15 @@ const DirectorProductionPlanApprovals = () => {
   };
 
   return (
-    <div className="customer-layout">
+    <div>
       <Header />
       <div className="d-flex">
-        <div className="flex-grow-1" style={{ backgroundColor: '#f8f9fa', minHeight: 'calc(100vh - 70px)' }}>
-          <Container fluid className="p-4">
+        <InternalSidebar userRole="director" />
+        <div className="flex-grow-1 p-4" style={{ backgroundColor: '#f8f9fa' }}>
+          <Container fluid>
             <div className="mb-4">
-              <h1 className="mb-2">Danh Sách Kế Hoạch Sản Xuất</h1>
-              <p className="text-muted mb-0">Xem xét và phê duyệt kế hoạch sản xuất từ Planning</p>
+              <h2 className="mb-2">Phê Duyệt Kế Hoạch Sản Xuất</h2>
+              <p className="text-muted mb-0">Xem xét và phê duyệt kế hoạch sản xuất từ bộ phận Kế hoạch</p>
             </div>
 
             {error && (
@@ -203,16 +220,18 @@ const DirectorProductionPlanApprovals = () => {
             )}
 
             <Card className="shadow-sm">
-              <Card.Body className="p-0">
+              <Card.Header>
+                <strong>Danh sách kế hoạch chờ duyệt</strong>
+              </Card.Header>
+              <Card.Body>
                 <Table responsive hover className="mb-0 align-middle">
                   <thead className="table-light">
                     <tr>
-                      <th>Mã KH</th>
-                      <th>Mã lô</th>
+                      <th>Mã Kế Hoạch</th>
                       <th>Sản phẩm</th>
                       <th>Số lượng</th>
-                      <th>Ngày bắt đầu</th>
-                      <th>Ngày kết thúc</th>
+                      <th>Ngày Bắt Đầu (dự kiến)</th>
+                      <th>Ngày Kết Thúc (dự kiến)</th>
                       <th>Trạng thái</th>
                       <th className="text-center">Thao tác</th>
                     </tr>
@@ -220,39 +239,35 @@ const DirectorProductionPlanApprovals = () => {
                   <tbody>
                     {loading ? (
                       <tr>
-                        <td colSpan={8} className="text-center py-4">
+                        <td colSpan={7} className="text-center py-4">
                           <Spinner animation="border" size="sm" className="me-2" /> Đang tải kế hoạch...
                         </td>
                       </tr>
                     ) : plans.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="text-center py-4 text-muted">
+                        <td colSpan={7} className="text-center py-4 text-muted">
                           Không có kế hoạch nào cần phê duyệt.
                         </td>
                       </tr>
                     ) : (
                       plans.map((plan) => {
                         const statusConfig = STATUS_LABELS[plan.status] || STATUS_LABELS.PENDING_APPROVAL;
-                        const statusText = plan.status === 'APPROVED' ? 'Đã phê duyệt' : 
-                                         plan.status === 'PENDING_APPROVAL' ? 'Chờ phê duyệt' : 
-                                         statusConfig.text;
-                        const statusVariant = plan.status === 'APPROVED' ? 'dark' : statusConfig.variant;
-                        // Extract data from plan or lot object (according to guide: plan.lot.*)
-                        const lotCode = plan.lot?.lotCode || plan.lotCode || '—';
-                        const productName = plan.lot?.productName || plan.productName || plan.details?.[0]?.productName || '—';
-                        const plannedQuantity = plan.lot?.totalQuantity || plan.plannedQuantity || plan.details?.[0]?.plannedQuantity || '—';
-                        const startDate = plan.proposedStartDate || plan.details?.[0]?.proposedStartDate || plan.lot?.deliveryDateTarget;
-                        const endDate = plan.proposedEndDate || plan.details?.[0]?.proposedEndDate;
+                        
+                        // Extract data from combined plan and contractDetails object
+                        const productName = plan.contractDetails?.orderItems?.[0]?.productName || 'N/A';
+                        const plannedQuantity = plan.contractDetails?.orderItems?.reduce((sum, item) => sum + item.quantity, 0) || 'N/A';
+                        const startDate = plan.proposedStartDate;
+                        const endDate = plan.proposedEndDate;
+
                         return (
                           <tr key={plan.id}>
                             <td className="fw-semibold">{plan.planCode || `PP-${plan.id}`}</td>
-                            <td>{lotCode}</td>
                             <td>{productName}</td>
                             <td>{plannedQuantity}</td>
                             <td>{formatDate(startDate)}</td>
                             <td>{formatDate(endDate)}</td>
                             <td>
-                              <Badge bg={statusVariant}>{statusText}</Badge>
+                              <Badge bg={statusConfig.variant}>{statusConfig.text}</Badge>
                             </td>
                             <td className="text-center">
                               <Button variant="outline-primary" size="sm" onClick={() => openPlan(plan)}>
@@ -378,4 +393,4 @@ const DirectorProductionPlanApprovals = () => {
   );
 };
 
-export default DirectorProductionPlanApprovals;
+export default ProductionPlanApprovals;

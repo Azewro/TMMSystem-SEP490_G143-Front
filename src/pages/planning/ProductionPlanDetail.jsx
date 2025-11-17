@@ -179,11 +179,13 @@ const ProductionPlanDetail = () => {
             setInitialPlan(planData);
             setEditablePlan(JSON.parse(JSON.stringify(planData))); // Deep copy for editing
 
-            setMachines(allMachines);
+            const machinesArray = allMachines?.content || (Array.isArray(allMachines) ? allMachines : []);
+            setMachines(machinesArray);
 
             // Filter users by role
-            setInChargeUsers(allUsers.filter(u => u.roleName && (u.roleName.toLowerCase().includes('worker') || u.roleName.toLowerCase().includes('planning'))));
-            setQcUsers(allUsers.filter(u => u.roleName && u.roleName.toLowerCase() === 'quality assurance department'));
+            const usersArray = allUsers?.content || (Array.isArray(allUsers) ? allUsers : []);
+            setInChargeUsers(usersArray.filter(u => u.roleName && (u.roleName.toLowerCase().includes('worker') || u.roleName.toLowerCase().includes('planning'))));
+            setQcUsers(usersArray.filter(u => u.roleName && u.roleName.toLowerCase() === 'quality assurance department'));
 
         } catch (err) {
             console.error('Failed to load initial data', err);

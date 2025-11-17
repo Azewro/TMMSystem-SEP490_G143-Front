@@ -14,6 +14,7 @@ import { customerService } from '../../api/customerService';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { rfqService } from '../../api/rfqService';
+import { isVietnamesePhoneNumber } from '../../utils/validators';
 import addressService from '../../api/addressService';
 import '../../styles/QuoteRequest.css';
 
@@ -236,6 +237,7 @@ const QuoteRequest = () => {
     const phoneTrimmed = formData.contactPhone.trim();
     if (!phoneTrimmed) {
       newErrors.contactPhone = 'Số điện thoại là bắt buộc.';
+<<<<<<< HEAD
     } else if (!/^0\d{9,10}$/.test(phoneTrimmed)) {
       if (!phoneTrimmed.startsWith('0')) {
         newErrors.contactPhone = 'Số điện thoại phải bắt đầu bằng số 0.';
@@ -248,6 +250,10 @@ const QuoteRequest = () => {
       } else {
         newErrors.contactPhone = 'Số điện thoại không hợp lệ. Phải bắt đầu bằng 0 và có 10-11 chữ số.';
       }
+=======
+    } else if (!isVietnamesePhoneNumber(formData.contactPhone)) {
+      newErrors.contactPhone = 'Số điện thoại không hợp lệ. Vui lòng kiểm tra lại.';
+>>>>>>> 49a3390bbf6ed62f6e0c231c45c80ac52f96c7d7
     }
 
     // Validate email

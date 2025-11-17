@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Container, Card, Table, Button, Spinner, Alert, Badge } from 'react-bootstrap';
+import { Container, Card, Table, Button, Spinner, Alert, Badge, Form } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
@@ -29,6 +29,7 @@ const ProductionLots = () => {
   const [productionLots, setProductionLots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [statusFilter, setStatusFilter] = useState('READY_FOR_PLANNING'); // Default filter
 
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
@@ -37,7 +38,8 @@ const ProductionLots = () => {
     setLoading(true);
     setError('');
     try {
-      const data = await productionPlanService.getProductionLots('READY_FOR_PLANNING');
+      // Pass statusFilter to the service. If filter is empty, fetch all.
+      const data = await productionPlanService.getProductionLots(statusFilter || undefined);
       const sortedData = Array.isArray(data)
         ? data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
         : [];
@@ -48,7 +50,7 @@ const ProductionLots = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [statusFilter]); // Add statusFilter as a dependency
 
   useEffect(() => {
     loadProductionLots();
@@ -101,8 +103,24 @@ const ProductionLots = () => {
             )}
 
             <Card>
-              <Card.Header>
+              <Card.Header className="d-flex justify-content-between align-items-center">
                 <strong>Danh Sách Lô Sản Xuất</strong>
+                <Form.Group controlId="statusFilter" style={{ width: '250px' }}>
+                  <Form.Select 
+                    size="sm"
+                    value={statusFilter} 
+                    onChange={(e) => {
+                      setStatusFilter(e.target.value);
+                      setCurrentPage(1); // Reset page when filter changes
+                    }}
+                  >
+                    <option value="">Tất cả trạng thái</option>
+                    <option value="READY_FOR_PLANNING">Chờ lập kế hoạch</option>
+                    <option value="PLANNING_IN_PROGRESS">Đang lập kế hoạch</option>
+                    <option value="PLAN_SUBMITTED">Đã gửi duyệt</option>
+                    <option value="COMPLETED">Hoàn thành</option>
+                  </Form.Select>
+                </Form.Group>
               </Card.Header>
               <Card.Body>
                 {loading ? (

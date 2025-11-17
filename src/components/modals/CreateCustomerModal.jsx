@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Form, Button, Alert } from 'react-bootstrap';
 import { useAuth } from '../../context/AuthContext';
+import { isVietnamesePhoneNumber } from '../../utils/validators';
 
 const CreateCustomerModal = ({ show, onHide, onSave, customer = null, mode = 'create', readOnly: forceReadOnly = false }) => {
   const { user } = useAuth();
@@ -72,11 +73,6 @@ const CreateCustomerModal = ({ show, onHide, onSave, customer = null, mode = 'cr
     return /\S+@\S+\.\S+/.test(email);
   };
 
-  const validatePhone = (phone) => {
-    if (!phone) return false;
-    return /^[0-9]{10,11}$/.test(phone);
-  };
-
   const validateTaxCode = (taxCode) => {
     if (!taxCode) return true; // Optional field
     // Mã số thuế thường có 10 hoặc 13 chữ số
@@ -111,7 +107,7 @@ const CreateCustomerModal = ({ show, onHide, onSave, customer = null, mode = 'cr
 
     if (!formData.phoneNumber) {
       newErrors.phoneNumber = 'Số điện thoại là bắt buộc';
-    } else if (!validatePhone(formData.phoneNumber)) {
+    } else if (!isVietnamesePhoneNumber(formData.phoneNumber)) {
       newErrors.phoneNumber = 'Số điện thoại không hợp lệ.';
     }
 

@@ -199,6 +199,7 @@ export const rfqService = {
 
   async getAssignedRfqsForPlanning(page = 0, size = 10, search, status, createdDate) {
     try {
+<<<<<<< HEAD
       // Use the general RFQ list endpoint with status filter for planning-related statuses
       // Planning can view RFQs with status: FORWARDED_TO_PLANNING, RECEIVED_BY_PLANNING, QUOTED
       const params = { page, size };
@@ -211,6 +212,17 @@ export const rfqService = {
     } catch (error) {
       console.error("Error fetching RFQs for planning:", error.response?.data);
       throw new Error(error.response?.data?.message || 'Failed to fetch RFQs for planning');
+=======
+      const params = { page, size, search, status };
+      // According to business logic, Planning department sees all RFQs that are ready.
+      // We can use the generic getRfqs and filter by status on the component side,
+      // or pass a specific status if the API supports it.
+      // Re-using getRfqs is the most flexible approach.
+      return await this.getRfqs(params);
+    } catch (error) {
+      console.error("Error fetching RFQs for planning:", error.message);
+      throw new Error(error.message || 'Failed to fetch RFQs for planning');
+>>>>>>> 49a3390bbf6ed62f6e0c231c45c80ac52f96c7d7
     }
   },
 
