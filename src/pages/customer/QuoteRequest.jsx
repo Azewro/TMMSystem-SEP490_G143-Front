@@ -237,23 +237,8 @@ const QuoteRequest = () => {
     const phoneTrimmed = formData.contactPhone.trim();
     if (!phoneTrimmed) {
       newErrors.contactPhone = 'Số điện thoại là bắt buộc.';
-<<<<<<< HEAD
-    } else if (!/^0\d{9,10}$/.test(phoneTrimmed)) {
-      if (!phoneTrimmed.startsWith('0')) {
-        newErrors.contactPhone = 'Số điện thoại phải bắt đầu bằng số 0.';
-      } else if (phoneTrimmed.length < 10) {
-        newErrors.contactPhone = 'Số điện thoại phải có ít nhất 10 chữ số (bao gồm số 0 đầu tiên).';
-      } else if (phoneTrimmed.length > 11) {
-        newErrors.contactPhone = 'Số điện thoại không được vượt quá 11 chữ số.';
-      } else if (!/^\d+$/.test(phoneTrimmed)) {
-        newErrors.contactPhone = 'Số điện thoại chỉ được chứa các chữ số (0-9).';
-      } else {
-        newErrors.contactPhone = 'Số điện thoại không hợp lệ. Phải bắt đầu bằng 0 và có 10-11 chữ số.';
-      }
-=======
     } else if (!isVietnamesePhoneNumber(formData.contactPhone)) {
       newErrors.contactPhone = 'Số điện thoại không hợp lệ. Vui lòng kiểm tra lại.';
->>>>>>> 49a3390bbf6ed62f6e0c231c45c80ac52f96c7d7
     }
 
     // Validate email

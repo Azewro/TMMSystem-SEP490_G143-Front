@@ -12,11 +12,8 @@ import InternalSidebar from '../../components/common/InternalSidebar'; // Change
 import { productService } from '../../api/productService';
 import { useAuth } from '../../context/AuthContext';
 import { rfqService } from '../../api/rfqService';
-<<<<<<< HEAD
 import addressService from '../../api/addressService';
-=======
 import { isVietnamesePhoneNumber } from '../../utils/validators';
->>>>>>> 49a3390bbf6ed62f6e0c231c45c80ac52f96c7d7
 import '../../styles/QuoteRequest.css';
 
 registerLocale('vi', vi);
@@ -241,15 +238,6 @@ const CreateRfqForCustomer = () => {
   };
 
   const validate = () => {
-<<<<<<< HEAD
-    const newErrors = { items: Array(quoteItems.length).fill(null) };
-
-    // Validate contact person
-    if (!formData.contactPerson.trim()) {
-      newErrors.contactPerson = 'Họ và tên là bắt buộc.';
-    } else if (formData.contactPerson.trim().length < 2) {
-      newErrors.contactPerson = 'Họ và tên phải có ít nhất 2 ký tự.';
-=======
     const newErrors = {};
     if (!formData.contactPerson.trim()) newErrors.contactPerson = 'Họ và tên là bắt buộc.';
     if (!formData.contactPhone.trim()) {
@@ -269,7 +257,6 @@ const CreateRfqForCustomer = () => {
     if (quoteItems.some(item => !item.productId)) {
         toast.error('Vui lòng chọn sản phẩm cho tất cả các mục.');
         return false;
->>>>>>> 49a3390bbf6ed62f6e0c231c45c80ac52f96c7d7
     }
 
     // Validate phone number
