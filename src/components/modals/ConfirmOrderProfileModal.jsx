@@ -3,6 +3,7 @@ import { Modal, Form, Button, Alert, Spinner } from 'react-bootstrap';
 import { useAuth } from '../../context/AuthContext';
 import { customerService } from '../../api/customerService';
 import toast from 'react-hot-toast';
+import { isVietnamesePhoneNumber } from '../../utils/validators';
 
 const ConfirmOrderProfileModal = ({ show, onHide, onConfirm }) => {
   const { user: currentUser } = useAuth();
@@ -77,7 +78,11 @@ const ConfirmOrderProfileModal = ({ show, onHide, onConfirm }) => {
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) { // Fixed regex
       newErrors.email = 'Email không hợp lệ';
     }
-    if (!formData.phoneNumber) newErrors.phoneNumber = 'Số điện thoại là bắt buộc';
+    if (!formData.phoneNumber) {
+      newErrors.phoneNumber = 'Số điện thoại là bắt buộc';
+    } else if (!isVietnamesePhoneNumber(formData.phoneNumber)) {
+      newErrors.phoneNumber = 'Số điện thoại không hợp lệ.';
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;

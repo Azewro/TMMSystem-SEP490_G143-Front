@@ -5,6 +5,7 @@ import { userService } from '../../api/userService';
 import { customerService } from '../../api/customerService';
 import { authService } from '../../api/authService';
 import toast from 'react-hot-toast';
+import { isVietnamesePhoneNumber } from '../../utils/validators';
 
 const ProfileModal = ({ show, onHide, onSave }) => {
   const { user: currentUser } = useAuth();
@@ -132,6 +133,8 @@ const ProfileModal = ({ show, onHide, onSave }) => {
 
     if (!formData.phoneNumber) {
       newErrors.phoneNumber = 'Số điện thoại là bắt buộc';
+    } else if (!isVietnamesePhoneNumber(formData.phoneNumber)) {
+      newErrors.phoneNumber = 'Số điện thoại không hợp lệ.';
     }
 
     setErrors(newErrors);

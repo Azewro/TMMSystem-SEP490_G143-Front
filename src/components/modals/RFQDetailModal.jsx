@@ -5,6 +5,7 @@ import { customerService } from '../../api/customerService';
 import { productService } from '../../api/productService';
 import { userService } from '../../api/userService';
 import toast from 'react-hot-toast';
+import { isVietnamesePhoneNumber } from '../../utils/validators';
 
 const RFQDetailModal = ({ rfqId, show, handleClose }) => {
   const [rfq, setRfq] = useState(null);
@@ -304,12 +305,10 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
         }
       }
 
-      // Validate phone format if provided (backend pattern: ^$|^[0-9+\-() ]{6,20}$)
-      // Backend validation: @Pattern(regexp = "^$|^[0-9+\\-() ]{6,20}$")
+      // Validate phone format if provided
       if (editedRfq.contactPhone && editedRfq.contactPhone.trim() !== '') {
-        const phoneRegex = /^[0-9+\-() ]{6,20}$/;
-        if (!phoneRegex.test(editedRfq.contactPhone)) {
-          throw new Error('Số điện thoại không hợp lệ. Chỉ được chứa số, dấu +, -, (), khoảng trắng và từ 6-20 ký tự.');
+        if (!isVietnamesePhoneNumber(editedRfq.contactPhone)) {
+          throw new Error('Số điện thoại không hợp lệ. Vui lòng kiểm tra lại.');
         }
       }
 

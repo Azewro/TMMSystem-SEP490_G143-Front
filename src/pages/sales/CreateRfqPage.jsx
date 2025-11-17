@@ -11,6 +11,7 @@ import InternalSidebar from '../../components/common/InternalSidebar'; // Change
 import { productService } from '../../api/productService';
 import { useAuth } from '../../context/AuthContext';
 import { rfqService } from '../../api/rfqService';
+import { isVietnamesePhoneNumber } from '../../utils/validators';
 import '../../styles/QuoteRequest.css';
 
 registerLocale('vi', vi);
@@ -124,7 +125,11 @@ const CreateRfqForCustomer = () => {
   const validate = () => {
     const newErrors = {};
     if (!formData.contactPerson.trim()) newErrors.contactPerson = 'Họ và tên là bắt buộc.';
-    if (!formData.contactPhone.trim()) newErrors.contactPhone = 'Số điện thoại là bắt buộc.';
+    if (!formData.contactPhone.trim()) {
+      newErrors.contactPhone = 'Số điện thoại là bắt buộc.';
+    } else if (!isVietnamesePhoneNumber(formData.contactPhone)) {
+      newErrors.contactPhone = 'Số điện thoại không hợp lệ.';
+    }
     if (!formData.contactEmail.trim()) {
         newErrors.contactEmail = 'Email là bắt buộc.';
     } else if (!/\S+@\S+\.\S+/.test(formData.contactEmail)) {

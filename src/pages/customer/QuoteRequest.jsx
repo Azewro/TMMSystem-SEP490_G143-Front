@@ -14,6 +14,7 @@ import { customerService } from '../../api/customerService';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { rfqService } from '../../api/rfqService';
+import { isVietnamesePhoneNumber } from '../../utils/validators';
 import addressService from '../../api/addressService';
 import '../../styles/QuoteRequest.css';
 
@@ -228,8 +229,8 @@ const QuoteRequest = () => {
     if (!formData.contactPerson.trim()) newErrors.contactPerson = 'Họ và tên là bắt buộc.';
     if (!formData.contactPhone.trim()) {
       newErrors.contactPhone = 'Số điện thoại là bắt buộc.';
-    } else if (!/^0\d{9,10}$/.test(formData.contactPhone.trim())) {
-      newErrors.contactPhone = 'Số điện thoại không hợp lệ. Phải có 10-11 chữ số và bắt đầu bằng 0.';
+    } else if (!isVietnamesePhoneNumber(formData.contactPhone)) {
+      newErrors.contactPhone = 'Số điện thoại không hợp lệ. Vui lòng kiểm tra lại.';
     }
     if (!formData.contactEmail.trim()) {
         newErrors.contactEmail = 'Email là bắt buộc.';
