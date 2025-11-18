@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Container, Card, Button, Alert, Spinner, Form, Row, Col } from 'react-bootstrap';
+import { Container, Card, Button, Alert, Spinner, Form, Row, Col, Tabs, Tab } from 'react-bootstrap';
 import { useNavigate, useParams } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
@@ -63,6 +63,7 @@ const ProductionPlanDetail = () => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [calculating, setCalculating] = useState(false); // New state for calculation
 
     const [materialInfo, setMaterialInfo] = useState('Đang tính toán...');
     const [machines, setMachines] = useState([]);
@@ -73,10 +74,7 @@ const ProductionPlanDetail = () => {
         setLoading(true);
         setError('');
         try {
-            // Fetch plan data first to get the contractId
             const planData = await productionPlanService.getById(id);
-            
-            // Fetch stages separately according to Production Planning Guide
             let stagesData = [];
             try {
                 stagesData = await productionPlanService.getPlanStages(id);
@@ -84,7 +82,6 @@ const ProductionPlanDetail = () => {
                 console.warn('Could not fetch stages separately, using plan details:', err);
             }
             
-            // Then fetch products, contract details, users, and material consumption in parallel
             const [allProducts, contractDetails, consumptionData, allUsers, allMachines] = await Promise.all([
                 productService.getAllProducts(),
                 contractService.getOrderDetails(planData.contractId),
@@ -95,11 +92,6 @@ const ProductionPlanDetail = () => {
 
             const productMap = new Map(allProducts.map(p => [p.id, p]));
 
-            console.log("Fetched Plan Data:", planData);
-            console.log("Fetched Contract Details:", contractDetails);
-            console.log("Fetched Consumption Data:", consumptionData);
-
-            // Format material consumption info
             if (consumptionData && consumptionData.materialSummaries?.length > 0) {
                 const infoString = consumptionData.materialSummaries
                     .map(m => `${m.totalQuantityRequired.toLocaleString()} ${m.unit} ${m.materialName}`)
@@ -109,11 +101,9 @@ const ProductionPlanDetail = () => {
                 setMaterialInfo('Không có thông tin hoặc không cần NVL.');
             }
 
-            // Use stages from API if available, otherwise use plan details
             let planStages = stagesData && stagesData.length > 0 ? stagesData : 
                 (planData.details && planData.details.length > 0 && planData.details[0].stages ? planData.details[0].stages : []);
             
-            // If no stages exist, create default stages (backend should auto-create, but fallback for UI)
             if (planStages.length === 0) {
                 const mainProductItem = contractDetails?.orderItems?.[0];
                 const mainProduct = mainProductItem ? productMap.get(mainProductItem.productId) : null;
@@ -133,14 +123,12 @@ const ProductionPlanDetail = () => {
                 ];
             }
             
-            // Extract lot information from plan data (according to guide: plan.lot.*)
             const lotInfo = planData.lot || {};
             const lotCode = lotInfo.lotCode || planData.lotCode || planData.planCode?.replace('PP', 'BATCH') || '';
             const productName = lotInfo.productName || planData.productName || planData.details?.[0]?.productName || '';
             const sizeSnapshot = lotInfo.sizeSnapshot || planData.sizeSnapshot || planData.details?.[0]?.sizeSnapshot || '';
             const plannedQuantity = lotInfo.totalQuantity || planData.plannedQuantity || planData.details?.[0]?.plannedQuantity || 0;
             
-            // Ensure planData.details structure exists
             if (!planData.details || planData.details.length === 0) {
                 const mainProductItem = contractDetails?.orderItems?.[0];
                 const mainProduct = mainProductItem ? productMap.get(mainProductItem.productId) : null;
@@ -156,7 +144,6 @@ const ProductionPlanDetail = () => {
                     stages: planStages
                 }];
             } else {
-                // For existing plans, enrich details with lot info, sizeSnapshot and update stages
                 planData.details = planData.details.map(detail => {
                     const product = productMap.get(detail.productId);
                     return {
@@ -170,19 +157,17 @@ const ProductionPlanDetail = () => {
                 });
             }
             
-            // Also set top-level properties for easier access
             planData.lotCode = lotCode;
             planData.productName = productName || planData.details[0]?.productName;
             planData.sizeSnapshot = sizeSnapshot || planData.details[0]?.sizeSnapshot;
             planData.plannedQuantity = plannedQuantity || planData.details[0]?.plannedQuantity;
 
             setInitialPlan(planData);
-            setEditablePlan(JSON.parse(JSON.stringify(planData))); // Deep copy for editing
+            setEditablePlan(JSON.parse(JSON.stringify(planData)));
 
             const machinesArray = allMachines?.content || (Array.isArray(allMachines) ? allMachines : []);
             setMachines(machinesArray);
 
-            // Filter users by role
             const usersArray = allUsers?.content || (Array.isArray(allUsers) ? allUsers : []);
             setInChargeUsers(usersArray.filter(u => u.roleName && (u.roleName.toLowerCase().includes('worker') || u.roleName.toLowerCase().includes('planning'))));
             setQcUsers(usersArray.filter(u => u.roleName && u.roleName.toLowerCase() === 'quality assurance department'));
@@ -202,19 +187,7 @@ const ProductionPlanDetail = () => {
         }
     }, [id, loadInitialData]);
 
-    const handlePlanInfoChange = (e) => {
-        const { name, value } = e.target;
-        setEditablePlan(prev => ({
-            ...prev,
-            details: [{
-                ...prev.details[0],
-                [name]: value
-            }]
-        }));
-    };
-
     const handleStageChange = async (stageId, field, value) => {
-        // Update local state immediately for UI responsiveness
         setEditablePlan(prev => {
             const newStages = prev.details[0].stages.map(stage => {
                 if (stage.id === stageId) {
@@ -234,14 +207,11 @@ const ProductionPlanDetail = () => {
         const stage = editablePlan?.details?.[0]?.stages?.find(s => s.id === stageId);
         if (!stage) return;
         
-        // Use the consolidated updateStage endpoint as per documentation
         if (field === 'inChargeId') {
             try {
                 await productionPlanService.updateStage(stageId, { inChargeUserId: value ? parseInt(value, 10) : null });
                 toast.success('Đã cập nhật người phụ trách.');
             } catch (err) {
-                console.error('Failed to assign in-charge:', err);
-                setError('Lỗi khi gán người phụ trách: ' + (err.message || ''));
                 toast.error('Lỗi khi gán người phụ trách.');
             }
         } else if (field === 'inspectionById') {
@@ -249,12 +219,34 @@ const ProductionPlanDetail = () => {
                 await productionPlanService.updateStage(stageId, { qcUserId: value ? parseInt(value, 10) : null });
                 toast.success('Đã cập nhật người kiểm tra.');
             } catch (err) {
-                console.error('Failed to assign QC:', err);
-                setError('Lỗi khi gán người kiểm tra: ' + (err.message || ''));
                 toast.error('Lỗi khi gán người kiểm tra.');
             }
         }
-        // Other fields like assignedMachineId, plannedStartTime, etc. will be saved on final submit
+    };
+
+    const handleCalculateSchedule = async () => {
+        setCalculating(true);
+        toast.loading('Đang tính toán lịch trình...');
+        try {
+            const updatedPlan = await productionPlanService.calculateSchedule(id);
+            // The API returns the updated plan, which now includes the calculated dates.
+            // We need to merge this with our existing detailed state.
+            setEditablePlan(prev => ({
+                ...prev,
+                ...updatedPlan, // This will overwrite top-level fields like proposedStartDate
+                details: prev.details.map(detail => ({
+                    ...detail,
+                    ...updatedPlan.details[0] // Also update details if they changed
+                }))
+            }));
+            toast.dismiss();
+            toast.success('Đã tính toán và cập nhật lịch trình thành công!');
+        } catch (err) {
+            toast.dismiss();
+            toast.error(err.message || 'Lỗi khi tính toán lịch trình.');
+        } finally {
+            setCalculating(false);
+        }
     };
 
     const handleSubmit = async () => {
@@ -262,16 +254,20 @@ const ProductionPlanDetail = () => {
             setError('Không có chi tiết kế hoạch để lưu.');
             return;
         }
+
+        // Validation
+        if (!editablePlan.proposedStartDate || !editablePlan.proposedEndDate) {
+            toast.error('Vui lòng chạy "Tính toán & Lập lịch" để có ngày bắt đầu và kết thúc trước khi gửi phê duyệt.');
+            return;
+        }
+
         setSubmitting(true);
         setError('');
         setSuccess('');
 
         try {
-            // Step 1: Save all stage details
             const stages = editablePlan.details[0].stages;
             const updatePromises = stages.map(stage => {
-                // According to Production Planning Guide, payload should include:
-                // plannedStartTime, plannedEndTime, assignedMachineId, inChargeUserId, qcUserId, notes
                 const stageData = {
                     plannedStartTime: stage.plannedStartTime || null,
                     plannedEndTime: stage.plannedEndTime || null,
@@ -280,7 +276,6 @@ const ProductionPlanDetail = () => {
                     qcUserId: stage.inspectionById ? parseInt(stage.inspectionById) : null,
                     notes: stage.notes || null
                 };
-                // Only include fields that have values
                 Object.keys(stageData).forEach(key => {
                     if (stageData[key] === null || stageData[key] === undefined || stageData[key] === '') {
                         delete stageData[key];
@@ -290,9 +285,7 @@ const ProductionPlanDetail = () => {
             });
 
             await Promise.all(updatePromises);
-            console.log("All stages saved successfully.");
-
-            // Step 2: Submit the plan for approval
+            
             await productionPlanService.submitForApproval(editablePlan.id, "Đã cập nhật chi tiết kế hoạch.");
             
             setSuccess('Đã lưu và gửi kế hoạch cho giám đốc phê duyệt thành công!');
@@ -356,22 +349,22 @@ const ProductionPlanDetail = () => {
                                         <Form.Control as="textarea" readOnly disabled value={materialInfo} />
                                     </Col>
                                     <Col md={6} className="form-group-custom">
-                                        <Form.Label className="form-label-custom">Ngày bắt đầu *</Form.Label>
-                                        <Form.Control type="date" name="proposedStartDate" value={formatDateForInput(mainDetail.proposedStartDate)} onChange={handlePlanInfoChange} readOnly={isReadOnly} />
+                                        <Form.Label className="form-label-custom">Ngày bắt đầu (dự kiến)</Form.Label>
+                                        <Form.Control type="date" name="proposedStartDate" value={formatDateForInput(editablePlan.proposedStartDate)} readOnly disabled />
                                     </Col>
                                     <Col md={6} className="form-group-custom">
-                                        <Form.Label className="form-label-custom">Ngày kết thúc *</Form.Label>
-                                        <Form.Control type="date" name="proposedEndDate" value={formatDateForInput(mainDetail.proposedEndDate)} onChange={handlePlanInfoChange} readOnly={isReadOnly} />
+                                        <Form.Label className="form-label-custom">Ngày kết thúc (dự kiến)</Form.Label>
+                                        <Form.Control type="date" name="proposedEndDate" value={formatDateForInput(editablePlan.proposedEndDate)} readOnly disabled />
                                     </Col>
                                 </Row>
                             </Card.Body>
                         </Card>
 
-                        <h3 className="card-title-custom mt-4">Chi Tiết Công Đoạn</h3>
-                        {mainDetail.stages?.map((stage, index) => (
-                            <Card key={stage.id} className="stage-card">
-                                <Card.Body>
-                                    <h4 className="card-title-custom">{index + 1}. {getStageTypeName(stage.stageType)}</h4>
+                        <div className="mt-4">
+                          <Tabs defaultActiveKey={mainDetail.stages?.[0]?.stageType || 'WARPING'} id="production-plan-stages-tabs" className="mb-3" justify>
+                            {mainDetail.stages?.map((stage, index) => (
+                              <Tab eventKey={stage.stageType} title={`${index + 1}. ${getStageTypeName(stage.stageType)}`} key={stage.id}>
+                                <div className="p-3 bg-light rounded">
                                     <Row>
                                         <Col md={4} className="form-group-custom">
                                             <Form.Label className="form-label-custom">Máy móc</Form.Label>
@@ -411,16 +404,22 @@ const ProductionPlanDetail = () => {
                                             <Form.Control as="textarea" rows={2} value={stage.notes || ''} onChange={(e) => handleStageChange(stage.id, 'notes', e.target.value)} disabled={isReadOnly} />
                                         </Col>
                                     </Row>
-                                </Card.Body>
-                            </Card>
-                        ))}
+                                </div>
+                              </Tab>
+                            ))}
+                          </Tabs>
+                        </div>
 
                         {!isReadOnly && (
                             <div className="action-buttons">
-                                <Button variant="light" onClick={() => navigate('/planning/lots')} disabled={submitting}>
+                                <Button variant="light" onClick={() => navigate('/planning/lots')} disabled={submitting || calculating}>
                                     <FaTimes className="me-2" /> Hủy
                                 </Button>
-                                <Button variant="dark" onClick={handleSubmit} disabled={submitting}>
+                                <Button variant="info" onClick={handleCalculateSchedule} disabled={submitting || calculating}>
+                                    {calculating ? <Spinner as="span" animation="border" size="sm" /> : <FaPaperPlane className="me-2" />}
+                                    {calculating ? 'Đang tính toán...' : 'Tính toán & Lập lịch'}
+                                </Button>
+                                <Button variant="primary" onClick={handleSubmit} disabled={submitting || calculating}>
                                     <FaPaperPlane className="me-2" />
                                     {submitting ? 'Đang gửi...' : 'Gửi phê duyệt'}
                                 </Button>

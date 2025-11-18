@@ -270,6 +270,42 @@ const ContractUpload = () => {
     }
   };
 
+  const renderActionButtons = (contract) => {
+    const commonProps = {
+      variant: "primary", // Changed to solid blue
+      size: "sm",
+      className: "w-100"
+    };
+
+    switch (contract.status) {
+      case 'PENDING_UPLOAD':
+        return (
+          <Button {...commonProps} onClick={() => openUploadModal(contract)}>
+            Upload hợp đồng
+          </Button>
+        );
+      case 'APPROVED':
+        return (
+          <Button {...commonProps} onClick={() => openViewDetailsModal(contract)}>
+            Xem chi tiết
+          </Button>
+        );
+      case 'REJECTED':
+        return (
+          <Button {...commonProps} onClick={() => openUploadModal(contract)}>
+            Upload lại
+          </Button>
+        );
+      default:
+        // For other statuses like PENDING_APPROVAL, show a generic view button
+        return (
+            <Button variant="secondary" size="sm" className="w-100" onClick={() => openViewDetailsModal(contract)}>
+                Xem chi tiết
+            </Button>
+        );
+    }
+  };
+
   return (
     <div className="customer-layout">
       <Header />
@@ -386,22 +422,7 @@ const ContractUpload = () => {
                             </td>
                             <td className="text-success fw-semibold">{formatCurrency(contract.totalAmount)}</td>
                             <td className="text-center">
-                              <div className="d-flex gap-2 justify-content-center">
-                                <Button
-                                  variant="info"
-                                  size="sm"
-                                  onClick={() => openViewDetailsModal(contract)}
-                                >
-                                  Xem chi tiết
-                                </Button>
-                                <Button
-                                  variant="primary"
-                                  size="sm"
-                                  onClick={() => openUploadModal(contract)}
-                                >
-                                  {contract.status === 'REJECTED' ? 'Upload lại' : 'Upload hợp đồng'}
-                                </Button>
-                              </div>
+                              {renderActionButtons(contract)}
                             </td>
                           </tr>
                         );

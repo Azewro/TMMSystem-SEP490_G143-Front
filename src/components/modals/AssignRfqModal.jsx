@@ -43,10 +43,11 @@ const AssignRfqModal = ({ show, onHide, rfqId, onAssignmentSuccess, isViewMode =
           if (rfqData.customerId) {
             try {
               const customer = await customerService.getCustomerById(rfqData.customerId);
-              finalRfqData.contactPerson = rfqData.contactPerson || customer.contactPerson || 'N/A';
-              finalRfqData.contactPhone = rfqData.contactPhone || customer.phoneNumber || 'N/A';
-              finalRfqData.contactEmail = rfqData.contactEmail || customer.email || 'N/A';
-              finalRfqData.contactAddress = rfqData.contactAddress || customer.address || 'N/A';
+              // Use only data from the RFQ itself, do not fall back to customer profile
+              finalRfqData.contactPerson = rfqData.contactPerson || 'N/A';
+              finalRfqData.contactPhone = rfqData.contactPhone || 'N/A';
+              finalRfqData.contactEmail = rfqData.contactEmail || 'N/A';
+              finalRfqData.contactAddress = rfqData.contactAddress || 'N/A';
             } catch (customerError) {
               console.error("Could not fetch customer details:", customerError);
             }
@@ -111,7 +112,7 @@ const AssignRfqModal = ({ show, onHide, rfqId, onAssignmentSuccess, isViewMode =
   return (
     <Modal show={show} onHide={handleClose} centered size="lg">
       <Modal.Header closeButton>
-        <Modal.Title>{isViewMode ? `Chi tiết RFQ ${rfqDetails?.rfqNumber || ''}` : `Phân công cho RFQ ${rfqDetails?.rfqNumber || ''}`}</Modal.Title>
+        <Modal.Title>{isViewMode ? `Chi tiết Yêu cầu báo giá ${rfqDetails?.rfqNumber || ''}` : `Phân công cho RFQ ${rfqDetails?.rfqNumber || ''}`}</Modal.Title>
       </Modal.Header>
       <Modal.Body>
         {loading ? (

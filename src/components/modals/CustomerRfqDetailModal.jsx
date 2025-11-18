@@ -398,7 +398,7 @@ const CustomerRfqDetailModal = ({ rfqId, show, handleClose }) => {
     <Modal show={show} onHide={() => handleClose(false)} size="lg" backdrop="static">
       <Modal.Header closeButton={!isEditMode}>
         <Modal.Title>
-          Chi tiết Yêu cầu Báo giá #{rfqId}
+          Chi tiết Yêu cầu báo giá {rfq?.code || rfqId}
           {rfq?.status && <Badge bg="info" className="ms-3">{rfq.status}</Badge>}
         </Modal.Title>
       </Modal.Header>

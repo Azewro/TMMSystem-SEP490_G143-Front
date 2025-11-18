@@ -296,19 +296,24 @@ const QuoteRequest = () => {
     const contactMethodMap = { 'Điện thoại': 'PHONE', 'Email': 'EMAIL', 'Cả hai': 'PHONE' };
     const apiContactMethod = contactMethodMap[currentData.contactMethod] || 'PHONE';
 
+    // Conditional status based on employeeCode. If code exists, status is SENT, otherwise DRAFT.
+    const rfqStatus = currentData.employeeCode && currentData.employeeCode.trim() !== '' ? 'SENT' : 'DRAFT';
+
     const rfqData = {
+      // Common fields for all users
       contactMethod: apiContactMethod,
       expectedDeliveryDate: formattedDate,
       notes: currentData.notes,
       details: details,
-      status: 'DRAFT',
-      ...(isAuthenticated ? { customerId: user.customerId, contactAddress: fullAddress } : {
-        contactPerson: currentData.contactPerson,
-        contactEmail: currentData.contactEmail,
-        contactPhone: currentData.contactPhone,
-        contactAddress: fullAddress,
-        employeeCode: currentData.employeeCode,
-      }),
+      status: rfqStatus,
+      employeeCode: currentData.employeeCode || null,
+      contactPerson: currentData.contactPerson,
+      contactEmail: currentData.contactEmail,
+      contactPhone: currentData.contactPhone,
+      contactAddress: fullAddress,
+
+      // Add customerId only if authenticated
+      ...(isAuthenticated && { customerId: user.customerId }),
     };
 
     try {

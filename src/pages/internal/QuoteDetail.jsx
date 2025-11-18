@@ -168,6 +168,7 @@ const QuoteDetail = () => {
                           <p className="mb-1"><strong>Trạng thái:</strong> 
                             <Badge bg={getStatusBadge(quote.status)} className="ms-2">{getStatusText(quote.status)}</Badge>
                           </p>
+                          {quote.capacityCheckNotes && <p className="mb-1"><strong>Ghi chú từ Phòng Kế hoạch:</strong> {quote.capacityCheckNotes}</p>}
                         </Col>
                         <Col md={6}>
                           <h6>Thông tin khách hàng</h6>
@@ -246,7 +247,7 @@ const QuoteDetail = () => {
           <p>Bạn có chắc chắn muốn gửi báo giá này cho khách hàng?</p>
           <div className="bg-light p-3 rounded">
             <div><strong>Mã báo giá:</strong> {quote?.quotationNumber}</div>
-            <div><strong>Khách hàng:</strong> {quote?.customer?.contactPerson}</div>
+            <div><strong>Khách hàng:</strong> {quote?.contactPersonSnapshot}</div>
             <div><strong>Tổng giá trị:</strong> <span className="text-success fw-semibold">{formatCurrency(quote?.totalAmount)}</span></div>
           </div>
         </Modal.Body>
