@@ -1,0 +1,162 @@
+import React, { useState, useMemo } from 'react';
+import { Container, Card, Table, Button, Badge, Form, InputGroup } from 'react-bootstrap';
+import { FaSearch } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
+import Header from '../../components/common/Header';
+import InternalSidebar from '../../components/common/InternalSidebar';
+
+// Mock data cho danh sách đơn hàng của Product Process Leader
+const MOCK_LEADER_ORDERS = [
+  {
+    id: 'LOT-002',
+    productName: 'Khăn mặt cotton',
+    size: '30x30cm',
+    quantity: 2000,
+    expectedDeliveryDate: '2025-11-18',
+    expectedFinishDate: '2025-12-01',
+    status: 'CHO_KIEM_TRA',
+    statusLabel: 'chờ kiểm tra'
+  },
+  {
+    id: 'LOT-003',
+    productName: 'Khăn spa trắng',
+    size: '50x100cm',
+    quantity: 1500,
+    expectedDeliveryDate: '2025-11-15',
+    expectedFinishDate: '2025-11-28',
+    status: 'DANG_LAM',
+    statusLabel: 'đang làm'
+  },
+  {
+    id: 'LOT-004',
+    productName: 'Khăn khách sạn',
+    size: '60x120cm',
+    quantity: 800,
+    expectedDeliveryDate: '2025-11-10',
+    expectedFinishDate: '2025-11-25',
+    status: 'HOAN_THANH',
+    statusLabel: 'Hoàn thành'
+  }
+];
+
+const getStatusVariant = (status) => {
+  switch (status) {
+    case 'CHO_KIEM_TRA':
+      return 'secondary';
+    case 'DANG_LAM':
+      return 'info';
+    case 'HOAN_THANH':
+      return 'success';
+    default:
+      return 'light';
+  }
+};
+
+const LeaderOrderList = () => {
+  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredOrders = useMemo(() => {
+    if (!searchTerm) return MOCK_LEADER_ORDERS;
+    const term = searchTerm.toLowerCase();
+    return MOCK_LEADER_ORDERS.filter(
+      (o) =>
+        o.id.toLowerCase().includes(term) ||
+        o.productName.toLowerCase().includes(term)
+    );
+  }, [searchTerm]);
+
+  const handleStart = (order) => {
+    const confirmed = window.confirm(
+      `Bắt đầu cập nhật tiến độ cho lô ${order.id}?`
+    );
+    if (confirmed) {
+      navigate(`/leader/orders/${order.id}`);
+    }
+  };
+
+  return (
+    <div className="customer-layout">
+      <Header />
+      <div className="d-flex">
+        <InternalSidebar userRole="leader" />
+        <div
+          className="flex-grow-1"
+          style={{ backgroundColor: '#f8f9fa', minHeight: 'calc(100vh - 70px)' }}
+        >
+          <Container fluid className="p-4">
+            <h4 className="mb-3">Danh sách đơn hàng</h4>
+
+            <Card className="shadow-sm mb-3">
+              <Card.Body>
+                <InputGroup>
+                  <InputGroup.Text>
+                    <FaSearch />
+                  </InputGroup.Text>
+                  <Form.Control
+                    placeholder="Tìm kiếm theo mã lô hàng hoặc mô tả..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </InputGroup>
+              </Card.Body>
+            </Card>
+
+            <Card className="shadow-sm">
+              <Card.Body className="p-0">
+                <Table responsive className="mb-0 align-middle">
+                  <thead className="table-light">
+                    <tr>
+                      <th style={{ width: 60 }}>STT</th>
+                      <th>Mã lô</th>
+                      <th>Tên sản phẩm</th>
+                      <th>Kích thước</th>
+                      <th>Số lượng</th>
+                      <th>Ngày bắt đầu dự kiến</th>
+                      <th>Ngày kết thúc dự kiến</th>
+                      <th>Trạng thái</th>
+                      <th style={{ width: 120 }}>Hành động</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredOrders.map((order, index) => (
+                      <tr key={order.id}>
+                        <td>{index + 1}</td>
+                        <td>
+                          <strong>{order.id}</strong>
+                        </td>
+                        <td>{order.productName}</td>
+                        <td>{order.size}</td>
+                        <td>{order.quantity.toLocaleString('vi-VN')}</td>
+                        <td>{order.expectedDeliveryDate}</td>
+                        <td>{order.expectedFinishDate}</td>
+                        <td>
+                          <Badge bg={getStatusVariant(order.status)}>
+                            {order.statusLabel}
+                          </Badge>
+                        </td>
+                        <td className="text-end">
+                          <Button
+                            size="sm"
+                            variant="dark"
+                            onClick={() => handleStart(order)}
+                          >
+                            Bắt đầu
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </Card.Body>
+            </Card>
+          </Container>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default LeaderOrderList;
+
+

@@ -14,14 +14,27 @@ const InternalSidebar = ({ userRole: propUserRole }) => {
   const mapRoleToSidebarFormat = (role) => {
     if (!role) return null;
     const roleUpper = role.toUpperCase();
-    
+
     if (roleUpper === 'ADMIN' || roleUpper.includes('ADMIN')) {
       return 'admin';
     } else if (roleUpper.includes('DIRECTOR')) {
       return 'director';
     } else if (roleUpper.includes('PLANNING') || roleUpper === 'PLANNING_DEPARTMENT') {
       return 'planning';
+    } else if (roleUpper.includes('QA') || roleUpper.includes('QUALITY')) {
+      // QA / Quality Assurance
+      return 'qa';
+    } else if (
+      roleUpper.includes('PRODUCT_PROCESS_LEADER') ||
+      roleUpper.includes('PRODUCT PROCESS LEADER') ||
+      roleUpper.includes('PROCESS_LEADER') ||
+      roleUpper.includes('PROCESS LEADER') ||
+      roleUpper.includes('PRODUCTION_LEADER')
+    ) {
+      // Product Process Leader - leader công đoạn
+      return 'leader';
     } else if (roleUpper.includes('PRODUCTION') && roleUpper.includes('MANAGER')) {
+      // Production Manager
       return 'production';
     } else if (roleUpper.includes('SALE') || roleUpper === 'SALE_STAFF') {
       return 'sales';
@@ -55,8 +68,18 @@ const InternalSidebar = ({ userRole: propUserRole }) => {
       { icon: FaListAlt, label: 'RFQ cần xử lý', path: '/planning/rfqs' },
       { icon: FaProjectDiagram, label: 'Lô sản xuất', path: '/planning/lots' },
     ],
+    // Production Manager
     production: [
+      { icon: FaListAlt, label: 'Đơn hàng sản xuất', path: '/production/orders' },
       { icon: FaWarehouse, label: 'Nhập kho nguyên liệu', path: '/production/material-stock' },
+    ],
+    // Product Process Leader
+    leader: [
+      { icon: FaListAlt, label: 'Đơn hàng của tôi', path: '/leader/orders' },
+    ],
+    // QA
+    qa: [
+      { icon: FaListAlt, label: 'Đơn hàng cần kiểm tra', path: '/qa/orders' },
     ],
     technical: [
       { icon: FaCog, label: 'Quản lý máy', path: '/technical/machines' },
@@ -74,6 +97,7 @@ const InternalSidebar = ({ userRole: propUserRole }) => {
           {menuItems.map((item, index) => {
             const IconComponent = item.icon;
             const isActive = location.pathname.startsWith(item.path);
+            const isExact = location.pathname === item.path;
 
             return (
               <Nav.Link
@@ -82,7 +106,7 @@ const InternalSidebar = ({ userRole: propUserRole }) => {
                 className="sidebar-item d-flex align-items-center py-2 px-3 mb-1 rounded"
                 onClick={(e) => {
                   e.preventDefault();
-                  if (!isActive) {
+                  if (!isExact) {
                     navigate(item.path);
                   }
                 }}

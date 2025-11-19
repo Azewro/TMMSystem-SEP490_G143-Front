@@ -1,0 +1,33 @@
+/* Shared button / badge styles for internal dashboards */
+
+.btn-back-link {
+  color: #495057;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-back-link:hover {
+  color: #212529;
+  text-decoration: none;
+}
+
+.btn-pill-primary {
+  border-radius: 999px;
+  padding-inline: 1.25rem;
+}
+
+.btn-pill-outline {
+  border-radius: 999px;
+  padding-inline: 1.25rem;
+  background-color: #ffffff;
+}
+
+.status-badge {
+  border-radius: 999px !important;
+  padding: 0.25rem 0.9rem;
+  font-size: 0.75rem;
+}
+
+
