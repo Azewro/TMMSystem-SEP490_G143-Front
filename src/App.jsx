@@ -52,15 +52,23 @@ import AdminCustomerManagement from './pages/admin/AdminCustomerManagement';
 
 // Technical Pages
 import MachineManagement from './pages/technical/MachineManagement';
+import TechnicalDefectList from './pages/technical/TechnicalDefectList';
+import TechnicalDefectDetail from './pages/technical/TechnicalDefectDetail';
 
 // Production Pages
 import MaterialStockManagement from './pages/production/MaterialStockManagement';
 import ProductionOrderList from './pages/production/ProductionOrderList';
 import ProductionOrderDetail from './pages/production/ProductionOrderDetail';
+import ProductionFiberRequests from './pages/production/ProductionFiberRequests';
+import ProductionFiberRequestDetail from './pages/production/ProductionFiberRequestDetail';
+import ProductionReworkOrders from './pages/production/ProductionReworkOrders';
+import ProductionReworkOrderDetail from './pages/production/ProductionReworkOrderDetail';
 import StageProgressDetail from './pages/production/StageProgressDetail';
 import LeaderOrderList from './pages/production/LeaderOrderList';
 import LeaderOrderDetail from './pages/production/LeaderOrderDetail';
 import LeaderStageProgress from './pages/production/LeaderStageProgress';
+import LeaderDefectList from './pages/production/LeaderDefectList';
+import LeaderDefectDetail from './pages/production/LeaderDefectDetail';
 import QaOrderList from './pages/production/QaOrderList';
 import QaOrderDetail from './pages/production/QaOrderDetail';
 import QaStageQualityCheck from './pages/production/QaStageQualityCheck';
@@ -122,17 +130,25 @@ function App() {
 
               {/* Technical routes */}
               <Route path="/technical/machines" element={<MachineManagement />} />
+              <Route path="/technical/defects" element={<TechnicalDefectList />} />
+              <Route path="/technical/defects/:defectId" element={<TechnicalDefectDetail />} />
 
               {/* Production routes */}
               <Route path="/production/material-stock" element={<MaterialStockManagement />} />
               <Route path="/production/orders" element={<ProductionOrderList />} />
               <Route path="/production/orders/:orderId" element={<ProductionOrderDetail />} />
               <Route path="/production/orders/:orderId/stages/:stageCode" element={<StageProgressDetail />} />
+              <Route path="/production/fiber-requests" element={<ProductionFiberRequests />} />
+              <Route path="/production/fiber-requests/:lotCode" element={<ProductionFiberRequestDetail />} />
+              <Route path="/production/rework-orders" element={<ProductionReworkOrders />} />
+              <Route path="/production/rework-orders/:orderId" element={<ProductionReworkOrderDetail />} />
 
               {/* Leader (product process leader) routes */}
               <Route path="/leader/orders" element={<LeaderOrderList />} />
               <Route path="/leader/orders/:orderId" element={<LeaderOrderDetail />} />
               <Route path="/leader/orders/:orderId/progress" element={<LeaderStageProgress />} />
+              <Route path="/leader/defects" element={<LeaderDefectList />} />
+              <Route path="/leader/defects/:defectId" element={<LeaderDefectDetail />} />
 
               {/* QA routes */}
               <Route path="/qa/orders" element={<QaOrderList />} />

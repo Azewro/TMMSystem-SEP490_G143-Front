@@ -1,6 +1,6 @@
 import React from 'react';
 import { Nav } from 'react-bootstrap';
-import { FaListAlt, FaFileSignature, FaProjectDiagram, FaUsers, FaUserFriends, FaPlusSquare, FaCog, FaWarehouse } from 'react-icons/fa';
+import { FaListAlt, FaFileSignature, FaProjectDiagram, FaUsers, FaUserFriends, FaPlusSquare, FaCog, FaWarehouse, FaExclamationTriangle } from 'react-icons/fa';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import '../../styles/Sidebar.css'; // Reuse the same dark theme
@@ -71,17 +71,21 @@ const InternalSidebar = ({ userRole: propUserRole }) => {
     // Production Manager
     production: [
       { icon: FaListAlt, label: 'Đơn hàng sản xuất', path: '/production/orders' },
+      { icon: FaFileSignature, label: 'Yêu cầu cấp sợi', path: '/production/fiber-requests' },
+      { icon: FaProjectDiagram, label: 'Sản xuất bù', path: '/production/rework-orders' },
       { icon: FaWarehouse, label: 'Nhập kho nguyên liệu', path: '/production/material-stock' },
     ],
     // Product Process Leader
     leader: [
       { icon: FaListAlt, label: 'Đơn hàng của tôi', path: '/leader/orders' },
+      { icon: FaExclamationTriangle, label: 'Danh sách lỗi', path: '/leader/defects' },
     ],
     // QA
     qa: [
       { icon: FaListAlt, label: 'Đơn hàng cần kiểm tra', path: '/qa/orders' },
     ],
     technical: [
+      { icon: FaExclamationTriangle, label: 'Quản lý lỗi', path: '/technical/defects' },
       { icon: FaCog, label: 'Quản lý máy', path: '/technical/machines' },
     ],
   };

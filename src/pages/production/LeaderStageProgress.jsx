@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Container, Card, Button, ProgressBar, Table, Form } from 'react-bootstrap';
+import { Container, Card, Button, ProgressBar, Table, Form, Badge } from 'react-bootstrap';
 import { useNavigate, useParams } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
@@ -12,6 +12,8 @@ const LeaderStageProgress = () => {
   const [inputProgress, setInputProgress] = useState('');
   const [totalHours, setTotalHours] = useState(0);
   const [history, setHistory] = useState([]);
+  const [actualStartTime, setActualStartTime] = useState(null);
+  const [actualEndTime, setActualEndTime] = useState(null);
 
   const handleBack = () => {
     navigate(`/leader/orders/${orderId || 'LOT-002'}`);
@@ -26,6 +28,15 @@ const LeaderStageProgress = () => {
     if (target <= currentProgress) {
       alert('Tiến độ mới phải lớn hơn tiến độ hiện tại');
       return;
+    }
+
+    if (!actualStartTime) {
+      const confirmed = window.confirm(`Bắt đầu cập nhật tiến độ cho lô ${orderId || 'LOT-002'}?`);
+      if (!confirmed) {
+        return;
+      }
+      const startFormatted = new Date().toLocaleString('vi-VN', { hour12: false });
+      setActualStartTime(startFormatted);
     }
 
     const now = new Date();
@@ -45,8 +56,25 @@ const LeaderStageProgress = () => {
     setHistory((prev) => [...prev, newHistoryItem]);
     setCurrentProgress(target);
     setTotalHours((prev) => +(prev + deltaHours).toFixed(1));
+    if (target === 100) {
+      setActualEndTime(formatted);
+    }
     setInputProgress('');
   };
+
+  const infoFields = [
+    { label: 'Công đoạn', value: 'Cuồng Mắc' },
+    { label: 'Thời gian bắt đầu thực tế', value: actualStartTime || 'Chưa bắt đầu' },
+    { label: 'Thời gian kết thúc thực tế', value: actualEndTime || 'Chưa hoàn thành' },
+    { label: 'Thời gian đã làm', value: `${totalHours.toFixed(1)} giờ` },
+    { label: 'Người phụ trách', value: 'Võ Thị F' }
+  ];
+
+  const statusConfig = currentProgress >= 100
+    ? { label: 'Hoàn thành', variant: 'success' }
+    : currentProgress > 0
+      ? { label: 'Đang làm', variant: 'info' }
+      : { label: 'Chưa bắt đầu', variant: 'secondary' };
 
   return (
     <div className="customer-layout">
@@ -62,26 +90,36 @@ const LeaderStageProgress = () => {
               &larr; Quay lại kế hoạch
             </Button>
 
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <div>
-                <div className="text-muted small mb-1">Công đoạn</div>
-                <h4 className="mb-0">Cuồng mắc</h4>
-              </div>
-              <div className="text-end">
-                <div className="text-muted small">Thời gian đã làm</div>
-                <div className="h5 mb-0">{totalHours.toFixed(1)} giờ</div>
-              </div>
-            </div>
+            <Card className="shadow-sm mb-3">
+              <Card.Body>
+                <div className="row g-3">
+                  {infoFields.map((field) => (
+                    <div key={field.label} className="col-12 col-md-6 col-lg-4">
+                      <div className="text-muted small mb-1">{field.label}</div>
+                      <Form.Control
+                        readOnly
+                        value={field.value}
+                        className="fw-semibold"
+                        style={{ backgroundColor: '#f8f9fb' }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </Card.Body>
+            </Card>
 
             <Card className="shadow-sm mb-3">
               <Card.Body>
                 <div className="mb-3">
                   <div className="text-muted mb-1">Tiến độ hiện tại</div>
-                  <div className="d-flex justify-content-between align-items-center mb-2">
+                  <div className="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
                     <div className="h5 mb-0">{currentProgress}%</div>
-                    <small className="text-muted">
-                      Còn lại {Math.max(0, (100 - currentProgress) / 10).toFixed(1)} giờ (mô phỏng)
-                    </small>
+                    <div className="d-flex align-items-center gap-3">
+                      <small className="text-muted">
+                        Còn lại {Math.max(0, (100 - currentProgress) / 10).toFixed(1)} giờ (mô phỏng)
+                      </small>
+                      <Badge bg={statusConfig.variant}>{statusConfig.label}</Badge>
+                    </div>
                   </div>
                   <ProgressBar
                     now={currentProgress}
