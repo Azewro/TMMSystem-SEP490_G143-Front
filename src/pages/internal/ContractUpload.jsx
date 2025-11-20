@@ -5,6 +5,7 @@ import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { contractService } from '../../api/contractService';
 import { quotationService } from '../../api/quotationService'; // Import quotationService
+import { customerService } from '../../api/customerService'; // Import customerService
 import Pagination from '../../components/Pagination'; // Import Pagination
 import '../../styles/QuoteRequests.css';
 
@@ -49,6 +50,12 @@ const ContractUpload = () => {
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
+  
+  // Modal state for view details
+  const [viewDetailsModalOpen, setViewDetailsModalOpen] = useState(false);
+  const [viewDetailsContract, setViewDetailsContract] = useState(null);
+  const [viewDetailsLoading, setViewDetailsLoading] = useState(false);
+  const [viewDetailsData, setViewDetailsData] = useState(null);
 
   // Search and Filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -71,16 +78,50 @@ const ContractUpload = () => {
         return;
       }
 
-      const userContracts = await contractService.getContractsByAssignedSalesId(userId);
+      const [userContracts, customersData] = await Promise.all([
+        contractService.getContractsByAssignedSalesId(userId),
+        customerService.getAllCustomers()
+      ]);
+
+      // Create customer map
+      const customerMap = new Map();
+      if (Array.isArray(customersData)) {
+        customersData.forEach(c => {
+          customerMap.set(c.id, c);
+          customerMap.set(String(c.id), c);
+          customerMap.set(Number(c.id), c);
+        });
+      } else if (customersData?.content) {
+        customersData.content.forEach(c => {
+          customerMap.set(c.id, c);
+          customerMap.set(String(c.id), c);
+          customerMap.set(Number(c.id), c);
+        });
+      }
+
+      // Enrich contracts with customer info
+      const enrichedContracts = Array.isArray(userContracts)
+        ? userContracts.map(contract => {
+            const customer = contract.customerId 
+              ? (customerMap.get(contract.customerId) 
+                  || customerMap.get(String(contract.customerId))
+                  || customerMap.get(Number(contract.customerId)))
+              : null;
+            return {
+              ...contract,
+              customer: customer
+            };
+          })
+        : [];
 
       // Sort by newest date first
-      const sortedContracts = Array.isArray(userContracts)
-        ? userContracts.sort((a, b) => new Date(b.contractDate || b.createdAt) - new Date(a.contractDate || a.createdAt))
-        : [];
+      const sortedContracts = enrichedContracts.sort((a, b) => 
+        new Date(b.contractDate || b.createdAt) - new Date(a.contractDate || a.createdAt)
+      );
       setContracts(sortedContracts);
     } catch (err) {
       console.error('Failed to load contracts', err);
-      setError(err.message || 'Không thể tải danh sách hợp đồng.');
+      setError(err.message || 'Không thể tải danh sách đơn hàng.');
     } finally {
       setLoading(false);
     }
@@ -128,6 +169,29 @@ const ContractUpload = () => {
   const totalPages = Math.ceil(filteredContracts.length / ITEMS_PER_PAGE);
 
 
+  const openViewDetailsModal = async (contract) => {
+    setViewDetailsContract(contract);
+    setViewDetailsModalOpen(true);
+    setViewDetailsLoading(true);
+    setViewDetailsData(null);
+
+    try {
+      const details = await contractService.getOrderDetails(contract.id);
+      setViewDetailsData(details);
+    } catch (err) {
+      console.error('Unable to load contract details', err);
+      setError(err.message || 'Không thể tải chi tiết đơn hàng.');
+    } finally {
+      setViewDetailsLoading(false);
+    }
+  };
+
+  const closeViewDetailsModal = () => {
+    setViewDetailsModalOpen(false);
+    setViewDetailsContract(null);
+    setViewDetailsData(null);
+  };
+
   const openUploadModal = async (contract) => {
     setSelectedContract(contract);
     setModalOpen(true);
@@ -142,7 +206,7 @@ const ContractUpload = () => {
       setOrderDetails(details);
     } catch (err) {
       console.error('Unable to load contract details', err);
-      setError(err.message || 'Không thể tải chi tiết hợp đồng.');
+      setError(err.message || 'Không thể tải chi tiết đơn hàng.');
     } finally {
       setDetailsLoading(false);
     }
@@ -206,6 +270,42 @@ const ContractUpload = () => {
     }
   };
 
+  const renderActionButtons = (contract) => {
+    const commonProps = {
+      variant: "primary", // Changed to solid blue
+      size: "sm",
+      className: "w-100"
+    };
+
+    switch (contract.status) {
+      case 'PENDING_UPLOAD':
+        return (
+          <Button {...commonProps} onClick={() => openUploadModal(contract)}>
+            Upload hợp đồng
+          </Button>
+        );
+      case 'APPROVED':
+        return (
+          <Button {...commonProps} onClick={() => openViewDetailsModal(contract)}>
+            Xem chi tiết
+          </Button>
+        );
+      case 'REJECTED':
+        return (
+          <Button {...commonProps} onClick={() => openUploadModal(contract)}>
+            Upload lại
+          </Button>
+        );
+      default:
+        // For other statuses like PENDING_APPROVAL, show a generic view button
+        return (
+            <Button variant="secondary" size="sm" className="w-100" onClick={() => openViewDetailsModal(contract)}>
+                Xem chi tiết
+            </Button>
+        );
+    }
+  };
+
   return (
     <div className="customer-layout">
       <Header />
@@ -214,10 +314,7 @@ const ContractUpload = () => {
         <div className="flex-grow-1" style={{ backgroundColor: '#f8f9fa', minHeight: 'calc(100vh - 70px)' }}>
           <Container fluid className="p-4">
             <div className="d-flex justify-content-between align-items-center mb-4">
-              <h1 className="mb-0">Upload hợp đồng đã ký</h1>
-              <div className="text-muted">
-                Bạn cần upload hợp đồng cho những báo giá khách hàng đã chấp thuận.
-              </div>
+              <h1 className="mb-0">Danh sách đơn hàng</h1>
             </div>
 
             {error && (
@@ -241,7 +338,7 @@ const ContractUpload = () => {
                       <InputGroup.Text><FaSearch /></InputGroup.Text>
                       <Form.Control
                         type="text"
-                        placeholder="Tìm kiếm theo số hợp đồng..."
+                        placeholder="Tìm kiếm theo mã đơn hàng..."
                         value={searchTerm}
                         onChange={(e) => {
                           setSearchTerm(e.target.value);
@@ -286,12 +383,12 @@ const ContractUpload = () => {
                   <thead className="table-light">
                     <tr>
                       <th style={{ width: 60 }}>#</th>
-                      <th style={{ width: 180 }}>Số hợp đồng</th>
-                      <th style={{ width: 140 }}>Ngày hợp đồng</th>
+                      <th style={{ width: 180 }}>Mã đơn hàng</th>
+                      <th style={{ width: 160 }}>Tên khách hàng</th>
+                      <th style={{ width: 140 }}>Số điện thoại</th>
                       <th style={{ width: 160 }}>Ngày giao hàng</th>
                       <th style={{ width: 160 }}>Trạng thái</th>
                       <th style={{ width: 160 }}>Tổng giá trị</th>
-                      <th style={{ width: 200 }}>Ghi chú</th>
                       <th style={{ width: 160 }} className="text-center">Thao tác</th>
                     </tr>
                   </thead>
@@ -299,15 +396,15 @@ const ContractUpload = () => {
                     {loading ? (
                       <tr>
                         <td colSpan={8} className="text-center py-4">
-                          <Spinner animation="border" size="sm" className="me-2" /> Đang tải hợp đồng...
+                          <Spinner animation="border" size="sm" className="me-2" /> Đang tải đơn hàng...
                         </td>
                       </tr>
                     ) : currentContracts.length === 0 ? (
                       <tr>
                         <td colSpan={8} className="text-center py-4 text-muted">
                           {contracts.length === 0 
-                            ? 'Không có hợp đồng cần upload.' 
-                            : 'Không tìm thấy hợp đồng phù hợp với bộ lọc.'}
+                            ? 'Không có đơn hàng nào.' 
+                            : 'Không tìm thấy đơn hàng phù hợp với bộ lọc.'}
                         </td>
                       </tr>
                     ) : (
@@ -317,25 +414,15 @@ const ContractUpload = () => {
                           <tr key={contract.id}>
                             <td>{indexOfFirstContract + index + 1}</td>
                             <td className="fw-semibold text-primary">{contract.contractNumber}</td>
-                            <td>{formatDate(contract.contractDate)}</td>
+                            <td>{contract.customer?.contactPerson || contract.customer?.companyName || 'N/A'}</td>
+                            <td>{contract.customer?.phoneNumber || 'N/A'}</td>
                             <td>{formatDate(contract.deliveryDate)}</td>
                             <td>
                               <Badge bg={statusConfig.variant}>{statusConfig.text}</Badge>
                             </td>
                             <td className="text-success fw-semibold">{formatCurrency(contract.totalAmount)}</td>
-                            <td>
-                              {contract.directorApprovalNotes && (
-                                <span className="text-danger">{contract.directorApprovalNotes}</span>
-                              )}
-                            </td>
                             <td className="text-center">
-                              <Button
-                                variant="primary"
-                                size="sm"
-                                onClick={() => openUploadModal(contract)}
-                              >
-                                {contract.status === 'REJECTED' ? 'Upload lại' : 'Upload hợp đồng'}
-                              </Button>
+                              {renderActionButtons(contract)}
                             </td>
                           </tr>
                         );
@@ -358,7 +445,14 @@ const ContractUpload = () => {
         </div>
       </div>
 
-      <Modal show={modalOpen} onHide={closeModal} size="lg" centered>
+      <Modal 
+        show={modalOpen} 
+        onHide={closeModal} 
+        size="lg" 
+        centered={!viewDetailsModalOpen}
+        dialogClassName={viewDetailsModalOpen ? 'modal-side-by-side-right' : ''}
+        backdrop={viewDetailsModalOpen ? false : true}
+      >
         <Modal.Header closeButton>
           <Modal.Title>
             {selectedContract?.status === 'REJECTED' ? 'Upload lại' : 'Upload hợp đồng và báo giá'}
@@ -438,6 +532,128 @@ const ContractUpload = () => {
           <Button variant="primary" onClick={handleUpload} disabled={submitting || !file || !quoteFile}>
             {submitting ? 'Đang upload...' : 'Upload'}
           </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* View Details Modal */}
+      <Modal 
+        show={viewDetailsModalOpen} 
+        onHide={closeViewDetailsModal} 
+        size="lg" 
+        centered={!modalOpen}
+        dialogClassName={modalOpen ? 'modal-side-by-side-left' : ''}
+        backdrop={true}
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Chi tiết đơn hàng</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {viewDetailsLoading ? (
+            <div className="text-center py-4">
+              <Spinner animation="border" size="sm" className="me-2" /> Đang tải chi tiết đơn hàng...
+            </div>
+          ) : viewDetailsData && viewDetailsContract ? (
+            <div>
+              {/* Customer Information */}
+              <Card className="mb-3">
+                <Card.Header>
+                  <strong>Thông tin khách hàng</strong>
+                </Card.Header>
+                <Card.Body>
+                  <Row>
+                    <Col md={6}>
+                      <p className="mb-2"><strong>Tên khách hàng:</strong> {viewDetailsContract.customer?.contactPerson || viewDetailsContract.customer?.companyName || viewDetailsData.customerInfo?.customerName || 'N/A'}</p>
+                      <p className="mb-2"><strong>Công ty:</strong> {viewDetailsContract.customer?.companyName || viewDetailsData.customerInfo?.companyName || 'N/A'}</p>
+                    </Col>
+                    <Col md={6}>
+                      <p className="mb-2"><strong>Số điện thoại:</strong> {viewDetailsContract.customer?.phoneNumber || viewDetailsData.customerInfo?.phoneNumber || 'N/A'}</p>
+                      <p className="mb-2"><strong>Email:</strong> {viewDetailsContract.customer?.email || viewDetailsData.customerInfo?.email || 'N/A'}</p>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+
+              {/* Order Information */}
+              <Card className="mb-3">
+                <Card.Header>
+                  <strong>Thông tin đơn hàng</strong>
+                </Card.Header>
+                <Card.Body>
+                  <Row>
+                    <Col md={6}>
+                      <p className="mb-2"><strong>Mã đơn hàng:</strong> {viewDetailsContract.contractNumber || viewDetailsData.contractNumber}</p>
+                      <p className="mb-2"><strong>Ngày giao hàng:</strong> {formatDate(viewDetailsContract.deliveryDate || viewDetailsData.deliveryDate)}</p>
+                      <p className="mb-2"><strong>Tổng giá trị:</strong> <span className="text-success fw-semibold">{formatCurrency(viewDetailsContract.totalAmount || viewDetailsData.totalAmount)}</span></p>
+                    </Col>
+                    <Col md={6}>
+                      <p className="mb-2"><strong>Trạng thái:</strong> 
+                        <Badge bg={STATUS_LABELS[viewDetailsContract.status]?.variant || 'secondary'} className="ms-2">
+                          {STATUS_LABELS[viewDetailsContract.status]?.text || viewDetailsContract.status}
+                        </Badge>
+                      </p>
+                    </Col>
+                  </Row>
+                  
+                  {/* Order Items Table */}
+                  {viewDetailsData.orderItems && viewDetailsData.orderItems.length > 0 && (
+                    <div className="mt-3">
+                      <h6 className="mb-2">Danh sách sản phẩm:</h6>
+                      <Table size="sm" bordered>
+                        <thead className="table-light">
+                          <tr>
+                            <th>Sản phẩm</th>
+                            <th>Số lượng</th>
+                            <th>Đơn giá</th>
+                            <th>Thành tiền</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {viewDetailsData.orderItems.map((item, index) => (
+                            <tr key={item.productId || index}>
+                              <td>{item.productName}</td>
+                              <td>{item.quantity?.toLocaleString('vi-VN')}</td>
+                              <td>{formatCurrency(item.unitPrice)}</td>
+                              <td>{formatCurrency(item.totalPrice)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </Table>
+                    </div>
+                  )}
+                </Card.Body>
+              </Card>
+
+              {/* Notes */}
+              {(viewDetailsContract.directorApprovalNotes || viewDetailsData.notes) && (
+                <Card>
+                  <Card.Header>
+                    <strong>Ghi chú</strong>
+                  </Card.Header>
+                  <Card.Body>
+                    <p className="mb-0">{viewDetailsContract.directorApprovalNotes || viewDetailsData.notes}</p>
+                  </Card.Body>
+                </Card>
+              )}
+            </div>
+          ) : (
+            <Alert variant="warning">Không tìm thấy chi tiết đơn hàng.</Alert>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={closeViewDetailsModal}>
+            Đóng
+          </Button>
+          {viewDetailsContract && (
+            <Button 
+              variant="primary" 
+              onClick={() => {
+                // Không đóng modal xem chi tiết, chỉ mở modal upload
+                openUploadModal(viewDetailsContract);
+              }}
+            >
+              {viewDetailsContract.status === 'REJECTED' ? 'Upload lại' : 'Upload hợp đồng'}
+            </Button>
+          )}
         </Modal.Footer>
       </Modal>
     </div>

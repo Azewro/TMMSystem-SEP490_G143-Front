@@ -4,6 +4,7 @@ import { FaBell, FaCheck, FaExclamationCircle, FaInfoCircle, FaCheckCircle, FaTi
 import { notificationService } from '../../api/notificationService';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { useAuth } from '../../context/AuthContext';
 
 const NotificationDropdown = ({ userId: propUserId }) => {
   const [notifications, setNotifications] = useState([]);
@@ -11,9 +12,10 @@ const NotificationDropdown = ({ userId: propUserId }) => {
   const [loading, setLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth(); // Get user from AuthContext
   
-  // Lấy userId từ prop hoặc sessionStorage
-  const userId = propUserId || sessionStorage.getItem('userId');
+  // Lấy userId từ prop hoặc context
+  const userId = propUserId || user?.id;
 
   const loadNotifications = useCallback(async () => {
     if (!userId) return;
@@ -26,18 +28,20 @@ const NotificationDropdown = ({ userId: propUserId }) => {
       setUnreadCount(sorted.filter(n => !n.read).length);
     } catch (error) {
       console.error('Error loading notifications:', error);
-      toast.error('Không thể tải thông báo');
+      // toast.error('Không thể tải thông báo'); // Comment out to avoid spamming
     } finally {
       setLoading(false);
     }
   }, [userId]);
 
   useEffect(() => {
-    loadNotifications();
-    // Auto refresh mỗi 30 giây
-    const interval = setInterval(loadNotifications, 30000);
-    return () => clearInterval(interval);
-  }, [loadNotifications]);
+    if (userId) {
+        loadNotifications();
+        // Auto refresh mỗi 30 giây
+        const interval = setInterval(loadNotifications, 30000);
+        return () => clearInterval(interval);
+    }
+  }, [userId, loadNotifications]);
 
   const handleMarkAsRead = async (notificationId, e) => {
     e.stopPropagation();
@@ -51,6 +55,7 @@ const NotificationDropdown = ({ userId: propUserId }) => {
 
   const handleMarkAllAsRead = async (e) => {
     e.stopPropagation();
+    if (!userId) return;
     try {
       await notificationService.markAllAsRead(userId);
       await loadNotifications();
@@ -65,7 +70,7 @@ const NotificationDropdown = ({ userId: propUserId }) => {
     if (!notification.read) {
       try {
         await notificationService.markAsRead(notification.id);
-        await loadNotifications();
+        // Không cần load lại ngay, để user thấy sự thay đổi sau khi quay lại
       } catch (error) {
         console.error('Error marking as read:', error);
       }
@@ -73,22 +78,41 @@ const NotificationDropdown = ({ userId: propUserId }) => {
 
     // Điều hướng dựa trên referenceType và referenceId
     if (notification.referenceType && notification.referenceId) {
+      const role = user?.role; // Lấy vai trò từ context
       switch (notification.referenceType) {
         case 'RFQ':
-          navigate(`/sales/rfqs/${notification.referenceId}`);
+          if (role === 'director') {
+            navigate(`/director/rfqs`);
+          } else if (role === 'sale') {
+            navigate(`/sales/my-rfqs`);
+          }
+          // Thêm các role khác nếu cần
           break;
         case 'QUOTATION':
-          navigate(`/sales/quotations/${notification.referenceId}`);
+           if (role === 'customer') {
+            navigate(`/customer/quotations/${notification.referenceId}`);
+          } else {
+            navigate(`/sales/quotes/${notification.referenceId}`);
+          }
           break;
         case 'CONTRACT':
-          navigate(`/sales/contracts/${notification.referenceId}`);
+          if (role === 'director') {
+            navigate(`/director/contract-approval`);
+          } else if (role === 'customer') {
+            navigate(`/customer/orders`);
+          }
           break;
+        case 'PRODUCTION_PLAN':
+            if (role === 'director') {
+                navigate(`/director/production-plan-approvals`);
+            }
+            break;
         default:
           // Không điều hướng nếu không có route tương ứng
           break;
       }
     }
-    setShowDropdown(false);
+    setShowDropdown(false); // Đóng dropdown sau khi click
   };
 
   const getTypeIcon = (type) => {

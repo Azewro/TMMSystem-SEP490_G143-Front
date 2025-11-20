@@ -633,7 +633,7 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
     <Modal show={show} onHide={() => handleClose(false)} size="lg" backdrop="static">
       <Modal.Header closeButton={!isEditMode}>
         <Modal.Title>
-          Chi tiết RFQ #{rfqId}
+          Chi tiết Yêu cầu báo giá {rfq?.code || rfqId}
           {rfq?.status && (
             <Badge bg={rfq.status === 'DRAFT' ? 'secondary' : rfq.status === 'SENT' ? 'info' : rfq.status === 'FORWARDED_TO_PLANNING' ? 'warning' : rfq.status === 'PRELIMINARY_CHECKED' ? 'primary' : rfq.status === 'QUOTED' ? 'success' : rfq.status === 'REJECTED' ? 'danger' : 'secondary'} className="ms-3">
               {rfq.status === 'DRAFT' ? 'Bản nháp' : rfq.status === 'SENT' ? 'Chờ xác nhận' : rfq.status === 'FORWARDED_TO_PLANNING' ? 'Đã chuyển Planning' : rfq.status === 'PRELIMINARY_CHECKED' ? 'Đã kiểm tra sơ bộ' : rfq.status === 'QUOTED' ? 'Đã báo giá' : rfq.status === 'REJECTED' ? 'Đã từ chối' : rfq.status}

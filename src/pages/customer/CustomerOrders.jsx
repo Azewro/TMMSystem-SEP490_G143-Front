@@ -3,7 +3,7 @@ import { Container, Card, Table, Badge, Button, Spinner, Alert, Form, InputGroup
 import { FaEye, FaSearch, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
-import CustomerSidebar from '../../components/common/CustomerSidebar';
+import Sidebar from '../../components/common/Sidebar';
 import Pagination from '../../components/Pagination';
 import { contractService } from '../../api/contractService';
 import { useAuth } from '../../context/AuthContext';
@@ -163,7 +163,7 @@ const CustomerOrders = () => {
     <div className="customer-layout">
       <Header />
       <div className="d-flex">
-        <CustomerSidebar />
+        <Sidebar />
         <div className="flex-grow-1" style={{ backgroundColor: '#f8f9fa', minHeight: 'calc(100vh - 70px)' }}>
           <Container fluid className="p-4">
             <h4 className="mb-3">Danh sách đơn hàng</h4>

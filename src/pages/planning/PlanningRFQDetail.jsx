@@ -362,31 +362,28 @@ const PlanningRFQDetail = () => {
                                                       <Col md={12}>
                                                         <Card border={canCheckCapacity ? 'primary' : 'light'}>
                                                           <Card.Body>
-                                                            <h6 className="mb-3"><FaCogs className="me-2" />Bước 2: Kiểm tra năng lực máy móc</h6>
-                                                            <Row>
-                                                              <Col md={12} className="d-flex flex-column">
-                                                                <div className="d-flex justify-content-between align-items-center mb-2">
-                                                                  <span>Kiểm tra máy móc:</span>
-                                                                  <span>
-                                                                    {rfqData?.machineCapacitySufficient === true && <FaCheckCircle className="text-success" />}
-                                                                    {rfqData?.machineCapacitySufficient === false && <FaTimesCircle className="text-danger" />}
-                                                                  </span>
-                                                                </div>
-                                                                <div className="d-flex gap-2">
-                                                                  <Button variant="outline-info" size="sm" onClick={handleCapacityCheck} disabled={!canCheckCapacity || working || rfqData?.machineCapacitySufficient === true}>
-                                                                    {working ? 'Đang chạy...' : 'Chạy kiểm tra máy móc'}
+                                                            <div className="d-flex justify-content-between align-items-center">
+                                                              <div>
+                                                                <h6 className="mb-1"><FaCogs className="me-2" />Bước 2: Kiểm tra năng lực máy móc</h6>
+                                                                <p className="text-muted mb-0 small">
+                                                                  {hasCheckedCapacity 
+                                                                    ? `Trạng thái: ${rfqData?.machineCapacitySufficient ? 'Đủ năng lực' : 'Không đủ năng lực'}`
+                                                                    : 'Chạy kiểm tra để xác định năng lực sản xuất.'
+                                                                  }
+                                                                </p>
+                                                              </div>
+                                                              <div className="d-flex align-items-center gap-2">
+                                                                {canShowReport && (
+                                                                  <Button variant="outline-secondary" size="sm" onClick={() => setShowCapacityReportModal(true)}>
+                                                                    Báo cáo chi tiết
                                                                   </Button>
-                                                                  {canShowReport && (
-                                                                    <Button variant="outline-primary" size="sm" onClick={() => setShowCapacityReportModal(true)}>
-                                                                      Báo cáo chi tiết
-                                                                    </Button>
-                                                                  )}
-                                                                  {rfqData?.machineCapacitySufficient === false && (
-                                                                    <FaTimesCircle className="text-danger ms-2" style={{ fontSize: '1.2rem', marginTop: '0.25rem' }} />
-                                                                  )}
-                                                                </div>
-                                                              </Col>
-                                                            </Row>
+                                                                )}
+                                                                <Button variant="primary" onClick={handleCapacityCheck} disabled={!canCheckCapacity || working || rfqData?.machineCapacitySufficient === true}>
+                                                                  {working ? <Spinner as="span" animation="border" size="sm" /> : <FaCogs />}
+                                                                  <span className="ms-2">{working ? 'Đang chạy...' : 'Chạy kiểm tra'}</span>
+                                                                </Button>
+                                                              </div>
+                                                            </div>
                                                           </Card.Body>
                                                         </Card>
                                                       </Col>
@@ -652,7 +649,7 @@ const PlanningRFQDetail = () => {
                   />
                 </Form.Group>
                 <hr />
-                <h5 className="text-end">Giá tổng: <span className="text-success">{(pricingData.finalTotalPrice || 0).toLocaleString('vi-VN')} ₫</span></h5>
+                <h5 className="text-end">Giá tổng: <span className="text-success">{Math.round(pricingData.finalTotalPrice || 0).toLocaleString('vi-VN')} ₫</span></h5>
                 <Form.Group className="mt-3">
                   <Form.Label>Ghi chú</Form.Label>
                   <Form.Control as="textarea" rows={3} value={quoteData.notes} onChange={(e) => setQuoteData(prev => ({ ...prev, notes: e.target.value }))} />

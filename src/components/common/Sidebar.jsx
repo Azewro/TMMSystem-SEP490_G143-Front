@@ -15,14 +15,14 @@ const Sidebar = () => {
       path: '/',
     },
     {
-      icon: FaFileInvoice,
-      label: 'Báo giá của tôi',
-      path: '/customer/quotations',
-    },
-    {
       icon: FaFileInvoice, // Reusing FaFileInvoice for "Yêu cầu đã gửi"
       label: 'Yêu cầu đã gửi',
       path: '/customer/rfqs',
+    },
+    {
+      icon: FaFileInvoice,
+      label: 'Báo giá của tôi',
+      path: '/customer/quotations',
     },
     {
       icon: FaShoppingCart,

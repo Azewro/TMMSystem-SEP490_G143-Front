@@ -16,15 +16,20 @@ export const productionPlanService = {
     return response.data;
   },
 
-  submitForApproval: async (planId, notes) => {
-    const response = await apiClient.put(`/v1/production-plans/${planId}/submit`, { notes });
-    return response.data;
-  },
+    async submitForApproval(planId, notes) {
+        const response = await apiClient.put(`/v1/production-plans/${planId}/submit`, { notes });
+        return response.data;
+    },
 
-  approvePlan: async (planId, approvalNotes) => {
-    const response = await apiClient.put(`/v1/production-plans/${planId}/approve`, { approvalNotes });
-    return response.data;
-  },
+    async calculateSchedule(planId) {
+        const response = await apiClient.post(`/v1/production-plans/${planId}/calculate-schedule`);
+        return response.data;
+    },
+
+    async approve(planId, notes) {
+        const response = await apiClient.put(`/v1/production-plans/${planId}/approve`, { approvalNotes: notes });
+        return response.data;
+    },
 
   rejectPlan: async (planId, rejectionReason) => {
     const response = await apiClient.put(`/v1/production-plans/${planId}/reject`, { rejectionReason });

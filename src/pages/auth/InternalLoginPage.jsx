@@ -56,10 +56,24 @@ const InternalLoginPage = () => {
         navigate('/sales/rfqs');
       } else if (userRole?.includes('TECHNICAL') || userRole === 'TECHNICAL_DEPARTMENT') {
         navigate('/technical/machines');
+      } else if (
+        userRole?.includes('PRODUCT_PROCESS_LEADER') ||
+        userRole?.includes('PRODUCT PROCESS LEADER') ||
+        userRole?.includes('PROCESS_LEADER') ||
+        userRole?.includes('PROCESS LEADER') ||
+        userRole?.includes('PRODUCTION_LEADER')
+      ) {
+        // Product Process Leader: vào danh sách đơn của tôi
+        navigate('/leader/orders');
+      } else if (userRole?.includes('QA') || userRole?.includes('QUALITY')) {
+        // QA: đi thẳng vào danh sách đơn hàng cần kiểm tra
+        navigate('/qa/orders');
       } else if (userRole?.includes('PRODUCTION') && userRole?.includes('MANAGER')) {
-        navigate('/production/material-stock');
+        // Production Manager
+        navigate('/production/orders');
       } else {
-        navigate('/internal/quote-requests'); // default for other internal roles
+        // Mặc định cho các role nội bộ khác
+        navigate('/internal/quote-requests');
       }
       
     } catch (err) {

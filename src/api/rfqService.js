@@ -31,6 +31,7 @@ export const rfqService = {
       if (params.search && params.search.trim()) paginationParams.search = params.search.trim();
       if (params.status && params.status.trim()) paginationParams.status = params.status.trim();
       if (params.customerId) paginationParams.customerId = params.customerId;
+      if (params.createdDate && params.createdDate.trim()) paginationParams.createdDate = params.createdDate.trim();
       
       const response = await apiClient.get('/v1/rfqs', { params: paginationParams });
       return response.data;
@@ -82,38 +83,134 @@ export const rfqService = {
 
   async getAssignedRfqsForSales(page = 0, size = 10, search, status) {
     try {
-      const userId = sessionStorage.getItem('userId');
-      if (!userId) {
+      const userIdStr = sessionStorage.getItem('userId');
+      if (!userIdStr) {
         throw new Error('User ID not found. Please log in.');
       }
-      const params = { page, size };
-      if (search) params.search = search;
-      if (status) params.status = status;
       
-      const response = await apiClient.get('/v1/rfqs/for-sales', {
-        headers: {
-          'X-User-Id': userId
-        },
-        params
+      // Backend expects Long (numeric) in header
+      // Spring can convert string to Long, but ensure it's a valid number
+      const userId = parseInt(userIdStr, 10);
+      if (isNaN(userId) || userId <= 0) {
+        throw new Error('Invalid User ID format. Please log in again.');
+      }
+      
+      // Build params object - only include non-empty values
+      const params = { 
+        page: page || 0, 
+        size: size || 10 
+      };
+      
+      // Only add search parameter if it's a non-empty string after trimming
+      // Backend checks: search != null && !search.trim().isEmpty()
+      if (search && typeof search === 'string') {
+        const trimmedSearch = search.trim();
+        if (trimmedSearch.length > 0) {
+          params.search = trimmedSearch;
+        }
+      }
+      
+      // Only add status parameter if it has a value
+      // Backend checks: status != null && !status.trim().isEmpty()
+      if (status && typeof status === 'string') {
+        const trimmedStatus = status.trim();
+        if (trimmedStatus.length > 0) {
+          params.status = trimmedStatus;
+        }
+      }
+      
+      // Log request details for debugging
+      console.log('Request to /v1/rfqs/for-sales:', {
+        userId: userId,
+        params: params,
+        headerValue: userId.toString()
       });
+      
+      // Ensure header is set correctly - explicitly set headers
+      const config = {
+        params: params
+      };
+      
+      // Set headers explicitly to ensure they're not lost
+      // Use both formats to ensure compatibility
+      if (!config.headers) {
+        config.headers = {};
+      }
+      // Set header with exact case as backend expects
+      config.headers['X-User-Id'] = userId.toString();
+      // Also set lowercase version for compatibility
+      config.headers['x-user-id'] = userId.toString();
+      
+      console.log('Request config:', {
+        url: '/v1/rfqs/for-sales',
+        method: 'GET',
+        headers: config.headers,
+        params: config.params
+      });
+      
+      const response = await apiClient.get('/v1/rfqs/for-sales', config);
       return response.data;
     } catch (error) {
-      console.error("Error fetching assigned RFQs for sales:", error.response?.data);
-      throw new Error(error.response?.data?.message || 'Failed to fetch assigned RFQs for sales');
+      // Enhanced error logging - log full response for debugging
+      console.error("Error fetching assigned RFQs for sales:", {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        fullResponse: error.response,
+        message: error.message,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          headers: error.config?.headers,
+          params: error.config?.params
+        }
+      });
+      
+      // Handle 400 Bad Request specifically
+      if (error.response?.status === 400) {
+        // Try to get error message from various possible fields
+        const responseData = error.response?.data;
+        let backendMessage = 'Yêu cầu không hợp lệ';
+        
+        if (responseData) {
+          // Try different possible error message fields
+          backendMessage = responseData.message 
+            || responseData.error 
+            || responseData.detail
+            || responseData.msg
+            || (typeof responseData === 'string' ? responseData : JSON.stringify(responseData))
+            || `Bad Request: ${error.response?.statusText || 'Invalid request parameters'}`;
+        } else {
+          backendMessage = `Bad Request: ${error.response?.statusText || 'Invalid request parameters'}`;
+        }
+        
+        console.error('Backend error message:', backendMessage);
+        throw new Error(backendMessage);
+      }
+      
+      const errorMessage = error.response?.data?.message 
+        || error.response?.data?.error 
+        || error.response?.data?.detail
+        || error.message 
+        || 'Failed to fetch assigned RFQs for sales';
+      throw new Error(errorMessage);
     }
   },
 
-  async getAssignedRfqsForPlanning(page = 0, size = 10, search, status) {
+  async getAssignedRfqsForPlanning(page = 0, size = 10, search, status, createdDate) {
     try {
-      const params = { page, size, search, status };
-      // According to business logic, Planning department sees all RFQs that are ready.
-      // We can use the generic getRfqs and filter by status on the component side,
-      // or pass a specific status if the API supports it.
-      // Re-using getRfqs is the most flexible approach.
-      return await this.getRfqs(params);
+      // Use the general RFQ list endpoint with status filter for planning-related statuses
+      // Planning can view RFQs with status: FORWARDED_TO_PLANNING, RECEIVED_BY_PLANNING, QUOTED
+      const params = { page, size };
+      if (search) params.search = search;
+      if (status) params.status = status;
+      if (createdDate) params.createdDate = createdDate;
+      
+      const response = await apiClient.get('/v1/rfqs', { params });
+      return response.data;
     } catch (error) {
-      console.error("Error fetching RFQs for planning:", error.message);
-      throw new Error(error.message || 'Failed to fetch RFQs for planning');
+      console.error("Error fetching RFQs for planning:", error.response?.data);
+      throw new Error(error.response?.data?.message || 'Failed to fetch RFQs for planning');
     }
   },
 

@@ -1,0 +1,79 @@
+/* Shared button / badge styles for internal dashboards */
+
+.btn-back-link {
+  color: #495057;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-back-link:hover {
+  color: #212529;
+  text-decoration: none;
+}
+
+.btn-pill-primary {
+  border-radius: 999px;
+  padding-inline: 1.25rem;
+}
+
+.btn-pill-outline {
+  border-radius: 999px;
+  padding-inline: 1.25rem;
+  background-color: #ffffff;
+}
+
+.status-badge {
+  border-radius: 999px !important;
+  padding: 0.25rem 0.9rem;
+  font-size: 0.75rem;
+}
+
+.order-summary-card {
+  gap: 1.5rem;
+}
+
+.order-summary__identity {
+  min-width: 220px;
+}
+
+.order-summary__qr {
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
+  border: 1px dashed #ced4da;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #adb5bd;
+  font-size: 24px;
+}
+
+.order-summary__label {
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+
+.order-summary__value {
+  font-size: 1rem;
+  color: #212529;
+}
+
+.order-summary__value--bold {
+  font-weight: 600;
+}
+
+.order-summary__sub {
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+.order-summary__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  width: 100%;
+}
+
+

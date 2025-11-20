@@ -15,6 +15,7 @@ const DirectorRfqList = () => {
   
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedRfqId, setSelectedRfqId] = useState(null);
+  const [isViewMode, setIsViewMode] = useState(false);
 
   // Search, Filter and Pagination state
   const [searchTerm, setSearchTerm] = useState('');
@@ -127,8 +128,9 @@ const DirectorRfqList = () => {
     setCurrentPage(1);
   }, [searchTerm, statusFilter, createdDateFilter]);
 
-  const handleOpenAssignModal = (rfqId) => {
+  const handleOpenAssignModal = (rfqId, viewMode = false) => {
     setSelectedRfqId(rfqId);
+    setIsViewMode(viewMode);
     setShowAssignModal(true);
   };
 
@@ -303,7 +305,11 @@ const DirectorRfqList = () => {
                                 </Badge>
                               </td>
                               <td>
-                                <Button variant="primary" size="sm" onClick={() => handleOpenAssignModal(rfq.id)}>
+                                <Button 
+                                  variant="primary" 
+                                  size="sm" 
+                                  onClick={() => handleOpenAssignModal(rfq.id, rfq.status !== 'DRAFT' || !!rfq.assignedSalesId)}
+                                >
                                   {rfq.status === 'DRAFT' && !rfq.assignedSalesId ? 'Phân công' : 'Xem'}
                                 </Button>
                               </td>
@@ -340,6 +346,7 @@ const DirectorRfqList = () => {
           onHide={handleCloseAssignModal}
           rfqId={selectedRfqId}
           onAssignmentSuccess={handleAssignmentSuccess}
+          isViewMode={isViewMode}
         />
       )}
     </div>

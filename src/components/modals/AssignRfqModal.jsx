@@ -11,12 +11,13 @@ const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString('vi-VN');
 };
 
-const AssignRfqModal = ({ show, onHide, rfqId, onAssignmentSuccess }) => {
+const AssignRfqModal = ({ show, onHide, rfqId, onAssignmentSuccess, isViewMode = false }) => {
   const [salesUsers, setSalesUsers] = useState([]);
   const [rfqDetails, setRfqDetails] = useState(null);
   const [selectedSalesId, setSelectedSalesId] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [assigning, setAssigning] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -42,10 +43,11 @@ const AssignRfqModal = ({ show, onHide, rfqId, onAssignmentSuccess }) => {
           if (rfqData.customerId) {
             try {
               const customer = await customerService.getCustomerById(rfqData.customerId);
-              finalRfqData.contactPerson = rfqData.contactPerson || customer.contactPerson || 'N/A';
-              finalRfqData.contactPhone = rfqData.contactPhone || customer.phoneNumber || 'N/A';
-              finalRfqData.contactEmail = rfqData.contactEmail || customer.email || 'N/A';
-              finalRfqData.contactAddress = rfqData.contactAddress || customer.address || 'N/A';
+              // Use only data from the RFQ itself, do not fall back to customer profile
+              finalRfqData.contactPerson = rfqData.contactPerson || 'N/A';
+              finalRfqData.contactPhone = rfqData.contactPhone || 'N/A';
+              finalRfqData.contactEmail = rfqData.contactEmail || 'N/A';
+              finalRfqData.contactAddress = rfqData.contactAddress || 'N/A';
             } catch (customerError) {
               console.error("Could not fetch customer details:", customerError);
             }
@@ -107,12 +109,10 @@ const AssignRfqModal = ({ show, onHide, rfqId, onAssignmentSuccess }) => {
     onHide();
   };
 
-  const isViewMode = rfqDetails?.status !== 'DRAFT';
-
   return (
     <Modal show={show} onHide={handleClose} centered size="lg">
       <Modal.Header closeButton>
-        <Modal.Title>{isViewMode ? 'Chi tiết RFQ' : 'Phân công cho'} {rfqDetails?.rfqNumber || rfqId}</Modal.Title>
+        <Modal.Title>{isViewMode ? `Chi tiết Yêu cầu báo giá ${rfqDetails?.rfqNumber || ''}` : `Phân công cho RFQ ${rfqDetails?.rfqNumber || ''}`}</Modal.Title>
       </Modal.Header>
       <Modal.Body>
         {loading ? (
@@ -130,6 +130,7 @@ const AssignRfqModal = ({ show, onHide, rfqId, onAssignmentSuccess }) => {
                   <Col md={6}><strong>Email:</strong> {rfqDetails.contactEmail || 'N/A'}</Col>
                   <Col md={6}><strong>Địa chỉ nhận hàng:</strong> {rfqDetails.contactAddress || 'N/A'}</Col>
                   <Col md={6}><strong>Phương thức liên hệ:</strong> {rfqDetails.contactMethod === 'PHONE' ? 'Điện thoại' : rfqDetails.contactMethod === 'EMAIL' ? 'Email' : rfqDetails.contactMethod || 'N/A'}</Col>
+                  {rfqDetails.employeeCode && <Col md={12}><strong>Mã nhân viên Sale (khách nhập):</strong> {rfqDetails.employeeCode}</Col>}
                 </Row>
                 <h6>Chi tiết sản phẩm</h6>
                 <Table striped bordered size="sm">
@@ -182,19 +183,13 @@ const AssignRfqModal = ({ show, onHide, rfqId, onAssignmentSuccess }) => {
         )}
       </Modal.Body>
       <Modal.Footer>
-        {isViewMode ? (
-          <Button variant="secondary" onClick={handleClose}>
-            Đóng
+        <Button variant="secondary" onClick={onHide}>
+          {isViewMode ? 'Đóng' : 'Hủy'}
+        </Button>
+        {!isViewMode && (
+          <Button variant="primary" onClick={handleAssign} disabled={assigning}>
+            {assigning ? <Spinner as="span" animation="border" size="sm" /> : 'Xác nhận'}
           </Button>
-        ) : (
-          <>
-            <Button variant="secondary" onClick={handleClose} disabled={submitting}>
-              Hủy
-            </Button>
-            <Button variant="primary" onClick={handleAssign} disabled={loading || submitting}>
-              {submitting ? <><Spinner size="sm" /> Đang phân công...</> : 'Xác nhận'}
-            </Button>
-          </>
         )}
       </Modal.Footer>
     </Modal>

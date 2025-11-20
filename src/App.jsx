@@ -22,7 +22,6 @@ import InternalDashboard from './pages/internal/Dashboard';
 import QuoteRequests from './pages/internal/QuoteRequests';
 
 // Customer Pages
-import CustomerDashboard from './pages/customer/Dashboard';
 import QuoteRequest from './pages/customer/QuoteRequest';
 import CustomerRfqs from './pages/customer/CustomerRfqs';
 import CustomerQuotations from './pages/customer/CustomerQuotations';
@@ -56,6 +55,15 @@ import MachineManagement from './pages/technical/MachineManagement';
 
 // Production Pages
 import MaterialStockManagement from './pages/production/MaterialStockManagement';
+import ProductionOrderList from './pages/production/ProductionOrderList';
+import ProductionOrderDetail from './pages/production/ProductionOrderDetail';
+import StageProgressDetail from './pages/production/StageProgressDetail';
+import LeaderOrderList from './pages/production/LeaderOrderList';
+import LeaderOrderDetail from './pages/production/LeaderOrderDetail';
+import LeaderStageProgress from './pages/production/LeaderStageProgress';
+import QaOrderList from './pages/production/QaOrderList';
+import QaOrderDetail from './pages/production/QaOrderDetail';
+import QaStageQualityCheck from './pages/production/QaStageQualityCheck';
 
 function App() {
   return (
@@ -83,7 +91,6 @@ function App() {
               <Route path="/internal/orders/:id" element={<OrderDetail />} />
 
               {/* Customer routes */}
-              <Route path="/customer/dashboard" element={<CustomerDashboard />} />
               <Route path="/customer/quote-request" element={<QuoteRequest />} />
               <Route path="/customer/rfqs" element={<CustomerRfqs />} />
               <Route path="/customer/quotations" element={<CustomerQuotations />} />
@@ -118,6 +125,19 @@ function App() {
 
               {/* Production routes */}
               <Route path="/production/material-stock" element={<MaterialStockManagement />} />
+              <Route path="/production/orders" element={<ProductionOrderList />} />
+              <Route path="/production/orders/:orderId" element={<ProductionOrderDetail />} />
+              <Route path="/production/orders/:orderId/stages/:stageCode" element={<StageProgressDetail />} />
+
+              {/* Leader (product process leader) routes */}
+              <Route path="/leader/orders" element={<LeaderOrderList />} />
+              <Route path="/leader/orders/:orderId" element={<LeaderOrderDetail />} />
+              <Route path="/leader/orders/:orderId/progress" element={<LeaderStageProgress />} />
+
+              {/* QA routes */}
+              <Route path="/qa/orders" element={<QaOrderList />} />
+              <Route path="/qa/orders/:orderId" element={<QaOrderDetail />} />
+              <Route path="/qa/orders/:orderId/stages/:stageCode/check" element={<QaStageQualityCheck />} />
 
             </Routes>
           </div>
