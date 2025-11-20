@@ -159,7 +159,7 @@ const ProductionPlanApprovals = () => {
     setSuccess('');
 
     try {
-      await productionPlanService.approvePlan(selectedPlan.id, decision.trim() || undefined);
+      await productionPlanService.approve(selectedPlan.id, decision.trim() || undefined);
       setSuccess('Đã phê duyệt kế hoạch sản xuất. Lệnh sản xuất sẽ được tạo tự động.');
       closeModal();
       loadPlans();

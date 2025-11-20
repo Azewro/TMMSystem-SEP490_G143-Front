@@ -8,12 +8,34 @@ import { productionPlanService } from '../../api/productionPlanService';
 import { FaSync } from 'react-icons/fa';
 import '../../styles/QuoteRequests.css';
 
-const STATUS_LABELS = {
+const LOT_STATUS_LABELS = {
+  FORMING: { text: 'Đang gom đơn', variant: 'secondary' },
   READY_FOR_PLANNING: { text: 'Chờ lập kế hoạch', variant: 'info' },
-  PLANNING_IN_PROGRESS: { text: 'Đang lập kế hoạch', variant: 'primary' },
-  PLAN_SUBMITTED: { text: 'Đã gửi duyệt', variant: 'warning' },
+  PLANNING: { text: 'Đang lập kế hoạch', variant: 'primary' },
+  PLAN_APPROVED: { text: 'Đã có kế hoạch', variant: 'success' },
+  IN_PRODUCTION: { text: 'Đang sản xuất', variant: 'warning' },
   COMPLETED: { text: 'Hoàn thành', variant: 'success' },
+  CANCELED: { text: 'Đã huỷ', variant: 'danger' },
 };
+
+const PLAN_STATUS_LABELS = {
+  DRAFT: { text: 'Nháp', variant: 'secondary' },
+  PENDING_APPROVAL: { text: 'Chờ duyệt', variant: 'warning' },
+  APPROVED: { text: 'Đã duyệt', variant: 'success' },
+  REJECTED: { text: 'Bị từ chối', variant: 'danger' },
+  SUPERSEDED: { text: 'Đã thay thế', variant: 'dark' },
+};
+
+const STATUS_FILTER_OPTIONS = [
+  { value: '', label: 'Tất cả trạng thái' },
+  { value: 'FORMING', label: 'Đang gom đơn' },
+  { value: 'READY_FOR_PLANNING', label: 'Chờ lập kế hoạch' },
+  { value: 'PLANNING', label: 'Đang lập kế hoạch' },
+  { value: 'PLAN_APPROVED', label: 'Đã có kế hoạch' },
+  { value: 'IN_PRODUCTION', label: 'Đang sản xuất' },
+  { value: 'COMPLETED', label: 'Hoàn thành' },
+  { value: 'CANCELED', label: 'Đã huỷ' },
+];
 
 const formatDate = (value) => {
   if (!value) return '—';
@@ -105,20 +127,20 @@ const ProductionLots = () => {
             <Card>
               <Card.Header className="d-flex justify-content-between align-items-center">
                 <strong>Danh Sách Lô Sản Xuất</strong>
-                <Form.Group controlId="statusFilter" style={{ width: '250px' }}>
-                  <Form.Select 
+                <Form.Group controlId="statusFilter" style={{ width: '260px' }}>
+                  <Form.Select
                     size="sm"
-                    value={statusFilter} 
+                    value={statusFilter}
                     onChange={(e) => {
                       setStatusFilter(e.target.value);
-                      setCurrentPage(1); // Reset page when filter changes
+                      setCurrentPage(1);
                     }}
                   >
-                    <option value="">Tất cả trạng thái</option>
-                    <option value="READY_FOR_PLANNING">Chờ lập kế hoạch</option>
-                    <option value="PLANNING_IN_PROGRESS">Đang lập kế hoạch</option>
-                    <option value="PLAN_SUBMITTED">Đã gửi duyệt</option>
-                    <option value="COMPLETED">Hoàn thành</option>
+                    {STATUS_FILTER_OPTIONS.map((option) => (
+                      <option key={option.value || 'ALL'} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
                   </Form.Select>
                 </Form.Group>
               </Card.Header>
@@ -141,15 +163,17 @@ const ProductionLots = () => {
                           <th>Tổng SL</th>
                           <th>Đơn hàng</th>
                           <th>Ngày giao</th>
-                          <th>Trạng thái</th>
+                          <th>Trạng thái lô</th>
+                          <th>Trạng thái kế hoạch</th>
                           <th className="text-center">Thao tác</th>
                         </tr>
                       </thead>
                       <tbody>
                         {currentLots.map((lot) => {
-                          const statusConfig = STATUS_LABELS[lot.status] || { text: lot.status, variant: 'secondary' };
-                          const statusText = lot.currentPlanId ? 'Đã lập kế hoạch' : 'Chờ lập kế hoạch';
-                          const statusVariant = lot.currentPlanId ? 'dark' : statusConfig.variant;
+                          const lotStatus = LOT_STATUS_LABELS[lot.status] || { text: lot.status || '—', variant: 'secondary' };
+                          const planStatus = lot.currentPlanStatus
+                            ? (PLAN_STATUS_LABELS[lot.currentPlanStatus] || { text: lot.currentPlanStatus, variant: 'secondary' })
+                            : null;
                           return (
                             <tr key={lot.id}>
                               <td>{lot.lotCode}</td>
@@ -174,7 +198,16 @@ const ProductionLots = () => {
                                 )}
                               </td>
                               <td>{formatDate(lot.deliveryDateTarget || lot.contractDateMin)}</td>
-                              <td><Badge bg={statusVariant}>{statusText}</Badge></td>
+                              <td>
+                                <Badge bg={lotStatus.variant}>{lotStatus.text}</Badge>
+                              </td>
+                              <td>
+                                {planStatus ? (
+                                  <Badge bg={planStatus.variant}>{planStatus.text}</Badge>
+                                ) : (
+                                  <span className="text-muted">Chưa có</span>
+                                )}
+                              </td>
                               <td className="text-center">
                                 <Button 
                                   variant={lot.currentPlanId ? "secondary" : "success"} 

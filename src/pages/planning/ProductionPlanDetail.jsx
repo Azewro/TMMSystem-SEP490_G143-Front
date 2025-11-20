@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Container, Card, Button, Alert, Spinner, Form, Row, Col, Tabs, Tab } from 'react-bootstrap';
+import { Container, Card, Button, Alert, Spinner, Form, Row, Col, Tabs, Tab, Table, Badge } from 'react-bootstrap';
 import { useNavigate, useParams } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
@@ -51,6 +51,103 @@ const getStageTypeName = (stageType) => {
     return stageTypeMap[stageType] || stageType;
 };
 
+const formatDateTimeDisplay = (isoDate) => {
+    if (!isoDate) return '—';
+    try {
+        return new Date(isoDate).toLocaleString('vi-VN');
+    } catch (e) {
+        return isoDate;
+    }
+};
+
+const convertMinutesToHoursString = (minutes) => {
+    if (minutes === null || minutes === undefined) return '';
+    const hours = Number(minutes) / 60;
+    if (!Number.isFinite(hours)) return '';
+    return hours.toFixed(2);
+};
+
+const formatNumberValue = (value) => {
+    if (value === null || value === undefined || value === '') return '';
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return value;
+    return numeric.toLocaleString('vi-VN', { maximumFractionDigits: 2 });
+};
+
+const normalizeStage = (stage) => {
+    if (!stage) return stage;
+    const durationMinutes = stage.durationMinutes ?? stage.minRequiredDurationMinutes;
+    return {
+        ...stage,
+        assignedMachineId: stage.assignedMachineId ?? stage.assignedMachine?.id ?? stage.assignedMachine ?? '',
+        inChargeId: stage.inChargeId ?? stage.inChargeUserId ?? '',
+        inspectionById: stage.inspectionById ?? stage.qcUserId ?? '',
+        durationInHours: stage.durationInHours ?? (durationMinutes ? convertMinutesToHoursString(durationMinutes) : ''),
+    };
+};
+
+const normalizeStages = (stages = []) => stages.map((stage) => normalizeStage(stage));
+
+const DEFAULT_STAGE_TYPES = ['WARPING', 'WEAVING', 'DYEING', 'CUTTING', 'HEMMING', 'PACKAGING'];
+const NON_INTERNAL_MACHINE_STAGES = new Set(['DYEING', 'PACKAGING']);
+const DEFAULT_STAGE_DURATION_MINUTES = 4 * 60;
+const PROCESS_LEADER_KEYWORDS = ['product process leader', 'process leader'];
+
+const toDate = (value) => {
+    if (!value) return null;
+    try {
+        return new Date(value);
+        // eslint-disable-next-line no-empty
+    } catch (err) {}
+    return null;
+};
+
+const toIsoString = (date) => (date instanceof Date ? date.toISOString() : null);
+
+const addMinutes = (date, minutes) => {
+    const result = new Date(date);
+    result.setMinutes(result.getMinutes() + minutes);
+    return result;
+};
+
+const getDefaultProductionStart = () => {
+    const now = new Date();
+    const defaultStart = new Date(now);
+    defaultStart.setHours(8, 0, 0, 0);
+    if (defaultStart <= now) {
+        defaultStart.setDate(defaultStart.getDate() + 1);
+    }
+    return defaultStart;
+};
+
+const calculateDurationMinutes = (stage, plannedQuantity) => {
+    if (stage?.minRequiredDurationMinutes) {
+        return stage.minRequiredDurationMinutes;
+    }
+    if (stage?.capacityPerHour && plannedQuantity) {
+        const capacity = Number(stage.capacityPerHour);
+        if (!Number.isNaN(capacity) && capacity > 0) {
+            const hours = Number(plannedQuantity) / capacity;
+            if (!Number.isNaN(hours) && hours > 0) {
+                return Math.round(hours * 60);
+            }
+        }
+    }
+    return DEFAULT_STAGE_DURATION_MINUTES;
+};
+
+const buildFallbackStages = () => {
+    const timestamp = Date.now();
+    return DEFAULT_STAGE_TYPES.map((type, index) =>
+        normalizeStage({
+            id: `new-stage-${timestamp}-${index + 1}`,
+            stageType: type,
+            sequenceNo: index + 1,
+            status: 'PENDING',
+        })
+    );
+};
+
 
 const ProductionPlanDetail = () => {
     const { id } = useParams();
@@ -69,6 +166,103 @@ const ProductionPlanDetail = () => {
     const [machines, setMachines] = useState([]);
     const [inChargeUsers, setInChargeUsers] = useState([]);
     const [qcUsers, setQcUsers] = useState([]);
+    const [stageSuggestions, setStageSuggestions] = useState({});
+    const [stageSuggestionsLoading, setStageSuggestionsLoading] = useState({});
+    const [stageConflicts, setStageConflicts] = useState({});
+    const [stageConflictsLoading, setStageConflictsLoading] = useState({});
+    const [stageActionLoading, setStageActionLoading] = useState({});
+
+    const mergeMachinesWithStages = useCallback((baseMachines = [], stages = []) => {
+        const machineMap = new Map();
+        baseMachines.forEach(machine => {
+            if (machine?.id) {
+                machineMap.set(machine.id, machine);
+            }
+        });
+        stages.forEach(stage => {
+            if (stage?.assignedMachineId && !machineMap.has(stage.assignedMachineId)) {
+                machineMap.set(stage.assignedMachineId, {
+                    id: stage.assignedMachineId,
+                    name: stage.assignedMachineName || stage.assignedMachineCode || `Máy #${stage.assignedMachineId}`,
+                    code: stage.assignedMachineCode,
+                });
+            }
+        });
+        return Array.from(machineMap.values());
+    }, []);
+
+    const replaceStageInEditablePlan = useCallback((updatedStage) => {
+        if (!updatedStage) return;
+        const normalizedStage = normalizeStage(updatedStage);
+        setEditablePlan(prev => {
+            if (!prev?.details?.length) {
+                return prev;
+            }
+            const updatedDetails = prev.details.map(detail => ({
+                ...detail,
+                stages: detail.stages.map(stage =>
+                    stage.id === normalizedStage.id ? { ...stage, ...normalizedStage } : stage
+                )
+            }));
+            return {
+                ...prev,
+                details: updatedDetails
+            };
+        });
+        if (normalizedStage.assignedMachineId) {
+            setMachines(prev => mergeMachinesWithStages(prev, [normalizedStage]));
+        }
+    }, [mergeMachinesWithStages]);
+
+    const autoFillStageTimes = useCallback(async (planId, stages, plannedQuantity) => {
+        if (!Array.isArray(stages) || stages.length === 0) return null;
+        const sortedStages = [...stages].sort((a, b) => (a.sequenceNo || 0) - (b.sequenceNo || 0));
+        let timelineCursor = sortedStages.reduce((cursor, stage) => {
+            const existingEnd = toDate(stage.plannedEndTime);
+            if (existingEnd && (!cursor || existingEnd < cursor)) {
+                return existingEnd;
+            }
+            return cursor;
+        }, null);
+        if (!timelineCursor) {
+            timelineCursor = getDefaultProductionStart();
+        }
+
+        const updates = [];
+        sortedStages.forEach(stage => {
+            const hasStart = Boolean(stage.plannedStartTime);
+            const hasEnd = Boolean(stage.plannedEndTime);
+            if (hasStart && hasEnd) {
+                timelineCursor = toDate(stage.plannedEndTime) || timelineCursor;
+                return;
+            }
+            const durationMinutes = calculateDurationMinutes(stage, plannedQuantity);
+            const startTime = hasStart ? toDate(stage.plannedStartTime) : new Date(timelineCursor);
+            const endTime = hasEnd ? toDate(stage.plannedEndTime) : addMinutes(startTime, durationMinutes);
+            timelineCursor = new Date(endTime);
+            updates.push({
+                stageId: stage.id,
+                payload: {
+                    plannedStartTime: toIsoString(startTime),
+                    plannedEndTime: toIsoString(endTime),
+                    minRequiredDurationMinutes: durationMinutes
+                }
+            });
+        });
+
+        if (updates.length === 0) {
+            return null;
+        }
+
+        await Promise.all(
+            updates.map(({ stageId, payload }) => productionPlanService.updateStage(stageId, payload))
+        );
+        const [updatedPlan, refreshedStages] = await Promise.all([
+            productionPlanService.calculateSchedule(planId),
+            productionPlanService.getPlanStages(planId)
+        ]);
+        return { updatedPlan, refreshedStages };
+    }, []);
 
     const loadInitialData = useCallback(async () => {
         setLoading(true);
@@ -81,7 +275,7 @@ const ProductionPlanDetail = () => {
             } catch (err) {
                 console.warn('Could not fetch stages separately, using plan details:', err);
             }
-            
+
             const [allProducts, contractDetails, consumptionData, allUsers, allMachines] = await Promise.all([
                 productService.getAllProducts(),
                 contractService.getOrderDetails(planData.contractId),
@@ -101,33 +295,43 @@ const ProductionPlanDetail = () => {
                 setMaterialInfo('Không có thông tin hoặc không cần NVL.');
             }
 
-            let planStages = stagesData && stagesData.length > 0 ? stagesData : 
-                (planData.details && planData.details.length > 0 && planData.details[0].stages ? planData.details[0].stages : []);
-            
+            let planStages = [];
+            if (Array.isArray(stagesData) && stagesData.length > 0) {
+                planStages = normalizeStages(stagesData);
+            } else if (planData.details && planData.details.length > 0) {
+                const inlineStages = planData.details[0]?.stages || [];
+                planStages = normalizeStages(inlineStages);
+            }
+
             if (planStages.length === 0) {
                 const mainProductItem = contractDetails?.orderItems?.[0];
                 const mainProduct = mainProductItem ? productMap.get(mainProductItem.productId) : null;
                 const totalContractQuantity = contractDetails?.orderItems?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
-                
+
                 planData.productName = mainProduct?.name || 'Không có tên sản phẩm';
                 planData.sizeSnapshot = mainProduct?.standardDimensions || 'Không có kích thước';
                 planData.plannedQuantity = totalContractQuantity;
 
-                planStages = [
-                    { id: `new-stage-${Date.now()}-1`, stageType: 'WARPING', sequenceNo: 1, status: 'PENDING' },
-                    { id: `new-stage-${Date.now()}-2`, stageType: 'WEAVING', sequenceNo: 2, status: 'PENDING' },
-                    { id: `new-stage-${Date.now()}-3`, stageType: 'DYEING', sequenceNo: 3, status: 'PENDING' },
-                    { id: `new-stage-${Date.now()}-4`, stageType: 'CUTTING', sequenceNo: 4, status: 'PENDING' },
-                    { id: `new-stage-${Date.now()}-5`, stageType: 'HEMMING', sequenceNo: 5, status: 'PENDING' },
-                    { id: `new-stage-${Date.now()}-6`, stageType: 'PACKAGING', sequenceNo: 6, status: 'PENDING' },
-                ];
+                planStages = buildFallbackStages();
             }
-            
+
             const lotInfo = planData.lot || {};
             const lotCode = lotInfo.lotCode || planData.lotCode || planData.planCode?.replace('PP', 'BATCH') || '';
             const productName = lotInfo.productName || planData.productName || planData.details?.[0]?.productName || '';
             const sizeSnapshot = lotInfo.sizeSnapshot || planData.sizeSnapshot || planData.details?.[0]?.sizeSnapshot || '';
             const plannedQuantity = lotInfo.totalQuantity || planData.plannedQuantity || planData.details?.[0]?.plannedQuantity || 0;
+
+            const hasMissingTimes = planStages.some(stage => !stage.plannedStartTime || !stage.plannedEndTime);
+            if (hasMissingTimes && planData.status === 'DRAFT') {
+                const autoFillResult = await autoFillStageTimes(planData.id, planStages, plannedQuantity);
+                if (autoFillResult?.refreshedStages) {
+                    planStages = normalizeStages(autoFillResult.refreshedStages);
+                }
+                if (autoFillResult?.updatedPlan) {
+                    planData.proposedStartDate = autoFillResult.updatedPlan.proposedStartDate;
+                    planData.proposedEndDate = autoFillResult.updatedPlan.proposedEndDate;
+                }
+            }
             
             if (!planData.details || planData.details.length === 0) {
                 const mainProductItem = contractDetails?.orderItems?.[0];
@@ -141,7 +345,7 @@ const ProductionPlanDetail = () => {
                     productName: productName || mainProduct?.name || 'Không có tên sản phẩm',
                     sizeSnapshot: sizeSnapshot || mainProduct?.standardDimensions || 'Không có kích thước',
                     plannedQuantity: plannedQuantity || totalContractQuantity,
-                    stages: planStages
+                    stages: planStages.map((stage) => ({ ...stage }))
                 }];
             } else {
                 planData.details = planData.details.map(detail => {
@@ -152,7 +356,7 @@ const ProductionPlanDetail = () => {
                         productName: detail.productName || productName || product?.name || 'Không có tên sản phẩm',
                         sizeSnapshot: detail.sizeSnapshot || sizeSnapshot || product?.standardDimensions || 'Không có kích thước',
                         plannedQuantity: detail.plannedQuantity || plannedQuantity,
-                        stages: detail.stages || planStages
+                        stages: detail.stages ? normalizeStages(detail.stages) : planStages.map((stage) => ({ ...stage }))
                     };
                 });
             }
@@ -166,11 +370,20 @@ const ProductionPlanDetail = () => {
             setEditablePlan(JSON.parse(JSON.stringify(planData)));
 
             const machinesArray = allMachines?.content || (Array.isArray(allMachines) ? allMachines : []);
-            setMachines(machinesArray);
+            setMachines(mergeMachinesWithStages(machinesArray, planStages));
 
             const usersArray = allUsers?.content || (Array.isArray(allUsers) ? allUsers : []);
-            setInChargeUsers(usersArray.filter(u => u.roleName && (u.roleName.toLowerCase().includes('worker') || u.roleName.toLowerCase().includes('planning'))));
+            const processLeaders = usersArray.filter(u => {
+                const role = u.roleName ? u.roleName.toLowerCase() : '';
+                return PROCESS_LEADER_KEYWORDS.some(keyword => role.includes(keyword));
+            });
+            setInChargeUsers(processLeaders.length ? processLeaders : usersArray);
             setQcUsers(usersArray.filter(u => u.roleName && u.roleName.toLowerCase() === 'quality assurance department'));
+            setStageSuggestions({});
+            setStageSuggestionsLoading({});
+            setStageConflicts({});
+            setStageConflictsLoading({});
+            setStageActionLoading({});
 
         } catch (err) {
             console.error('Failed to load initial data', err);
@@ -179,7 +392,7 @@ const ProductionPlanDetail = () => {
         } finally {
             setLoading(false);
         }
-    }, [id]);
+    }, [autoFillStageTimes, id, mergeMachinesWithStages]);
 
     useEffect(() => {
         if (id) {
@@ -187,9 +400,105 @@ const ProductionPlanDetail = () => {
         }
     }, [id, loadInitialData]);
 
+    const handleFetchMachineSuggestions = async (stageId) => {
+        setStageSuggestionsLoading(prev => ({ ...prev, [stageId]: true }));
+        try {
+            const suggestions = await productionPlanService.getMachineSuggestions(stageId);
+            setStageSuggestions(prev => ({ ...prev, [stageId]: suggestions || [] }));
+            if (suggestions && suggestions.length > 0) {
+                toast.success('Đã tải gợi ý máy cho công đoạn.');
+            } else {
+                toast('Không có gợi ý phù hợp cho công đoạn này.');
+            }
+        } catch (err) {
+            console.error('Failed to fetch machine suggestions', err);
+            toast.error(err.message || 'Không thể lấy gợi ý máy.');
+        } finally {
+            setStageSuggestionsLoading(prev => ({ ...prev, [stageId]: false }));
+        }
+    };
+
+    const handleApplySuggestion = async (stageId, suggestion) => {
+        if (!suggestion) return;
+        setStageActionLoading(prev => ({ ...prev, [stageId]: true }));
+        try {
+            const stagePayload = {};
+            if (suggestion.machineId) {
+                stagePayload.assignedMachineId = suggestion.machineId;
+            }
+            if (suggestion.suggestedStartTime) {
+                stagePayload.plannedStartTime = suggestion.suggestedStartTime;
+            }
+            if (suggestion.suggestedEndTime) {
+                stagePayload.plannedEndTime = suggestion.suggestedEndTime;
+            }
+            if (suggestion.capacityPerHour) {
+                stagePayload.capacityPerHour = suggestion.capacityPerHour;
+            }
+            if (suggestion.estimatedDurationHours) {
+                const estimated = Number(suggestion.estimatedDurationHours);
+                if (!Number.isNaN(estimated)) {
+                    stagePayload.minRequiredDurationMinutes = Math.round(estimated * 60);
+                }
+            }
+            const updatedStage = await productionPlanService.updateStage(stageId, stagePayload);
+            replaceStageInEditablePlan(updatedStage);
+            toast.success('Đã áp dụng gợi ý máy.');
+        } catch (err) {
+            console.error('Failed to apply suggestion', err);
+            toast.error(err.message || 'Không thể áp dụng gợi ý máy.');
+        } finally {
+            setStageActionLoading(prev => ({ ...prev, [stageId]: false }));
+        }
+    };
+
+    const handleAutoAssignMachine = async (stageId, stageType) => {
+        if (NON_INTERNAL_MACHINE_STAGES.has(stageType)) {
+            toast('Công đoạn này không dùng máy nội bộ, vui lòng gán thủ công hoặc dùng vendor.');
+            return;
+        }
+        setStageActionLoading(prev => ({ ...prev, [stageId]: true }));
+        try {
+            const updatedStage = await productionPlanService.autoAssignMachine(stageId);
+            replaceStageInEditablePlan(updatedStage);
+            toast.success('Đã tự động gán máy cho công đoạn.');
+        } catch (err) {
+            console.error('Auto assign machine failed', err);
+            const message = err.response?.data?.message;
+            if (message && message.toLowerCase().includes('no suitable machines')) {
+                toast.error('Không tìm thấy máy phù hợp cho công đoạn này.');
+            } else {
+                toast.error(message || 'Không thể tự động gán máy.');
+            }
+        } finally {
+            setStageActionLoading(prev => ({ ...prev, [stageId]: false }));
+        }
+    };
+
+    const handleCheckConflicts = async (stageId) => {
+        setStageConflictsLoading(prev => ({ ...prev, [stageId]: true }));
+        try {
+            const conflicts = await productionPlanService.checkConflicts(stageId);
+            setStageConflicts(prev => ({ ...prev, [stageId]: conflicts || [] }));
+            if (conflicts && conflicts.length > 0) {
+                toast.error('Phát hiện xung đột lịch cho công đoạn.');
+            } else {
+                toast.success('Không có xung đột cho công đoạn này.');
+            }
+        } catch (err) {
+            console.error('Failed to check conflicts', err);
+            toast.error(err.message || 'Không thể kiểm tra xung đột.');
+        } finally {
+            setStageConflictsLoading(prev => ({ ...prev, [stageId]: false }));
+        }
+    };
+
     const handleStageChange = async (stageId, field, value) => {
         setEditablePlan(prev => {
-            const newStages = prev.details[0].stages.map(stage => {
+            if (!prev?.details?.length) {
+                return prev;
+            }
+            const updatedStages = prev.details[0].stages.map(stage => {
                 if (stage.id === stageId) {
                     return { ...stage, [field]: value };
                 }
@@ -199,14 +508,14 @@ const ProductionPlanDetail = () => {
                 ...prev,
                 details: [{
                     ...prev.details[0],
-                    stages: newStages
+                    stages: updatedStages
                 }]
             };
         });
-        
+
         const stage = editablePlan?.details?.[0]?.stages?.find(s => s.id === stageId);
         if (!stage) return;
-        
+
         if (field === 'inChargeId') {
             try {
                 await productionPlanService.updateStage(stageId, { inChargeUserId: value ? parseInt(value, 10) : null });
@@ -276,6 +585,18 @@ const ProductionPlanDetail = () => {
                     qcUserId: stage.inspectionById ? parseInt(stage.inspectionById) : null,
                     notes: stage.notes || null
                 };
+                if (stage.capacityPerHour) {
+                    const capacityNumber = parseFloat(stage.capacityPerHour);
+                    if (!Number.isNaN(capacityNumber)) {
+                        stageData.capacityPerHour = capacityNumber;
+                    }
+                }
+                if (stage.durationInHours) {
+                    const durationNumber = parseFloat(stage.durationInHours);
+                    if (!Number.isNaN(durationNumber)) {
+                        stageData.minRequiredDurationMinutes = Math.round(durationNumber * 60);
+                    }
+                }
                 Object.keys(stageData).forEach(key => {
                     if (stageData[key] === null || stageData[key] === undefined || stageData[key] === '') {
                         delete stageData[key];
@@ -362,51 +683,182 @@ const ProductionPlanDetail = () => {
 
                         <div className="mt-4">
                           <Tabs defaultActiveKey={mainDetail.stages?.[0]?.stageType || 'WARPING'} id="production-plan-stages-tabs" className="mb-3" justify>
-                            {mainDetail.stages?.map((stage, index) => (
-                              <Tab eventKey={stage.stageType} title={`${index + 1}. ${getStageTypeName(stage.stageType)}`} key={stage.id}>
-                                <div className="p-3 bg-light rounded">
-                                    <Row>
-                                        <Col md={4} className="form-group-custom">
-                                            <Form.Label className="form-label-custom">Máy móc</Form.Label>
-                                            <Form.Select value={stage.assignedMachineId || ''} onChange={(e) => handleStageChange(stage.id, 'assignedMachineId', e.target.value)} disabled={isReadOnly}>
-                                                <option value="">Chọn máy</option>
-                                                {machines.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                                            </Form.Select>
-                                        </Col>
-                                        <Col md={4} className="form-group-custom">
-                                            <Form.Label className="form-label-custom">Người phụ trách</Form.Label>
-                                            <Form.Select value={stage.inChargeId || ''} onChange={(e) => handleStageChange(stage.id, 'inChargeId', e.target.value)} disabled={isReadOnly}>
-                                                <option value="">Chọn NV</option>
-                                                {inChargeUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-                                            </Form.Select>
-                                        </Col>
-                                        <Col md={4} className="form-group-custom">
-                                            <Form.Label className="form-label-custom">Người kiểm tra</Form.Label>
-                                            <Form.Select value={stage.inspectionById || ''} onChange={(e) => handleStageChange(stage.id, 'inspectionById', e.target.value)} disabled={isReadOnly}>
-                                                <option value="">Chọn QC</option>
-                                                {qcUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-                                            </Form.Select>
-                                        </Col>
-                                        <Col md={4} className="form-group-custom">
-                                            <Form.Label className="form-label-custom">TG bắt đầu</Form.Label>
-                                            <Form.Control type="datetime-local" value={formatDateTimeForInput(stage.plannedStartTime)} onChange={(e) => handleStageChange(stage.id, 'plannedStartTime', e.target.value)} disabled={isReadOnly} />
-                                        </Col>
-                                        <Col md={4} className="form-group-custom">
-                                            <Form.Label className="form-label-custom">TG kết thúc</Form.Label>
-                                            <Form.Control type="datetime-local" value={formatDateTimeForInput(stage.plannedEndTime)} onChange={(e) => handleStageChange(stage.id, 'plannedEndTime', e.target.value)} disabled={isReadOnly} />
-                                        </Col>
-                                        <Col md={4} className="form-group-custom">
-                                            <Form.Label className="form-label-custom">Thời lượng (giờ)</Form.Label>
-                                            <Form.Control type="number" value={stage.durationInHours || ''} onChange={(e) => handleStageChange(stage.id, 'durationInHours', e.target.value)} disabled={isReadOnly} />
-                                        </Col>
-                                        <Col md={12} className="form-group-custom">
-                                            <Form.Label className="form-label-custom">Ghi chú</Form.Label>
-                                            <Form.Control as="textarea" rows={2} value={stage.notes || ''} onChange={(e) => handleStageChange(stage.id, 'notes', e.target.value)} disabled={isReadOnly} />
-                                        </Col>
-                                    </Row>
-                                </div>
-                              </Tab>
-                            ))}
+                            {mainDetail.stages?.map((stage, index) => {
+                              const suggestionsForStage = stageSuggestions[stage.id] || [];
+                              const suggestionsFetched = Object.prototype.hasOwnProperty.call(stageSuggestions, stage.id);
+                              const conflictsFetched = Object.prototype.hasOwnProperty.call(stageConflicts, stage.id);
+                              const conflictsForStage = stageConflicts[stage.id] || [];
+                              return (
+                                <Tab eventKey={stage.stageType} title={`${index + 1}. ${getStageTypeName(stage.stageType)}`} key={stage.id}>
+                                    <div className="p-3 bg-light rounded">
+                                        <div className="d-flex flex-wrap gap-2 mb-3">
+                                            <Button
+                                                variant="outline-info"
+                                                size="sm"
+                                                onClick={() => handleFetchMachineSuggestions(stage.id)}
+                                                disabled={isReadOnly || stageSuggestionsLoading[stage.id]}
+                                            >
+                                                {stageSuggestionsLoading[stage.id] ? (
+                                                    <Spinner as="span" animation="border" size="sm" className="me-2" />
+                                                ) : null}
+                                                Gợi ý máy
+                                            </Button>
+                                            <Button
+                                                variant="outline-secondary"
+                                                size="sm"
+                                                onClick={() => handleAutoAssignMachine(stage.id, stage.stageType)}
+                                                disabled={isReadOnly || stageActionLoading[stage.id] || NON_INTERNAL_MACHINE_STAGES.has(stage.stageType)}
+                                            >
+                                                {stageActionLoading[stage.id] ? (
+                                                    <Spinner as="span" animation="border" size="sm" className="me-2" />
+                                                ) : null}
+                                                Auto gán máy
+                                            </Button>
+                                            <Button
+                                                variant="outline-warning"
+                                                size="sm"
+                                                onClick={() => handleCheckConflicts(stage.id)}
+                                                disabled={stageConflictsLoading[stage.id]}
+                                            >
+                                                {stageConflictsLoading[stage.id] ? (
+                                                    <Spinner as="span" animation="border" size="sm" className="me-2" />
+                                                ) : null}
+                                                Kiểm tra xung đột
+                                            </Button>
+                                        </div>
+                                        <Row>
+                                            <Col md={4} className="form-group-custom">
+                                                <Form.Label className="form-label-custom">Máy móc</Form.Label>
+                                                <Form.Select value={stage.assignedMachineId || ''} onChange={(e) => handleStageChange(stage.id, 'assignedMachineId', e.target.value)} disabled={isReadOnly}>
+                                                    <option value="">Chọn máy</option>
+                                                    {machines.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                                </Form.Select>
+                                            </Col>
+                                            <Col md={4} className="form-group-custom">
+                                                <Form.Label className="form-label-custom">Người phụ trách</Form.Label>
+                                                <Form.Select value={stage.inChargeId || ''} onChange={(e) => handleStageChange(stage.id, 'inChargeId', e.target.value)} disabled={isReadOnly}>
+                                                    <option value="">Chọn NV</option>
+                                                    {inChargeUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                                                </Form.Select>
+                                            </Col>
+                                            <Col md={4} className="form-group-custom">
+                                                <Form.Label className="form-label-custom">Người kiểm tra</Form.Label>
+                                                <Form.Select value={stage.inspectionById || ''} onChange={(e) => handleStageChange(stage.id, 'inspectionById', e.target.value)} disabled={isReadOnly}>
+                                                    <option value="">Chọn QC</option>
+                                                    {qcUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                                                </Form.Select>
+                                            </Col>
+                                            <Col md={4} className="form-group-custom">
+                                                <Form.Label className="form-label-custom">TG bắt đầu</Form.Label>
+                                                <Form.Control type="datetime-local" value={formatDateTimeForInput(stage.plannedStartTime)} onChange={(e) => handleStageChange(stage.id, 'plannedStartTime', e.target.value)} disabled={isReadOnly} />
+                                            </Col>
+                                            <Col md={4} className="form-group-custom">
+                                                <Form.Label className="form-label-custom">TG kết thúc</Form.Label>
+                                                <Form.Control type="datetime-local" value={formatDateTimeForInput(stage.plannedEndTime)} onChange={(e) => handleStageChange(stage.id, 'plannedEndTime', e.target.value)} disabled={isReadOnly} />
+                                            </Col>
+                                            <Col md={4} className="form-group-custom">
+                                                <Form.Label className="form-label-custom">Thời lượng (giờ)</Form.Label>
+                                                <Form.Control type="number" value={stage.durationInHours || ''} onChange={(e) => handleStageChange(stage.id, 'durationInHours', e.target.value)} disabled={isReadOnly} />
+                                            </Col>
+                                            <Col md={4} className="form-group-custom">
+                                                <Form.Label className="form-label-custom">Năng suất (sp/h)</Form.Label>
+                                                <Form.Control type="number" step="0.01" value={stage.capacityPerHour || ''} onChange={(e) => handleStageChange(stage.id, 'capacityPerHour', e.target.value)} disabled={isReadOnly} />
+                                            </Col>
+                                            <Col md={4} className="form-group-custom">
+                                                <Form.Label className="form-label-custom">Sản lượng ước tính</Form.Label>
+                                                <Form.Control readOnly disabled value={formatNumberValue(stage.estimatedOutput)} />
+                                            </Col>
+                                            <Col md={12} className="form-group-custom">
+                                                <Form.Label className="form-label-custom">Ghi chú</Form.Label>
+                                                <Form.Control as="textarea" rows={2} value={stage.notes || ''} onChange={(e) => handleStageChange(stage.id, 'notes', e.target.value)} disabled={isReadOnly} />
+                                            </Col>
+                                        </Row>
+                                        {suggestionsFetched && suggestionsForStage.length === 0 && (
+                                            <Alert variant="info" className="mt-3">
+                                                Không có gợi ý máy phù hợp cho công đoạn này. Vui lòng chỉnh tay.
+                                            </Alert>
+                                        )}
+                                        {suggestionsForStage.length > 0 && (
+                                            <div className="mt-3">
+                                                <h6 className="mb-2">Gợi ý máy móc</h6>
+                                                <Table responsive bordered size="sm">
+                                                    <thead className="table-light">
+                                                        <tr>
+                                                            <th>Máy / Vendor</th>
+                                                            <th>Năng suất</th>
+                                                            <th>Ưu tiên</th>
+                                                            <th>Thời gian gợi ý</th>
+                                                            <th>Hành động</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {suggestionsForStage.map((suggestion) => (
+                                                            <tr key={`${stage.id}-${suggestion.machineId || suggestion.machineCode}`}>
+                                                                <td>
+                                                                    <div className="fw-semibold">{suggestion.machineName || 'N/A'}</div>
+                                                                    <div className="text-muted small">{suggestion.machineCode || '—'}</div>
+                                                                </td>
+                                                                <td>
+                                                                    {formatNumberValue(suggestion.capacityPerHour)} /h
+                                                                    <div className="small text-muted">
+                                                                        Ước tính: {formatNumberValue(suggestion.estimatedDurationHours)} giờ
+                                                                    </div>
+                                                                </td>
+                                                                <td>
+                                                                    <Badge bg={suggestion.available ? 'success' : 'secondary'}>
+                                                                        {suggestion.priorityScore ? suggestion.priorityScore.toFixed(0) : '—'}
+                                                                    </Badge>
+                                                                    <div className="small text-muted">
+                                                                        {suggestion.available ? 'Sẵn sàng' : 'Bận'}
+                                                                    </div>
+                                                                </td>
+                                                                <td>
+                                                                    <div className="small">
+                                                                        <div>BĐ: {formatDateTimeDisplay(suggestion.suggestedStartTime)}</div>
+                                                                        <div>KT: {formatDateTimeDisplay(suggestion.suggestedEndTime)}</div>
+                                                                    </div>
+                                                                    {suggestion.conflicts && suggestion.conflicts.length > 0 && (
+                                                                        <div className="text-danger small mt-1">
+                                                                            {suggestion.conflicts[0]}
+                                                                        </div>
+                                                                    )}
+                                                                </td>
+                                                                <td className="text-center">
+                                                                    <Button
+                                                                        variant="outline-primary"
+                                                                        size="sm"
+                                                                        onClick={() => handleApplySuggestion(stage.id, suggestion)}
+                                                                        disabled={isReadOnly || stageActionLoading[stage.id]}
+                                                                    >
+                                                                        Áp dụng
+                                                                    </Button>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </Table>
+                                            </div>
+                                        )}
+                                        {conflictsFetched && (
+                                            <Alert variant={conflictsForStage.length ? 'warning' : 'success'} className="mt-3">
+                                                {conflictsForStage.length ? (
+                                                    <>
+                                                        <strong>Phát hiện xung đột:</strong>
+                                                        <ul className="mb-0">
+                                                            {conflictsForStage.map((conflict, idx) => (
+                                                                <li key={`${stage.id}-conflict-${idx}`}>{conflict}</li>
+                                                            ))}
+                                                        </ul>
+                                                    </>
+                                                ) : (
+                                                    'Không có xung đột cho công đoạn này.'
+                                                )}
+                                            </Alert>
+                                        )}
+                                    </div>
+                                </Tab>
+                              );
+                            })}
                           </Tabs>
                         </div>
 
