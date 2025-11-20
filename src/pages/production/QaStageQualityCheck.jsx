@@ -4,21 +4,56 @@ import { useNavigate, useParams } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 
-const INITIAL_CRITERIA = [
-  { id: 1, key: 'color', name: 'Màu sắc' },
-  { id: 2, key: 'color_fastness', name: 'Độ bền màu' },
-  { id: 3, key: 'coverage', name: 'Độ phủ màu' },
-  { id: 4, key: 'stain', name: 'Độ loang màu' },
-];
+const CRITERIA_BY_STAGE = {
+  CUONG_MAC: [
+    { key: 'fabric_quality', name: 'Chất lượng sợi' },
+    { key: 'tension', name: 'Độ căng sợi' },
+    { key: 'uniformity', name: 'Sợi mắc đều' },
+    { key: 'roll', name: 'Khổ & chiều dài cây sợi' },
+  ],
+  DET: [
+    { key: 'durability', name: 'Độ bền sợi' },
+    { key: 'density', name: 'Mật độ sợi' },
+    { key: 'shape', name: 'Hình dáng khăn' },
+    { key: 'surface', name: 'Bề mặt vải' },
+  ],
+  NHUOM: [
+    { key: 'color', name: 'Màu sắc' },
+    { key: 'color_fastness', name: 'Độ bền màu' },
+    { key: 'coverage', name: 'Độ phủ màu' },
+    { key: 'stain', name: 'Độ loang màu' },
+  ],
+  CAT: [
+    { key: 'size', name: 'Kích thước khăn' },
+    { key: 'angle', name: 'Độ nghiêng góc' },
+    { key: 'uniform_cut', name: 'Độ đồng đều' },
+    { key: 'cut_quality', name: 'Vết cắt' },
+  ],
+  MAY: [
+    { key: 'strength', name: 'Tiêu chuẩn bền khăn' },
+    { key: 'label', name: 'Nhãn mác' },
+    { key: 'stitch_density', name: 'Mật độ mũi may' },
+    { key: 'thread', name: 'Chỉ thừa, màu chỉ' },
+  ],
+  DONG_GOI: [
+    { key: 'cleanliness', name: 'Độ sạch khăn' },
+    { key: 'folding', name: 'Gấp khăn' },
+    { key: 'tag', name: 'Tem nhãn' },
+    { key: 'package', name: 'Túi đóng gói' },
+    { key: 'quantity', name: 'Số lượng' },
+  ],
+};
 
 const QaStageQualityCheck = () => {
   const navigate = useNavigate();
   const { orderId, stageCode } = useParams();
 
-  const [criteria, setCriteria] = useState(
-    INITIAL_CRITERIA.map((c) => ({
+  const initialStageKey = (stageCode || '').toUpperCase();
+  const [criteria, setCriteria] = useState(() =>
+    (CRITERIA_BY_STAGE[initialStageKey] || CRITERIA_BY_STAGE.NHUOM).map((c, index) => ({
+      id: `${initialStageKey}-${index}`,
       ...c,
-      result: '', // '', 'PASS', 'FAIL'
+      result: '',
       photo: null,
     })),
   );
@@ -72,16 +107,16 @@ const QaStageQualityCheck = () => {
     alert('Đã gửi kết quả kiểm tra (mock).');
   };
 
-  const stageName = (() => {
-    switch ((stageCode || '').toUpperCase()) {
-      case 'NHUOM':
-        return 'Nhuộm';
-      case 'MAY':
-        return 'May';
-      default:
-        return 'Công đoạn';
-    }
-  })();
+  const stageKey = (stageCode || '').toUpperCase();
+  const stageNameMap = {
+    CUONG_MAC: 'Cuồng mắc',
+    DET: 'Dệt',
+    NHUOM: 'Nhuộm',
+    CAT: 'Cắt',
+    MAY: 'May',
+    DONG_GOI: 'Đóng gói',
+  };
+  const stageName = stageNameMap[stageKey] || 'Công đoạn';
 
   return (
     <div className="customer-layout">

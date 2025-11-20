@@ -55,49 +55,55 @@ const LeaderOrderDetail = () => {
             </Button>
 
             <Card className="shadow-sm mb-3">
-              <Card.Body className="d-flex justify-content-between align-items-center">
-                <div className="d-flex align-items-center gap-3">
-                  {/* QR mock */}
-                  <div
-                    style={{
-                      width: 72,
-                      height: 72,
-                      borderRadius: 12,
-                      border: '1px dashed #ced4da',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 24,
-                      color: '#adb5bd'
-                    }}
-                  >
-                    QR
-                  </div>
-                  <div>
-                    <div className="text-muted small mb-1">Mã lô</div>
-                    <h5 className="mb-1">{order.id}</h5>
-                    <div className="text-muted small">
-                      {order.size} • {order.quantity.toLocaleString('vi-VN')} sản phẩm
+              <Card.Body>
+                <div className="row g-4 align-items-center">
+                  <div className="col-md-4 d-flex gap-3 align-items-center">
+                    <div
+                      style={{
+                        width: 72,
+                        height: 72,
+                        borderRadius: 12,
+                        border: '1px dashed #ced4da',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 24,
+                        color: '#adb5bd'
+                      }}
+                    >
+                      QR
+                    </div>
+                    <div>
+                      <div className="text-muted small mb-1">Mã lô</div>
+                      <h5 className="mb-1">{order.id}</h5>
+                      <div className="text-muted small">Kích thước {order.size}</div>
                     </div>
                   </div>
-                </div>
-
-                <div className="text-end">
-                  <div className="mb-1">
-                    <span className="text-muted small">Tên sản phẩm</span>
-                    <div className="fw-semibold">{order.productName}</div>
-                  </div>
-                  <div className="mb-1">
-                    <span className="text-muted small">Ngày bắt đầu dự kiến</span>
-                    <div>{order.expectedDeliveryDate}</div>
-                  </div>
-                  <div className="mb-1">
-                    <span className="text-muted small">Ngày kết thúc dự kiến</span>
-                    <div>{order.expectedFinishDate}</div>
-                  </div>
-                  <div>
-                    <span className="text-muted small me-2">Trạng thái</span>
-                    <Badge bg="secondary">{order.statusLabel}</Badge>
+                  <div className="col-md-8">
+                    <div className="row g-2 order-info-grid">
+                      <div className="col-sm-6">
+                        <div className="text-muted small">Tên sản phẩm</div>
+                        <div className="fw-semibold">{order.productName}</div>
+                      </div>
+                      <div className="col-sm-6">
+                        <div className="text-muted small">Số lượng</div>
+                        <div>{order.quantity.toLocaleString('vi-VN')} sản phẩm</div>
+                      </div>
+                      <div className="col-sm-6">
+                        <div className="text-muted small">Ngày bắt đầu dự kiến</div>
+                        <div>{order.expectedDeliveryDate}</div>
+                      </div>
+                      <div className="col-sm-6">
+                        <div className="text-muted small">Ngày kết thúc dự kiến</div>
+                        <div>{order.expectedFinishDate}</div>
+                      </div>
+                      <div className="col-sm-6 d-flex flex-column">
+                        <div className="text-muted small mb-1">Trạng thái</div>
+                        <Badge bg="secondary" className="status-badge align-self-start">
+                          {order.statusLabel}
+                        </Badge>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </Card.Body>

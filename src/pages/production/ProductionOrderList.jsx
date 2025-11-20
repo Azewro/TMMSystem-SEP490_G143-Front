@@ -151,7 +151,6 @@ const ProductionOrderList = () => {
                   <thead className="table-light">
                     <tr>
                       <th style={{ width: 60 }}>STT</th>
-                      <th>Mã đơn hàng</th>
                       <th>Mã lô</th>
                       <th>Tên sản phẩm</th>
                       <th>Kích thước</th>
@@ -166,9 +165,6 @@ const ProductionOrderList = () => {
                     {filteredOrders.map((order, index) => (
                       <tr key={order.id}>
                         <td>{index + 1}</td>
-                        <td>
-                          <strong>{order.id}</strong>
-                        </td>
                         <td>
                           <strong>{order.lotCode}</strong>
                         </td>
