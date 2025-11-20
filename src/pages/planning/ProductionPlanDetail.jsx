@@ -538,16 +538,23 @@ const ProductionPlanDetail = () => {
         toast.loading('Đang tính toán lịch trình...');
         try {
             const updatedPlan = await productionPlanService.calculateSchedule(id);
-            // The API returns the updated plan, which now includes the calculated dates.
-            // We need to merge this with our existing detailed state.
-            setEditablePlan(prev => ({
-                ...prev,
-                ...updatedPlan, // This will overwrite top-level fields like proposedStartDate
-                details: prev.details.map(detail => ({
-                    ...detail,
-                    ...updatedPlan.details[0] // Also update details if they changed
-                }))
-            }));
+            setEditablePlan(prev => {
+                const merged = {
+                    ...prev,
+                    proposedStartDate: updatedPlan?.proposedStartDate ?? prev.proposedStartDate,
+                    proposedEndDate: updatedPlan?.proposedEndDate ?? prev.proposedEndDate,
+                    status: updatedPlan?.status ?? prev.status,
+                };
+                if (updatedPlan?.details?.length && prev.details?.length) {
+                    merged.details = prev.details.map((detail, idx) => ({
+                        ...detail,
+                        plannedQuantity: updatedPlan.details[idx]?.plannedQuantity ?? detail.plannedQuantity,
+                        lotCode: updatedPlan.details[idx]?.lotCode ?? detail.lotCode,
+                        productName: updatedPlan.details[idx]?.productName ?? detail.productName,
+                    }));
+                }
+                return merged;
+            });
             toast.dismiss();
             toast.success('Đã tính toán và cập nhật lịch trình thành công!');
         } catch (err) {
