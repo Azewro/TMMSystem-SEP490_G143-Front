@@ -7,7 +7,7 @@ import InternalSidebar from '../../components/common/InternalSidebar';
 const DEFECT_DETAIL_LIBRARY = {
   L0001: {
     id: 'L0001',
-    orderCode: 'DH001',
+    lotCode: 'LOT-001',
     product: 'Áo sơ mi nam',
     stage: 'Dệt',
     size: 'L',
@@ -19,6 +19,23 @@ const DEFECT_DETAIL_LIBRARY = {
         title: 'Độ bền sợi',
         status: 'fail',
         images: ['https://placekitten.com/640/240'],
+      },
+    ],
+  },
+  L0002: {
+    id: 'L0002',
+    lotCode: 'LOT-002',
+    product: 'Quần lử nữ',
+    stage: 'May',
+    size: 'M',
+    quantity: 2000,
+    description: 'Đường may lệch',
+    severity: 'minor',
+    checklist: [
+      {
+        title: 'Độ bền sợi',
+        status: 'fail',
+        images: ['https://placekitten.com/641/240'],
       },
     ],
   },
@@ -57,14 +74,13 @@ const LeaderDefectDetail = () => {
                 <div className="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
                   <div>
                     <h5 className="mb-1">Chi tiết lỗi</h5>
-                    <small className="text-muted">Mã đơn hàng: {defect.orderCode}</small>
                   </div>
                   <Badge bg={severity.variant}>{severity.label}</Badge>
                 </div>
                 <Row className="g-3">
                   <Col md={6}>
-                    <div className="text-muted small mb-1">Mã lỗi</div>
-                    <div className="fw-semibold">{defect.id}</div>
+                    <div className="text-muted small mb-1">Mã lô</div>
+                    <div className="fw-semibold">{defect.lotCode}</div>
                   </Col>
                   <Col md={6}>
                     <div className="text-muted small mb-1">Sản phẩm</div>
@@ -126,12 +142,16 @@ const LeaderDefectDetail = () => {
                       : 'Hãy bắt đầu sửa lỗi và thông báo cho Tech khi hoàn thành.'}
                   </p>
                 </div>
-                {!isFixing ? (
+                {defect.severity === 'minor' ? (
+                  <Button variant="dark" onClick={() => navigate(`/leader/orders/${defect.lotCode}/progress`)}>
+                    Bắt đầu sửa lỗi
+                  </Button>
+                ) : !isFixing ? (
                   <Button variant="dark" onClick={() => setIsFixing(true)}>
                     Bắt đầu sửa lỗi
                   </Button>
                 ) : (
-                  <Button variant="dark" onClick={() => navigate(`/leader/orders/${defect.orderCode}/progress`)}>
+                  <Button variant="dark" onClick={() => navigate(`/leader/orders/${defect.lotCode}/progress`)}>
                     Cập nhật tiến độ
                   </Button>
                 )}

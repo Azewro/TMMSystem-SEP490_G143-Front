@@ -65,7 +65,6 @@ import ProductionReworkOrders from './pages/production/ProductionReworkOrders';
 import ProductionReworkOrderDetail from './pages/production/ProductionReworkOrderDetail';
 import StageProgressDetail from './pages/production/StageProgressDetail';
 import LeaderOrderList from './pages/production/LeaderOrderList';
-import LeaderOrderDetail from './pages/production/LeaderOrderDetail';
 import LeaderStageProgress from './pages/production/LeaderStageProgress';
 import LeaderDefectList from './pages/production/LeaderDefectList';
 import LeaderDefectDetail from './pages/production/LeaderDefectDetail';
@@ -145,7 +144,6 @@ function App() {
 
               {/* Leader (product process leader) routes */}
               <Route path="/leader/orders" element={<LeaderOrderList />} />
-              <Route path="/leader/orders/:orderId" element={<LeaderOrderDetail />} />
               <Route path="/leader/orders/:orderId/progress" element={<LeaderStageProgress />} />
               <Route path="/leader/defects" element={<LeaderDefectList />} />
               <Route path="/leader/defects/:defectId" element={<LeaderDefectDetail />} />

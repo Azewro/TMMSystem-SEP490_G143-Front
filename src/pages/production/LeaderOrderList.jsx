@@ -71,7 +71,7 @@ const LeaderOrderList = () => {
       `Bắt đầu cập nhật tiến độ cho lô ${order.id}?`
     );
     if (confirmed) {
-      navigate(`/leader/orders/${order.id}`);
+      navigate(`/leader/orders/${order.id}/progress`);
     }
   };
 

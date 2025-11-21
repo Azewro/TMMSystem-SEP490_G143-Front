@@ -14,12 +14,12 @@ const MOCK_QA_ORDER = {
   expectedFinishDate: '2025-12-01',
   statusLabel: 'Nhuộm chờ kiểm tra',
   stages: [
-    { code: 'CUONG_MAC', name: 'Cuồng mắc', assignee: 'Nguyễn Văn A', statusLabel: 'Chờ QC làm' },
-    { code: 'DET', name: 'Dệt', assignee: 'Trần Thị B', statusLabel: 'Chờ QC làm' },
-    { code: 'NHUOM', name: 'Nhuộm', assignee: 'Lê Văn C', statusLabel: 'Nhuộm chờ kiểm tra' },
-    { code: 'CAT', name: 'Cắt', assignee: 'Phạm Thị D', statusLabel: 'Chờ QC làm' },
-    { code: 'MAY', name: 'May', assignee: 'Hoàng Văn E', statusLabel: 'Chờ QC làm' },
-    { code: 'DONG_GOI', name: 'Đóng gói', assignee: 'Võ Thị F', statusLabel: 'Chờ QC làm' },
+    { code: 'CUONG_MAC', name: 'Cuồng mắc', assignee: 'Nguyễn Văn A', statusLabel: 'Chờ QC làm', progress: 10 },
+    { code: 'DET', name: 'Dệt', assignee: 'Trần Thị B', statusLabel: 'Chờ QC làm', progress: 0 },
+    { code: 'NHUOM', name: 'Nhuộm', assignee: 'Lê Văn C', statusLabel: 'Nhuộm chờ kiểm tra', progress: 0 },
+    { code: 'CAT', name: 'Cắt', assignee: 'Phạm Thị D', statusLabel: 'Chờ QC làm', progress: 0 },
+    { code: 'MAY', name: 'May', assignee: 'Hoàng Văn E', statusLabel: 'Chờ QC làm', progress: 0 },
+    { code: 'DONG_GOI', name: 'Đóng gói', assignee: 'Võ Thị F', statusLabel: 'Chờ QC làm', progress: 0 },
   ],
 };
 
@@ -121,6 +121,7 @@ const QaOrderDetail = () => {
                     <tr>
                       <th>Công đoạn</th>
                       <th>Người phụ trách</th>
+                      <th>Tiến độ (%)</th>
                       <th>Trạng thái</th>
                       <th style={{ width: 140 }}>Hành động</th>
                     </tr>
@@ -130,6 +131,7 @@ const QaOrderDetail = () => {
                       <tr key={stage.code}>
                         <td>{stage.name}</td>
                         <td>{stage.assignee}</td>
+                        <td>{stage.progress ?? 0}%</td>
                         <td>
                           <Badge bg="secondary">{stage.statusLabel}</Badge>
                         </td>

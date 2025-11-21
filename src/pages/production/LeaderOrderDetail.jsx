@@ -19,7 +19,8 @@ const MOCK_ORDER_DETAIL = {
     name: 'Cuồng mắc',
     assignee: 'Nguyễn Văn A',
     status: 'CHO_BAT_DAU',
-    statusLabel: 'Chờ bắt đầu'
+    statusLabel: 'Chờ bắt đầu',
+    progress: 10
   }
 };
 
@@ -119,6 +120,7 @@ const LeaderOrderDetail = () => {
                     <tr>
                       <th>Công đoạn</th>
                       <th>Người phụ trách</th>
+                      <th>Tiến độ (%)</th>
                       <th>Trạng thái</th>
                       <th style={{ width: 120 }}>Hành động</th>
                     </tr>
@@ -127,6 +129,7 @@ const LeaderOrderDetail = () => {
                     <tr>
                       <td>{order.stage.name}</td>
                       <td>{order.stage.assignee}</td>
+                      <td>{order.stage.progress ?? 0}%</td>
                       <td>
                         <Badge bg="secondary">{order.stage.statusLabel}</Badge>
                       </td>

@@ -7,7 +7,7 @@ import InternalSidebar from '../../components/common/InternalSidebar';
 const LEADER_DEFECTS = [
   {
     id: 'L0001',
-    orderCode: 'DH001',
+    lotCode: 'LOT-001',
     product: 'Áo sơ mi nam',
     stage: 'Dệt',
     severity: 'minor',
@@ -16,7 +16,7 @@ const LEADER_DEFECTS = [
   },
   {
     id: 'L0002',
-    orderCode: 'DH002',
+    lotCode: 'LOT-002',
     product: 'Quần lử nữ',
     stage: 'May',
     severity: 'minor',
@@ -53,7 +53,7 @@ const LeaderDefectList = () => {
                 <Table hover responsive className="mt-3 mb-0 align-middle">
                   <thead className="table-light">
                     <tr>
-                      <th>Mã lỗi</th>
+                      <th>Mã lô</th>
                       <th>Sản phẩm</th>
                       <th>Công đoạn</th>
                       <th>Mức độ</th>
@@ -65,7 +65,7 @@ const LeaderDefectList = () => {
                   <tbody>
                     {LEADER_DEFECTS.map((defect) => (
                       <tr key={defect.id}>
-                        <td>{defect.id}</td>
+                        <td>{defect.lotCode}</td>
                         <td>{defect.product}</td>
                         <td>{defect.stage}</td>
                         <td>
@@ -81,7 +81,7 @@ const LeaderDefectList = () => {
                             <Button
                               size="sm"
                               variant="dark"
-                              onClick={() => navigate(`/leader/orders/${defect.orderCode}/progress`)}
+                              onClick={() => navigate(`/leader/orders/${defect.lotCode}/progress`)}
                             >
                               Cập nhật tiến độ
                             </Button>

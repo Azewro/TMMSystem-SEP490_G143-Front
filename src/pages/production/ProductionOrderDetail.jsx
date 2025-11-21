@@ -15,13 +15,13 @@ const MOCK_PM_ORDER = {
   expectedFinishDate: '2025-12-05',
   statusLabel: 'Chờ sản xuất',
   stages: [
-    { code: 'CUONG_MAC', name: 'Cuồng mắc', assignee: 'Nguyễn Văn A', statusLabel: 'Chờ cuồng mắc làm' },
-    { code: 'DET', name: 'Dệt', assignee: 'Trần Thị B', statusLabel: 'Chờ dệt làm' },
+    { code: 'CUONG_MAC', name: 'Cuồng mắc', assignee: 'Nguyễn Văn A', statusLabel: 'Chờ cuồng mắc làm', progress: 10 },
+    { code: 'DET', name: 'Dệt', assignee: 'Trần Thị B', statusLabel: 'Chờ dệt làm', progress: 0 },
     // Công đoạn Nhuộm là outsource nhưng PM vẫn là người chịu trách nhiệm
-    { code: 'NHUOM', name: 'Nhuộm', assignee: 'Production Manager', statusLabel: 'Nhuộm chờ kiểm tra' },
-    { code: 'CAT', name: 'Cắt', assignee: 'Phạm Thị D', statusLabel: 'Chờ cắt làm' },
-    { code: 'MAY', name: 'May', assignee: 'Hoàng Văn E', statusLabel: 'Chờ may làm' },
-    { code: 'DONG_GOI', name: 'Đóng gói', assignee: 'Võ Thị F', statusLabel: 'Chờ đóng gói làm' },
+    { code: 'NHUOM', name: 'Nhuộm', assignee: 'Production Manager', statusLabel: 'Nhuộm chờ kiểm tra', progress: 0 },
+    { code: 'CAT', name: 'Cắt', assignee: 'Phạm Thị D', statusLabel: 'Chờ cắt làm', progress: 0 },
+    { code: 'MAY', name: 'May', assignee: 'Hoàng Văn E', statusLabel: 'Chờ may làm', progress: 0 },
+    { code: 'DONG_GOI', name: 'Đóng gói', assignee: 'Võ Thị F', statusLabel: 'Chờ đóng gói làm', progress: 0 },
   ],
 };
 
@@ -83,11 +83,9 @@ const ProductionOrderDetail = () => {
                       QR
                     </div>
                     <div>
-                      <div className="text-muted small mb-1">Mã đơn hàng</div>
-                      <h5 className="mb-1">{order.id}</h5>
-                      <div className="text-muted small">
-                        Mã lô {order.lotCode}
-                      </div>
+                      <div className="text-muted small mb-1">Mã lô sản xuất</div>
+                      <h5 className="mb-1">{order.lotCode}</h5>
+                      <div className="text-muted small">Đơn hàng {order.productName}</div>
                     </div>
                   </div>
                   <div className="col-md-8">
@@ -135,6 +133,7 @@ const ProductionOrderDetail = () => {
                     <tr>
                       <th>Công đoạn</th>
                       <th>Người phụ trách</th>
+                      <th>Tiến độ (%)</th>
                       <th>Trạng thái</th>
                       <th style={{ width: 160 }}>Hành động</th>
                     </tr>
@@ -144,6 +143,7 @@ const ProductionOrderDetail = () => {
                       <tr key={stage.code}>
                         <td>{stage.name}</td>
                         <td>{stage.assignee}</td>
+                        <td>{stage.progress ?? 0}%</td>
                         <td>
                           <Badge bg="secondary">{stage.statusLabel}</Badge>
                         </td>

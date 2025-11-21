@@ -6,7 +6,7 @@ import InternalSidebar from '../../components/common/InternalSidebar';
 
 const MOCK_DEFECTS = [
   {
-    id: 'L0001',
+    lotCode: 'LOT-001',
     product: 'Áo sơ mi nam',
     size: 'L',
     stage: 'Dệt',
@@ -15,7 +15,7 @@ const MOCK_DEFECTS = [
     sentAt: '20/11/2025',
   },
   {
-    id: 'L0002',
+    lotCode: 'LOT-002',
     product: 'Quần lử nữ',
     size: 'M',
     stage: 'Nhuộm',
@@ -57,7 +57,7 @@ const TechnicalDefectList = () => {
                 <Table hover responsive className="mb-0 align-middle">
                   <thead className="table-light">
                     <tr>
-                      <th>Mã lỗi</th>
+                      <th>Mã lô</th>
                       <th>Sản phẩm</th>
                       <th>Kích thước</th>
                       <th>Công đoạn lỗi</th>
@@ -72,8 +72,8 @@ const TechnicalDefectList = () => {
                       const severity = severityConfig[defect.severity];
                       const status = statusConfig[defect.status];
                       return (
-                        <tr key={defect.id}>
-                          <td>{defect.id}</td>
+                        <tr key={defect.lotCode}>
+                          <td>{defect.lotCode}</td>
                           <td>{defect.product}</td>
                           <td>{defect.size}</td>
                           <td>{defect.stage}</td>
@@ -88,7 +88,7 @@ const TechnicalDefectList = () => {
                             <Button
                               size="sm"
                               variant="outline-dark"
-                              onClick={() => navigate(`/technical/defects/${defect.id}`)}
+                              onClick={() => navigate(`/technical/defects/${defect.lotCode}`)}
                             >
                               Chi tiết
                             </Button>

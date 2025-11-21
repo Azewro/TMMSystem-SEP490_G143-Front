@@ -138,7 +138,7 @@ const QaStageQualityCheck = () => {
                 <div>
                   <h5 className="mb-1">Kiểm tra chất lượng</h5>
                   <div className="text-muted small">
-                    ORD-2025-002 • {orderId || 'LOT-002'} • Khăn mặt cotton
+                    {orderId || 'LOT-002'} • Khăn mặt cotton
                   </div>
                   <div className="mt-2">
                     <span className="text-muted small">Công đoạn:&nbsp;</span>

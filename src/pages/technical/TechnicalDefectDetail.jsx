@@ -7,7 +7,7 @@ import InternalSidebar from '../../components/common/InternalSidebar';
 const DEFECT_LIBRARY = {
   L0001: {
     id: 'L0001',
-    orderCode: 'DH001',
+    lotCode: 'LOT-001',
     product: 'Áo sơ mi nam',
     size: 'L',
     quantity: 1000,
@@ -40,7 +40,7 @@ const DEFECT_LIBRARY = {
   },
   L0002: {
     id: 'L0002',
-    orderCode: 'DH002',
+    lotCode: 'LOT-002',
     product: 'Quần lử nữ',
     size: 'M',
     quantity: 800,
@@ -121,16 +121,12 @@ const TechnicalDefectDetail = () => {
                 </div>
                 <Row className="g-3">
                   <Col md={4}>
-                    <div className="text-muted small mb-1">Mã đơn hàng</div>
-                    <div className="fw-semibold">{defect.orderCode}</div>
-                  </Col>
-                  <Col md={4}>
-                    <div className="text-muted small mb-1">Mã lỗi</div>
-                    <div className="fw-semibold">{defect.id}</div>
-                  </Col>
-                  <Col md={4}>
                     <div className="text-muted small mb-1">Sản phẩm</div>
                     <div className="fw-semibold">{defect.product}</div>
+                  </Col>
+                  <Col md={4}>
+                    <div className="text-muted small mb-1">Mã lô</div>
+                    <div className="fw-semibold">{defect.lotCode}</div>
                   </Col>
                   <Col md={4}>
                     <div className="text-muted small mb-1">Kích thước</div>

@@ -1,22 +1,55 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Container, Card, Button, ProgressBar, Table, Form, Badge } from 'react-bootstrap';
 import { useNavigate, useParams } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 
+const QA_CRITERIA = [
+  { title: 'Độ bền sợi', result: 'FAIL', remark: 'Không đạt' },
+  { title: 'Hình dáng khăn', result: 'PASS' },
+  { title: 'Bề mặt vải', result: 'PASS' },
+];
+
+const ORDER_SUMMARY = {
+  id: 'LOT-002',
+  productName: 'Khăn mặt cotton',
+  size: '30x30cm',
+  quantity: 2000,
+  expectedStartDate: '2025-11-18',
+  expectedFinishDate: '2025-12-01',
+  statusLabel: 'Chờ kiểm tra',
+  statusVariant: 'secondary',
+};
+
 const LeaderStageProgress = () => {
   const navigate = useNavigate();
   const { orderId } = useParams();
 
-  const [currentProgress, setCurrentProgress] = useState(0);
+  const [currentProgress, setCurrentProgress] = useState(10);
   const [inputProgress, setInputProgress] = useState('');
-  const [totalHours, setTotalHours] = useState(0);
-  const [history, setHistory] = useState([]);
-  const [actualStartTime, setActualStartTime] = useState(null);
-  const [actualEndTime, setActualEndTime] = useState(null);
+  const [totalHours, setTotalHours] = useState(0.4);
+  const [history, setHistory] = useState([
+    {
+      id: 1,
+      description: 'Tăng từ 0% → 10%',
+      durationHours: 0.4,
+      startTime: '2025-11-19 16:42',
+      endTime: '2025-11-19 16:42',
+    },
+  ]);
+  const [stageStartTime, setStageStartTime] = useState('2025-11-19 16:42');
+  const [stageEndTime, setStageEndTime] = useState(null);
+
+  const orderInfo = useMemo(
+    () => ({
+      ...ORDER_SUMMARY,
+      id: orderId || ORDER_SUMMARY.id,
+    }),
+    [orderId],
+  );
 
   const handleBack = () => {
-    navigate(`/leader/orders/${orderId || 'LOT-002'}`);
+    navigate('/leader/orders');
   };
 
   const handleUpdateProgress = () => {
@@ -30,13 +63,13 @@ const LeaderStageProgress = () => {
       return;
     }
 
-    if (!actualStartTime) {
+    if (!stageStartTime) {
       const confirmed = window.confirm(`Bắt đầu cập nhật tiến độ cho lô ${orderId || 'LOT-002'}?`);
       if (!confirmed) {
         return;
       }
       const startFormatted = new Date().toLocaleString('vi-VN', { hour12: false });
-      setActualStartTime(startFormatted);
+      setStageStartTime(startFormatted);
     }
 
     const now = new Date();
@@ -57,17 +90,17 @@ const LeaderStageProgress = () => {
     setCurrentProgress(target);
     setTotalHours((prev) => +(prev + deltaHours).toFixed(1));
     if (target === 100) {
-      setActualEndTime(formatted);
+      setStageEndTime(formatted);
     }
     setInputProgress('');
   };
 
   const infoFields = [
     { label: 'Công đoạn', value: 'Cuồng Mắc' },
-    { label: 'Thời gian bắt đầu thực tế', value: actualStartTime || 'Chưa bắt đầu' },
-    { label: 'Thời gian kết thúc thực tế', value: actualEndTime || 'Chưa hoàn thành' },
+    { label: 'Thời gian bắt đầu công đoạn', value: stageStartTime || 'Chưa bắt đầu' },
+    { label: 'Thời gian kết thúc công đoạn', value: stageEndTime || 'Chưa hoàn thành' },
     { label: 'Thời gian đã làm', value: `${totalHours.toFixed(1)} giờ` },
-    { label: 'Người phụ trách', value: 'Võ Thị F' }
+    { label: 'Người phụ trách', value: 'Nguyễn Văn A' }
   ];
 
   const statusConfig = currentProgress >= 100
@@ -89,6 +122,61 @@ const LeaderStageProgress = () => {
             <Button variant="link" className="p-0 mb-3" onClick={handleBack}>
               &larr; Quay lại kế hoạch
             </Button>
+
+            <Card className="shadow-sm mb-3">
+              <Card.Body>
+                <div className="row g-4 align-items-center">
+                  <div className="col-md-4 d-flex gap-3 align-items-center">
+                    <div
+                      style={{
+                        width: 72,
+                        height: 72,
+                        borderRadius: 12,
+                        border: '1px dashed #ced4da',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 24,
+                        color: '#adb5bd',
+                      }}
+                    >
+                      QR
+                    </div>
+                    <div>
+                      <div className="text-muted small mb-1">Mã lô</div>
+                      <h5 className="mb-1">{orderInfo.id}</h5>
+                      <div className="text-muted small">Kích thước {orderInfo.size}</div>
+                    </div>
+                  </div>
+                  <div className="col-md-8">
+                    <div className="row g-2">
+                      <div className="col-sm-6">
+                        <div className="text-muted small">Tên sản phẩm</div>
+                        <div className="fw-semibold">{orderInfo.productName}</div>
+                      </div>
+                      <div className="col-sm-6">
+                        <div className="text-muted small">Số lượng</div>
+                        <div>{orderInfo.quantity.toLocaleString('vi-VN')} sản phẩm</div>
+                      </div>
+                      <div className="col-sm-6">
+                        <div className="text-muted small">Ngày bắt đầu dự kiến</div>
+                        <div>{orderInfo.expectedStartDate}</div>
+                      </div>
+                      <div className="col-sm-6">
+                        <div className="text-muted small">Ngày kết thúc dự kiến</div>
+                        <div>{orderInfo.expectedFinishDate}</div>
+                      </div>
+                      <div className="col-sm-6 d-flex flex-column">
+                        <div className="text-muted small mb-1">Trạng thái</div>
+                        <Badge bg={orderInfo.statusVariant} className="status-badge align-self-start">
+                          {orderInfo.statusLabel}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Card.Body>
+            </Card>
 
             <Card className="shadow-sm mb-3">
               <Card.Body>
@@ -168,8 +256,8 @@ const LeaderStageProgress = () => {
                       <tr>
                         <th>Tiến trình</th>
                         <th>Thời gian làm</th>
-                        <th>Thời gian bắt đầu thực tế</th>
-                        <th>Thời gian kết thúc thực tế</th>
+                        <th>Thời gian bắt đầu</th>
+                        <th>Thời gian kết thúc</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -184,6 +272,35 @@ const LeaderStageProgress = () => {
                     </tbody>
                   </Table>
                 )}
+              </Card.Body>
+            </Card>
+
+            <Card className="shadow-sm mt-3">
+              <Card.Body>
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <strong>Tiêu chí kiểm tra sau QC</strong>
+                  <small className="text-muted">Kết quả do KCS gửi</small>
+                </div>
+                <div className="d-flex flex-column gap-3">
+                  {QA_CRITERIA.map((item, index) => (
+                    <div
+                      key={`${item.title}-${index}`}
+                      className="p-3 rounded"
+                      style={{
+                        border: `1px solid ${item.result === 'PASS' ? '#c3ebd3' : '#f9cfd9'}`,
+                        backgroundColor: item.result === 'PASS' ? '#e8f7ef' : '#fdecef',
+                      }}
+                    >
+                      <div className="d-flex justify-content-between align-items-center">
+                        <div className="fw-semibold">{item.title}</div>
+                        <Badge bg={item.result === 'PASS' ? 'success' : 'danger'}>
+                          {item.result === 'PASS' ? 'Đạt' : 'Không đạt'}
+                        </Badge>
+                      </div>
+                      {item.remark && <div className="text-muted mt-1 small">{item.remark}</div>}
+                    </div>
+                  ))}
+                </div>
               </Card.Body>
             </Card>
           </Container>
