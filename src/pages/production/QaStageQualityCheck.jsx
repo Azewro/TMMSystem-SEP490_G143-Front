@@ -1,113 +1,61 @@
-import React, { useState, useMemo } from 'react';
-import { Container, Card, Button, Form } from 'react-bootstrap';
+import React, { useMemo } from 'react';
+import { Container, Card, Button, Badge } from 'react-bootstrap';
 import { useNavigate, useParams } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 
-const CRITERIA_BY_STAGE = {
-  CUONG_MAC: [
-    { key: 'fabric_quality', name: 'Chất lượng sợi' },
-    { key: 'tension', name: 'Độ căng sợi' },
-    { key: 'uniformity', name: 'Sợi mắc đều' },
-    { key: 'roll', name: 'Khổ & chiều dài cây sợi' },
-  ],
-  DET: [
-    { key: 'durability', name: 'Độ bền sợi' },
-    { key: 'density', name: 'Mật độ sợi' },
-    { key: 'shape', name: 'Hình dáng khăn' },
-    { key: 'surface', name: 'Bề mặt vải' },
-  ],
-  NHUOM: [
-    { key: 'color', name: 'Màu sắc' },
-    { key: 'color_fastness', name: 'Độ bền màu' },
-    { key: 'coverage', name: 'Độ phủ màu' },
-    { key: 'stain', name: 'Độ loang màu' },
-  ],
-  CAT: [
-    { key: 'size', name: 'Kích thước khăn' },
-    { key: 'angle', name: 'Độ nghiêng góc' },
-    { key: 'uniform_cut', name: 'Độ đồng đều' },
-    { key: 'cut_quality', name: 'Vết cắt' },
-  ],
-  MAY: [
-    { key: 'strength', name: 'Tiêu chuẩn bền khăn' },
-    { key: 'label', name: 'Nhãn mác' },
-    { key: 'stitch_density', name: 'Mật độ mũi may' },
-    { key: 'thread', name: 'Chỉ thừa, màu chỉ' },
-  ],
-  DONG_GOI: [
-    { key: 'cleanliness', name: 'Độ sạch khăn' },
-    { key: 'folding', name: 'Gấp khăn' },
-    { key: 'tag', name: 'Tem nhãn' },
-    { key: 'package', name: 'Túi đóng gói' },
-    { key: 'quantity', name: 'Số lượng' },
-  ],
+const QA_RESULTS_BY_STAGE = {
+  CUONG_MAC: {
+    lotCode: 'LOT-002',
+    productName: 'Khăn mặt cotton',
+    stageName: 'Cuồng mắc',
+    criteria: [
+      {
+        title: 'Độ bền sợi',
+        result: 'FAIL',
+        remark: 'Không đạt',
+        image: 'https://placekitten.com/600/260',
+      },
+      {
+        title: 'Hình dáng khăn',
+        result: 'PASS',
+        remark: 'Đạt',
+      },
+      {
+        title: 'Bề mặt vải',
+        result: 'PASS',
+        remark: 'Đạt',
+      },
+    ],
+    overall: 'FAIL',
+    summary: 'Có tiêu chí Không đạt. Vui lòng xử lý lỗi theo quy định.',
+  },
+  DET: {
+    lotCode: 'LOT-002',
+    productName: 'Khăn mặt cotton',
+    stageName: 'Dệt',
+    criteria: [
+      { title: 'Độ bền sợi', result: 'PASS' },
+      { title: 'Mật độ sợi', result: 'PASS' },
+      { title: 'Hình dáng khăn', result: 'PASS' },
+    ],
+    overall: 'PASS',
+    summary: 'Tất cả tiêu chí đều Đạt.',
+  },
 };
 
 const QaStageQualityCheck = () => {
   const navigate = useNavigate();
   const { orderId, stageCode } = useParams();
 
-  const initialStageKey = (stageCode || '').toUpperCase();
-  const [criteria, setCriteria] = useState(() =>
-    (CRITERIA_BY_STAGE[initialStageKey] || CRITERIA_BY_STAGE.NHUOM).map((c, index) => ({
-      id: `${initialStageKey}-${index}`,
-      ...c,
-      result: '',
-      photo: null,
-    })),
-  );
-  const [defectLevel, setDefectLevel] = useState('');
-  const [defectDescription, setDefectDescription] = useState('');
-
-  const overallResult = useMemo(() => {
-    const hasFail = criteria.some((c) => c.result === 'FAIL');
-    const allSelected = criteria.every((c) => c.result === 'PASS' || c.result === 'FAIL');
-    if (!allSelected) return 'PENDING';
-    return hasFail ? 'FAIL' : 'PASS';
-  }, [criteria]);
+  const stageKey = (stageCode || '').toUpperCase();
+  const qaResult =
+    QA_RESULTS_BY_STAGE[stageKey] || QA_RESULTS_BY_STAGE.CUONG_MAC;
 
   const handleBack = () => {
     navigate(`/qa/orders/${orderId || 'LOT-002'}`);
   };
 
-  const handleChangeResult = (id, value) => {
-    setCriteria((prev) =>
-      prev.map((c) =>
-        c.id === id
-          ? {
-              ...c,
-              result: value,
-              // reset photo if chuyển về Đạt / Chọn
-              photo: value === 'FAIL' ? c.photo : null,
-            }
-          : c,
-      ),
-    );
-  };
-
-  const handleSubmit = () => {
-    if (overallResult === 'PENDING') {
-      alert('Vui lòng chọn đầy đủ kết quả cho tất cả tiêu chí.');
-      return;
-    }
-    if (overallResult === 'FAIL') {
-      // kiểm tra ảnh bắt buộc và thông tin lỗi
-      const missingPhoto = criteria.some((c) => c.result === 'FAIL' && !c.photo);
-      if (missingPhoto) {
-        alert('Vui lòng bổ sung hình ảnh lỗi cho các tiêu chí Không đạt yêu cầu.');
-        return;
-      }
-      if (!defectLevel || !defectDescription.trim()) {
-        alert('Vui lòng nhập đầy đủ Mức độ lỗi và Mô tả lỗi.');
-        return;
-      }
-    }
-    // Mock submit
-    alert('Đã gửi kết quả kiểm tra (mock).');
-  };
-
-  const stageKey = (stageCode || '').toUpperCase();
   const stageNameMap = {
     CUONG_MAC: 'Cuồng mắc',
     DET: 'Dệt',
@@ -132,129 +80,73 @@ const QaStageQualityCheck = () => {
               &larr; Quay lại kế hoạch
             </Button>
 
-            {/* Header thông tin */}
-            <Card className="shadow-sm mb-3">
-              <Card.Body className="d-flex justify-content-between align-items-center">
-                <div>
-                  <h5 className="mb-1">Kiểm tra chất lượng</h5>
-                  <div className="text-muted small">
-                    {orderId || 'LOT-002'} • Khăn mặt cotton
-                  </div>
-                  <div className="mt-2">
-                    <span className="text-muted small">Công đoạn:&nbsp;</span>
-                    <strong>{stageName}</strong>
-                  </div>
-                </div>
-                <div className="text-end">
-                  <span className="badge rounded-pill text-bg-light" style={{ color: '#6f42c1' }}>
-                    Đang kiểm tra
-                  </span>
-                </div>
-              </Card.Body>
-            </Card>
-
-            {/* Danh sách tiêu chí */}
             <Card className="shadow-sm mb-3">
               <Card.Body>
-                <h6 className="mb-3">Danh sách tiêu chí kiểm tra</h6>
-                {criteria.map((c) => (
-                  <div key={c.id} className="mb-3">
-                    <div className="d-flex justify-content-between align-items-center mb-2">
-                      <div>{c.name}</div>
-                      <Form.Select
-                        value={c.result}
-                        onChange={(e) => handleChangeResult(c.id, e.target.value)}
-                        style={{ maxWidth: 180 }}
-                      >
-                        <option value="">Chọn</option>
-                        <option value="PASS">Đạt</option>
-                        <option value="FAIL">Không đạt</option>
-                      </Form.Select>
+                <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                  <div>
+                    <h4 className="mb-1">Kết quả Kiểm Tra</h4>
+                    <div className="text-muted small">
+                      {qaResult.lotCode} • {qaResult.productName}
                     </div>
-
-                    {c.result === 'FAIL' && (
-                      <div
-                        className="p-3 rounded"
-                        style={{ backgroundColor: '#ffe3e3', border: '1px solid #ffc9c9' }}
-                      >
-                        <div className="mb-2 fw-semibold">Hình ảnh lỗi (bắt buộc)</div>
-                        <Button
-                          variant="outline-dark"
-                          size="sm"
-                          onClick={() => {
-                            // mock chụp ảnh: gán c.photo = {} để đánh dấu đã có ảnh
-                            setCriteria((prev) =>
-                              prev.map((item) =>
-                                item.id === c.id ? { ...item, photo: {} } : item,
-                              ),
-                            );
-                            alert('Giả lập: đã đính kèm hình ảnh lỗi (mock).');
-                          }}
-                        >
-                          Chụp ảnh
-                        </Button>
-                      </div>
-                    )}
+                    <div className="text-muted small">
+                      Công đoạn: <strong>{stageName}</strong>
+                    </div>
                   </div>
-                ))}
+                  <Badge bg={qaResult.overall === 'PASS' ? 'success' : 'danger'}>
+                    {qaResult.overall === 'PASS' ? 'Đạt' : 'Không đạt'}
+                  </Badge>
+                </div>
               </Card.Body>
             </Card>
 
-            {/* Kết quả tổng */}
-            {overallResult === 'PASS' && (
-              <Card
-                className="shadow-sm mb-3"
-                style={{ borderColor: '#c3e6cb', backgroundColor: '#e9f7ef' }}
-              >
-                <Card.Body>
-                  <div className="fw-semibold mb-2">Kết quả kiểm tra: <span style={{ color: '#28a745' }}>Đạt</span></div>
-                  <div className="text-muted small">
-                    Tất cả tiêu chí đều Đạt. Bạn có thể gửi kết quả kiểm tra.
-                  </div>
-                </Card.Body>
-              </Card>
-            )}
-
-            {overallResult === 'FAIL' && (
-              <Card
-                className="shadow-sm mb-3"
-                style={{ borderColor: '#f5c2c7', backgroundColor: '#fdecec' }}
-              >
-                <Card.Body>
-                  <div className="fw-semibold mb-3">
-                    Kết quả kiểm tra: <span style={{ color: '#dc3545' }}>Không Đạt</span>
-                  </div>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Mức độ lỗi *</Form.Label>
-                    <Form.Select
-                      value={defectLevel}
-                      onChange={(e) => setDefectLevel(e.target.value)}
+            <Card className="shadow-sm mb-3">
+              <Card.Body>
+                <h6 className="mb-3">Tiêu chí kiểm tra</h6>
+                <div className="d-flex flex-column gap-3">
+                  {qaResult.criteria.map((criteria) => (
+                    <div
+                      key={criteria.title}
+                      className="p-3 rounded"
+                      style={{
+                        border: `1px solid ${criteria.result === 'PASS' ? '#c3ebd3' : '#f9cfd9'}`,
+                        backgroundColor: criteria.result === 'PASS' ? '#e8f7ef' : '#fdecef',
+                      }}
                     >
-                      <option value="">Chọn mức độ</option>
-                      <option value="MINOR">Nhẹ</option>
-                      <option value="MAJOR">Nặng</option>
-                      <option value="CRITICAL">Nghiêm trọng</option>
-                    </Form.Select>
-                  </Form.Group>
-                  <Form.Group>
-                    <Form.Label>Mô tả lỗi *</Form.Label>
-                    <Form.Control
-                      as="textarea"
-                      rows={3}
-                      value={defectDescription}
-                      onChange={(e) => setDefectDescription(e.target.value)}
-                      placeholder="Mô tả chi tiết lỗi phát hiện..."
-                    />
-                  </Form.Group>
-                </Card.Body>
-              </Card>
-            )}
+                      <div className="d-flex justify-content-between align-items-center mb-2">
+                        <div className="fw-semibold">{criteria.title}</div>
+                        <Badge bg={criteria.result === 'PASS' ? 'success' : 'danger'}>
+                          {criteria.result === 'PASS' ? 'Đạt' : 'Không đạt'}
+                        </Badge>
+                      </div>
+                      {criteria.image && (
+                        <img
+                          src={criteria.image}
+                          alt={criteria.title}
+                          className="rounded mb-2"
+                          style={{ maxWidth: '100%', height: 'auto' }}
+                        />
+                      )}
+                      {criteria.remark && <div className="text-muted small">{criteria.remark}</div>}
+                    </div>
+                  ))}
+                </div>
+              </Card.Body>
+            </Card>
 
-            <div className="d-flex justify-content-end">
-              <Button variant="dark" onClick={handleSubmit}>
-                Gửi kết quả kiểm tra
-              </Button>
-            </div>
+            <Card
+              className="shadow-sm"
+              style={{
+                borderColor: qaResult.overall === 'PASS' ? '#c3e6cb' : '#f5c2c7',
+                backgroundColor: qaResult.overall === 'PASS' ? '#e9f7ef' : '#fdecec',
+              }}
+            >
+              <Card.Body>
+                <div className="fw-semibold mb-2">
+                  Kết quả kiểm tra: <span>{qaResult.overall === 'PASS' ? 'Đạt' : 'Không đạt'}</span>
+                </div>
+                <div className="text-muted small">{qaResult.summary}</div>
+              </Card.Body>
+            </Card>
           </Container>
         </div>
       </div>

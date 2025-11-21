@@ -139,7 +139,7 @@ const QaOrderList = () => {
                             variant="dark"
                             onClick={() => handleInspect(order)}
                           >
-                            Kiểm tra
+                            Xem kế hoạch
                           </Button>
                         </td>
                       </tr>

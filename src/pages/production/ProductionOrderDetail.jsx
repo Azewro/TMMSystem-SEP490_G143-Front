@@ -183,7 +183,7 @@ const ProductionOrderDetail = () => {
                 className="px-4"
                 onClick={handleStartProduction}
               >
-                Bắt đầu sản xuất
+                Bắt đầu làm việc
               </Button>
             </div>
           </Container>
