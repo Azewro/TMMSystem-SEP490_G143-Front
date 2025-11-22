@@ -233,7 +233,6 @@ const QaStageQualityCheck = () => {
                       <option value="">Chọn mức độ</option>
                       <option value="MINOR">Nhẹ</option>
                       <option value="MAJOR">Nặng</option>
-                      <option value="CRITICAL">Nghiêm trọng</option>
                     </Form.Select>
                   </Form.Group>
                   <Form.Group>
