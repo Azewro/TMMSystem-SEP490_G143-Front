@@ -8,6 +8,12 @@ import toast from 'react-hot-toast';
 
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A';
+  // Take the first 10 characters (YYYY-MM-DD) regardless of time component
+  const datePart = dateString.substring(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+    const [year, month, day] = datePart.split('-');
+    return `${day}/${month}/${year}`;
+  }
   return new Date(dateString).toLocaleDateString('vi-VN');
 };
 
@@ -30,9 +36,9 @@ const AssignRfqModal = ({ show, onHide, rfqId, onAssignmentSuccess, isViewMode =
             userService.getAllUsers(0, 1000),
             rfqService.getRfqById(rfqId)
           ]);
-          
-          const allUsers = (allUsersResponse && allUsersResponse.content) 
-            ? allUsersResponse.content 
+
+          const allUsers = (allUsersResponse && allUsersResponse.content)
+            ? allUsersResponse.content
             : (Array.isArray(allUsersResponse) ? allUsersResponse : []);
 
           const sales = allUsers.filter(user => user.roleName?.toUpperCase() === 'SALE STAFF');
@@ -66,7 +72,7 @@ const AssignRfqModal = ({ show, onHide, rfqId, onAssignmentSuccess, isViewMode =
             );
             finalRfqData.details = enrichedDetails;
           }
-          
+
           setRfqDetails(finalRfqData);
           setSelectedSalesId(rfqData.assignedSalesId || '');
 
@@ -166,8 +172,8 @@ const AssignRfqModal = ({ show, onHide, rfqId, onAssignmentSuccess, isViewMode =
             <Form>
               <Form.Group className="mb-3">
                 <Form.Label>Nhân viên Sales</Form.Label>
-                <Form.Select 
-                  value={selectedSalesId} 
+                <Form.Select
+                  value={selectedSalesId}
                   onChange={(e) => setSelectedSalesId(e.target.value)}
                   required
                   disabled={isViewMode}

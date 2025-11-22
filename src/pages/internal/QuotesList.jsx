@@ -39,17 +39,17 @@ const getStatusText = (status) => {
 
 const formatDate = (iso) => {
   if (!iso) return '';
-  try { 
-    return new Date(iso).toLocaleDateString('vi-VN'); 
-  } catch { 
-    return iso; 
+  try {
+    return new Date(iso).toLocaleDateString('vi-VN');
+  } catch {
+    return iso;
   }
 };
 
 const formatCurrency = (amount) => {
   if (!amount) return '0 ₫';
-  return new Intl.NumberFormat('vi-VN', { 
-    style: 'currency', 
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
     currency: 'VND',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
@@ -61,7 +61,7 @@ const QuotesList = () => {
   const [allQuotes, setAllQuotes] = useState([]); // Holds all quotes
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
+
   // Search, Filter and Pagination state
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -77,7 +77,7 @@ const QuotesList = () => {
       // Convert 1-based page to 0-based for backend
       const page = currentPage - 1;
       const [quotesResponse, customersData, usersData] = await Promise.all([
-        quotationService.getAllQuotes(page, ITEMS_PER_PAGE, searchTerm || undefined, statusFilter || undefined),
+        quotationService.getSalesQuotations(page, ITEMS_PER_PAGE, searchTerm || undefined, statusFilter || undefined),
         customerService.getAllCustomers(), // Use customerService instead of quoteService
         userService.getAllUsers(0, 1000) // Get all users for enrichment (with pagination)
       ]);
@@ -120,7 +120,7 @@ const QuotesList = () => {
             customerMap.set(Number(c.id), c); // Also add as number
           }
         });
-        
+
         const userMap = new Map();
         usersArray.forEach(u => {
           if (u.id != null) {
@@ -132,14 +132,14 @@ const QuotesList = () => {
 
         const enrichedQuotes = quotesData.map(quote => {
           // Try multiple ways to get customer
-          const customer = customerMap.get(quote.customerId) 
+          const customer = customerMap.get(quote.customerId)
             || customerMap.get(String(quote.customerId))
             || customerMap.get(Number(quote.customerId));
-            
+
           const creator = userMap.get(quote.createdById)
             || userMap.get(String(quote.createdById))
             || userMap.get(Number(quote.createdById));
-          
+
           // Debug log to check enrichment
           if (!customer && quote.customerId) {
             console.warn(`Customer not found for quote ${quote.id}`, {
@@ -149,7 +149,7 @@ const QuotesList = () => {
               customersCount: customersArray.length
             });
           }
-          
+
           return {
             ...quote,
             customer: customer,
@@ -159,8 +159,8 @@ const QuotesList = () => {
 
         setAllQuotes(enrichedQuotes);
       } else {
-        console.warn('API returned non-array data for customers or users.', { 
-          customersData, 
+        console.warn('API returned non-array data for customers or users.', {
+          customersData,
           usersData,
           customersDataType: typeof customersData,
           customersDataIsArray: Array.isArray(customersData),
@@ -177,7 +177,7 @@ const QuotesList = () => {
       setLoading(false);
     }
   }, [currentPage, searchTerm, statusFilter]);
-  
+
   useEffect(() => {
     // Reset to page 1 when filters change
     setCurrentPage(1);
@@ -277,8 +277,8 @@ const QuotesList = () => {
                     )}
                     {!loading && !error && allQuotes.length === 0 && (
                       <tr><td colSpan={6} className="text-center py-4 text-muted">
-                        {totalElements === 0 
-                          ? 'Chưa có báo giá nào.' 
+                        {totalElements === 0
+                          ? 'Chưa có báo giá nào.'
                           : 'Không tìm thấy báo giá phù hợp với bộ lọc.'}
                       </td></tr>
                     )}
@@ -291,14 +291,14 @@ const QuotesList = () => {
                           quote: quote
                         });
                       }
-                      
+
                       return (
                         <tr key={quote.id}>
                           <td className="fw-semibold text-primary">
                             {quote.quotationNumber || `QUOTE-${quote.id}`}
                           </td>
                           <td>
-                            {quote.customer 
+                            {quote.customer
                               ? (quote.customer.contactPerson || quote.customer.companyName || '—')
                               : (quote.customerId ? `[ID: ${quote.customerId}]` : '—')
                             }
@@ -313,8 +313,8 @@ const QuotesList = () => {
                             </Badge>
                           </td>
                           <td className="text-center">
-                            <Button 
-                              size="sm" 
+                            <Button
+                              size="sm"
                               variant="primary"
                               onClick={() => handleViewDetail(quote)}
                             >

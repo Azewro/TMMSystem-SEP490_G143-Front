@@ -17,7 +17,7 @@ const PlanningRfqs = () => {
 
   // Search and Filter state
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('FORWARDED_TO_PLANNING');
   const [createdDateFilter, setCreatedDateFilter] = useState('');
 
   // Pagination state - Note: Backend uses 0-based page index
@@ -46,13 +46,13 @@ const PlanningRfqs = () => {
       // Convert 1-based page to 0-based for backend
       const page = currentPage - 1;
       const response = await rfqService.getAssignedRfqsForPlanning(
-        page, 
-        ITEMS_PER_PAGE, 
-        searchTerm || undefined, 
+        page,
+        ITEMS_PER_PAGE,
+        searchTerm || undefined,
         statusFilter || undefined,
         createdDateFilter || undefined
       );
-      
+
       // Handle PageResponse
       let rfqs = [];
       if (response && response.content) {
@@ -71,9 +71,9 @@ const PlanningRfqs = () => {
           if (rfq.customerId) {
             try {
               const customer = await customerService.getCustomerById(rfq.customerId);
-              return { 
-                ...rfq, 
-                contactPerson: rfq.contactPerson || customer.contactPerson || customer.companyName || 'N/A' 
+              return {
+                ...rfq,
+                contactPerson: rfq.contactPerson || customer.contactPerson || customer.companyName || 'N/A'
               };
             } catch (customerError) {
               console.error(`Failed to fetch customer for RFQ ${rfq.id}`, customerError);
@@ -83,7 +83,7 @@ const PlanningRfqs = () => {
           return rfq;
         })
       );
-      
+
       setAllRfqs(enrichedData);
     } catch (err) {
       setError('Lỗi khi tải danh sách RFQ.');
@@ -96,7 +96,7 @@ const PlanningRfqs = () => {
   useEffect(() => {
     fetchPlanningRfqs();
   }, [fetchPlanningRfqs]);
-  
+
   useEffect(() => {
     // Reset to page 1 when filters change
     setCurrentPage(1);
@@ -126,44 +126,30 @@ const PlanningRfqs = () => {
         <div className="flex-grow-1 p-4" style={{ backgroundColor: '#f8f9fa' }}>
           <Container fluid>
             <h2 className="mb-4">Yêu cầu báo giá cần xử lý</h2>
-            <Card>
-              <Card.Header>
-                Các RFQ được giao cho bộ phận Kế hoạch
-              </Card.Header>
+            {/* Search and Filter Section */}
+            <Card className="mb-3">
               <Card.Body>
-                {/* Search and Filter Section */}
-                <Row className="mb-3">
+                <Row className="g-3 align-items-end">
                   <Col md={4}>
-                    <InputGroup>
-                      <InputGroup.Text><FaSearch /></InputGroup.Text>
-                      <Form.Control
-                        type="text"
-                        placeholder="Tìm kiếm theo mã RFQ, tên khách hàng..."
-                        value={searchTerm}
-                        onChange={(e) => {
-                          setSearchTerm(e.target.value);
-                          setCurrentPage(1);
-                        }}
-                      />
-                    </InputGroup>
-                  </Col>
-                  <Col md={3}>
-                    <Form.Select
-                      value={statusFilter}
-                      onChange={(e) => {
-                        setStatusFilter(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                    >
-                      <option value="">Tất cả trạng thái</option>
-                      <option value="FORWARDED_TO_PLANNING">Chờ xử lý</option>
-                      <option value="RECEIVED_BY_PLANNING">Đã tiếp nhận</option>
-                      <option value="QUOTED">Đã báo giá</option>
-                    </Form.Select>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Tìm kiếm</Form.Label>
+                      <InputGroup>
+                        <InputGroup.Text><FaSearch /></InputGroup.Text>
+                        <Form.Control
+                          type="text"
+                          placeholder="Tìm kiếm theo mã RFQ, tên khách hàng..."
+                          value={searchTerm}
+                          onChange={(e) => {
+                            setSearchTerm(e.target.value);
+                            setCurrentPage(1);
+                          }}
+                        />
+                      </InputGroup>
+                    </Form.Group>
                   </Col>
                   <Col md={3}>
                     <Form.Group>
-                      <Form.Label className="mb-1">Lọc theo ngày tạo RFQ</Form.Label>
+                      <Form.Label className="mb-1 small">Lọc theo ngày tạo</Form.Label>
                       <Form.Control
                         type="date"
                         value={createdDateFilter}
@@ -174,7 +160,32 @@ const PlanningRfqs = () => {
                       />
                     </Form.Group>
                   </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Lọc theo trạng thái</Form.Label>
+                      <Form.Select
+                        value={statusFilter}
+                        onChange={(e) => {
+                          setStatusFilter(e.target.value);
+                          setCurrentPage(1);
+                        }}
+                      >
+                        <option value="FORWARDED_TO_PLANNING">Chờ xử lý</option>
+                        <option value="RECEIVED_BY_PLANNING">Đã tiếp nhận</option>
+                        <option value="QUOTED">Đã báo giá</option>
+                        <option value="">Tất cả trạng thái</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
                 </Row>
+              </Card.Body>
+            </Card>
+
+            <Card>
+              <Card.Header>
+                Các RFQ được giao cho bộ phận Kế hoạch
+              </Card.Header>
+              <Card.Body>
                 {loading ? (
                   <div className="text-center"><Spinner animation="border" /></div>
                 ) : error ? (
@@ -193,26 +204,26 @@ const PlanningRfqs = () => {
                       </thead>
                       <tbody>
                         {filteredRfqs.length > 0 ? filteredRfqs.map(rfq => (
-                            <tr key={rfq.id}>
-                              <td>{rfq.rfqNumber}</td>
-                              <td>{rfq.contactPerson || 'N/A'}</td>
-                              <td>{new Date(rfq.createdAt).toLocaleDateString('vi-VN')}</td>
-                              <td>
-                                <Badge bg={getStatusBadge(rfq.status)}>
-                                  {getStatusText(rfq.status)}
-                                </Badge>
-                              </td>
-                              <td>
-                                <Button variant="primary" size="sm" onClick={() => handleViewDetails(rfq.id)}>
-                                  Xem chi tiết
-                                </Button>
-                              </td>
-                            </tr>
-                          )) : (
+                          <tr key={rfq.id}>
+                            <td>{rfq.rfqNumber}</td>
+                            <td>{rfq.contactPerson || 'N/A'}</td>
+                            <td>{new Date(rfq.createdAt).toLocaleDateString('vi-VN')}</td>
+                            <td>
+                              <Badge bg={getStatusBadge(rfq.status)}>
+                                {getStatusText(rfq.status)}
+                              </Badge>
+                            </td>
+                            <td>
+                              <Button variant="primary" size="sm" onClick={() => handleViewDetails(rfq.id)}>
+                                Xem chi tiết
+                              </Button>
+                            </td>
+                          </tr>
+                        )) : (
                           <tr>
                             <td colSpan="5" className="text-center">
-                              {totalElements === 0 
-                                ? 'Không có RFQ nào cần xử lý.' 
+                              {totalElements === 0
+                                ? 'Không có RFQ nào cần xử lý.'
                                 : 'Không tìm thấy RFQ phù hợp với bộ lọc.'}
                             </td>
                           </tr>

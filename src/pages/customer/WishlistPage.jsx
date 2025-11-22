@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { useCart } from '../../context/CartContext';
 import { Container, Row, Col, Card, Button, Form } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
@@ -55,10 +56,19 @@ const WishlistPage = () => {
 
   const handleProceedToQuote = () => {
     const selectedProducts = cartItems.filter(item => selectedItems.has(item.id));
+
     if (selectedProducts.length === 0) {
-      alert('Vui lòng chọn ít nhất một sản phẩm để gửi yêu cầu báo giá.');
+      toast.error('Vui lòng chọn ít nhất một sản phẩm để gửi yêu cầu báo giá.');
       return;
     }
+
+    // Validate quantity >= 100
+    const invalidItems = selectedProducts.filter(item => item.quantity < 100);
+    if (invalidItems.length > 0) {
+      toast.error(`Sản phẩm "${invalidItems[0].name}" phải có số lượng tối thiểu là 100.`);
+      return;
+    }
+
     // Navigate to the quote request page with the selected cart items
     navigate('/customer/quote-request', { state: { cartProducts: selectedProducts } });
   };
@@ -96,9 +106,9 @@ const WishlistPage = () => {
                   </div>
                   <div style={{ flexGrow: 1, overflowY: 'auto' }}>
                     {cartItems.map(item => (
-                      <CartItemRow 
-                        key={item.id} 
-                        item={item} 
+                      <CartItemRow
+                        key={item.id}
+                        item={item}
                         isSelected={selectedItems.has(item.id)}
                         onToggleSelect={() => handleToggleSelect(item.id)}
                       />

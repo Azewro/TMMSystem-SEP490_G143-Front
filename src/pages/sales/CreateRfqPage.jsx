@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Container, Row, Col, Card, Form, Button, Spinner } from 'react-bootstrap';
+import { Container, Row, Col, Card, Form, Button, Spinner, Alert, InputGroup } from 'react-bootstrap';
 import { useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import DatePicker, { registerLocale } from 'react-datepicker';
@@ -8,27 +8,28 @@ import 'react-datepicker/dist/react-datepicker.css';
 import Select from 'react-select';
 
 import Header from '../../components/common/Header';
-import InternalSidebar from '../../components/common/InternalSidebar'; // Changed to InternalSidebar
+import InternalSidebar from '../../components/common/InternalSidebar';
 import { productService } from '../../api/productService';
 import { useAuth } from '../../context/AuthContext';
 import { rfqService } from '../../api/rfqService';
-import addressService from '../../api/addressService';
 import { isVietnamesePhoneNumber } from '../../utils/validators';
+import addressService from '../../api/addressService';
+import { userService } from '../../api/userService';
 import '../../styles/QuoteRequest.css';
 
 registerLocale('vi', vi);
 
 const getMinExpectedDeliveryDate = () => {
   const today = new Date();
-  today.setDate(today.getDate() + 30); // Add 30 days
+  today.setDate(today.getDate() + 30);
+  today.setHours(0, 0, 0, 0);
   return today;
 };
 
-// Renamed component
 const CreateRfqForCustomer = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth(); // Sales user is authenticated
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -39,153 +40,78 @@ const CreateRfqForCustomer = () => {
     contactPerson: '',
     contactPhone: '',
     contactEmail: '',
-    employeeCode: '', // Sales can fill this
+    employeeCode: '',
     contactMethod: 'Điện thoại',
     expectedDeliveryDate: null,
     notes: '',
   });
 
-  // State for 2-level address
   const [provinces, setProvinces] = useState([]);
   const [communes, setCommunes] = useState([]);
-  const [selectedProvince, setSelectedProvince] = useState('');
-  const [selectedCommune, setSelectedCommune] = useState('');
+  const [selectedProvince, setSelectedProvince] = useState(null);
+  const [selectedCommune, setSelectedCommune] = useState(null);
   const [detailedAddress, setDetailedAddress] = useState('');
-  const [addressLoading, setAddressLoading] = useState({ provinces: true, communes: false });
-  
-  const [quoteItems, setQuoteItems] = useState([{ productId: '', quantity: '1', unit: 'cai', notes: '', standardDimensions: '' }]);
+  const [addressLoading, setAddressLoading] = useState({ provinces: false, communes: false });
 
-  // Fetch provinces on mount
+  const [quoteItems, setQuoteItems] = useState([{ productId: '', quantity: '100', unit: 'cai', notes: '', standardDimensions: '' }]);
+  const [step, setStep] = useState(1);
+
   useEffect(() => {
-    const fetchProvinces = async () => {
-      try {
-        setAddressLoading(prev => ({ ...prev, provinces: true }));
-        const provinceData = await addressService.getProvinces();
-        setProvinces(provinceData);
-      } catch (error) {
-        toast.error('Không thể tải danh sách Tỉnh/Thành phố.');
-      } finally {
-        setAddressLoading(prev => ({ ...prev, provinces: false }));
-      }
-    };
-    fetchProvinces();
+    addressService.getProvinces().then(setProvinces).catch(() => toast.error('Không thể tải danh sách Tỉnh/Thành phố.'));
   }, []);
 
-  // Fetch communes when province changes
   useEffect(() => {
-    if (!selectedProvince) {
+    if (selectedProvince) {
       setCommunes([]);
-      setSelectedCommune('');
-      return;
+      setSelectedCommune(null);
+      setAddressLoading(prev => ({ ...prev, communes: true }));
+      addressService.getCommunes(selectedProvince.value).then(setCommunes).finally(() => setAddressLoading(prev => ({ ...prev, communes: false })));
+    } else {
+      setCommunes([]);
+      setSelectedCommune(null);
     }
-    const fetchCommunes = async () => {
-      try {
-        setAddressLoading(prev => ({ ...prev, communes: true }));
-        const communeData = await addressService.getCommunes(selectedProvince);
-        setCommunes(communeData);
-        setSelectedCommune('');
-      } catch (error) {
-        toast.error('Không thể tải danh sách Xã/Phường.');
-      } finally {
-        setAddressLoading(prev => ({ ...prev, communes: false }));
-      }
-    };
-    fetchCommunes();
   }, [selectedProvince]);
 
-  // Memoize options for react-select
-  const provinceOptions = useMemo(() => 
-    provinces.map(p => ({ value: p.code, label: p.name })),
-    [provinces]
-  );
-
-  const communeOptions = useMemo(() => 
-    communes.map(c => ({ value: c.code, label: c.name })),
-    [communes]
-  );
+  const provinceOptions = useMemo(() => provinces.map(p => ({ value: p.code, label: p.name })), [provinces]);
+  const communeOptions = useMemo(() => communes.map(c => ({ value: c.code, label: c.name })), [communes]);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!isAuthenticated) {
+      toast.error("Vui lòng đăng nhập để sử dụng chức năng này.");
+      navigate('/internal-login');
+      return;
+    }
+
     const initialize = async () => {
       setLoading(true);
-      
-      // Pre-fill sales employee code if available from logged-in user
-      if (user?.employeeCode) {
+      if (user?.employeeCode && user.employeeCode !== 'undefined' && user.employeeCode !== 'null') {
         setFormData(prev => ({ ...prev, employeeCode: user.employeeCode }));
       }
-
-      // Logic for pre-selected products (if any) remains the same
-      if (location.state?.preSelectedProduct) {
-        const { id, standardDimensions, name } = location.state.preSelectedProduct;
-        setQuoteItems([{ 
-          productId: id.toString(), 
-          quantity: '1', 
-          unit: 'cai', 
-          notes: '',
-          standardDimensions: standardDimensions || '', 
-          name 
-        }]);
-      }
-      
       try {
         const productData = await productService.getAllProducts();
         setProducts(productData || []);
       } catch (err) {
         toast.error('Lỗi khi tải danh sách sản phẩm.');
       }
-
       setLoading(false);
     };
     initialize();
-  }, [user, location.state]);
+  }, [authLoading, isAuthenticated, user, navigate]);
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
-  };
-
-  const setSelectedProvinceHandler = (option) => {
-    setSelectedProvince(option ? option.value : '');
-    if (errors.address) {
-      setErrors(prev => ({ ...prev, address: null }));
-    }
-  };
-
-  const setSelectedCommuneHandler = (option) => {
-    setSelectedCommune(option ? option.value : '');
-    if (errors.address) {
-      setErrors(prev => ({ ...prev, address: null }));
-    }
-  };
-
-  const setDetailedAddressHandler = (value) => {
-    setDetailedAddress(value);
-    if (errors.address) {
-      setErrors(prev => ({ ...prev, address: null }));
-    }
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
   };
 
   const handleDateChange = (date) => {
     setFormData(prev => ({ ...prev, expectedDeliveryDate: date }));
-    if (errors.expectedDeliveryDate) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors.expectedDeliveryDate;
-        return newErrors;
-      });
-    }
+    if (errors.expectedDeliveryDate) setErrors(prev => ({ ...prev, expectedDeliveryDate: null }));
   };
 
   const handleItemChange = (index, field, value) => {
     const newItems = [...quoteItems];
-    
-    // Check for duplicate product when selecting a product
     if (field === 'productId' && value) {
       const isDuplicate = newItems.some((item, idx) => idx !== index && item.productId === value);
       if (isDuplicate) {
@@ -193,175 +119,98 @@ const CreateRfqForCustomer = () => {
         return;
       }
       const selectedProduct = products.find(p => p.id === parseInt(value, 10));
-      if (selectedProduct) {
-        newItems[index].standardDimensions = selectedProduct.standardDimensions;
-      } else {
-        newItems[index].standardDimensions = '';
-      }
+      newItems[index].standardDimensions = selectedProduct?.standardDimensions || '';
     }
-    
     newItems[index][field] = value;
     setQuoteItems(newItems);
-    
-    // Clear errors for this item when user changes value
-    if (errors.items?.[index]) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        if (newErrors.items && newErrors.items[index]) {
-          const itemErrors = { ...newErrors.items[index] };
-          delete itemErrors[field];
-          if (Object.keys(itemErrors).length === 0) {
-            newErrors.items[index] = null;
-          } else {
-            newErrors.items[index] = itemErrors;
-          }
-        }
-        return newErrors;
-      });
-    }
   };
 
   const handleAddProduct = () => {
-    const hasEmptyProduct = quoteItems.some(item => !item.productId);
-    if (hasEmptyProduct) {
-      toast.error('Vui lòng chọn sản phẩm cho dòng hiện tại trước khi thêm mới.');
-      return;
-    }
-    setQuoteItems([...quoteItems, { productId: '', quantity: '1', unit: 'cai', notes: '', standardDimensions: '' }]);
+    setQuoteItems([...quoteItems, { productId: '', quantity: '100', unit: 'cai', notes: '', standardDimensions: '' }]);
   };
 
   const handleRemoveProduct = (index) => {
     if (quoteItems.length > 1) {
-      const newItems = quoteItems.filter((_, i) => i !== index);
-      setQuoteItems(newItems);
+      setQuoteItems(quoteItems.filter((_, i) => i !== index));
     }
   };
 
-  const validate = () => {
+  const validateStep1 = () => {
     const newErrors = {};
-    if (!formData.contactPerson.trim()) newErrors.contactPerson = 'Họ và tên là bắt buộc.';
-    if (!formData.contactPhone.trim()) {
+    if (!formData.contactPerson?.trim()) newErrors.contactPerson = 'Họ và tên là bắt buộc.';
+    if (!formData.contactPhone?.trim()) {
       newErrors.contactPhone = 'Số điện thoại là bắt buộc.';
     } else if (!isVietnamesePhoneNumber(formData.contactPhone)) {
       newErrors.contactPhone = 'Số điện thoại không hợp lệ.';
     }
-    if (!formData.contactEmail.trim()) {
-        newErrors.contactEmail = 'Email là bắt buộc.';
-    } else if (!/\S+@\S+\.\S+/.test(formData.contactEmail)) {
-        newErrors.contactEmail = 'Email không hợp lệ.';
-    }
-    if (!formData.contactAddress.trim()) newErrors.contactAddress = 'Địa chỉ nhận hàng là bắt buộc.';
-    if (!formData.expectedDeliveryDate) {
-      newErrors.expectedDeliveryDate = 'Ngày giao hàng mong muốn là bắt buộc.';
-    }
-    if (quoteItems.some(item => !item.productId)) {
-        toast.error('Vui lòng chọn sản phẩm cho tất cả các mục.');
-        return false;
-    }
-
-    // Validate phone number
-    const phoneTrimmed = formData.contactPhone.trim();
-    if (!phoneTrimmed) {
-      newErrors.contactPhone = 'Số điện thoại là bắt buộc.';
-    } else if (!/^0\d{9,10}$/.test(phoneTrimmed)) {
-      if (!phoneTrimmed.startsWith('0')) {
-        newErrors.contactPhone = 'Số điện thoại phải bắt đầu bằng số 0.';
-      } else if (phoneTrimmed.length < 10) {
-        newErrors.contactPhone = 'Số điện thoại phải có ít nhất 10 chữ số (bao gồm số 0 đầu tiên).';
-      } else if (phoneTrimmed.length > 11) {
-        newErrors.contactPhone = 'Số điện thoại không được vượt quá 11 chữ số.';
-      } else if (!/^\d+$/.test(phoneTrimmed)) {
-        newErrors.contactPhone = 'Số điện thoại chỉ được chứa các chữ số (0-9).';
-      } else {
-        newErrors.contactPhone = 'Số điện thoại không hợp lệ. Phải bắt đầu bằng 0 và có 10-11 chữ số.';
-      }
-    }
-
-    // Validate email
-    const emailTrimmed = formData.contactEmail.trim();
-    if (!emailTrimmed) {
+    if (!formData.contactEmail?.trim()) {
       newErrors.contactEmail = 'Email là bắt buộc.';
-    } else {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(emailTrimmed)) {
-        if (!emailTrimmed.includes('@')) {
-          newErrors.contactEmail = 'Email phải chứa ký tự @.';
-        } else if (!emailTrimmed.includes('.')) {
-          newErrors.contactEmail = 'Email phải chứa dấu chấm (.) sau ký tự @.';
-        } else if (emailTrimmed.split('@').length !== 2) {
-          newErrors.contactEmail = 'Email chỉ được chứa một ký tự @.';
-        } else {
-          newErrors.contactEmail = 'Email không hợp lệ. Vui lòng nhập đúng định dạng email (ví dụ: example@email.com).';
-        }
+    } else if (!/\S+@\S+\.\S+/.test(formData.contactEmail)) {
+      newErrors.contactEmail = 'Email không hợp lệ.';
+    }
+    if (!selectedProvince || !selectedCommune || !detailedAddress.trim()) {
+      newErrors.address = 'Vui lòng điền đầy đủ địa chỉ nhận hàng.';
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const validateStep2 = () => {
+    const newErrors = { ...errors };
+    let isValid = true;
+    const itemErrors = quoteItems.map(item => {
+      if (!item.productId) {
+        isValid = false;
+        return { product: 'Vui lòng chọn sản phẩm.' };
       }
+      if (!item.quantity || parseInt(item.quantity, 10) < 100) {
+        isValid = false;
+        return { quantity: 'Số lượng tối thiểu là 100.' };
+      }
+      return null;
+    });
+
+    if (itemErrors.some(e => e !== null)) {
+      newErrors.items = itemErrors;
     }
 
-    // Validate address
-    if (!selectedProvince) {
-      newErrors.address = 'Vui lòng chọn Tỉnh/Thành phố.';
-    } else if (!selectedCommune) {
-      newErrors.address = 'Vui lòng chọn Xã/Phường.';
-    } else if (!detailedAddress.trim()) {
-      newErrors.address = 'Vui lòng nhập địa chỉ chi tiết (số nhà, tên đường).';
-    } else if (detailedAddress.trim().length < 5) {
-      newErrors.address = 'Địa chỉ chi tiết phải có ít nhất 5 ký tự.';
-    }
-
-    // Validate expected delivery date
     if (!formData.expectedDeliveryDate) {
       newErrors.expectedDeliveryDate = 'Ngày giao hàng mong muốn là bắt buộc.';
+      isValid = false;
     } else {
       const minDate = getMinExpectedDeliveryDate();
       if (formData.expectedDeliveryDate < minDate) {
-        newErrors.expectedDeliveryDate = `Ngày giao hàng phải sau ngày hiện tại ít nhất 30 ngày. Ngày sớm nhất có thể chọn là ${minDate.toLocaleDateString('vi-VN')}.`;
+        newErrors.expectedDeliveryDate = `Ngày giao hàng phải ít nhất 30 ngày kể từ hôm nay.`;
+        isValid = false;
       }
     }
-
-    // Item specific validation
-    quoteItems.forEach((item, index) => {
-      const itemErrors = {};
-      if (!item.productId) {
-        itemErrors.product = 'Vui lòng chọn sản phẩm.';
-      }
-      if (!item.quantity || item.quantity.trim() === '') {
-        itemErrors.quantity = 'Số lượng là bắt buộc.';
-      } else {
-        const quantityNum = parseInt(item.quantity, 10);
-        if (isNaN(quantityNum)) {
-          itemErrors.quantity = 'Số lượng phải là một số hợp lệ.';
-        } else if (quantityNum < 1) {
-          itemErrors.quantity = 'Số lượng phải lớn hơn 0.';
-        } else if (quantityNum < 100) {
-          itemErrors.quantity = 'Số lượng tối thiểu là 100.';
-        }
-      }
-      if (Object.keys(itemErrors).length > 0) {
-        newErrors.items[index] = itemErrors;
-      }
-    });
-
     setErrors(newErrors);
-    return newErrors;
+    return isValid;
+  };
+
+  const handleNext = () => {
+    if (step === 1) {
+      if (validateStep1()) setStep(2);
+      else toast.error('Vui lòng điền đầy đủ thông tin khách hàng và địa chỉ.');
+    } else if (step === 2) {
+      if (validateStep2()) setStep(3);
+      else toast.error('Vui lòng điền đầy đủ thông tin sản phẩm.');
+    }
+  };
+
+  const handleBack = () => {
+    setStep(step - 1);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const validationErrors = validate();
-    
-    const hasGeneralError = ['contactPerson', 'contactPhone', 'contactEmail', 'address', 'expectedDeliveryDate'].some(key => validationErrors[key]);
-    const hasItemError = validationErrors.items.some(item => item !== null);
-
-    if (hasGeneralError || hasItemError) {
-      toast.error('Vui lòng kiểm tra lại các thông tin bắt buộc.');
+    if (!validateStep1() || !validateStep2()) {
+      toast.error('Vui lòng kiểm tra lại các thông tin bắt buộc ở các bước trước.');
       return;
     }
     setSubmitting(true);
 
-    // Build full address from province, commune, and detailed address
-    const provinceName = provinces.find(p => p.code == selectedProvince)?.name || '';
-    const communeName = communes.find(c => c.code == selectedCommune)?.name || '';
-    const fullAddress = `${detailedAddress}, ${communeName}, ${provinceName}`;
-
+    const fullAddress = `${detailedAddress}, ${selectedCommune?.label}, ${selectedProvince?.label}`;
     const details = quoteItems.map(item => ({
       productId: parseInt(item.productId),
       quantity: parseInt(item.quantity),
@@ -369,46 +218,134 @@ const CreateRfqForCustomer = () => {
       notes: item.notes,
     }));
 
-    const formattedDate = formData.expectedDeliveryDate 
-      ? formData.expectedDeliveryDate.toISOString().split('T')[0] 
-      : null;
-
-    const contactMethodMap = {
-      'Điện thoại': 'PHONE',
-      'Email': 'EMAIL',
-      'Cả hai': 'PHONE',
-    };
+    const contactMethodMap = { 'Điện thoại': 'PHONE', 'Email': 'EMAIL', 'Cả hai': 'PHONE' };
     const apiContactMethod = contactMethodMap[formData.contactMethod] || 'PHONE';
 
-    // This payload is for creating an RFQ for a new/external customer
     const rfqData = {
+      contactPerson: formData.contactPerson,
+      contactEmail: formData.contactEmail,
+      contactPhone: formData.contactPhone,
+      contactAddress: fullAddress,
       contactMethod: apiContactMethod,
-      expectedDeliveryDate: formattedDate,
+      expectedDeliveryDate: formData.expectedDeliveryDate.toLocaleDateString('en-CA'), // YYYY-MM-DD in local time
       notes: formData.notes,
       details: details,
-      status: 'DRAFT',
-      contactPerson: formData.contactPerson.trim(),
-      contactEmail: formData.contactEmail.trim(),
-      contactPhone: formData.contactPhone.trim(),
-      contactAddress: fullAddress,
-      employeeCode: formData.employeeCode.trim() || undefined,
+      employeeCode: formData.employeeCode || null,
+      status: formData.employeeCode ? 'SENT' : 'DRAFT', // Only auto-send if employee code is provided
     };
 
     try {
-      // Always use the public endpoint (isAuthenticated = false) for this form
-      await rfqService.createRfq(rfqData, false);
+      await rfqService.createRfqBySales(rfqData);
       toast.success('Yêu cầu báo giá đã được tạo thành công!');
-      setTimeout(() => navigate('/sales/rfqs'), 2000); // Navigate to sales RFQ list
+      navigate('/sales/rfqs');
     } catch (err) {
-      toast.error(err.message || 'Tạo yêu cầu thất bại. Vui lòng kiểm tra lại thông tin.');
+      toast.error(err.message || 'Gửi yêu cầu thất bại.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) {
+  if (loading || authLoading) {
     return <div className="d-flex justify-content-center align-items-center vh-100"><Spinner animation="border" /></div>;
   }
+
+  const renderStepContent = () => {
+    switch (step) {
+      case 1:
+        return (
+          <>
+            <h5 className="mb-3">Bước 1: Thông Tin Khách Hàng</h5>
+            <Row>
+              <Col md={6}><Form.Group className="mb-3"><Form.Label>Họ và tên <span className="text-danger">*</span></Form.Label><Form.Control type="text" name="contactPerson" value={formData.contactPerson} onChange={handleFormChange} isInvalid={!!errors.contactPerson} /><Form.Control.Feedback type="invalid">{errors.contactPerson}</Form.Control.Feedback></Form.Group></Col>
+              <Col md={6}><Form.Group className="mb-3"><Form.Label>Số điện thoại <span className="text-danger">*</span></Form.Label><Form.Control type="text" name="contactPhone" value={formData.contactPhone} onChange={handleFormChange} isInvalid={!!errors.contactPhone} /><Form.Control.Feedback type="invalid">{errors.contactPhone}</Form.Control.Feedback></Form.Group></Col>
+              <Col md={6}><Form.Group className="mb-3"><Form.Label>Email <span className="text-danger">*</span></Form.Label><Form.Control type="email" name="contactEmail" value={formData.contactEmail} onChange={handleFormChange} isInvalid={!!errors.contactEmail} /><Form.Control.Feedback type="invalid">{errors.contactEmail}</Form.Control.Feedback></Form.Group></Col>
+              <Col md={6}><Form.Group className="mb-3"><Form.Label>Mã nhân viên Sale (của bạn)</Form.Label><InputGroup><Form.Control type="text" name="employeeCode" value={formData.employeeCode} onChange={handleFormChange} /><Button variant="outline-secondary" onClick={async () => {
+                const isValidCode = (code) => code && code !== 'undefined' && code !== 'null';
+                const isValidId = (id) => id && id !== 'undefined' && id !== 'null';
+
+                if (isValidCode(user?.employeeCode)) {
+                  setFormData(prev => ({ ...prev, employeeCode: user.employeeCode }));
+                  toast.success('Đã điền mã nhân viên của bạn.');
+                } else if (isValidId(user?.userId)) {
+                  try {
+                    const userDetails = await userService.getUserById(user.userId);
+                    if (isValidCode(userDetails?.employeeCode)) {
+                      setFormData(prev => ({ ...prev, employeeCode: userDetails.employeeCode }));
+                      toast.success('Đã điền mã nhân viên của bạn.');
+                    } else {
+                      toast.error('Không tìm thấy mã nhân viên trong hồ sơ của bạn.');
+                    }
+                  } catch (error) {
+                    console.error('Error fetching user details:', error);
+                    toast.error('Không thể lấy thông tin nhân viên. Vui lòng tự nhập.');
+                  }
+                } else {
+                  toast.error('Không tìm thấy thông tin tài khoản. Vui lòng đăng nhập lại.');
+                }
+              }}>Dùng mã của tôi</Button></InputGroup></Form.Group></Col>
+              <Col md={6}><Form.Group className="mb-3"><Form.Label>Phương thức liên hệ</Form.Label><Form.Select name="contactMethod" value={formData.contactMethod} onChange={handleFormChange}><option>Điện thoại</option><option>Email</option><option>Cả hai</option></Form.Select></Form.Group></Col>
+            </Row>
+            <h5 className="mb-3 mt-3">Địa chỉ nhận hàng</h5>
+            {errors.address && <Alert variant="danger" size="sm">{errors.address}</Alert>}
+            <Row>
+              <Col md={6} className="mb-3"><Form.Label>Tỉnh/Thành phố <span className="text-danger">*</span></Form.Label><Select options={provinceOptions} value={selectedProvince} onChange={setSelectedProvince} isLoading={addressLoading.provinces} placeholder="Chọn Tỉnh/Thành phố" isClearable isSearchable /></Col>
+              <Col md={6} className="mb-3"><Form.Label>Xã/Phường <span className="text-danger">*</span></Form.Label><Select options={communeOptions} value={selectedCommune} onChange={setSelectedCommune} isDisabled={!selectedProvince || addressLoading.communes} isLoading={addressLoading.communes} placeholder="Chọn Xã/Phường" isClearable isSearchable /></Col>
+              <Col md={12} className="mb-3"><Form.Label>Số nhà, tên đường <span className="text-danger">*</span></Form.Label><Form.Control type="text" value={detailedAddress} onChange={e => setDetailedAddress(e.target.value)} isInvalid={!!errors.address} placeholder="Ví dụ: 123 Nguyễn Văn Cừ" /><Form.Control.Feedback type="invalid">{errors.address}</Form.Control.Feedback></Col>
+            </Row>
+          </>
+        );
+      case 2:
+        return (
+          <>
+            <h5 className="mb-3">Bước 2: Chi Tiết Yêu Cầu</h5>
+            <div className="border rounded p-3">
+              {quoteItems.map((item, index) => (
+                <div key={index} className={index > 0 ? "mt-3 pt-3 border-top" : ""}>
+                  <div className="d-flex justify-content-between align-items-center">
+                    <h6>Sản phẩm: <Form.Select size="sm" value={item.productId} onChange={(e) => handleItemChange(index, 'productId', e.target.value)} isInvalid={errors.items?.[index]?.product} className="ms-2 d-inline-block" style={{ width: 'auto', minWidth: '200px' }}><option value="">Chọn sản phẩm</option>{products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</Form.Select></h6>
+                    {quoteItems.length > 1 && <Button variant="link" className="text-danger p-0" onClick={() => handleRemoveProduct(index)}>Xóa</Button>}
+                  </div>
+                  <Row className="align-items-end mt-2">
+                    <Col md={6}><Form.Group><Form.Label>Số lượng <span className="text-danger">*</span></Form.Label><Form.Control type="number" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} min="100" isInvalid={errors.items?.[index]?.quantity} /><Form.Control.Feedback type="invalid">{errors.items?.[index]?.quantity}</Form.Control.Feedback></Form.Group></Col>
+                    <Col md={6}><Form.Group><Form.Label>Kích thước</Form.Label><div className="form-control-plaintext border rounded px-3 py-2 bg-light" style={{ pointerEvents: 'none', userSelect: 'none' }}>{item.standardDimensions || 'N/A'}</div></Form.Group></Col>
+                  </Row>
+                </div>
+              ))}
+            </div>
+            <Button variant="outline-primary" size="sm" className="mt-3" onClick={handleAddProduct}>+ Thêm sản phẩm</Button>
+            <Row className="mt-3">
+              <Col md={6}><Form.Group className="mb-3"><Form.Label className="mb-2 w-100">Ngày giao hàng mong muốn <span className="text-danger">*</span></Form.Label><DatePicker selected={formData.expectedDeliveryDate} onChange={handleDateChange} dateFormat="dd/MM/yyyy" minDate={getMinExpectedDeliveryDate()} className={`form-control ${errors.expectedDeliveryDate ? 'is-invalid' : ''}`} placeholderText="Chọn ngày" locale="vi" /><Form.Text muted className="w-100 d-block">Lưu ý: Ngày giao hàng phải sau ngày hiện tại ít nhất 30 ngày.</Form.Text><Form.Control.Feedback type="invalid" className="d-block">{errors.expectedDeliveryDate}</Form.Control.Feedback></Form.Group></Col>
+              <Col md={12}><Form.Group className="mb-3"><Form.Label>Ghi chú chung</Form.Label><Form.Control as="textarea" rows={3} name="notes" value={formData.notes} onChange={handleFormChange} placeholder="Yêu cầu đặc biệt cho toàn bộ đơn hàng..." /></Form.Group></Col>
+            </Row>
+          </>
+        );
+      case 3:
+        return (
+          <>
+            <h5 className="mb-3">Bước 3: Xem Lại Yêu Cầu</h5>
+            <Card bg="light" className="p-3">
+              <h6>Thông tin liên hệ</h6>
+              <p className="mb-1"><strong>Họ tên:</strong> {formData.contactPerson}</p>
+              <p className="mb-1"><strong>SĐT:</strong> {formData.contactPhone}</p>
+              <p className="mb-1"><strong>Email:</strong> {formData.contactEmail}</p>
+              <p className="mb-1"><strong>Địa chỉ nhận hàng:</strong> {`${detailedAddress}, ${selectedCommune?.label}, ${selectedProvince?.label}`}</p>
+              <hr />
+              <h6>Chi tiết sản phẩm</h6>
+              <ul className="list-unstyled">
+                {quoteItems.map((item, index) => {
+                  const product = products.find(p => p.id === parseInt(item.productId));
+                  return <li key={index} className="mb-2"><strong>{product?.name || 'Sản phẩm đã chọn'}:</strong> {item.quantity} cái</li>;
+                })}
+              </ul>
+              <p><strong>Ngày giao mong muốn:</strong> {formData.expectedDeliveryDate ? formData.expectedDeliveryDate.toLocaleDateString('vi-VN') : 'Chưa chọn'}</p>
+              <p><strong>Ghi chú:</strong> {formData.notes || 'Không có'}</p>
+            </Card>
+          </>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className="customer-layout">
@@ -417,252 +354,35 @@ const CreateRfqForCustomer = () => {
         <InternalSidebar userRole="sales" />
         <div className="flex-grow-1 p-4" style={{ backgroundColor: '#f8f9fa' }}>
           <Container>
-            <Button variant="outline-secondary" className="mb-3" onClick={() => navigate('/sales/rfqs')}>
-              &larr; Quay lại danh sách yêu cầu báo giá
-            </Button>
             <Row className="justify-content-center">
               <Col lg={10} xl={8}>
                 <Card className="shadow-sm">
                   <Card.Body className="p-4">
                     <div className="text-center mb-4">
                       <h2 className="fw-bold">Tạo Yêu Cầu Báo Giá (Hộ Khách Hàng)</h2>
-                      <p className="text-muted">Điền thông tin khách hàng và sản phẩm cần báo giá.</p>
+                      <p className="text-muted">Hoàn thành các bước sau để gửi yêu cầu cho chúng tôi</p>
+                    </div>
+
+                    <div className="d-flex justify-content-between mb-4">
+                      <div className={`step-item ${step >= 1 ? 'active' : ''}`}>Bước 1: Liên hệ</div>
+                      <div className={`step-item ${step >= 2 ? 'active' : ''}`}>Bước 2: Sản phẩm</div>
+                      <div className={`step-item ${step >= 3 ? 'active' : ''}`}>Bước 3: Gửi đi</div>
                     </div>
 
                     <Form onSubmit={handleSubmit} noValidate>
-                      <h5 className="mb-3">Thông Tin Khách Hàng</h5>
-                      <Row>
-                        <Col md={6}>
-                          <Form.Group className="mb-3">
-                            <Form.Label>Họ và tên <span className="text-danger">*</span></Form.Label>
-                            <Form.Control 
-                              type="text" 
-                              name="contactPerson" 
-                              value={formData.contactPerson} 
-                              onChange={handleFormChange} 
-                              isInvalid={!!errors.contactPerson}
-                              placeholder="Nhập họ và tên đầy đủ"
-                            />
-                            <Form.Control.Feedback type="invalid">{errors.contactPerson}</Form.Control.Feedback>
-                          </Form.Group>
-                        </Col>
-                        <Col md={6}>
-                          <Form.Group className="mb-3">
-                            <Form.Label>Số điện thoại <span className="text-danger">*</span></Form.Label>
-                            <Form.Control 
-                              type="text" 
-                              name="contactPhone" 
-                              value={formData.contactPhone} 
-                              onChange={handleFormChange} 
-                              isInvalid={!!errors.contactPhone}
-                              placeholder="Ví dụ: 0912345678"
-                            />
-                            <Form.Control.Feedback type="invalid">{errors.contactPhone}</Form.Control.Feedback>
-                            <Form.Text className="text-muted">
-                              Số điện thoại phải bắt đầu bằng 0 và có 10-11 chữ số
-                            </Form.Text>
-                          </Form.Group>
-                        </Col>
-                        <Col md={6}>
-                          <Form.Group className="mb-3">
-                            <Form.Label>Email <span className="text-danger">*</span></Form.Label>
-                            <Form.Control 
-                              type="email" 
-                              name="contactEmail" 
-                              value={formData.contactEmail} 
-                              onChange={handleFormChange} 
-                              isInvalid={!!errors.contactEmail}
-                              placeholder="Ví dụ: example@email.com"
-                            />
-                            <Form.Control.Feedback type="invalid">{errors.contactEmail}</Form.Control.Feedback>
-                          </Form.Group>
-                        </Col>
-                        <Col md={6}>
-                          <Form.Group className="mb-3">
-                            <Form.Label>Mã nhân viên Sale (của bạn)</Form.Label>
-                            <Form.Control 
-                              type="text" 
-                              name="employeeCode" 
-                              value={formData.employeeCode} 
-                              onChange={handleFormChange}
-                              placeholder="Nhập mã nhân viên (nếu có)"
-                            />
-                          </Form.Group>
-                        </Col>
-                        <Col md={6}>
-                          <Form.Group className="mb-3">
-                            <Form.Label>Phương thức liên hệ</Form.Label>
-                            <Form.Select name="contactMethod" value={formData.contactMethod} onChange={handleFormChange}>
-                              <option>Điện thoại</option>
-                              <option>Email</option>
-                              <option>Cả hai</option>
-                            </Form.Select>
-                          </Form.Group>
-                        </Col>
-                      </Row>
-                      
-                      <h5 className="mb-3 mt-3">Địa chỉ nhận hàng</h5>
-                      <Row>
-                        <Col md={6} className="mb-3">
-                          <Form.Label>Tỉnh/Thành phố <span className="text-danger">*</span></Form.Label>
-                          <Select
-                            options={provinceOptions}
-                            value={provinceOptions.find(option => option.value === selectedProvince)}
-                            onChange={setSelectedProvinceHandler}
-                            isLoading={addressLoading.provinces}
-                            placeholder={addressLoading.provinces ? 'Đang tải...' : 'Chọn Tỉnh/Thành phố'}
-                            isClearable
-                            isSearchable
-                            className={errors.address ? 'is-invalid' : ''}
-                          />
-                          {errors.address && (
-                            <div className="invalid-feedback d-block">
-                              {errors.address}
-                            </div>
-                          )}
-                        </Col>
-                        <Col md={6} className="mb-3">
-                          <Form.Label>Xã/Phường <span className="text-danger">*</span></Form.Label>
-                          <Select
-                            options={communeOptions}
-                            value={communeOptions.find(option => option.value === selectedCommune)}
-                            onChange={setSelectedCommuneHandler}
-                            isDisabled={!selectedProvince || addressLoading.communes}
-                            isLoading={addressLoading.communes}
-                            placeholder={addressLoading.communes ? 'Đang tải...' : 'Chọn Xã/Phường'}
-                            isClearable
-                            isSearchable
-                            className={errors.address ? 'is-invalid' : ''}
-                          />
-                          {errors.address && (
-                            <div className="invalid-feedback d-block">
-                              {errors.address}
-                            </div>
-                          )}
-                        </Col>
-                        <Col md={12} className="mb-3">
-                          <Form.Label>Số nhà, tên đường <span className="text-danger">*</span></Form.Label>
-                          <Form.Control 
-                            type="text" 
-                            value={detailedAddress} 
-                            onChange={e => setDetailedAddressHandler(e.target.value)}
-                            isInvalid={!!errors.address}
-                            placeholder="Ví dụ: 123 Nguyễn Văn Cừ"
-                          />
-                          <Form.Control.Feedback type="invalid">
-                            {errors.address}
-                          </Form.Control.Feedback>
-                        </Col>
-                      </Row>
-                      <hr />
-
-                      <h5 className="mb-3">Chi Tiết Yêu Cầu</h5>
-                      <div className="border rounded p-3">
-                        {quoteItems.map((item, index) => (
-                          <div key={index} className={index > 0 ? "mt-3 pt-3 border-top" : ""}>
-                            <div className="d-flex justify-content-between align-items-center">
-                              <div className="flex-grow-1">
-                                <h6>
-                                  Sản phẩm:
-                                  <Form.Select
-                                    size="sm"
-                                    value={item.productId}
-                                    onChange={(e) => handleItemChange(index, 'productId', e.target.value)}
-                                    className={`ms-2 d-inline-block ${errors.items?.[index]?.product ? 'is-invalid' : ''}`}
-                                    style={{ width: 'auto', minWidth: '200px' }}
-                                  >
-                                    <option value="">Chọn sản phẩm</option>
-                                    {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                  </Form.Select>
-                                  {errors.items?.[index]?.product && (
-                                    <div className="invalid-feedback d-block ms-2">
-                                      {errors.items[index].product}
-                                    </div>
-                                  )}
-                                </h6>
-                              </div>
-                              {quoteItems.length > 1 && (
-                                <Button variant="link" className="text-danger p-0" onClick={() => handleRemoveProduct(index)}>
-                                  Xóa
-                                </Button>
-                              )}
-                            </div>
-                            <Row className="align-items-end mt-2">
-                              <Col md={6}>
-                                <Form.Group>
-                                  <Form.Label>Số lượng <span className="text-danger">*</span></Form.Label>
-                                  <Form.Control 
-                                    type="number" 
-                                    value={item.quantity} 
-                                    onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} 
-                                    min="1" 
-                                    isInvalid={!!errors.items?.[index]?.quantity}
-                                  />
-                                  <Form.Control.Feedback type="invalid">
-                                    {errors.items?.[index]?.quantity}
-                                  </Form.Control.Feedback>
-                                  <Form.Text className="text-muted">
-                                    Số lượng tối thiểu là 100
-                                  </Form.Text>
-                                </Form.Group>
-                              </Col>
-                              <Col md={6}>
-                                <Form.Group>
-                                  <Form.Label>Kích thước</Form.Label>
-                                  <Form.Control type="text" value={item.standardDimensions || ''} readOnly />
-                                </Form.Group>
-                              </Col>
-                            </Row>
-                          </div>
-                        ))}
-                      </div>
-                      
-                      <Button variant="outline-primary" size="sm" className="mt-3" onClick={handleAddProduct}>
-                        + Thêm sản phẩm
-                      </Button>
-
-                      <Row className="mt-3">
-                        <Col md={6}>
-                          <Form.Group className="mb-3">
-                            <Form.Label className="mb-2 w-100">Ngày giao hàng mong muốn <span className="text-danger">*</span></Form.Label>
-                            <DatePicker
-                              selected={formData.expectedDeliveryDate}
-                              onChange={handleDateChange}
-                              dateFormat="dd/MM/yyyy"
-                              minDate={getMinExpectedDeliveryDate()}
-                              className={`form-control ${errors.expectedDeliveryDate ? 'is-invalid' : ''}`}
-                              placeholderText="Chọn ngày"
-                              locale="vi"
-                            />
-                            {errors.expectedDeliveryDate && (
-                              <div className="invalid-feedback d-block">
-                                {errors.expectedDeliveryDate}
-                              </div>
-                            )}
-                            <Form.Text className="text-muted">
-                              Lưu ý: Ngày giao hàng phải sau ngày hiện tại ít nhất 30 ngày.
-                            </Form.Text>
-                          </Form.Group>
-                        </Col>
-                        <Col md={12}>
-                          <Form.Group className="mb-3">
-                            <Form.Label>Ghi chú chung</Form.Label>
-                            <Form.Control 
-                              as="textarea" 
-                              rows={3} 
-                              name="notes" 
-                              value={formData.notes} 
-                              onChange={handleFormChange} 
-                              placeholder="Yêu cầu đặc biệt cho toàn bộ đơn hàng..." 
-                            />
-                          </Form.Group>
-                        </Col>
-                      </Row>
-
-                      <div className="d-flex justify-content-end gap-2 mt-4">
-                        <Button variant="primary" type="submit" disabled={submitting}>
-                          {submitting ? <><Spinner size="sm" /> Đang tạo...</> : "Tạo Yêu Cầu"}
-                        </Button>
+                      {renderStepContent()}
+                      <div className="d-flex justify-content-between mt-4">
+                        <div>
+                          {step > 1 && <Button variant="secondary" onClick={handleBack}>Quay lại</Button>}
+                        </div>
+                        <div>
+                          {step < 3 && <Button variant="primary" onClick={handleNext}>Tiếp theo</Button>}
+                          {step === 3 &&
+                            <Button variant="success" type="submit" disabled={submitting}>
+                              {submitting ? <><Spinner size="sm" /> Gửi Yêu Cầu...</> : "Xác Nhận và Gửi Yêu Cầu"}
+                            </Button>
+                          }
+                        </div>
                       </div>
                     </Form>
                   </Card.Body>

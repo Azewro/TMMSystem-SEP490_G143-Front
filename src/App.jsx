@@ -40,6 +40,7 @@ import ProductionLots from './pages/planning/ProductionLots'; // Import new comp
 import ContractApproval from './pages/director/ContractApproval';
 import DirectorRfqList from './pages/director/DirectorRfqList'; // Import the new page
 import ProductionPlanApprovals from './pages/director/ProductionPlanApprovals';
+import DirectorOrderList from './pages/director/DirectorOrderList'; // Import DirectorOrderList
 
 // Sales Pages
 import MyRfqs from './pages/sales/MyRfqs';
@@ -80,7 +81,7 @@ function App() {
               <Route path="/forgot-password" element={<CustomerForgotPassword />} />
               <Route path="/internal-forgot-password" element={<InternalForgotPassword />} />
 
-              
+
 
               {/* Internal routes - NO AUTH GUARD (for now) */}
               <Route path="/internal/dashboard" element={<InternalDashboard />} />
@@ -110,6 +111,7 @@ function App() {
               <Route path="/director/contract-approval" element={<ContractApproval />} />
               <Route path="/director/rfqs" element={<DirectorRfqList />} />
               <Route path="/director/production-plan-approvals" element={<ProductionPlanApprovals />} />
+              <Route path="/director/orders" element={<DirectorOrderList />} />
 
               {/* Sales routes */}
               <Route path="/sales/rfqs" element={<MyRfqs />} />

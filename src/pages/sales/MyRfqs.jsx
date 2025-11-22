@@ -52,15 +52,15 @@ const MyRfqs = () => {
       // Prepare search parameter - only include if it has a value after trimming
       // Backend accepts any non-empty string (no minimum length requirement)
       const trimmedSearch = debouncedSearchTerm?.trim() || '';
-      const searchParam = trimmedSearch.length > 0 
-        ? trimmedSearch 
+      const searchParam = trimmedSearch.length > 0
+        ? trimmedSearch
         : undefined;
-      
+
       // Prepare status parameter - only include if it has a value
-      const statusParam = statusFilter && statusFilter.trim() 
-        ? statusFilter.trim() 
+      const statusParam = statusFilter && statusFilter.trim()
+        ? statusFilter.trim()
         : undefined;
-      
+
       // If filtering by date, we need to fetch all pages and filter client-side
       // Otherwise, use pagination normally
       let allRfqsData = [];
@@ -72,15 +72,15 @@ const MyRfqs = () => {
         // This ensures pagination works correctly after filtering
         let page = 0;
         let hasMore = true;
-        
+
         while (hasMore) {
           const response = await rfqService.getAssignedRfqsForSales(
-            page, 
-            ITEMS_PER_PAGE, 
-            searchParam, 
+            page,
+            ITEMS_PER_PAGE,
+            searchParam,
             statusParam
           );
-          
+
           let pageRfqs = [];
           if (response && response.content) {
             pageRfqs = response.content;
@@ -100,7 +100,7 @@ const MyRfqs = () => {
           });
 
           allRfqsData = [...allRfqsData, ...filteredRfqs];
-          
+
           // Check if there are more pages
           if (pageRfqs.length < ITEMS_PER_PAGE || page >= (totalPagesFromBackend - 1)) {
             hasMore = false;
@@ -123,12 +123,12 @@ const MyRfqs = () => {
         // Normal pagination without date filter
         const page = currentPage - 1;
         const response = await rfqService.getAssignedRfqsForSales(
-          page, 
-          ITEMS_PER_PAGE, 
-          searchParam, 
+          page,
+          ITEMS_PER_PAGE,
+          searchParam,
           statusParam
         );
-        
+
         if (response && response.content) {
           allRfqsData = response.content;
           setTotalPages(response.totalPages || 1);
@@ -145,9 +145,9 @@ const MyRfqs = () => {
           if (rfq.customerId) {
             try {
               const customer = await customerService.getCustomerById(rfq.customerId);
-              return { 
-                ...rfq, 
-                contactPerson: rfq.contactPerson || customer.contactPerson || customer.companyName || 'N/A' 
+              return {
+                ...rfq,
+                contactPerson: rfq.contactPerson || customer.contactPerson || customer.companyName || 'N/A'
               };
             } catch (customerError) {
               console.error(`Failed to fetch customer for RFQ ${rfq.id}`, customerError);
@@ -157,7 +157,7 @@ const MyRfqs = () => {
           return rfq;
         })
       );
-      
+
       setAllRfqs(enrichedData);
     } catch (err) {
       console.error('Error fetching RFQs:', err);
@@ -192,7 +192,7 @@ const MyRfqs = () => {
   useEffect(() => {
     fetchMyRfqs();
   }, [fetchMyRfqs]);
-  
+
   useEffect(() => {
     // Reset to page 1 when filters change
     setCurrentPage(1);
@@ -204,7 +204,7 @@ const MyRfqs = () => {
       const quotationsResponse = await quotationService.getAllQuotations(0, 1000); // Get all quotations
       const quotations = quotationsResponse?.content || (Array.isArray(quotationsResponse) ? quotationsResponse : []);
       const quotation = quotations.find(q => q.rfqId === rfq.id || q.rfq?.id === rfq.id);
-      
+
       if (quotation) {
         navigate(`/sales/quotations/${quotation.id}`);
       } else {
@@ -235,7 +235,7 @@ const MyRfqs = () => {
     switch (status) {
       case 'DRAFT': return 'Bản nháp';
       case 'SENT': return 'Chờ xác nhận';
-      case 'FORWARDED_TO_PLANNING': return 'Đã chuyển Planning';
+      case 'FORWARDED_TO_PLANNING': return 'Đã gửi Phòng Kế hoạch';
       case 'PRELIMINARY_CHECKED': return 'Đã kiểm tra sơ bộ';
       case 'QUOTED': return 'Đã báo giá';
       case 'REJECTED': return 'Đã từ chối';
@@ -251,56 +251,69 @@ const MyRfqs = () => {
         <div className="flex-grow-1 p-4" style={{ backgroundColor: '#f8f9fa' }}>
           <Container fluid>
             <h2 className="mb-4">Danh sách yêu cầu báo giá</h2>
+            {/* Search and Filter Section */}
+            <Card className="mb-3">
+              <Card.Body>
+                <Row className="g-3 align-items-end">
+                  <Col md={4}>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Tìm kiếm</Form.Label>
+                      <InputGroup>
+                        <InputGroup.Text><FaSearch /></InputGroup.Text>
+                        <Form.Control
+                          type="text"
+                          placeholder="Tìm kiếm theo mã yêu cầu báo giá, tên khách hàng..."
+                          value={searchTerm}
+                          onChange={(e) => {
+                            setSearchTerm(e.target.value);
+                            setCurrentPage(1);
+                          }}
+                        />
+                      </InputGroup>
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Lọc theo ngày tạo</Form.Label>
+                      <Form.Control
+                        type="date"
+                        value={createdDateFilter}
+                        onChange={(e) => {
+                          setCreatedDateFilter(e.target.value);
+                          setCurrentPage(1);
+                        }}
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Lọc theo trạng thái</Form.Label>
+                      <Form.Select
+                        value={statusFilter}
+                        onChange={(e) => {
+                          setStatusFilter(e.target.value);
+                          setCurrentPage(1);
+                        }}
+                      >
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="DRAFT">Bản nháp</option>
+                        <option value="SENT">Chờ xác nhận</option>
+                        <option value="FORWARDED_TO_PLANNING">Đã gửi Phòng Kế hoạch</option>
+                        <option value="PRELIMINARY_CHECKED">Đã kiểm tra sơ bộ</option>
+                        <option value="QUOTED">Đã báo giá</option>
+                        <option value="REJECTED">Đã từ chối</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                </Row>
+              </Card.Body>
+            </Card>
+
             <Card>
               <Card.Header>
                 Các yêu cầu báo giá cần bạn xử lý
               </Card.Header>
               <Card.Body>
-                {/* Search and Filter Section */}
-                <Row className="mb-3">
-                  <Col md={4}>
-                    <InputGroup>
-                      <InputGroup.Text><FaSearch /></InputGroup.Text>
-                      <Form.Control
-                        type="text"
-                        placeholder="Tìm kiếm theo mã yêu cầu báo giá, tên khách hàng..."
-                        value={searchTerm}
-                        onChange={(e) => {
-                          setSearchTerm(e.target.value);
-                          setCurrentPage(1);
-                        }}
-                      />
-                    </InputGroup>
-                  </Col>
-                  <Col md={3}>
-                    <Form.Label className="mb-1 small">Lọc theo ngày tạo</Form.Label>
-                    <Form.Control
-                      type="date"
-                      value={createdDateFilter}
-                      onChange={(e) => {
-                        setCreatedDateFilter(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                    />
-                  </Col>
-                  <Col md={3}>
-                    <Form.Select
-                      value={statusFilter}
-                      onChange={(e) => {
-                        setStatusFilter(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                    >
-                      <option value="">Tất cả trạng thái</option>
-                      <option value="DRAFT">Bản nháp</option>
-                      <option value="SENT">Chờ xác nhận</option>
-                      <option value="FORWARDED_TO_PLANNING">Đã chuyển Planning</option>
-                      <option value="PRELIMINARY_CHECKED">Đã kiểm tra sơ bộ</option>
-                      <option value="QUOTED">Đã báo giá</option>
-                      <option value="REJECTED">Đã từ chối</option>
-                    </Form.Select>
-                  </Col>
-                </Row>
                 {loading && !showModal ? (
                   <div className="text-center"><Spinner animation="border" /></div>
                 ) : error ? (
@@ -344,8 +357,8 @@ const MyRfqs = () => {
                         )) : (
                           <tr>
                             <td colSpan="5" className="text-center">
-                              {totalElements === 0 
-                                ? 'Bạn không có yêu cầu báo giá nào cần xử lý.' 
+                              {totalElements === 0
+                                ? 'Bạn không có yêu cầu báo giá nào cần xử lý.'
                                 : 'Không tìm thấy yêu cầu báo giá phù hợp với bộ lọc.'}
                             </td>
                           </tr>

@@ -57,6 +57,7 @@ export const authService = {
         sessionStorage.setItem('userName', response.data.name || response.data.email);
         sessionStorage.setItem('userRole', response.data.role);
         sessionStorage.setItem('userId', response.data.userId);
+        sessionStorage.setItem('employeeCode', response.data.employeeCode); // Persist employeeCode
         sessionStorage.removeItem('customerId'); // not applicable for internal users
         
         return response.data;
@@ -104,6 +105,7 @@ export const authService = {
     sessionStorage.removeItem('userRole');
     sessionStorage.removeItem('customerId');
     sessionStorage.removeItem('userId');
+    sessionStorage.removeItem('employeeCode'); // Clear employeeCode on logout
     sessionStorage.removeItem('returnTo');
 
     localStorage.removeItem('userToken');
@@ -123,6 +125,7 @@ export const authService = {
       role: sessionStorage.getItem('userRole'),
       customerId: sessionStorage.getItem('customerId'),
       userId: sessionStorage.getItem('userId'),
+      employeeCode: sessionStorage.getItem('employeeCode'), // Retrieve employeeCode
     };
   },
 
