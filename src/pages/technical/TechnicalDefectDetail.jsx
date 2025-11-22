@@ -77,13 +77,6 @@ const DEFECT_LIBRARY = {
       },
     ],
     actionNote: 'Lỗi được đánh giá là lỗi nặng. Vui lòng điền thông tin yêu cầu cấp lại sợi để gửi cho PM phê duyệt.',
-    fiberSuggestion: {
-      type: 'Sợi cotton 20S',
-      weight: '50 kg',
-      requester: 'Tech - Trần Văn T',
-      createdAt: '20/11/2025',
-      note: 'Cần cấp lại sợi để nhuộm lại toàn bộ lô.',
-    },
   },
 };
 
@@ -100,9 +93,13 @@ const checklistVariant = {
 const TechnicalDefectDetail = () => {
   const navigate = useNavigate();
   const { defectId } = useParams();
-
   const defect = useMemo(() => DEFECT_LIBRARY[defectId] || DEFECT_LIBRARY.L0001, [defectId]);
   const severity = severityStyles[defect.severity];
+  const [fiberRequests, setFiberRequests] = React.useState([{ id: 1, type: '', weight: '' }]);
+
+  const handleAddFiberRequest = () => {
+    setFiberRequests((prev) => [...prev, { id: prev.length + 1, type: '', weight: '' }]);
+  };
 
   return (
     <div className="customer-layout">
@@ -117,62 +114,49 @@ const TechnicalDefectDetail = () => {
 
             <Card className="shadow-sm mb-4">
               <Card.Body>
-                <div className="row g-4">
-                  <div className="col-lg-4 d-flex gap-3 align-items-center">
-                    <div
-                      style={{
-                        width: 72,
-                        height: 72,
-                        borderRadius: 12,
-                        border: '1px dashed #ced4da',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 24,
-                        color: '#adb5bd',
-                      }}
-                    >
-                      QR
-                    </div>
-                    <div>
-                      <div className="text-muted small mb-1">Mã lô sản xuất</div>
-                      <h5 className="mb-1">{defect.lotCode}</h5>
-                      <small className="text-muted">Công đoạn lỗi {defect.stage}</small>
-                    </div>
+                <div className="d-flex justify-content-between flex-wrap gap-2 mb-3">
+                  <div>
+                    <h5 className="mb-1">Chi Tiết Lỗi</h5>
+                    <small className="text-muted">Xem và xử lý lỗi</small>
                   </div>
-                  <div className="col-lg-4">
-                    <div className="mb-2">
-                      <div className="text-muted small">Tên sản phẩm</div>
-                      <div className="fw-semibold">{defect.product}</div>
-                    </div>
-                    <div className="mb-2">
-                      <div className="text-muted small">Kích thước</div>
-                      <div className="fw-semibold">{defect.size}</div>
-                    </div>
-                    <div>
-                      <div className="text-muted small">Số lượng</div>
-                      <div className="fw-semibold">{defect.quantity.toLocaleString('vi-VN')} sản phẩm</div>
-                    </div>
-                  </div>
-                  <div className="col-lg-4">
-                    <div className="mb-2">
-                      <div className="text-muted small">Người tạo</div>
-                      <div className="fw-semibold">{defect.creator}</div>
-                    </div>
-                    <div className="mb-2">
-                      <div className="text-muted small">Mức độ lỗi</div>
-                      <div className="fw-semibold">{severity.label}</div>
-                    </div>
-                    <div className="d-flex align-items-center gap-2">
-                      <div className="text-muted small mb-0">Trạng thái</div>
-                      <Badge bg={severity.variant}>{severity.label}</Badge>
-                    </div>
-                  </div>
-                  <div className="col-12">
+                  <Badge bg={severity.variant} className="align-self-start">
+                    {severity.label}
+                  </Badge>
+                </div>
+                <Row className="g-3">
+                  <Col md={4}>
+                    <div className="text-muted small mb-1">Sản phẩm</div>
+                    <div className="fw-semibold">{defect.product}</div>
+                  </Col>
+                  <Col md={4}>
+                    <div className="text-muted small mb-1">Mã lô</div>
+                    <div className="fw-semibold">{defect.lotCode}</div>
+                  </Col>
+                  <Col md={4}>
+                    <div className="text-muted small mb-1">Kích thước</div>
+                    <div className="fw-semibold">{defect.size}</div>
+                  </Col>
+                  <Col md={4}>
+                    <div className="text-muted small mb-1">Số lượng</div>
+                    <div className="fw-semibold">{defect.quantity.toLocaleString('vi-VN')}</div>
+                  </Col>
+                  <Col md={4}>
+                    <div className="text-muted small mb-1">Công đoạn lỗi</div>
+                    <div className="fw-semibold">{defect.stage}</div>
+                  </Col>
+                  <Col md={6}>
+                    <div className="text-muted small mb-1">Mức độ lỗi</div>
+                    <div className="fw-semibold">{severity.label}</div>
+                  </Col>
+                  <Col md={6}>
+                    <div className="text-muted small mb-1">Người tạo</div>
+                    <div className="fw-semibold">{defect.creator}</div>
+                  </Col>
+                  <Col md={12}>
                     <div className="text-muted small mb-1">Ghi chú</div>
                     <div className="fw-semibold">{defect.note}</div>
-                  </div>
-                </div>
+                  </Col>
+                </Row>
               </Card.Body>
             </Card>
 
@@ -226,29 +210,31 @@ const TechnicalDefectDetail = () => {
                 <Card.Body>
                   <strong>Yêu cầu cấp lại sợi (Lỗi nặng)</strong>
                   <p className="text-muted mt-2 mb-4">{defect.actionNote}</p>
-                  <Row className="g-3 mb-3">
-                    <Col md={6}>
-                      <div className="text-muted small mb-1">Loại sợi đề xuất</div>
-                      <div className="fw-semibold">{defect.fiberSuggestion?.type || 'N/A'}</div>
-                    </Col>
-                    <Col md={6}>
-                      <div className="text-muted small mb-1">Khối lượng cần cấp</div>
-                      <div className="fw-semibold">{defect.fiberSuggestion?.weight || 'N/A'}</div>
-                    </Col>
-                    <Col md={6}>
-                      <div className="text-muted small mb-1">Người yêu cầu</div>
-                      <div className="fw-semibold">{defect.fiberSuggestion?.requester || 'N/A'}</div>
-                    </Col>
-                    <Col md={6}>
-                      <div className="text-muted small mb-1">Ngày tạo</div>
-                      <div className="fw-semibold">{defect.fiberSuggestion?.createdAt || 'N/A'}</div>
-                    </Col>
-                    <Col md={12}>
-                      <div className="text-muted small mb-1">Ghi chú</div>
-                      <div className="fw-semibold">{defect.fiberSuggestion?.note || 'N/A'}</div>
-                    </Col>
-                  </Row>
-                  <Button variant="dark">Gửi yêu cầu cấp sợi cho PM</Button>
+                  <div className="d-flex flex-column gap-3 mb-3">
+                    {fiberRequests.map((fiber) => (
+                      <Row className="g-3" key={fiber.id}>
+                        <Col md={6}>
+                          <div className="text-muted small mb-1">Loại sợi cần cấp</div>
+                          <Form.Select value={fiber.type} onChange={() => {}}>
+                            <option value="">Chọn loại sợi</option>
+                            <option value="cotton">Sợi cotton</option>
+                            <option value="bamboo">Sợi bamboo</option>
+                          </Form.Select>
+                        </Col>
+                        <Col md={6}>
+                          <div className="text-muted small mb-1">Khối lượng cần cấp (kg)</div>
+                          <Form.Control value={fiber.weight} onChange={() => {}} />
+                        </Col>
+                      </Row>
+                    ))}
+                    <Button variant="outline-secondary" size="sm" className="align-self-start" onClick={handleAddFiberRequest}>
+                      + Thêm sợi
+                    </Button>
+                    <Form.Control as="textarea" rows={3} placeholder="Ghi chú thêm về yêu cầu..." />
+                  </div>
+                  <div className="d-flex justify-content-end">
+                    <Button variant="dark">Tạo phiếu yêu cầu cấp sợi</Button>
+                  </div>
                 </Card.Body>
               </Card>
             )}

@@ -6,6 +6,7 @@ import InternalSidebar from '../../components/common/InternalSidebar';
 
 const MOCK_DEFECTS = [
   {
+    defectId: 'L0001',
     lotCode: 'LOT-001',
     product: 'Áo sơ mi nam',
     size: 'L',
@@ -15,6 +16,7 @@ const MOCK_DEFECTS = [
     sentAt: '20/11/2025',
   },
   {
+    defectId: 'L0002',
     lotCode: 'LOT-002',
     product: 'Quần lử nữ',
     size: 'M',
@@ -88,7 +90,7 @@ const TechnicalDefectList = () => {
                             <Button
                               size="sm"
                               variant="outline-dark"
-                              onClick={() => navigate(`/technical/defects/${defect.lotCode}`)}
+                              onClick={() => navigate(`/technical/defects/${defect.defectId}`)}
                             >
                               Chi tiết
                             </Button>
