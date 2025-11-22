@@ -40,6 +40,10 @@ const QaOrderDetail = () => {
     navigate(`/qa/orders/${order.id}/stages/${stageCode}/check`);
   };
 
+  const handleViewStageDetail = (stageCode) => {
+    navigate(`/qa/orders/${order.id}/stages/${stageCode}/result`);
+  };
+
   return (
     <div className="customer-layout">
       <Header />
@@ -57,8 +61,8 @@ const QaOrderDetail = () => {
             {/* Thông tin đơn hàng */}
             <Card className="shadow-sm mb-3">
               <Card.Body>
-                <div className="row g-4 align-items-center">
-                  <div className="col-md-4 d-flex gap-3 align-items-center">
+                <div className="row g-4">
+                  <div className="col-lg-4 d-flex gap-3 align-items-center">
                     <div
                       style={{
                         width: 72,
@@ -75,35 +79,39 @@ const QaOrderDetail = () => {
                       QR
                     </div>
                     <div>
-                      <div className="text-muted small mb-1">Mã lô</div>
+                      <div className="text-muted small mb-1">Mã lô sản xuất</div>
                       <h5 className="mb-1">{order.id}</h5>
-                      <div className="text-muted small">Kích thước {order.size}</div>
+                      <small className="text-muted">Đơn hàng {order.productName}</small>
                     </div>
                   </div>
-                  <div className="col-md-8">
-                    <div className="row g-2 order-info-grid">
-                      <div className="col-sm-6">
-                        <div className="text-muted small">Tên sản phẩm</div>
-                        <div className="fw-semibold">{order.productName}</div>
-                      </div>
-                      <div className="col-sm-6">
-                        <div className="text-muted small">Số lượng</div>
-                        <div>{order.quantity.toLocaleString('vi-VN')} sản phẩm</div>
-                      </div>
-                      <div className="col-sm-6">
-                        <div className="text-muted small">Ngày bắt đầu dự kiến</div>
-                        <div>{order.expectedStartDate}</div>
-                      </div>
-                      <div className="col-sm-6">
-                        <div className="text-muted small">Ngày kết thúc dự kiến</div>
-                        <div>{order.expectedFinishDate}</div>
-                      </div>
-                      <div className="col-sm-6 d-flex flex-column">
-                        <div className="text-muted small mb-1">Trạng thái</div>
-                        <Badge bg="warning" className="status-badge align-self-start">
-                          {order.statusLabel}
-                        </Badge>
-                      </div>
+                  <div className="col-lg-4">
+                    <div className="mb-2">
+                      <div className="text-muted small">Tên sản phẩm</div>
+                      <div className="fw-semibold">{order.productName}</div>
+                    </div>
+                    <div className="mb-2">
+                      <div className="text-muted small">Kích thước</div>
+                      <div className="fw-semibold">{order.size}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted small">Số lượng</div>
+                      <div className="fw-semibold">{order.quantity.toLocaleString('vi-VN')} sản phẩm</div>
+                    </div>
+                  </div>
+                  <div className="col-lg-4">
+                    <div className="mb-2">
+                      <div className="text-muted small">Ngày bắt đầu dự kiến</div>
+                      <div className="fw-semibold">{order.expectedStartDate}</div>
+                    </div>
+                    <div className="mb-2">
+                      <div className="text-muted small">Ngày kết thúc dự kiến</div>
+                      <div className="fw-semibold">{order.expectedFinishDate}</div>
+                    </div>
+                    <div className="d-flex align-items-center gap-2">
+                      <div className="text-muted small mb-0">Trạng thái</div>
+                      <Badge bg="warning" className="status-badge">
+                        {order.statusLabel}
+                      </Badge>
                     </div>
                   </div>
                 </div>
@@ -137,7 +145,7 @@ const QaOrderDetail = () => {
                         </td>
                         <td className="text-end">
                           <div className="d-flex justify-content-end gap-2">
-                            <Button size="sm" variant="outline-secondary">
+                            <Button size="sm" variant="outline-secondary" onClick={() => handleViewStageDetail(stage.code)}>
                               Chi tiết
                             </Button>
                             <Button

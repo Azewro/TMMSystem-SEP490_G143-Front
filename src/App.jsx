@@ -71,6 +71,7 @@ import LeaderDefectDetail from './pages/production/LeaderDefectDetail';
 import QaOrderList from './pages/production/QaOrderList';
 import QaOrderDetail from './pages/production/QaOrderDetail';
 import QaStageQualityCheck from './pages/production/QaStageQualityCheck';
+import QaStageCheckResult from './pages/production/QaStageCheckResult';
 
 function App() {
   return (
@@ -152,6 +153,7 @@ function App() {
               <Route path="/qa/orders" element={<QaOrderList />} />
               <Route path="/qa/orders/:orderId" element={<QaOrderDetail />} />
               <Route path="/qa/orders/:orderId/stages/:stageCode/check" element={<QaStageQualityCheck />} />
+              <Route path="/qa/orders/:orderId/stages/:stageCode/result" element={<QaStageCheckResult />} />
 
             </Routes>
           </div>

@@ -90,10 +90,6 @@ const ProductionFiberRequestDetail = () => {
                     <div className="fw-semibold">{request.lotCode}</div>
                   </Col>
                   <Col md={6}>
-                    <div className="text-muted small mb-1">Mã lỗi</div>
-                    <div className="fw-semibold">{request.defectCode}</div>
-                  </Col>
-                  <Col md={6}>
                     <div className="text-muted small mb-1">Sản phẩm</div>
                     <div className="fw-semibold">{request.product}</div>
                   </Col>

@@ -5,7 +5,7 @@ import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 
 const QA_CRITERIA = [
-  { title: 'Độ bền sợi', result: 'FAIL', remark: 'Không đạt' },
+  { title: 'Độ bền sợi', result: 'FAIL', image: 'https://placekitten.com/640/260' },
   { title: 'Hình dáng khăn', result: 'PASS' },
   { title: 'Bề mặt vải', result: 'PASS' },
 ];
@@ -125,8 +125,8 @@ const LeaderStageProgress = () => {
 
             <Card className="shadow-sm mb-3">
               <Card.Body>
-                <div className="row g-4 align-items-center">
-                  <div className="col-md-4 d-flex gap-3 align-items-center">
+                <div className="row g-4">
+                  <div className="col-lg-4 d-flex gap-3 align-items-center">
                     <div
                       style={{
                         width: 72,
@@ -143,35 +143,39 @@ const LeaderStageProgress = () => {
                       QR
                     </div>
                     <div>
-                      <div className="text-muted small mb-1">Mã lô</div>
+                      <div className="text-muted small mb-1">Mã lô sản xuất</div>
                       <h5 className="mb-1">{orderInfo.id}</h5>
-                      <div className="text-muted small">Kích thước {orderInfo.size}</div>
+                      <small className="text-muted">Đơn hàng {orderInfo.productName}</small>
                     </div>
                   </div>
-                  <div className="col-md-8">
-                    <div className="row g-2">
-                      <div className="col-sm-6">
-                        <div className="text-muted small">Tên sản phẩm</div>
-                        <div className="fw-semibold">{orderInfo.productName}</div>
-                      </div>
-                      <div className="col-sm-6">
-                        <div className="text-muted small">Số lượng</div>
-                        <div>{orderInfo.quantity.toLocaleString('vi-VN')} sản phẩm</div>
-                      </div>
-                      <div className="col-sm-6">
-                        <div className="text-muted small">Ngày bắt đầu dự kiến</div>
-                        <div>{orderInfo.expectedStartDate}</div>
-                      </div>
-                      <div className="col-sm-6">
-                        <div className="text-muted small">Ngày kết thúc dự kiến</div>
-                        <div>{orderInfo.expectedFinishDate}</div>
-                      </div>
-                      <div className="col-sm-6 d-flex flex-column">
-                        <div className="text-muted small mb-1">Trạng thái</div>
-                        <Badge bg={orderInfo.statusVariant} className="status-badge align-self-start">
-                          {orderInfo.statusLabel}
-                        </Badge>
-                      </div>
+                  <div className="col-lg-4">
+                    <div className="mb-2">
+                      <div className="text-muted small">Tên sản phẩm</div>
+                      <div className="fw-semibold">{orderInfo.productName}</div>
+                    </div>
+                    <div className="mb-2">
+                      <div className="text-muted small">Kích thước</div>
+                      <div className="fw-semibold">{orderInfo.size}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted small">Số lượng</div>
+                      <div className="fw-semibold">{orderInfo.quantity.toLocaleString('vi-VN')} sản phẩm</div>
+                    </div>
+                  </div>
+                  <div className="col-lg-4">
+                    <div className="mb-2">
+                      <div className="text-muted small">Ngày bắt đầu dự kiến</div>
+                      <div className="fw-semibold">{orderInfo.expectedStartDate}</div>
+                    </div>
+                    <div className="mb-2">
+                      <div className="text-muted small">Ngày kết thúc dự kiến</div>
+                      <div className="fw-semibold">{orderInfo.expectedFinishDate}</div>
+                    </div>
+                    <div className="d-flex align-items-center gap-2">
+                      <div className="text-muted small mb-0">Trạng thái</div>
+                      <Badge bg={orderInfo.statusVariant} className="status-badge">
+                        {orderInfo.statusLabel}
+                      </Badge>
                     </div>
                   </div>
                 </div>
@@ -203,9 +207,6 @@ const LeaderStageProgress = () => {
                   <div className="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
                     <div className="h5 mb-0">{currentProgress}%</div>
                     <div className="d-flex align-items-center gap-3">
-                      <small className="text-muted">
-                        Còn lại {Math.max(0, (100 - currentProgress) / 10).toFixed(1)} giờ (mô phỏng)
-                      </small>
                       <Badge bg={statusConfig.variant}>{statusConfig.label}</Badge>
                     </div>
                   </div>
@@ -277,9 +278,16 @@ const LeaderStageProgress = () => {
 
             <Card className="shadow-sm mt-3">
               <Card.Body>
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <strong>Tiêu chí kiểm tra sau QC</strong>
-                  <small className="text-muted">Kết quả do KCS gửi</small>
+                <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                  <strong>Kết quả kiểm tra</strong>
+                  <div className="d-flex align-items-center gap-3">
+                    <small className="text-muted">Kết quả do KCS gửi</small>
+                    <Badge
+                      bg={QA_CRITERIA.some((item) => item.result === 'FAIL') ? 'danger' : 'success'}
+                    >
+                      {QA_CRITERIA.some((item) => item.result === 'FAIL') ? 'Lỗi nặng' : 'Đạt'}
+                    </Badge>
+                  </div>
                 </div>
                 <div className="d-flex flex-column gap-3">
                   {QA_CRITERIA.map((item, index) => (
@@ -297,7 +305,19 @@ const LeaderStageProgress = () => {
                           {item.result === 'PASS' ? 'Đạt' : 'Không đạt'}
                         </Badge>
                       </div>
-                      {item.remark && <div className="text-muted mt-1 small">{item.remark}</div>}
+                      {item.result === 'FAIL' ? (
+                        <img
+                          src={
+                            item.image ||
+                            'https://placehold.co/640x240?text=QC+Image'
+                          }
+                          alt={item.title}
+                          className="rounded mt-2"
+                          style={{ maxWidth: '100%', height: 'auto' }}
+                        />
+                      ) : (
+                        item.remark && <div className="text-muted mt-1 small">{item.remark}</div>
+                      )}
                     </div>
                   ))}
                 </div>

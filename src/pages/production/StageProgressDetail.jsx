@@ -101,7 +101,7 @@ const QA_CRITERIA_BY_STAGE = {
     { title: 'Sợi mắc đều', result: 'PASS' },
   ],
   DET: [
-    { title: 'Độ bền sợi', result: 'FAIL', remark: 'Không đạt' },
+    { title: 'Độ bền sợi', result: 'FAIL', image: 'https://placekitten.com/640/260' },
     { title: 'Hình dáng khăn', result: 'PASS' },
     { title: 'Bề mặt vải', result: 'PASS' },
   ],
@@ -221,21 +221,6 @@ const StageProgressDetail = () => {
                   &larr; Quay lại kế hoạch
                 </Button>
                 <h4 className="mb-0">Tiến độ công đoạn {stageData.stageName}</h4>
-                <small className="text-muted">
-                  Đơn hàng {orderId || stageData.orderCode} • {stageData.productName} •{' '}
-                  {stageData.quantity.toLocaleString('vi-VN')} sản phẩm
-                </small>
-              </div>
-              <div className="text-end">
-                <div className="mb-1">
-                  <span className="text-muted me-2">Người phụ trách:</span>
-                  <strong>{stageData.responsiblePerson}</strong>
-                </div>
-                <div>
-                  <Badge bg={stageData.status === 'HOAN_THANH' ? 'success' : 'info'}>
-                    {stageData.status === 'HOAN_THANH' ? 'Hoàn thành' : 'Đang làm'}
-                  </Badge>
-                </div>
               </div>
             </div>
 
@@ -260,9 +245,6 @@ const StageProgressDetail = () => {
                     <div className="h4 mb-0">{stageData.progressPercent}%</div>
                   </div>
                   <div className="d-flex align-items-center gap-3">
-                    <small className="text-muted">
-                      Còn lại {stageData.remainingHours.toFixed(1)} giờ (mô phỏng)
-                    </small>
                     <Badge bg={statusConfig.variant}>{statusConfig.label}</Badge>
                   </div>
                 </div>
@@ -335,9 +317,18 @@ const StageProgressDetail = () => {
             {qaCriteria.length > 0 && (
               <Card className="shadow-sm">
                 <Card.Body>
-                  <div className="d-flex justify-content-between align-items-center mb-3">
-                    <strong>Tiêu chí kiểm tra sau QC</strong>
-                    <small className="text-muted">Kết quả do KCS gửi về</small>
+                  <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <strong>Kết quả kiểm tra</strong>
+                    <div className="d-flex align-items-center gap-3">
+                      <small className="text-muted">Kết quả do KCS gửi về</small>
+                      <Badge
+                        bg={
+                          qaCriteria.some((item) => item.result === 'FAIL') ? 'danger' : 'success'
+                        }
+                      >
+                        {qaCriteria.some((item) => item.result === 'FAIL') ? 'Lỗi nặng' : 'Đạt'}
+                      </Badge>
+                    </div>
                   </div>
                   <div className="d-flex flex-column gap-3">
                     {qaCriteria.map((criteriaItem, index) => (
@@ -355,8 +346,20 @@ const StageProgressDetail = () => {
                             {criteriaItem.result === 'PASS' ? 'Đạt' : 'Không đạt'}
                           </Badge>
                         </div>
-                        {criteriaItem.remark && (
-                          <div className="mt-2 text-muted small">{criteriaItem.remark}</div>
+                        {criteriaItem.result === 'FAIL' ? (
+                          <img
+                            src={
+                              criteriaItem.image ||
+                              'https://placehold.co/640x240?text=QC+Image'
+                            }
+                            alt={criteriaItem.title}
+                            className="rounded mt-2"
+                            style={{ maxWidth: '100%', height: 'auto' }}
+                          />
+                        ) : (
+                          criteriaItem.remark && (
+                            <div className="mt-2 text-muted small">{criteriaItem.remark}</div>
+                          )
                         )}
                       </div>
                     ))}
