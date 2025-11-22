@@ -197,7 +197,7 @@ const TechnicalDefectDetail = () => {
                 <Card.Body>
                   <strong>Xử lý lỗi nhẹ</strong>
                   <p className="text-muted mt-2 mb-4">{defect.actionNote}</p>
-                  <Button variant="dark">Gửi yêu cầu về {defect.leader}</Button>
+                  <Button variant="dark">Yêu cầu làm lại</Button>
                 </Card.Body>
               </Card>
             ) : (
