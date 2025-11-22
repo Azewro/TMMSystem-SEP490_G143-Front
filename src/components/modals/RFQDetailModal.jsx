@@ -26,10 +26,10 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
 
   const handleCancelRfq = async () => {
     if (!rfqId) return;
-    const confirmMessage = rfq?.capacityStatus === 'INSUFFICIENT' 
+    const confirmMessage = rfq?.capacityStatus === 'INSUFFICIENT'
       ? 'Bạn có chắc chắn muốn hủy RFQ này vì không đủ năng lực sản xuất? Hành động này không thể hoàn tác.'
       : 'Bạn có chắc chắn muốn hủy RFQ này? Hành động này không thể hoàn tác.';
-    
+
     if (!window.confirm(confirmMessage)) {
       return;
     }
@@ -93,7 +93,7 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
           standardDimensions: products[index].standardDimensions,
         }));
       }
-      
+
       const finalState = { ...initialFormState, rfqDetails: enrichedDetails };
       setRfq(finalState);
       setEditedRfq(finalState);
@@ -197,13 +197,13 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
       // Date input returns YYYY-MM-DD format string, but we need to ensure it's valid
       console.log('Raw expectedDeliveryDate from editedRfq:', editedRfq.expectedDeliveryDate);
       let formattedDate = editedRfq.expectedDeliveryDate;
-      
+
       if (formattedDate) {
         // Handle different date formats
         if (typeof formattedDate === 'string') {
           // Trim whitespace
           formattedDate = formattedDate.trim();
-          
+
           // If it's already in YYYY-MM-DD format, use it directly
           if (/^\d{4}-\d{2}-\d{2}$/.test(formattedDate)) {
             // Already correct format, keep it
@@ -240,7 +240,7 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
           formattedDate = null;
           console.log('Date is not string or Date object, setting to null');
         }
-        
+
         // Final validation - ensure it's a valid date string
         if (formattedDate && !/^\d{4}-\d{2}-\d{2}$/.test(formattedDate)) {
           console.log('Date failed final validation, setting to null');
@@ -250,7 +250,7 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
         formattedDate = null;
         console.log('expectedDeliveryDate is falsy, setting to null');
       }
-      
+
       console.log('Final formattedDate:', formattedDate);
 
       // Prepare details array - ensure proper types
@@ -260,31 +260,31 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
         if (!productId) {
           throw new Error('Tất cả sản phẩm phải có productId hợp lệ.');
         }
-        
+
         const parsedProductId = parseInt(productId, 10);
         if (isNaN(parsedProductId) || parsedProductId <= 0) {
           throw new Error(`ProductId không hợp lệ: ${productId}`);
         }
-        
+
         const parsedQuantity = parseFloat(quantity);
         if (isNaN(parsedQuantity) || parsedQuantity <= 0) {
           throw new Error(`Số lượng phải là số lớn hơn 0. Giá trị hiện tại: ${quantity}`);
         }
-        
+
         const detail = {
           productId: parsedProductId, // Required - backend checks if null
           quantity: parsedQuantity, // Required - backend uses BigDecimal, send as number (not string)
           unit: unit && unit.trim() !== '' ? unit.trim() : 'cái' // Required - ensure not null/empty
         };
-        
+
         // Backend code: if (d.getProductId() != null) { ... }
         // So productId can be null in DTO, but we always provide it
         // Backend calls: nd.setQuantity(d.getQuantity()) - quantity should not be null
         // Backend calls: nd.setUnit(d.getUnit()) - unit should not be null
-        
+
         // Backend deletes all existing details and recreates, so id is not needed
         // Don't include id field - backend ignores it anyway
-        
+
         // Include optional fields only if they have values
         if (noteColor && (typeof noteColor === 'string' ? noteColor.trim() !== '' : noteColor)) {
           detail.noteColor = noteColor;
@@ -292,7 +292,7 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
         if (notes && (typeof notes === 'string' ? notes.trim() !== '' : notes)) {
           detail.notes = notes;
         }
-        
+
         return detail;
       });
 
@@ -315,61 +315,43 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
       // Backend only updates fields that are not null
       // So we only include fields that have actual values
       const payload = {};
-      
+
       if (editedRfq.contactPerson && editedRfq.contactPerson.trim() !== '') {
         payload.contactPerson = editedRfq.contactPerson.trim();
       }
-      
+
       if (editedRfq.contactEmail && editedRfq.contactEmail.trim() !== '') {
         payload.contactEmail = editedRfq.contactEmail.trim();
       }
-      
+
       if (editedRfq.contactPhone && editedRfq.contactPhone.trim() !== '') {
         payload.contactPhone = editedRfq.contactPhone.trim();
       }
-      
+
       if (editedRfq.contactAddress && editedRfq.contactAddress.trim() !== '') {
         payload.contactAddress = editedRfq.contactAddress.trim();
       }
-      
+
       if (editedRfq.notes && editedRfq.notes.trim() !== '') {
         payload.notes = editedRfq.notes.trim();
       }
-      
+
       // Validate and add expectedDeliveryDate - backend requires it to be at least 30 days from today
       // Always include expectedDeliveryDate if it exists (even if unchanged)
       // Date input type="date" returns YYYY-MM-DD string format
       if (formattedDate) {
         // Ensure it's a string and not empty
         const dateStr = typeof formattedDate === 'string' ? formattedDate.trim() : String(formattedDate).trim();
-        
+
         if (dateStr && dateStr !== '') {
           // Validate date format (YYYY-MM-DD)
-          if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-            throw new Error('Ngày giao hàng không hợp lệ. Vui lòng chọn lại ngày.');
-          }
-          
-          // Validate it's at least 30 days from today
-          const deliveryDate = new Date(dateStr + 'T00:00:00'); // Add time to avoid timezone issues
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          const minDate = new Date(today);
-          minDate.setDate(today.getDate() + 30);
-          
-          if (deliveryDate < minDate) {
-            throw new Error(`Ngày giao hàng phải ít nhất 30 ngày kể từ hôm nay. Ngày tối thiểu: ${minDate.toLocaleDateString('vi-VN')}`);
-          }
-          
-          // Always include expectedDeliveryDate in payload
-          payload.expectedDeliveryDate = dateStr;
-          console.log('Including expectedDeliveryDate in payload:', dateStr);
         } else {
           console.log('expectedDeliveryDate is empty string, not including in payload');
         }
       } else {
         console.log('expectedDeliveryDate is null/undefined, not including in payload');
       }
-      
+
       // Details is optional - backend only replaces if provided
       // But if we're editing, we should always include details
       if (details && details.length > 0) {
@@ -381,7 +363,7 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
       }
 
       console.log('Sending payload to sales-edit:', JSON.stringify(payload, null, 2));
-      
+
       // Final validation before sending
       if (payload.details) {
         payload.details.forEach((detail, index) => {
@@ -396,7 +378,7 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
           }
         });
       }
-      
+
       await rfqService.salesEditRfq(rfqId, payload);
       toast.success("RFQ updated successfully!");
       setIsEditMode(false);
@@ -415,7 +397,7 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
     try {
       // Step 1: Preliminary check
       await rfqService.confirmRfq(rfqId, 'Yêu cầu đã được sale xác nhận.');
-      
+
       // Step 2: Forward to planning
       await rfqService.forwardRfqToPlanning(rfqId);
 
@@ -549,9 +531,26 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
   const renderDeliveryInfo = () => {
     if (!editedRfq) return null;
     const data = isEditMode ? editedRfq : rfq;
+    // Helper to format date as YYYY-MM-DD using local time
+    const formatDateForInput = (dateInput) => {
+      if (!dateInput) return '';
+      // If it's already a YYYY-MM-DD string, return it
+      if (typeof dateInput === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
+        return dateInput;
+      }
+      const date = new Date(dateInput);
+      if (isNaN(date.getTime())) return '';
+
+      // Use local time components to avoid timezone shifts
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
     // Format date for input type="date" which requires YYYY-MM-DD
-    const dateValue = data.expectedDeliveryDate ? new Date(data.expectedDeliveryDate).toISOString().split('T')[0] : '';
-    const proposedDateValue = data.proposedNewDeliveryDate ? new Date(data.proposedNewDeliveryDate).toISOString().split('T')[0] : '';
+    const dateValue = formatDateForInput(data.expectedDeliveryDate);
+    const proposedDateValue = formatDateForInput(data.proposedNewDeliveryDate);
     const isInsufficient = data.capacityStatus === 'INSUFFICIENT';
 
     return (
@@ -571,7 +570,7 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
             </Form.Group>
           </Col>
         </Row>
-        
+
         {/* Hiển thị thông tin năng lực nếu có */}
         {data.capacityStatus && (
           <Row className="mt-3">
@@ -614,7 +613,7 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
                     {data.status === 'SENT' && isInsufficient && (
                       <Alert variant="info" className="mb-0 mt-2">
                         <small>
-                          <strong>Hướng dẫn:</strong> RFQ này đã được trả về từ Planning do không đủ năng lực sản xuất. 
+                          <strong>Hướng dẫn:</strong> RFQ này đã được trả về từ Planning do không đủ năng lực sản xuất.
                           Bạn có thể chỉnh sửa ngày giao hàng nếu khách hàng đồng ý với ngày đề xuất mới, hoặc hủy RFQ nếu khách hàng không đồng ý.
                         </small>
                       </Alert>
@@ -623,9 +622,9 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
                 )}
               </div>
             </Col>
-          </Row>
+          </Row >
         )}
-      </div>
+      </div >
     );
   };
 
@@ -633,7 +632,7 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
     <Modal show={show} onHide={() => handleClose(false)} size="lg" backdrop="static">
       <Modal.Header closeButton={!isEditMode}>
         <Modal.Title>
-          Chi tiết Yêu cầu báo giá {rfq?.code || rfqId}
+          Chi tiết Yêu cầu báo giá {rfq?.rfqNumber || rfqId}
           {rfq?.status && (
             <Badge bg={rfq.status === 'DRAFT' ? 'secondary' : rfq.status === 'SENT' ? 'info' : rfq.status === 'FORWARDED_TO_PLANNING' ? 'warning' : rfq.status === 'PRELIMINARY_CHECKED' ? 'primary' : rfq.status === 'QUOTED' ? 'success' : rfq.status === 'REJECTED' ? 'danger' : 'secondary'} className="ms-3">
               {rfq.status === 'DRAFT' ? 'Bản nháp' : rfq.status === 'SENT' ? 'Chờ xác nhận' : rfq.status === 'FORWARDED_TO_PLANNING' ? 'Đã chuyển Planning' : rfq.status === 'PRELIMINARY_CHECKED' ? 'Đã kiểm tra sơ bộ' : rfq.status === 'QUOTED' ? 'Đã báo giá' : rfq.status === 'REJECTED' ? 'Đã từ chối' : rfq.status}
@@ -685,7 +684,7 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
             <Button variant="secondary" onClick={() => handleClose(false)}>
               Đóng
             </Button>
-            
+
             {rfq?.status === 'DRAFT' && (
               <Button variant="success" onClick={handleSend} disabled={sendLoading}>
                 {sendLoading ? <Spinner as="span" animation="border" size="sm" /> : 'Gửi Yêu Cầu'}

@@ -100,20 +100,24 @@ const QuoteRequest = () => {
   }, [selectedProvince]);
 
   // Memoize options for react-select to prevent re-computation
-  const provinceOptions = useMemo(() => 
+  const provinceOptions = useMemo(() =>
     provinces.map(p => ({ value: p.code, label: p.name })),
     [provinces]
   );
 
-  const communeOptions = useMemo(() => 
+  const communeOptions = useMemo(() =>
     communes.map(c => ({ value: c.code, label: c.name })),
     [communes]
   );
 
   useEffect(() => {
+    if (authLoading) {
+      return; // Wait for authentication to finish loading
+    }
+
     const initialize = async () => {
       setLoading(true);
-      
+
       if (isAuthenticated && user?.customerId) {
         try {
           const customerData = await customerService.getCustomerById(user.customerId);
@@ -141,21 +145,23 @@ const QuoteRequest = () => {
         setIsFromCart(true);
       } else if (location.state?.preSelectedProduct) {
         const { id, standardDimensions, name } = location.state.preSelectedProduct;
-        setQuoteItems([{ 
-          productId: id.toString(), 
-          quantity: '1', 
-          unit: 'cai', 
+        setQuoteItems([{
+          productId: id.toString(),
+          quantity: '1',
+          unit: 'cai',
           notes: '',
-          standardDimensions: standardDimensions || '', 
-          name 
+          standardDimensions: standardDimensions || '',
+          name
         }]);
         setIsFromCart(false);
       } else if (!isAuthenticated) {
+        // This is safe now because authLoading is false.
+        // Redirect if user is not authenticated and did not arrive via a specific flow.
         navigate('/');
         setLoading(false);
         return;
       }
-      
+
       try {
         const productData = await productService.getAllProducts();
         setProducts(productData || []);
@@ -166,7 +172,7 @@ const QuoteRequest = () => {
       setLoading(false);
     };
     initialize();
-  }, [isAuthenticated, user, location.state, navigate]);
+  }, [authLoading, isAuthenticated, user, location.state, navigate]);
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
@@ -221,9 +227,9 @@ const QuoteRequest = () => {
       newErrors.contactPhone = 'Số điện thoại không hợp lệ.';
     }
     if (!currentData.contactEmail?.trim()) {
-        newErrors.contactEmail = 'Email là bắt buộc.';
+      newErrors.contactEmail = 'Email là bắt buộc.';
     } else if (!/\S+@\S+\.\S+/.test(currentData.contactEmail)) {
-        newErrors.contactEmail = 'Email không hợp lệ.';
+      newErrors.contactEmail = 'Email không hợp lệ.';
     }
     if (!selectedProvince || !selectedCommune || !detailedAddress.trim()) {
       newErrors.address = 'Vui lòng điền đầy đủ địa chỉ nhận hàng.';
@@ -289,8 +295,8 @@ const QuoteRequest = () => {
     }));
 
     const currentData = formRef.current;
-    const formattedDate = currentData.expectedDeliveryDate 
-      ? currentData.expectedDeliveryDate.toISOString().split('T')[0] 
+    const formattedDate = currentData.expectedDeliveryDate
+      ? currentData.expectedDeliveryDate.toLocaleDateString('en-CA') // YYYY-MM-DD in local time
       : null;
 
     const contactMethodMap = { 'Điện thoại': 'PHONE', 'Email': 'EMAIL', 'Cả hai': 'PHONE' };
@@ -345,7 +351,7 @@ const QuoteRequest = () => {
               <Col md={6}><Form.Group className="mb-3"><Form.Label>Mã nhân viên Sale (nếu có)</Form.Label><Form.Control type="text" name="employeeCode" defaultValue={formRef.current.employeeCode} onChange={handleFormChange} /></Form.Group></Col>
               <Col md={6}><Form.Group className="mb-3"><Form.Label>Phương thức liên hệ</Form.Label><Form.Select name="contactMethod" defaultValue={formRef.current.contactMethod} onChange={handleFormChange}><option>Điện thoại</option><option>Email</option><option>Cả hai</option></Form.Select></Form.Group></Col>
             </Row>
-            
+
             <h5 className="mb-3 mt-3">Địa chỉ nhận hàng</h5>
             {errors.address && <Alert variant="danger" size="sm">{errors.address}</Alert>}
             <Row>
@@ -436,7 +442,7 @@ const QuoteRequest = () => {
                       <h2 className="fw-bold">Tạo Yêu Cầu Báo Giá</h2>
                       <p className="text-muted">Hoàn thành các bước sau để gửi yêu cầu cho chúng tôi</p>
                     </div>
-                    
+
                     {/* Progress Bar */}
                     <div className="d-flex justify-content-between mb-4">
                       <div className={`step-item ${step >= 1 ? 'active' : ''}`}>Bước 1: Liên hệ</div>
@@ -452,7 +458,7 @@ const QuoteRequest = () => {
                         </div>
                         <div>
                           {step < 3 && <Button variant="primary" onClick={handleNext}>Tiếp theo</Button>}
-                          {step === 3 && 
+                          {step === 3 &&
                             <Button variant="success" type="submit" disabled={submitting}>
                               {submitting ? <><Spinner size="sm" /> Gửi Yêu Cầu...</> : "Xác Nhận và Gửi Yêu Cầu"}
                             </Button>

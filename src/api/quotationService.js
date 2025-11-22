@@ -6,7 +6,7 @@ export const quotationService = {
     const params = { page, size };
     if (search) params.search = search;
     if (status) params.status = status;
-    
+
     const response = await apiClient.get('/v1/quotations', { params });
     // Handle PageResponse
     if (response.data && response.data.content) {
@@ -15,9 +15,9 @@ export const quotationService = {
     // Fallback for backward compatibility
     return response.data;
   },
-  
+
   // Alias for getAllQuotations
-  getAllQuotes: async function(page = 0, size = 10, search, status) {
+  getAllQuotes: async function (page = 0, size = 10, search, status) {
     return this.getAllQuotations(page, size, search, status);
   },
 
@@ -64,7 +64,7 @@ export const quotationService = {
     if (selectedDate && typeof selectedDate === 'string' && selectedDate.trim()) {
       params.selectedDate = selectedDate.trim();
     }
-    
+
     const response = await apiClient.get(`/v1/quotations/customer/${customerId}`, { params });
     // Handle PageResponse
     if (response.data && response.data.content) {
@@ -96,5 +96,30 @@ export const quotationService = {
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Lỗi khi upload file báo giá');
     }
+  },
+
+  // Get quotations assigned to a specific Sales
+  getSalesQuotations: async (page = 0, size = 10, search, status) => {
+    const userId = sessionStorage.getItem('userId');
+    if (!userId) {
+      throw new Error('User ID not found. Please log in.');
+    }
+
+    const params = { page, size };
+    if (search) params.search = search;
+    if (status) params.status = status;
+
+    const response = await apiClient.get('/v1/quotations/for-sales', {
+      params,
+      headers: {
+        'X-User-Id': userId
+      }
+    });
+    // Handle PageResponse
+    if (response.data && response.data.content) {
+      return response.data;
+    }
+    // Fallback for backward compatibility
+    return response.data;
   }
 };

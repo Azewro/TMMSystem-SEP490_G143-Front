@@ -13,7 +13,8 @@ import '../../styles/QuoteRequests.css';
 
 const getFileExtension = (url) => {
   if (!url) return '';
-  const parts = url.split('.');
+  const cleanUrl = url.split(/[?#]/)[0];
+  const parts = cleanUrl.split('.');
   return parts.length > 1 ? parts.pop().toLowerCase() : '';
 };
 
@@ -59,13 +60,13 @@ const DirectorContractApproval = () => {
   const [decision, setDecision] = useState({ type: null, note: '' });
   const [processing, setProcessing] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
-  
+
   // Search and Filter state
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [createdDateFilter, setCreatedDateFilter] = useState('');
   const [deliveryDateFilter, setDeliveryDateFilter] = useState('');
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -84,14 +85,14 @@ const DirectorContractApproval = () => {
       // Convert 1-based page to 0-based for backend
       const page = currentPage - 1;
       const response = await contractService.getDirectorPendingContracts(
-        page, 
-        ITEMS_PER_PAGE, 
-        searchTerm || undefined, 
-        statusFilter || undefined, 
-        createdDateFilter || undefined, 
+        page,
+        ITEMS_PER_PAGE,
+        searchTerm || undefined,
+        statusFilter || undefined,
+        createdDateFilter || undefined,
         deliveryDateFilter || undefined
       );
-      
+
       // Handle PageResponse
       let contractsArray = [];
       if (response && response.content) {
@@ -103,7 +104,7 @@ const DirectorContractApproval = () => {
         setTotalPages(1);
         setTotalElements(response.length);
       }
-      
+
       // Enrich contracts with customer info
       const enrichedContracts = await Promise.all(
         contractsArray.map(async (contract) => {
@@ -122,7 +123,7 @@ const DirectorContractApproval = () => {
           return { ...contract, customerName: 'N/A' };
         })
       );
-      
+
       setContracts(enrichedContracts);
     } catch (err) {
       console.error('Failed to fetch contracts', err);
@@ -135,7 +136,7 @@ const DirectorContractApproval = () => {
   useEffect(() => {
     loadContracts();
   }, [currentPage, searchTerm, statusFilter, createdDateFilter, deliveryDateFilter]);
-  
+
   useEffect(() => {
     // Reset to page 1 when filters change
     setCurrentPage(1);
@@ -208,7 +209,7 @@ const DirectorContractApproval = () => {
     try {
       // Step 1: Approve the contract
       await contractService.approveContract(selectedContract.id, directorId, decision.note.trim() || undefined);
-      
+
       // The backend will now automatically merge the lot and create a plan.
       // We just need to show a success message.
       setSuccess('Đã phê duyệt hợp đồng. Hệ thống sẽ tự động tạo kế hoạch sản xuất và chuyển cho bộ phận Kế hoạch.');
@@ -273,10 +274,24 @@ const DirectorContractApproval = () => {
       if (!response.ok) {
         throw new Error('Không thể tải file.');
       }
-      
-      const blob = await response.blob();
+
+      let blob = await response.blob();
+
+      // Fix: Force content type based on extension if blob type is missing or generic
+      const ext = getFileExtension(url);
+      let mimeType = blob.type;
+
+      if (!mimeType || mimeType === 'application/octet-stream') {
+        if (ext === 'pdf') mimeType = 'application/pdf';
+        else if (['png', 'jpg', 'jpeg'].includes(ext)) mimeType = `image/${ext}`;
+      }
+
+      if (mimeType) {
+        blob = new Blob([blob], { type: mimeType });
+      }
+
       const objectUrl = URL.createObjectURL(blob);
-      
+
       setViewerUrl(objectUrl);
       setShowFileViewer(true);
       toast.success('Đã mở file.', { id: toastId });
@@ -537,8 +552,8 @@ const DirectorContractApproval = () => {
           <Button variant="secondary" onClick={closeModal} disabled={processing}>
             Đóng
           </Button>
-          <Button 
-            variant="danger" 
+          <Button
+            variant="danger"
             onClick={() => {
               const reason = window.prompt('Vui lòng nhập lý do từ chối hợp đồng:');
               if (reason && reason.trim()) {
@@ -547,7 +562,7 @@ const DirectorContractApproval = () => {
                 // User clicked OK but didn't enter anything
                 setError('Vui lòng nhập lý do từ chối hợp đồng.');
               }
-            }} 
+            }}
             disabled={processing}
           >
             {processing ? 'Đang xử lý...' : 'Từ chối'}

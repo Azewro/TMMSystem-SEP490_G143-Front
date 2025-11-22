@@ -12,61 +12,61 @@ import { useAuth } from '../../context/AuthContext';
 import ConfirmOrderProfileModal from '../../components/modals/ConfirmOrderProfileModal';
 import toast from 'react-hot-toast';
 
-const formatCurrency = (v) => new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(v||0);
+const formatCurrency = (v) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v || 0);
 const formatDate = (iso) => iso ? new Date(iso).toLocaleDateString('vi-VN') : 'N/A';
 
 // Helper function to convert number to Vietnamese words
 const numberToWords = (num) => {
-    const units = ["", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín"];
-    const teens = ["mười", "mười một", "mười hai", "mười ba", "mười bốn", "mười lăm", "mười sáu", "mười bảy", "mười tám", "mười chín"];
-    const tens = ["", "mười", "hai mươi", "ba mươi", "bốn mươi", "năm mươi", "sáu mươi", "bảy mươi", "tám mươi", "chín mươi"];
-    const powers = ["", "nghìn", "triệu", "tỷ"];
+  const units = ["", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín"];
+  const teens = ["mười", "mười một", "mười hai", "mười ba", "mười bốn", "mười lăm", "mười sáu", "mười bảy", "mười tám", "mười chín"];
+  const tens = ["", "mười", "hai mươi", "ba mươi", "bốn mươi", "năm mươi", "sáu mươi", "bảy mươi", "tám mươi", "chín mươi"];
+  const powers = ["", "nghìn", "triệu", "tỷ"];
 
-    if (num === 0) return "không đồng";
+  if (num === 0) return "không đồng";
 
-    let words = [];
-    let i = 0;
+  let words = [];
+  let i = 0;
 
-    while (num > 0) {
-        let chunk = num % 1000;
-        if (chunk > 0) {
-            let chunkWords = [];
-            let h = Math.floor(chunk / 100);
-            let t = Math.floor((chunk % 100) / 10);
-            let u = chunk % 10;
+  while (num > 0) {
+    let chunk = num % 1000;
+    if (chunk > 0) {
+      let chunkWords = [];
+      let h = Math.floor(chunk / 100);
+      let t = Math.floor((chunk % 100) / 10);
+      let u = chunk % 10;
 
-            if (h > 0) {
-                chunkWords.push(units[h] + " trăm");
-            }
+      if (h > 0) {
+        chunkWords.push(units[h] + " trăm");
+      }
 
-            if (t > 1) {
-                chunkWords.push(tens[t]);
-                if (u === 1) {
-                    chunkWords.push("mốt");
-                } else if (u > 0) {
-                    chunkWords.push(units[u]);
-                }
-            } else if (t === 1) {
-                chunkWords.push(teens[u]);
-            } else if (u > 0) {
-                if (h > 0 || num >= 1000) {
-                    chunkWords.push("linh " + units[u]);
-                } else {
-                    chunkWords.push(units[u]);
-                }
-            }
-            
-            if (powers[i]) {
-                chunkWords.push(powers[i]);
-            }
-            words.unshift(chunkWords.join(" "));
+      if (t > 1) {
+        chunkWords.push(tens[t]);
+        if (u === 1) {
+          chunkWords.push("mốt");
+        } else if (u > 0) {
+          chunkWords.push(units[u]);
         }
-        num = Math.floor(num / 1000);
-        i++;
+      } else if (t === 1) {
+        chunkWords.push(teens[u]);
+      } else if (u > 0) {
+        if (h > 0 || num >= 1000) {
+          chunkWords.push("linh " + units[u]);
+        } else {
+          chunkWords.push(units[u]);
+        }
+      }
+
+      if (powers[i]) {
+        chunkWords.push(powers[i]);
+      }
+      words.unshift(chunkWords.join(" "));
     }
-    
-    const finalWords = words.join(" ").trim();
-    return finalWords.charAt(0).toUpperCase() + finalWords.slice(1) + " đồng";
+    num = Math.floor(num / 1000);
+    i++;
+  }
+
+  const finalWords = words.join(" ").trim();
+  return finalWords.charAt(0).toUpperCase() + finalWords.slice(1) + " đồng";
 };
 
 
@@ -116,7 +116,7 @@ const CustomerQuotationDetail = () => {
     try {
       const profile = await customerService.getCustomerById(user.customerId);
       const isInfoComplete = profile.companyName && profile.address && profile.taxCode;
-      
+
       setShowConfirmOrderModal(true);
 
       if (isInfoComplete) {
@@ -154,13 +154,13 @@ const CustomerQuotationDetail = () => {
         if (correctQuoteInfo) {
           quoteData.status = correctQuoteInfo.status; // Patch the status
         }
-        
+
         // Fetch all product details in parallel
-        const productPromises = quoteData.details.map(item => 
+        const productPromises = quoteData.details.map(item =>
           productService.getProductById(item.productId)
         );
         const products = await Promise.all(productPromises);
-        
+
         const productsMap = products.reduce((acc, product) => {
           acc[product.id] = product;
           return acc;
@@ -171,10 +171,10 @@ const CustomerQuotationDetail = () => {
           ...item,
           totalPrice: item.unitPrice * item.quantity
         }));
-        
-        setQuote({ 
-            ...quoteData, 
-            details: enrichedDetails,
+
+        setQuote({
+          ...quoteData,
+          details: enrichedDetails,
         });
 
       } catch (e) {
@@ -183,7 +183,7 @@ const CustomerQuotationDetail = () => {
         setLoading(false);
       }
     };
-    
+
     if (user) {
       fetchDetails();
     }
@@ -195,8 +195,8 @@ const CustomerQuotationDetail = () => {
     try {
       if (type === 'ACCEPTED') {
         await quoteService.updateQuotationStatus(quote.id, 'ACCEPTED');
-        try { 
-          await quoteService.createOrderFromQuotation({ quotationId: quote.id }); 
+        try {
+          await quoteService.createOrderFromQuotation({ quotationId: quote.id });
         } catch (orderErr) {
           console.log('Order creation failed or already exists:', orderErr.message);
         }
@@ -205,7 +205,7 @@ const CustomerQuotationDetail = () => {
         await quoteService.updateQuotationStatus(quote.id, 'REJECTED');
         setSuccess('✅ Bạn đã từ chối báo giá.');
       }
-      setTimeout(()=> navigate('/customer/quotations'), 2000);
+      setTimeout(() => navigate('/customer/quotations'), 2000);
     } catch (e) {
       setError(e.message || 'Thao tác thất bại');
     } finally {
@@ -215,7 +215,7 @@ const CustomerQuotationDetail = () => {
   };
 
   const getStatusBadge = (status) => {
-    switch(status) {
+    switch (status) {
       case 'DRAFT': return { text: 'Bản nháp', bg: 'secondary' };
       case 'SENT': return { text: 'Đã gửi', bg: 'info' };
       case 'ACCEPTED': return { text: 'Đã chấp nhận', bg: 'success' };
@@ -243,8 +243,8 @@ const CustomerQuotationDetail = () => {
               <FaArrowLeft className="me-2" /> Quay lại danh sách
             </Button>
 
-            {error && <Alert variant="danger" onClose={()=>setError('')} dismissible>{error}</Alert>}
-            {success && <Alert variant="success" onClose={()=>setSuccess('')} dismissible>{success}</Alert>}
+            {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
+            {success && <Alert variant="success" onClose={() => setSuccess('')} dismissible>{success}</Alert>}
 
             {loading ? (
               <div className="text-center py-5"><Spinner animation="border" /></div>
@@ -256,7 +256,7 @@ const CustomerQuotationDetail = () => {
                 </div>
 
                 <div className="mb-4">
-                  <p className="mb-1">Số: {quote?.rfqNumber || quote?.rfq?.rfqNumber || `RFQ-${quote?.rfqId || quote?.id}`}</p>
+                  <p className="mb-1">Mã báo giá: {quote?.quotationNumber || `QUO-${quote?.id}`}</p>
                 </div>
 
                 <h2 className="text-center mb-4 fw-bold">BẢNG BÁO GIÁ</h2>
@@ -316,7 +316,6 @@ const CustomerQuotationDetail = () => {
                   <ul className="list-unstyled ms-3">
                     <li>- Đơn giá chưa bao gồm thuế VAT</li>
                     <li>- Đơn giá chưa bao gồm phí vận chuyển</li>
-                    <li>- Trạng thái báo giá: <Badge bg={getStatusBadge(quote.status).bg}>{getStatusBadge(quote.status).text}</Badge></li>
                   </ul>
                 </div>
 
@@ -341,10 +340,10 @@ const CustomerQuotationDetail = () => {
                 >
                   <FaTimesCircle className="me-2" /> Từ Chối
                 </Button>
-                <Button 
-                  variant="success" 
+                <Button
+                  variant="success"
                   size="lg"
-                  onClick={handleAcceptClick} 
+                  onClick={handleAcceptClick}
                   disabled={working}
                 >
                   <FaCheckCircle className="me-2" /> Chấp Nhận Báo Giá
@@ -352,28 +351,28 @@ const CustomerQuotationDetail = () => {
               </div>
             )}
 
-            <ConfirmOrderProfileModal 
-              show={showConfirmOrderModal} 
-              onHide={() => setShowConfirmOrderModal(false)} 
+            <ConfirmOrderProfileModal
+              show={showConfirmOrderModal}
+              onHide={() => setShowConfirmOrderModal(false)}
               onConfirm={handleAcceptQuoteAndCreateOrder}
             />
 
-            <Modal show={confirm.open} onHide={()=>setConfirm({ type: null, open: false })} centered>
+            <Modal show={confirm.open} onHide={() => setConfirm({ type: null, open: false })} centered>
               <Modal.Header closeButton>
                 <Modal.Title>
-                  {confirm.type==='ACCEPTED' ? 'Xác nhận đồng ý báo giá' : 'Xác nhận từ chối báo giá'}
+                  {confirm.type === 'ACCEPTED' ? 'Xác nhận đồng ý báo giá' : 'Xác nhận từ chối báo giá'}
                 </Modal.Title>
               </Modal.Header>
               <Modal.Body>
-                <p>Bạn có chắc chắn muốn <strong>{confirm.type==='ACCEPTED' ? 'chấp nhận' : 'từ chối'}</strong> báo giá này không? Hành động này không thể hoàn tác.</p>
+                <p>Bạn có chắc chắn muốn <strong>{confirm.type === 'ACCEPTED' ? 'chấp nhận' : 'từ chối'}</strong> báo giá này không? Hành động này không thể hoàn tác.</p>
               </Modal.Body>
               <Modal.Footer>
-                <Button variant="secondary" onClick={()=>setConfirm({ type: null, open: false })} disabled={working}>
+                <Button variant="secondary" onClick={() => setConfirm({ type: null, open: false })} disabled={working}>
                   Hủy
                 </Button>
-                <Button 
-                  variant={confirm.type==='ACCEPTED' ? 'success' : 'danger'} 
-                  onClick={()=>onConfirm(confirm.type)} 
+                <Button
+                  variant={confirm.type === 'ACCEPTED' ? 'success' : 'danger'}
+                  onClick={() => onConfirm(confirm.type)}
                   disabled={working}
                 >
                   {working ? <><Spinner size="sm" /> Đang xử lý...</> : (confirm.type === 'ACCEPTED' ? 'Chấp Nhận' : 'Từ Chối')}
