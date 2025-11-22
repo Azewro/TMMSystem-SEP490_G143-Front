@@ -95,11 +95,6 @@ const TechnicalDefectDetail = () => {
   const { defectId } = useParams();
   const defect = useMemo(() => DEFECT_LIBRARY[defectId] || DEFECT_LIBRARY.L0001, [defectId]);
   const severity = severityStyles[defect.severity];
-  const [fiberRequests, setFiberRequests] = React.useState([{ id: 1, type: '', weight: '' }]);
-
-  const handleAddFiberRequest = () => {
-    setFiberRequests((prev) => [...prev, { id: prev.length + 1, type: '', weight: '' }]);
-  };
 
   return (
     <div className="customer-layout">
@@ -210,28 +205,17 @@ const TechnicalDefectDetail = () => {
                 <Card.Body>
                   <strong>Yêu cầu cấp lại sợi (Lỗi nặng)</strong>
                   <p className="text-muted mt-2 mb-4">{defect.actionNote}</p>
-                  <div className="d-flex flex-column gap-3 mb-3">
-                    {fiberRequests.map((fiber) => (
-                      <Row className="g-3" key={fiber.id}>
-                        <Col md={6}>
-                          <div className="text-muted small mb-1">Loại sợi cần cấp</div>
-                          <Form.Select value={fiber.type} onChange={() => {}}>
-                            <option value="">Chọn loại sợi</option>
-                            <option value="cotton">Sợi cotton</option>
-                            <option value="bamboo">Sợi bamboo</option>
-                          </Form.Select>
-                        </Col>
-                        <Col md={6}>
-                          <div className="text-muted small mb-1">Khối lượng cần cấp (kg)</div>
-                          <Form.Control value={fiber.weight} onChange={() => {}} />
-                        </Col>
-                      </Row>
-                    ))}
-                    <Button variant="outline-secondary" size="sm" className="align-self-start" onClick={handleAddFiberRequest}>
-                      + Thêm sợi
-                    </Button>
-                    <Form.Control as="textarea" rows={3} placeholder="Ghi chú thêm về yêu cầu..." />
-                  </div>
+                  <Row className="g-3 mb-3">
+                    <Col md={6}>
+                      <Form.Control placeholder="Loại sợi cần cấp (ví dụ: Cotton 100%)" />
+                    </Col>
+                    <Col md={6}>
+                      <Form.Control placeholder="Khối lượng cần cấp (kg)" />
+                    </Col>
+                    <Col md={12}>
+                      <Form.Control as="textarea" rows={3} placeholder="Ghi chú thêm về yêu cầu..." />
+                    </Col>
+                  </Row>
                   <div className="d-flex justify-content-end">
                     <Button variant="dark">Tạo phiếu yêu cầu cấp sợi</Button>
                   </div>
