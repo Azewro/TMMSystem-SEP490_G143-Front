@@ -56,24 +56,28 @@ import MachineManagement from './pages/technical/MachineManagement';
 import TechnicalDefectList from './pages/technical/TechnicalDefectList';
 import TechnicalDefectDetail from './pages/technical/TechnicalDefectDetail';
 
-// Production Pages
-import MaterialStockManagement from './pages/production/MaterialStockManagement';
-import ProductionOrderList from './pages/production/ProductionOrderList';
-import ProductionOrderDetail from './pages/production/ProductionOrderDetail';
-import ProductionFiberRequests from './pages/production/ProductionFiberRequests';
-import ProductionFiberRequestDetail from './pages/production/ProductionFiberRequestDetail';
-import ProductionReworkOrders from './pages/production/ProductionReworkOrders';
-import ProductionReworkOrderDetail from './pages/production/ProductionReworkOrderDetail';
-import ProductionReworkStageDetail from './pages/production/ProductionReworkStageDetail';
-import StageProgressDetail from './pages/production/StageProgressDetail';
-import LeaderOrderList from './pages/production/LeaderOrderList';
-import LeaderStageProgress from './pages/production/LeaderStageProgress';
-import LeaderDefectList from './pages/production/LeaderDefectList';
-import LeaderDefectDetail from './pages/production/LeaderDefectDetail';
-import QaOrderList from './pages/production/QaOrderList';
-import QaOrderDetail from './pages/production/QaOrderDetail';
-import QaStageQualityCheck from './pages/production/QaStageQualityCheck';
-import QaStageCheckResult from './pages/production/QaStageCheckResult';
+// Production Manager Pages
+import MaterialStockManagement from './pages/productionManager/MaterialStockManagement';
+import ProductionOrderList from './pages/productionManager/ProductionOrderList';
+import ProductionOrderDetail from './pages/productionManager/ProductionOrderDetail';
+import ProductionFiberRequests from './pages/productionManager/ProductionFiberRequests';
+import ProductionFiberRequestDetail from './pages/productionManager/ProductionFiberRequestDetail';
+import ProductionReworkOrders from './pages/productionManager/ProductionReworkOrders';
+import ProductionReworkOrderDetail from './pages/productionManager/ProductionReworkOrderDetail';
+import ProductionReworkStageDetail from './pages/productionManager/ProductionReworkStageDetail';
+import StageProgressDetail from './pages/productionManager/StageProgressDetail';
+
+// Production Leader Pages
+import LeaderOrderList from './pages/productionLeader/LeaderOrderList';
+import LeaderStageProgress from './pages/productionLeader/LeaderStageProgress';
+import LeaderDefectList from './pages/productionLeader/LeaderDefectList';
+import LeaderDefectDetail from './pages/productionLeader/LeaderDefectDetail';
+
+// QA Pages
+import QaOrderList from './pages/qa/QaOrderList';
+import QaOrderDetail from './pages/qa/QaOrderDetail';
+import QaStageQualityCheck from './pages/qa/QaStageQualityCheck';
+import QaStageCheckResult from './pages/qa/QaStageCheckResult';
 
 function App() {
   return (
