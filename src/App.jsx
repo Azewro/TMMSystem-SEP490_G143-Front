@@ -64,6 +64,7 @@ import ProductionFiberRequests from './pages/production/ProductionFiberRequests'
 import ProductionFiberRequestDetail from './pages/production/ProductionFiberRequestDetail';
 import ProductionReworkOrders from './pages/production/ProductionReworkOrders';
 import ProductionReworkOrderDetail from './pages/production/ProductionReworkOrderDetail';
+import ProductionReworkStageDetail from './pages/production/ProductionReworkStageDetail';
 import StageProgressDetail from './pages/production/StageProgressDetail';
 import LeaderOrderList from './pages/production/LeaderOrderList';
 import LeaderStageProgress from './pages/production/LeaderStageProgress';
@@ -144,6 +145,7 @@ function App() {
               <Route path="/production/fiber-requests/:lotCode" element={<ProductionFiberRequestDetail />} />
               <Route path="/production/rework-orders" element={<ProductionReworkOrders />} />
               <Route path="/production/rework-orders/:orderId" element={<ProductionReworkOrderDetail />} />
+              <Route path="/production/rework-orders/:orderId/stages/:stageCode" element={<ProductionReworkStageDetail />} />
 
               {/* Leader (product process leader) routes */}
               <Route path="/leader/orders" element={<LeaderOrderList />} />

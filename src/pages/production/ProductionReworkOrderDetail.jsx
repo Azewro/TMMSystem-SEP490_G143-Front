@@ -14,12 +14,12 @@ const REWORK_ORDER_LIBRARY = {
     endDate: '2025-12-05',
     status: 'Chờ sản xuất',
     stages: [
-      { name: 'Cuồng mắc', owner: 'Nguyễn Văn A', status: 'N/A' },
-      { name: 'Dệt', owner: 'Trần Thị B', status: 'N/A' },
-      { name: 'Nhuộm', owner: 'Production Manager', status: 'N/A' },
-      { name: 'Cắt', owner: 'Phạm Thị D', status: 'N/A' },
-      { name: 'May', owner: 'Hoàng Văn E', status: 'N/A' },
-      { name: 'Đóng gói', owner: 'Võ Thị F', status: 'N/A' },
+      { code: 'CUONG_MAC', name: 'Cuồng mắc', owner: 'Nguyễn Văn A', progress: 10, statusLabel: 'Chờ cuồng mắc làm' },
+      { code: 'DET', name: 'Dệt', owner: 'Trần Thị B', progress: 0, statusLabel: 'Chờ dệt làm' },
+      { code: 'NHUOM', name: 'Nhuộm', owner: 'Production Manager', progress: 0, statusLabel: 'Nhuộm chờ kiểm tra', canStart: true },
+      { code: 'CAT', name: 'Cắt', owner: 'Phạm Thị D', progress: 0, statusLabel: 'Chờ cắt làm' },
+      { code: 'MAY', name: 'May', owner: 'Hoàng Văn E', progress: 0, statusLabel: 'Chờ may làm' },
+      { code: 'DONG_GOI', name: 'Đóng gói', owner: 'Võ Thị F', progress: 0, statusLabel: 'Chờ đóng gói làm' },
     ],
   },
 };
@@ -28,6 +28,14 @@ const ProductionReworkOrderDetail = () => {
   const navigate = useNavigate();
   const { orderId } = useParams();
   const order = useMemo(() => REWORK_ORDER_LIBRARY[orderId] || REWORK_ORDER_LIBRARY['LOT-2025-001'], [orderId]);
+
+  const handleViewStage = (stageCode) => {
+    navigate(`/production/rework-orders/${order.id}/stages/${stageCode}`);
+  };
+
+  const handleStartStage = (stageCode) => {
+    navigate(`/production/rework-orders/${order.id}/stages/${stageCode}`);
+  };
 
   return (
     <div className="customer-layout">
@@ -42,29 +50,58 @@ const ProductionReworkOrderDetail = () => {
 
             <Card className="shadow-sm mb-4">
               <Card.Body>
-                <div className="d-flex justify-content-between flex-wrap gap-3">
-                  <div>
-                    <div className="text-muted small mb-1">Mã lô</div>
-                    <h4 className="mb-1">{order.id}</h4>
-                    <div className="text-muted">Tên sản phẩm: {order.product}</div>
-                    <div className="text-muted">Kích thước: {order.size}</div>
-                    <div className="text-muted">Số lượng: {order.quantity.toLocaleString('vi-VN')} sản phẩm</div>
+                <div className="row g-4 align-items-center">
+                  <div className="col-lg-4 d-flex gap-3 align-items-center">
+                    <div
+                      style={{
+                        width: 72,
+                        height: 72,
+                        borderRadius: 12,
+                        border: '1px dashed #ced4da',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 24,
+                        color: '#adb5bd',
+                      }}
+                    >
+                      QR
+                    </div>
+                    <div>
+                      <div className="text-muted small mb-1">Mã lô sản xuất</div>
+                      <h5 className="mb-1">{order.id}</h5>
+                      <small className="text-muted">Đơn hàng {order.product}</small>
+                    </div>
                   </div>
-                  <div className="text-end">
-                    <Row className="g-2">
-                      <Col xs={12}>
-                        <div className="text-muted small">Ngày bắt đầu dự kiến</div>
-                        <div className="fw-semibold">{order.startDate}</div>
-                      </Col>
-                      <Col xs={12}>
-                        <div className="text-muted small">Ngày kết thúc dự kiến</div>
-                        <div className="fw-semibold">{order.endDate}</div>
-                      </Col>
-                      <Col xs={12}>
-                        <div className="text-muted small">Trạng thái</div>
-                        <Badge bg="secondary">{order.status}</Badge>
-                      </Col>
-                    </Row>
+                  <div className="col-lg-4">
+                    <div className="mb-2">
+                      <div className="text-muted small">Tên sản phẩm</div>
+                      <div className="fw-semibold">{order.product}</div>
+                    </div>
+                    <div className="mb-2">
+                      <div className="text-muted small">Kích thước</div>
+                      <div className="fw-semibold">{order.size}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted small">Số lượng</div>
+                      <div className="fw-semibold">{order.quantity.toLocaleString('vi-VN')} sản phẩm</div>
+                    </div>
+                  </div>
+                  <div className="col-lg-4">
+                    <div className="mb-2">
+                      <div className="text-muted small">Ngày bắt đầu dự kiến</div>
+                      <div className="fw-semibold">{order.startDate}</div>
+                    </div>
+                    <div className="mb-2">
+                      <div className="text-muted small">Ngày kết thúc dự kiến</div>
+                      <div className="fw-semibold">{order.endDate}</div>
+                    </div>
+                    <div className="d-flex align-items-center gap-2">
+                      <div className="text-muted small mb-0">Trạng thái</div>
+                      <Badge bg="secondary" className="status-badge">
+                        {order.status}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
               </Card.Body>
@@ -80,17 +117,32 @@ const ProductionReworkOrderDetail = () => {
                     <tr>
                       <th>Công đoạn</th>
                       <th>Người phụ trách</th>
+                      <th>Tiến độ (%)</th>
                       <th>Trạng thái</th>
                       <th>Hành động</th>
                     </tr>
                   </thead>
                   <tbody>
                     {order.stages.map((stage) => (
-                      <tr key={stage.name}>
+                      <tr key={stage.code}>
                         <td>{stage.name}</td>
                         <td>{stage.owner}</td>
-                        <td>{stage.status}</td>
-                        <td />
+                        <td>{stage.progress ?? 0}%</td>
+                        <td>
+                          <Badge bg="secondary">{stage.statusLabel}</Badge>
+                        </td>
+                        <td className="text-end">
+                          <div className="d-flex justify-content-end gap-2">
+                            <Button size="sm" variant="outline-secondary" onClick={() => handleViewStage(stage.code)}>
+                              Chi tiết
+                            </Button>
+                            {stage.canStart && (
+                              <Button size="sm" variant="dark" onClick={() => handleStartStage(stage.code)}>
+                                Bắt đầu
+                              </Button>
+                            )}
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -102,9 +154,9 @@ const ProductionReworkOrderDetail = () => {
               <Card.Body className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
                 <div>
                   <strong>Bắt đầu sản xuất</strong>
-                  <p className="text-muted mb-0">Kiểm tra thông tin và khởi động kế hoạch sản xuất bù.</p>
+                  <p className="text-muted mb-0">Kiểm tra thông tin và khởi động kế hoạch sản xuất bổ sung.</p>
                 </div>
-                <Button variant="dark">Bắt đầu sản xuất</Button>
+                <Button variant="dark">Bắt đầu làm việc</Button>
               </Card.Body>
             </Card>
           </Container>

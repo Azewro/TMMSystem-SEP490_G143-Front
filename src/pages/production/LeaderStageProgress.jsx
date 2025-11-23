@@ -157,7 +157,7 @@ const LeaderStageProgress = () => {
                       <div className="text-muted small">Kích thước</div>
                       <div className="fw-semibold">{orderInfo.size}</div>
                     </div>
-                    <div>
+              <div>
                       <div className="text-muted small">Số lượng</div>
                       <div className="fw-semibold">{orderInfo.quantity.toLocaleString('vi-VN')} sản phẩm</div>
                     </div>
@@ -176,9 +176,9 @@ const LeaderStageProgress = () => {
                       <Badge bg={orderInfo.statusVariant} className="status-badge">
                         {orderInfo.statusLabel}
                       </Badge>
-                    </div>
-                  </div>
-                </div>
+              </div>
+              </div>
+            </div>
               </Card.Body>
             </Card>
 

@@ -56,7 +56,6 @@ const InternalSidebar = ({ userRole: propUserRole }) => {
     director: [
       { icon: FaListAlt, label: 'Quản lý yêu cầu báo giá', path: '/director/rfqs' },
       { icon: FaFileSignature, label: 'Duyệt Hợp Đồng', path: '/director/contract-approval' },
-      { icon: FaListAlt, label: 'Quản lý đơn hàng', path: '/director/orders' },
       { icon: FaProjectDiagram, label: 'Duyệt Kế Hoạch SX', path: '/director/production-plan-approvals' },
     ],
     sales: [
@@ -73,11 +72,11 @@ const InternalSidebar = ({ userRole: propUserRole }) => {
     production: [
       { icon: FaListAlt, label: 'Đơn hàng sản xuất', path: '/production/orders' },
       { icon: FaFileSignature, label: 'Yêu cầu cấp sợi', path: '/production/fiber-requests' },
-      { icon: FaProjectDiagram, label: 'Sản xuất bù', path: '/production/rework-orders' },
+      { icon: FaProjectDiagram, label: 'Sản xuất bổ sung', path: '/production/rework-orders' },
       { icon: FaWarehouse, label: 'Nhập kho nguyên liệu', path: '/production/material-stock' },
     ],
     // Product Process Leader
-    leader: [
+    leader: [ 
       { icon: FaListAlt, label: 'Đơn hàng của tôi', path: '/leader/orders' },
       { icon: FaExclamationTriangle, label: 'Danh sách lỗi', path: '/leader/defects' },
     ],

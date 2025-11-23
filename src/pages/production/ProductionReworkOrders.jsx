@@ -64,8 +64,8 @@ const ProductionReworkOrders = () => {
               <Card.Body>
                 <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center mb-3 gap-3">
                   <div>
-                    <h5 className="mb-1">Danh sách sản xuất bù</h5>
-                    <small className="text-muted">Theo dõi tiến độ các lệnh sản xuất bù</small>
+                    <h5 className="mb-1">Danh sách sản xuất bổ sung</h5>
+                    <small className="text-muted">Theo dõi tiến độ các lệnh sản xuất bổ sung</small>
                   </div>
                   <div className="d-flex gap-2 w-100 w-lg-auto">
                     <Form.Control placeholder="Tìm kiếm theo mã lô hoặc mã lỗi..." />
