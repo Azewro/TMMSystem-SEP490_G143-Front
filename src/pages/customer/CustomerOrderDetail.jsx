@@ -413,6 +413,32 @@ const CustomerOrderDetail = () => {
                           size="sm"
                           href={contractFileUrl.startsWith('http') ? contractFileUrl : `${API_BASE_URL}${contractFileUrl.startsWith('/') ? '' : '/'}${contractFileUrl}`}
                           download
+                          onClick={(e) => {
+                            // Ensure download works with authentication
+                            const token = sessionStorage.getItem('token') || sessionStorage.getItem('userToken') || localStorage.getItem('userToken');
+                            if (token && !contractFileUrl.startsWith('http')) {
+                              e.preventDefault();
+                              const fullUrl = `${API_BASE_URL}${contractFileUrl.startsWith('/') ? '' : '/'}${contractFileUrl}`;
+                              fetch(fullUrl, {
+                                headers: { 'Authorization': `Bearer ${token}` }
+                              })
+                                .then(res => res.blob())
+                                .then(blob => {
+                                  const url = window.URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  a.download = contractFileUrl.split('/').pop() || 'contract.pdf';
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  window.URL.revokeObjectURL(url);
+                                  document.body.removeChild(a);
+                                })
+                                .catch(err => {
+                                  console.error('Download error:', err);
+                                  toast.error('Không thể tải file');
+                                });
+                            }
+                          }}
                         >
                           ⬇️ Tải về hợp đồng
                         </Button>
