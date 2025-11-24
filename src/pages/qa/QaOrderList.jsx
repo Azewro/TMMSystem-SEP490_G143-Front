@@ -1,70 +1,96 @@
-import React, { useState, useMemo } from 'react';
-import { Container, Card, Table, Button, Badge, Form, InputGroup } from 'react-bootstrap';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Container, Card, Table, Button, Badge, Form, InputGroup, Spinner } from 'react-bootstrap';
 import { FaSearch } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
-
-// Mock data cho danh sách đơn hàng cần QA kiểm tra
-const MOCK_QA_ORDERS = [
-  {
-    id: 'LOT-002',
-    productName: 'Khăn mặt cotton',
-    size: '30x50cm',
-    quantity: 2000,
-    expectedStartDate: '2025-11-18',
-    expectedFinishDate: '2025-12-01',
-    status: 'NHUOM_CHO_KIEM_TRA',
-    statusLabel: 'Nhuộm chờ kiểm tra',
-  },
-  {
-    id: 'LOT-003',
-    productName: 'Khăn spa trắng',
-    size: '50x100cm',
-    quantity: 1500,
-    expectedStartDate: '2025-11-15',
-    expectedFinishDate: '2025-11-28',
-    status: 'DANG_LAM',
-    statusLabel: 'đang làm',
-  },
-  {
-    id: 'LOT-004',
-    productName: 'Khăn khách sạn',
-    size: '60x120cm',
-    quantity: 800,
-    expectedStartDate: '2025-11-10',
-    expectedFinishDate: '2025-11-25',
-    status: 'HOAN_THANH',
-    statusLabel: 'Hoàn thành',
-  },
-];
-
-const getStatusVariant = (status) => {
-  switch (status) {
-    case 'NHUOM_CHO_KIEM_TRA':
-      return 'warning';
-    case 'DANG_LAM':
-      return 'info';
-    case 'HOAN_THANH':
-      return 'success';
-    default:
-      return 'secondary';
-  }
-};
+import { productionService } from '../../api/productionService';
+import { getStatusLabel, getStatusVariant } from '../../utils/statusMapper';
+import toast from 'react-hot-toast';
 
 const QaOrderList = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  // Get userId from sessionStorage (set during login in authService.internalLogin)
+  // Fallback to localStorage for backward compatibility
+  const qcUserId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        setLoading(true);
+        const data = await productionService.getQaOrders(qcUserId);
+        console.log('QA Orders data from API:', data); // Debug log
+        
+        if (!data || data.length === 0) {
+          console.log('No QA orders found');
+          setOrders([]);
+          return;
+        }
+        
+        // Map backend data to match UI structure
+        const mappedData = data.map(order => {
+          // Find the stage assigned to this QA (qcAssigneeId matches)
+          // Backend enrichProductionOrderDto returns all stages, find the one assigned to this QA
+          const qaStage = (order.stages || []).find(s => 
+            s.qcAssigneeId === Number(qcUserId) || 
+            s.qcAssignee?.id === Number(qcUserId)
+          );
+          
+          // Determine status label - use QA's stage status if available, otherwise use order status
+          const status = qaStage?.executionStatus || order.executionStatus || order.status;
+          const statusLabel = qaStage ? getStatusLabel(qaStage.executionStatus) : 
+                            (order.statusLabel || getStatusLabel(order.executionStatus || order.status));
+          
+          return {
+            id: order.id,
+            lotCode: order.lotCode || order.poNumber || order.id,
+            productName: order.productName || order.contract?.contractNumber || 'N/A',
+            size: order.size || '-',
+            quantity: order.totalQuantity || 0,
+            expectedStartDate: order.plannedStartDate || order.expectedStartDate,
+            expectedFinishDate: order.plannedEndDate || order.expectedFinishDate,
+            status: status,
+            statusLabel: statusLabel,
+            qaStage: qaStage // Store QA stage for button logic
+          };
+        });
+        console.log('Mapped QA Orders:', mappedData); // Debug log
+        setOrders(mappedData);
+      } catch (error) {
+        console.error('Error fetching QA orders:', error);
+        toast.error('Không thể tải danh sách đơn hàng');
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (qcUserId) {
+      fetchOrders();
+    } else {
+      console.warn('QC User ID not found');
+      setLoading(false);
+    }
+  }, [qcUserId]);
 
   const filteredOrders = useMemo(() => {
-    if (!searchTerm) return MOCK_QA_ORDERS;
+    if (!searchTerm) return orders;
     const term = searchTerm.toLowerCase();
-    return MOCK_QA_ORDERS.filter(
+    return orders.filter(
       (o) =>
         o.id.toLowerCase().includes(term) ||
         o.productName.toLowerCase().includes(term),
     );
-  }, [searchTerm]);
+  }, [searchTerm, orders]);
+
+  if (loading) {
+    return (
+      <div className="d-flex justify-content-center align-items-center vh-100">
+        <Spinner animation="border" />
+      </div>
+    );
+  }
 
   const handleInspect = (order) => {
     navigate(`/qa/orders/${order.id}`);
@@ -117,22 +143,27 @@ const QaOrderList = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredOrders.map((order, index) => (
-                      <tr key={order.id}>
-                        <td>{index + 1}</td>
-                        <td>
-                          <strong>{order.id}</strong>
-                        </td>
-                        <td>{order.productName}</td>
-                        <td>{order.size}</td>
-                        <td>{order.quantity.toLocaleString('vi-VN')}</td>
-                        <td>{order.expectedStartDate}</td>
-                        <td>{order.expectedFinishDate}</td>
-                        <td>
-                          <Badge bg={getStatusVariant(order.status)}>
-                            {order.statusLabel}
-                          </Badge>
-                        </td>
+                    {filteredOrders.length === 0 ? (
+                      <tr>
+                        <td colSpan="9" className="text-center py-4">Không có đơn hàng nào</td>
+                      </tr>
+                    ) : (
+                      filteredOrders.map((order, index) => (
+                        <tr key={order.id}>
+                          <td>{index + 1}</td>
+                          <td>
+                            <strong>{order.lotCode || order.id}</strong>
+                          </td>
+                          <td>{order.productName}</td>
+                          <td>{order.size}</td>
+                          <td>{order.quantity.toLocaleString('vi-VN')}</td>
+                          <td>{order.expectedStartDate}</td>
+                          <td>{order.expectedFinishDate}</td>
+                          <td>
+                            <Badge bg={getStatusVariant(order.status)}>
+                              {order.statusLabel}
+                            </Badge>
+                          </td>
                         <td className="text-end">
                           <Button
                             size="sm"
@@ -142,8 +173,9 @@ const QaOrderList = () => {
                             Xem kế hoạch
                           </Button>
                         </td>
-                      </tr>
-                    ))}
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </Table>
               </Card.Body>

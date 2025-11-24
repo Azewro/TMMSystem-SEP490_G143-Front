@@ -55,7 +55,7 @@ const QuoteRequest = () => {
   const [detailedAddress, setDetailedAddress] = useState('');
   const [addressLoading, setAddressLoading] = useState({ provinces: true, communes: false });
 
-  const [quoteItems, setQuoteItems] = useState([{ productId: '', quantity: '1', unit: 'cai', notes: '', standardDimensions: '' }]);
+  const [quoteItems, setQuoteItems] = useState([{ productId: '', quantity: '100', unit: 'cai', notes: '', standardDimensions: '' }]);
   const [isFromCart, setIsFromCart] = useState(false);
   const formRef = useRef({});
   const [step, setStep] = useState(1);
@@ -147,7 +147,7 @@ const QuoteRequest = () => {
         const { id, standardDimensions, name } = location.state.preSelectedProduct;
         setQuoteItems([{
           productId: id.toString(),
-          quantity: '1',
+          quantity: '100',
           unit: 'cai',
           notes: '',
           standardDimensions: standardDimensions || '',
@@ -208,7 +208,7 @@ const QuoteRequest = () => {
       toast.error('Vui lòng chọn sản phẩm cho dòng hiện tại trước khi thêm mới.');
       return;
     }
-    setQuoteItems([...quoteItems, { productId: '', quantity: '1', unit: 'cai', notes: '', standardDimensions: '' }]);
+    setQuoteItems([...quoteItems, { productId: '', quantity: '100', unit: 'cai', notes: '', standardDimensions: '' }]);
   };
 
   const handleRemoveProduct = (index) => {
@@ -385,7 +385,7 @@ const QuoteRequest = () => {
                       {!isFromCart && quoteItems.length > 1 && <Button variant="link" className="text-danger p-0" onClick={() => handleRemoveProduct(index)}>Xóa</Button>}
                     </div>
                     <Row className="align-items-end mt-2">
-                      <Col md={6}><Form.Group><Form.Label>Số lượng <span className="text-danger">*</span></Form.Label><Form.Control type="number" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} min="1" required isInvalid={!!errors.items?.[index]?.quantity} /><Form.Control.Feedback type="invalid">{errors.items?.[index]?.quantity}</Form.Control.Feedback></Form.Group></Col>
+                      <Col md={6}><Form.Group><Form.Label>Số lượng <span className="text-danger">*</span></Form.Label><Form.Control type="number" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} min="100" required isInvalid={!!errors.items?.[index]?.quantity} /><Form.Control.Feedback type="invalid">{errors.items?.[index]?.quantity}</Form.Control.Feedback></Form.Group></Col>
                       <Col md={6}><Form.Group><Form.Label>Kích thước</Form.Label><div className="form-control-plaintext border rounded px-3 py-2 bg-light" style={{ pointerEvents: 'none', userSelect: 'none' }}>{item.standardDimensions || 'N/A'}</div></Form.Group></Col>
                     </Row>
                   </div>

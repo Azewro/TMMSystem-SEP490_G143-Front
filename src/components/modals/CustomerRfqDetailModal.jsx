@@ -102,7 +102,7 @@ const CustomerRfqDetailModal = ({ rfqId, show, handleClose }) => {
 
   const handleDetailChange = (index, field, value) => {
     const updatedDetails = [...editedRfq.rfqDetails];
-    const newQuantity = field === 'quantity' ? Math.max(1, parseInt(value, 10) || 1) : value;
+    const newQuantity = field === 'quantity' ? Math.max(100, parseInt(value, 10) || 100) : value;
     updatedDetails[index] = { ...updatedDetails[index], [field]: newQuantity };
     setEditedRfq(prev => ({ ...prev, rfqDetails: updatedDetails }));
   };
@@ -128,7 +128,7 @@ const CustomerRfqDetailModal = ({ rfqId, show, handleClose }) => {
       productName: productToAdd.name,
       productCode: productToAdd.code,
       standardDimensions: productToAdd.standardDimensions,
-      quantity: 1,
+      quantity: 100,
       unit: productToAdd.unit || 'cái',
     };
     setEditedRfq(prev => ({ ...prev, rfqDetails: [...prev.rfqDetails, newDetail] }));
@@ -241,6 +241,12 @@ const CustomerRfqDetailModal = ({ rfqId, show, handleClose }) => {
       // Ensure details array is not empty
       if (!payload.details || payload.details.length === 0) {
         throw new Error('RFQ phải có ít nhất một sản phẩm.');
+      }
+
+      // Validate all quantities are >= 100
+      const invalidDetails = payload.details.filter(d => !d.quantity || d.quantity < 100);
+      if (invalidDetails.length > 0) {
+        throw new Error('Tất cả các sản phẩm phải có số lượng từ 100 trở lên.');
       }
 
       console.log('Sending payload to update RFQ:', payload);
@@ -361,7 +367,7 @@ const CustomerRfqDetailModal = ({ rfqId, show, handleClose }) => {
                                         value={item.quantity}
                                         onChange={(e) => handleDetailChange(index, 'quantity', e.target.value)}
                                         readOnly={!isEditMode}
-                                        min="1"
+                                        min="100"
                                         style={{ width: '80px' }}
                                     />
                                 </td>

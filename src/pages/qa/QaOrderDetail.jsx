@@ -1,47 +1,105 @@
-import React from 'react';
-import { Container, Card, Table, Button, Badge } from 'react-bootstrap';
+import React, { useState, useEffect } from 'react';
+import { Container, Card, Table, Button, Badge, Spinner } from 'react-bootstrap';
 import { useNavigate, useParams } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
-
-// Mock chi tiết đơn hàng cho QA
-const MOCK_QA_ORDER = {
-  id: 'LOT-002',
-  productName: 'Khăn mặt cotton',
-  size: '30x50cm',
-  quantity: 2000,
-  expectedStartDate: '2025-11-18',
-  expectedFinishDate: '2025-12-01',
-  statusLabel: 'Nhuộm chờ kiểm tra',
-  stages: [
-    { code: 'CUONG_MAC', name: 'Cuồng mắc', assignee: 'Nguyễn Văn A', statusLabel: 'Chờ QC làm', progress: 10 },
-    { code: 'DET', name: 'Dệt', assignee: 'Trần Thị B', statusLabel: 'Chờ QC làm', progress: 0 },
-    { code: 'NHUOM', name: 'Nhuộm', assignee: 'Lê Văn C', statusLabel: 'Nhuộm chờ kiểm tra', progress: 0 },
-    { code: 'CAT', name: 'Cắt', assignee: 'Phạm Thị D', statusLabel: 'Chờ QC làm', progress: 0 },
-    { code: 'MAY', name: 'May', assignee: 'Hoàng Văn E', statusLabel: 'Chờ QC làm', progress: 0 },
-    { code: 'DONG_GOI', name: 'Đóng gói', assignee: 'Võ Thị F', statusLabel: 'Chờ QC làm', progress: 0 },
-  ],
-};
+import { orderService } from '../../api/orderService';
+import { getStatusLabel, getStageTypeName, getButtonForStage, getStatusVariant } from '../../utils/statusMapper';
+import toast from 'react-hot-toast';
 
 const QaOrderDetail = () => {
   const navigate = useNavigate();
   const { orderId } = useParams();
+  const [order, setOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const order = {
-    ...MOCK_QA_ORDER,
-    id: orderId || MOCK_QA_ORDER.id,
-  };
+  useEffect(() => {
+    const fetchOrder = async () => {
+      try {
+        setLoading(true);
+        const data = await orderService.getOrderById(orderId);
+        
+        // Get current QA userId
+        const qcUserId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
+        
+        // Backend enrichProductionOrderDto returns stages in data.stages
+        // Filter và map chỉ các stages được assign cho QA này
+        const stages = (data.stages || [])
+          .filter(stage => {
+            // Chỉ lấy stages được assign cho QA này
+            return stage.qcAssigneeId === Number(qcUserId) || 
+                   stage.qcAssignee?.id === Number(qcUserId);
+          })
+          .map(stage => ({
+            id: stage.id,
+            code: stage.stageType,
+            name: getStageTypeName(stage.stageType) || stage.stageType,
+            assignee: stage.assignedLeader?.fullName || 
+                      stage.assigneeName || 
+                      (stage.stageType === 'DYEING' || stage.stageType === 'NHUOM' ? 'Production Manager' : 'Chưa phân công'),
+            status: stage.executionStatus || stage.status,
+            statusLabel: getStatusLabel(stage.executionStatus || stage.status),
+            progress: stage.progressPercent || 0,
+            qcAssigneeId: stage.qcAssigneeId || stage.qcAssignee?.id
+          }));
+        
+        // Map backend data to match UI structure
+        const mappedOrder = {
+          id: data.id || orderId,
+          lotCode: data.lotCode || data.poNumber || orderId,
+          productName: data.productName || data.contract?.contractNumber || 'N/A',
+          size: data.size || '-',
+          quantity: data.totalQuantity || 0,
+          expectedStartDate: data.plannedStartDate || data.expectedStartDate,
+          expectedFinishDate: data.plannedEndDate || data.expectedFinishDate,
+          statusLabel: getStatusLabel(data.executionStatus || data.status),
+          stages: stages
+        };
+        setOrder(mappedOrder);
+      } catch (error) {
+        console.error('Error fetching order:', error);
+        toast.error('Không thể tải thông tin đơn hàng');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchOrder();
+  }, [orderId]);
 
   const handleBack = () => {
     navigate('/qa/orders');
   };
 
-  const handleInspectStage = (stageCode) => {
-    navigate(`/qa/orders/${order.id}/stages/${stageCode}/check`);
+  const handleInspectStage = (stageId, stageCode) => {
+    navigate(`/qa/orders/${orderId}/stages/${stageCode}/check`);
   };
 
-  const handleViewStageDetail = (stageCode) => {
-    navigate(`/qa/orders/${order.id}/stages/${stageCode}/result`);
+  const handleViewStageDetail = (stageId, stageCode) => {
+    // Navigate to stage result page to view inspection details
+    navigate(`/qa/orders/${orderId}/stages/${stageCode}/result`);
+  };
+
+  if (loading) {
+    return (
+      <div className="d-flex justify-content-center align-items-center vh-100">
+        <Spinner animation="border" />
+      </div>
+    );
+  }
+
+  if (!order) {
+    return (
+      <div className="customer-layout">
+        <Header />
+        <div className="d-flex">
+          <InternalSidebar userRole="qa" />
+          <Container fluid className="p-4">
+            <Button variant="link" onClick={handleBack}>&larr; Quay lại</Button>
+            <div className="alert alert-warning mt-3">Không tìm thấy đơn hàng</div>
+          </Container>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -80,7 +138,7 @@ const QaOrderDetail = () => {
                     </div>
                     <div>
                       <div className="text-muted small mb-1">Mã lô sản xuất</div>
-                      <h5 className="mb-1">{order.id}</h5>
+                      <h5 className="mb-1">{order.lotCode || order.id}</h5>
                       <small className="text-muted">Đơn hàng {order.productName}</small>
                     </div>
                   </div>
@@ -135,30 +193,55 @@ const QaOrderDetail = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {order.stages.map((stage) => (
-                      <tr key={stage.code}>
-                        <td>{stage.name}</td>
-                        <td>{stage.assignee}</td>
-                        <td>{stage.progress ?? 0}%</td>
-                        <td>
-                          <Badge bg="secondary">{stage.statusLabel}</Badge>
-                        </td>
-                        <td className="text-end">
-                          <div className="d-flex justify-content-end gap-2">
-                            <Button size="sm" variant="outline-secondary" onClick={() => handleViewStageDetail(stage.code)}>
-                              Chi tiết
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="dark"
-                              onClick={() => handleInspectStage(stage.code)}
-                            >
-                              Kiểm tra
-                            </Button>
-                          </div>
+                    {order.stages && order.stages.length > 0 ? (
+                      order.stages.map((stage) => {
+                        const canInspect = stage.status === 'WAITING_QC' || stage.status === 'QC_IN_PROGRESS';
+                        
+                        return (
+                          <tr key={stage.id || stage.code}>
+                            <td>{stage.name}</td>
+                            <td>{stage.assignee}</td>
+                            <td>{stage.progress ?? 0}%</td>
+                            <td>
+                              <Badge bg={getStatusVariant(stage.status)}>
+                                {stage.statusLabel}
+                              </Badge>
+                            </td>
+                            <td className="text-end">
+                              <div className="d-flex justify-content-end gap-2">
+                                {/* Luôn hiển thị button "Chi tiết" */}
+                                <Button 
+                                  size="sm" 
+                                  variant="outline-secondary"
+                                  onClick={() => handleViewStageDetail(stage.id, stage.code)}
+                                >
+                                  Chi tiết
+                                </Button>
+                                
+                                {/* Luôn hiển thị button "Kiểm tra", nhưng disabled nếu chưa đến lượt */}
+                                <Button
+                                  size="sm"
+                                  variant="dark"
+                                  onClick={() => handleInspectStage(stage.id, stage.code)}
+                                  disabled={!canInspect}
+                                  title={!canInspect ? 
+                                    'Chưa đến lượt kiểm tra. Chỉ có thể kiểm tra khi trạng thái là "chờ kiểm tra" hoặc "đang kiểm tra"' : 
+                                    'Bắt đầu kiểm tra'}
+                                >
+                                  Kiểm tra
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan="5" className="text-center py-4 text-muted">
+                          Chưa có công đoạn nào
                         </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </Table>
               </Card.Body>

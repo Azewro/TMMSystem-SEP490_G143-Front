@@ -1,0 +1,198 @@
+/**
+ * Status mapping utilities for mapping backend status to Vietnamese labels
+ * and determining button actions based on status and user role
+ */
+
+// Map backend status to Vietnamese display label
+export const getStatusLabel = (status) => {
+  const statusMap = {
+    // ProductionOrder statuses
+    'PENDING_APPROVAL': 'Chờ phê duyệt',
+    'WAITING_PRODUCTION': 'Chờ sản xuất',
+    'CHO_SAN_XUAT': 'Chờ sản xuất',
+    'DANG_SAN_XUAT': 'Đang sản xuất',
+    'IN_PROGRESS': 'Đang sản xuất',
+    'ORDER_COMPLETED': 'Hoàn thành',
+    'COMPLETED': 'Hoàn thành',
+    'HOAN_THANH': 'Hoàn thành',
+    
+    // ProductionStage statuses
+    'PENDING': 'đợi',
+    'WAITING': 'chờ làm',
+    'READY': 'chờ làm',
+    'IN_PROGRESS': 'đang làm',
+    'WAITING_QC': 'chờ kiểm tra',
+    'QC_IN_PROGRESS': 'đang kiểm tra',
+    'QC_PASSED': 'đạt',
+    'QC_FAILED': 'không đạt',
+    'WAITING_REWORK': 'chờ sửa',
+    'REWORK_IN_PROGRESS': 'đang sửa',
+    'COMPLETED': 'hoàn thành',
+    'DANG_LAM': 'đang làm', // Legacy status
+  };
+  return statusMap[status] || status;
+};
+
+// Map stage type code to Vietnamese name
+export const getStageTypeName = (stageType) => {
+  const stageTypeMap = {
+    'WARPING': 'Cuồng mắc',
+    'CUONG_MAC': 'Cuồng mắc',
+    'WEAVING': 'Dệt',
+    'DET': 'Dệt',
+    'DYEING': 'Nhuộm',
+    'NHUOM': 'Nhuộm',
+    'CUTTING': 'Cắt',
+    'CAT': 'Cắt',
+    'HEMMING': 'May',
+    'MAY': 'May',
+    'PACKAGING': 'Đóng gói',
+    'DONG_GOI': 'Đóng gói',
+  };
+  return stageTypeMap[stageType] || stageType;
+};
+
+// Get button configuration based on stage status and user role
+export const getButtonForStage = (status, userRole) => {
+  if (userRole === 'leader') {
+    // PENDING: đợi - không có button (chỉ xem được)
+    if (status === 'PENDING') {
+      return { text: 'Xem chi tiết', action: 'detail', variant: 'outline-secondary', disabled: false };
+    }
+    // WAITING/READY: sẵn sàng sản xuất - button "Bắt đầu"
+    if (status === 'WAITING' || status === 'READY') {
+      return { text: 'Bắt đầu', action: 'start', variant: 'dark', disabled: false };
+    }
+    // IN_PROGRESS: đang làm - button "Cập nhật tiến độ"
+    if (status === 'IN_PROGRESS') {
+      return { text: 'Cập nhật tiến độ', action: 'update', variant: 'dark', disabled: false };
+    }
+    // WAITING_QC: chờ kiểm tra - button "Xem chi tiết"
+    if (status === 'WAITING_QC') {
+      return { text: 'Xem chi tiết', action: 'detail', variant: 'outline-secondary', disabled: false };
+    }
+    // QC_IN_PROGRESS: đang kiểm tra - button "Xem chi tiết"
+    if (status === 'QC_IN_PROGRESS') {
+      return { text: 'Xem chi tiết', action: 'detail', variant: 'outline-secondary', disabled: false };
+    }
+    // QC_PASSED: đạt - button "Xem chi tiết"
+    if (status === 'QC_PASSED') {
+      return { text: 'Xem chi tiết', action: 'detail', variant: 'outline-secondary', disabled: false };
+    }
+    // QC_FAILED: không đạt - button "Xem chi tiết"
+    if (status === 'QC_FAILED') {
+      return { text: 'Xem chi tiết', action: 'detail', variant: 'outline-secondary', disabled: false };
+    }
+    // WAITING_REWORK: chờ sửa - button "Bắt đầu" (sau khi kỹ thuật gửi yêu cầu làm lại)
+    if (status === 'WAITING_REWORK') {
+      return { text: 'Bắt đầu', action: 'start', variant: 'dark', disabled: false };
+    }
+    // REWORK_IN_PROGRESS: đang sửa - button "Cập nhật tiến độ"
+    if (status === 'REWORK_IN_PROGRESS') {
+      return { text: 'Cập nhật tiến độ', action: 'update', variant: 'dark', disabled: false };
+    }
+    // COMPLETED: hoàn thành - button "Xem chi tiết"
+    if (status === 'COMPLETED') {
+      return { text: 'Xem chi tiết', action: 'detail', variant: 'outline-secondary', disabled: false };
+    }
+  }
+  
+  if (userRole === 'qa' || userRole === 'kcs') {
+    // WAITING_QC: chờ kiểm tra - button "Kiểm tra"
+    if (status === 'WAITING_QC') {
+      return { text: 'Kiểm tra', action: 'inspect', variant: 'dark' };
+    }
+    // QC_IN_PROGRESS: đang kiểm tra - button "Kiểm tra" (có thể tiếp tục kiểm tra)
+    if (status === 'QC_IN_PROGRESS') {
+      return { text: 'Kiểm tra', action: 'inspect', variant: 'dark' };
+    }
+    // QC_PASSED: đạt - button "Chi tiết" (chi tiết chính là kết quả kiểm tra)
+    if (status === 'QC_PASSED') {
+      return { text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' };
+    }
+    // QC_FAILED: không đạt - button "Chi tiết" (chi tiết chính là kết quả kiểm tra)
+    if (status === 'QC_FAILED') {
+      return { text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' };
+    }
+    // Các trạng thái khác: button "Chi tiết"
+    return { text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' };
+  }
+  
+  if (userRole === 'production' || userRole === 'pm') {
+    // For dyeing stage (NHUOM) managed by PM
+    // PENDING: đợi - không có button (chỉ xem)
+    if (status === 'PENDING') {
+      return { text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' };
+    }
+    // WAITING/READY: chờ làm - button "Bắt đầu" (với công đoạn nhuộm)
+    if (status === 'WAITING' || status === 'READY') {
+      return { text: 'Bắt đầu', action: 'start', variant: 'dark' };
+    }
+    // IN_PROGRESS: đang làm - button "Chi tiết, cập nhật công đoạn" (với công đoạn nhuộm)
+    if (status === 'IN_PROGRESS') {
+      return { text: 'Cập nhật tiến độ', action: 'update', variant: 'dark' };
+    }
+    // WAITING_QC: chờ kiểm tra - button "Chi tiết"
+    if (status === 'WAITING_QC') {
+      return { text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' };
+    }
+    // QC_IN_PROGRESS: đang kiểm tra - button "Chi tiết"
+    if (status === 'QC_IN_PROGRESS') {
+      return { text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' };
+    }
+    // QC_PASSED: đạt - button "Chi tiết"
+    if (status === 'QC_PASSED') {
+      return { text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' };
+    }
+    // QC_FAILED: không đạt - button "Chi tiết"
+    if (status === 'QC_FAILED') {
+      return { text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' };
+    }
+    // WAITING_REWORK: chờ sửa - button "Chi tiết, bắt đầu" (với công đoạn nhuộm)
+    if (status === 'WAITING_REWORK') {
+      return { text: 'Bắt đầu', action: 'start', variant: 'dark' };
+    }
+    // REWORK_IN_PROGRESS: đang sửa - button "Chi tiết"
+    if (status === 'REWORK_IN_PROGRESS') {
+      return { text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' };
+    }
+    // COMPLETED: hoàn thành - button "Chi tiết"
+    if (status === 'COMPLETED') {
+      return { text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' };
+    }
+    return { text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' };
+  }
+  
+  return { text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' };
+};
+
+// Get status badge variant for Bootstrap
+export const getStatusVariant = (status) => {
+  const variantMap = {
+    // ProductionOrder statuses
+    'PENDING_APPROVAL': 'secondary',
+    'WAITING_PRODUCTION': 'secondary',
+    'CHO_SAN_XUAT': 'secondary',
+    'DANG_SAN_XUAT': 'info',
+    'IN_PROGRESS': 'info',
+    'ORDER_COMPLETED': 'success',
+    'COMPLETED': 'success',
+    'HOAN_THANH': 'success',
+    
+    // ProductionStage statuses
+    'PENDING': 'secondary',
+    'WAITING': 'primary',
+    'READY': 'primary',
+    'IN_PROGRESS': 'info',
+    'WAITING_QC': 'warning',
+    'QC_IN_PROGRESS': 'warning',
+    'QC_PASSED': 'success',
+    'QC_FAILED': 'danger',
+    'WAITING_REWORK': 'warning',
+    'REWORK_IN_PROGRESS': 'info',
+    'COMPLETED': 'success',
+    'DANG_LAM': 'info',
+  };
+  return variantMap[status] || 'secondary';
+};
+

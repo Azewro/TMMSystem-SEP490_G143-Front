@@ -183,7 +183,7 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
       productName: productToAdd.name,
       productCode: productToAdd.code,
       standardDimensions: productToAdd.standardDimensions, // Add standardDimensions for new product
-      quantity: 1, // Default quantity
+      quantity: 100, // Default quantity - minimum is 100
       unit: productToAdd.unit,
     };
     setEditedRfq(prev => ({ ...prev, rfqDetails: [...prev.rfqDetails, newDetail] }));
@@ -267,8 +267,8 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
         }
 
         const parsedQuantity = parseFloat(quantity);
-        if (isNaN(parsedQuantity) || parsedQuantity <= 0) {
-          throw new Error(`Số lượng phải là số lớn hơn 0. Giá trị hiện tại: ${quantity}`);
+        if (isNaN(parsedQuantity) || parsedQuantity < 100) {
+          throw new Error(`Số lượng phải từ 100 trở lên. Giá trị hiện tại: ${quantity}`);
         }
 
         const detail = {
@@ -370,8 +370,8 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
           if (!detail.productId || detail.productId <= 0) {
             throw new Error(`Sản phẩm thứ ${index + 1}: ProductId không hợp lệ`);
           }
-          if (!detail.quantity || detail.quantity <= 0) {
-            throw new Error(`Sản phẩm thứ ${index + 1}: Số lượng phải lớn hơn 0`);
+          if (!detail.quantity || detail.quantity < 100) {
+            throw new Error(`Sản phẩm thứ ${index + 1}: Số lượng phải từ 100 trở lên`);
           }
           if (!detail.unit || detail.unit.trim() === '') {
             throw new Error(`Sản phẩm thứ ${index + 1}: Đơn vị không được để trống`);
@@ -494,7 +494,7 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
                     value={item.quantity}
                     onChange={(e) => handleDetailChange(index, 'quantity', parseInt(e.target.value))}
                     readOnly={!isEditMode}
-                    min="1"
+                    min="100"
                   />
                 </td>
                 {isEditMode ? (

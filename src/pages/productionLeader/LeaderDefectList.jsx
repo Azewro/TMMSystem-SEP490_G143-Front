@@ -1,42 +1,46 @@
-import React from 'react';
-import { Container, Card, Table, Badge, Button } from 'react-bootstrap';
+import React, { useState, useEffect } from 'react';
+import { Container, Card, Table, Badge, Button, Alert, Spinner } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
-
-const LEADER_DEFECTS = [
-  {
-    id: 'L0001',
-    lotCode: 'LOT-001',
-    product: 'Áo sơ mi nam',
-    stage: 'Dệt',
-    severity: 'minor',
-    sentAt: '20/11/2025',
-    status: 'waiting',
-  },
-  {
-    id: 'L0002',
-    lotCode: 'LOT-002',
-    product: 'Quần lử nữ',
-    stage: 'May',
-    severity: 'minor',
-    sentAt: '21/11/2025',
-    status: 'in_progress',
-  },
-];
+import { productionService } from '../../api/productionService';
 
 const severityConfig = {
-  minor: { label: 'Lỗi nhẹ', variant: 'warning' },
-  major: { label: 'Lỗi nặng', variant: 'danger' },
+  MINOR: { label: 'Lỗi nhẹ', variant: 'warning' },
+  MAJOR: { label: 'Lỗi nặng', variant: 'danger' },
 };
 
 const statusLabel = {
-  waiting: 'Chưa xử lý',
-  in_progress: 'Đang sửa',
+  PENDING: 'Chưa xử lý',
+  IN_PROGRESS: 'Đang sửa',
+  RESOLVED: 'Đã xử lý',
 };
 
 const LeaderDefectList = () => {
   const navigate = useNavigate();
+  const [defects, setDefects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetchDefects();
+  }, []);
+
+  const fetchDefects = async () => {
+    try {
+      setLoading(true);
+      // Get userId from sessionStorage (set during login in authService.internalLogin)
+      // Fallback to localStorage for backward compatibility
+      const leaderUserId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
+      const data = await productionService.getLeaderDefects(leaderUserId);
+      setDefects(data);
+    } catch (err) {
+      console.error('Error fetching defects:', err);
+      setError('Không thể tải danh sách lỗi');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="customer-layout">
@@ -50,47 +54,53 @@ const LeaderDefectList = () => {
                 <h5 className="mb-1">Danh Sách Lỗi (Leader)</h5>
                 <small className="text-muted">Xem và xử lý các lỗi nhẹ được giao</small>
 
-                <Table hover responsive className="mt-3 mb-0 align-middle">
-                  <thead className="table-light">
-                    <tr>
-                      <th>Mã lô</th>
-                      <th>Sản phẩm</th>
-                      <th>Công đoạn</th>
-                      <th>Mức độ</th>
-                      <th>Trạng thái</th>
-                      <th>Ngày gửi</th>
-                      <th>Hành động</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {LEADER_DEFECTS.map((defect) => (
-                      <tr key={defect.id}>
-                        <td>{defect.lotCode}</td>
-                        <td>{defect.product}</td>
-                        <td>{defect.stage}</td>
-                        <td>
-                          <Badge bg={severityConfig[defect.severity].variant}>{severityConfig[defect.severity].label}</Badge>
-                        </td>
-                        <td>{statusLabel[defect.status]}</td>
-                        <td>{defect.sentAt}</td>
-                        <td className="d-flex gap-2">
-                          <Button size="sm" variant="outline-dark" onClick={() => navigate(`/leader/defects/${defect.id}`)}>
-                            Xem chi tiết
-                          </Button>
-                          {defect.status === 'in_progress' && (
+                {error && <Alert variant="danger" className="mt-3">{error}</Alert>}
+
+                {loading ? (
+                  <div className="text-center py-5">
+                    <Spinner animation="border" />
+                    <p className="mt-2">Đang tải...</p>
+                  </div>
+                ) : defects.length === 0 ? (
+                  <Alert variant="info" className="mt-3">Không có lỗi nào cần xử lý</Alert>
+                ) : (
+                  <Table hover responsive className="mt-3 mb-0 align-middle">
+                    <thead className="table-light">
+                      <tr>
+                        <th>Mã đơn</th>
+                        <th>Công đoạn</th>
+                        <th>Mức độ</th>
+                        <th>Mô tả</th>
+                        <th>Trạng thái</th>
+                        <th>Hành động</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {defects.map((defect) => (
+                        <tr key={defect.id}>
+                          <td>{defect.poNumber || 'N/A'}</td>
+                          <td>{defect.stageType || 'N/A'}</td>
+                          <td>
+                            <Badge bg={severityConfig[defect.severity]?.variant || 'secondary'}>
+                              {severityConfig[defect.severity]?.label || defect.severity}
+                            </Badge>
+                          </td>
+                          <td>{defect.description || 'Không có mô tả'}</td>
+                          <td>{statusLabel[defect.status] || defect.status}</td>
+                          <td className="d-flex gap-2">
                             <Button
                               size="sm"
-                              variant="dark"
-                              onClick={() => navigate(`/leader/orders/${defect.lotCode}/progress`)}
+                              variant="outline-dark"
+                              onClick={() => navigate(`/leader/defects/${defect.id}`)}
                             >
-                              Cập nhật tiến độ
+                              Xem chi tiết
                             </Button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                )}
               </Card.Body>
             </Card>
           </Container>
@@ -101,4 +111,3 @@ const LeaderDefectList = () => {
 };
 
 export default LeaderDefectList;
-

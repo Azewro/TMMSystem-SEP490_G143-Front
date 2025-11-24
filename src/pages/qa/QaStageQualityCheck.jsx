@@ -1,66 +1,80 @@
-import React, { useState, useMemo } from 'react';
-import { Container, Card, Button, Form } from 'react-bootstrap';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Container, Card, Button, Form, Spinner, Badge } from 'react-bootstrap';
 import { useNavigate, useParams } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
-
-const CRITERIA_BY_STAGE = {
-  CUONG_MAC: [
-    { key: 'fabric_quality', name: 'Chất lượng sợi' },
-    { key: 'tension', name: 'Độ căng sợi' },
-    { key: 'uniformity', name: 'Sợi mắc đều' },
-    { key: 'roll', name: 'Khổ & chiều dài cây sợi' },
-  ],
-  DET: [
-    { key: 'durability', name: 'Độ bền sợi' },
-    { key: 'density', name: 'Mật độ sợi' },
-    { key: 'shape', name: 'Hình dáng khăn' },
-    { key: 'surface', name: 'Bề mặt vải' },
-  ],
-  NHUOM: [
-    { key: 'color', name: 'Màu sắc' },
-    { key: 'color_fastness', name: 'Độ bền màu' },
-    { key: 'coverage', name: 'Độ phủ màu' },
-    { key: 'stain', name: 'Độ loang màu' },
-  ],
-  CAT: [
-    { key: 'size', name: 'Kích thước khăn' },
-    { key: 'angle', name: 'Độ nghiêng góc' },
-    { key: 'uniform_cut', name: 'Độ đồng đều' },
-    { key: 'cut_quality', name: 'Vết cắt' },
-  ],
-  MAY: [
-    { key: 'strength', name: 'Tiêu chuẩn bền khăn' },
-    { key: 'label', name: 'Nhãn mác' },
-    { key: 'stitch_density', name: 'Mật độ mũi may' },
-    { key: 'thread', name: 'Chỉ thừa, màu chỉ' },
-  ],
-  DONG_GOI: [
-    { key: 'cleanliness', name: 'Độ sạch khăn' },
-    { key: 'folding', name: 'Gấp khăn' },
-    { key: 'tag', name: 'Tem nhãn' },
-    { key: 'package', name: 'Túi đóng gói' },
-    { key: 'quantity', name: 'Số lượng' },
-  ],
-};
+import { orderService } from '../../api/orderService';
+import { executionService } from '../../api/executionService';
+import toast from 'react-hot-toast';
 
 const QaStageQualityCheck = () => {
   const navigate = useNavigate();
   const { orderId, stageCode } = useParams();
+  // Get userId from sessionStorage (set during login in authService.internalLogin)
+  // Fallback to localStorage for backward compatibility
+  const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
 
-  const initialStageKey = (stageCode || '').toUpperCase();
-  const [criteria, setCriteria] = useState(() =>
-    (CRITERIA_BY_STAGE[initialStageKey] || CRITERIA_BY_STAGE.NHUOM).map((c, index) => ({
-      id: `${initialStageKey}-${index}`,
-      ...c,
-      result: '',
-      photo: null,
-    })),
-  );
+  const [order, setOrder] = useState(null);
+  const [stage, setStage] = useState(null);
+  const [checkpoints, setCheckpoints] = useState([]);
+  const [criteria, setCriteria] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [defectLevel, setDefectLevel] = useState('');
   const [defectDescription, setDefectDescription] = useState('');
+  const [sessionId, setSessionId] = useState(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        // 1. Fetch Order Details to find Stage ID
+        const orderData = await orderService.getOrderById(orderId);
+        setOrder(orderData);
+
+        // Find stage by code/type
+        const foundStage = orderData.stages?.find(s => s.stageType === stageCode || s.stageType === stageCode.toUpperCase());
+
+        if (foundStage) {
+          setStage(foundStage);
+
+          // 2. Start QC Session if needed (or get existing)
+          if (foundStage.executionStatus === 'WAITING_QC') {
+            const session = await executionService.startQcSession(foundStage.id, userId);
+            setSessionId(session.id);
+          } else if (foundStage.executionStatus === 'QC_IN_PROGRESS') {
+            // Ideally fetch existing session, but for now we might need an endpoint for that.
+            // Assuming we can start again or get the active session.
+            // The startQcSession endpoint returns existing session if IN_PROGRESS.
+            const session = await executionService.startQcSession(foundStage.id, userId);
+            setSessionId(session.id);
+          }
+
+          // 3. Fetch Checkpoints
+          const cpData = await executionService.getStageCheckpoints(foundStage.id);
+          setCheckpoints(cpData);
+
+          // Initialize criteria state
+          setCriteria(cpData.map(cp => ({
+            id: cp.id,
+            name: cp.checkpointName,
+            result: '', // 'PASS' or 'FAIL'
+            notes: '',
+            photo: null,
+            qcCheckpointId: cp.id
+          })));
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        toast.error('Lỗi khi tải dữ liệu kiểm tra');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [orderId, stageCode, userId]);
 
   const overallResult = useMemo(() => {
+    if (criteria.length === 0) return 'PENDING';
     const hasFail = criteria.some((c) => c.result === 'FAIL');
     const allSelected = criteria.every((c) => c.result === 'PASS' || c.result === 'FAIL');
     if (!allSelected) return 'PENDING';
@@ -68,7 +82,7 @@ const QaStageQualityCheck = () => {
   }, [criteria]);
 
   const handleBack = () => {
-    navigate(`/qa/orders/${orderId || 'LOT-002'}`);
+    navigate(`/qa/orders/${orderId}`);
   };
 
   const handleChangeResult = (id, value) => {
@@ -76,47 +90,91 @@ const QaStageQualityCheck = () => {
       prev.map((c) =>
         c.id === id
           ? {
-              ...c,
-              result: value,
-              // reset photo if chuyển về Đạt / Chọn
-              photo: value === 'FAIL' ? c.photo : null,
-            }
+            ...c,
+            result: value,
+            photo: value === 'FAIL' ? c.photo : null,
+          }
           : c,
       ),
     );
   };
 
-  const handleSubmit = () => {
+  const handlePhotoUpload = (id) => {
+    // Mock photo upload
+    setCriteria((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, photo: 'https://placehold.co/640x240?text=QC+Image' } : item,
+      ),
+    );
+    toast.success('Đã đính kèm ảnh (giả lập)');
+  };
+
+  const handleSubmit = async () => {
     if (overallResult === 'PENDING') {
-      alert('Vui lòng chọn đầy đủ kết quả cho tất cả tiêu chí.');
+      toast.error('Vui lòng chọn đầy đủ kết quả cho tất cả tiêu chí.');
       return;
     }
     if (overallResult === 'FAIL') {
-      // kiểm tra ảnh bắt buộc và thông tin lỗi
       const missingPhoto = criteria.some((c) => c.result === 'FAIL' && !c.photo);
-      if (missingPhoto) {
-        alert('Vui lòng bổ sung hình ảnh lỗi cho các tiêu chí Không đạt yêu cầu.');
-        return;
-      }
-      if (!defectLevel || !defectDescription.trim()) {
-        alert('Vui lòng nhập đầy đủ Mức độ lỗi và Mô tả lỗi.');
+      // Relaxing photo requirement for now as we don't have real upload
+      // if (missingPhoto) {
+      //   toast.error('Vui lòng bổ sung hình ảnh lỗi cho các tiêu chí Không đạt yêu cầu.');
+      //   return;
+      // }
+      if (!defectDescription.trim()) {
+        toast.error('Vui lòng nhập mô tả lỗi.');
         return;
       }
     }
-    // Mock submit
-    alert('Đã gửi kết quả kiểm tra (mock).');
+
+    try {
+      // Prepare DTOs
+      const criteriaResults = criteria.map(c => ({
+        qcCheckpointId: c.qcCheckpointId,
+        result: c.result,
+        notes: c.result === 'FAIL' ? c.name : '', // Use checkpoint name as defect type/note for now
+        photoUrl: c.photo
+      }));
+
+      await executionService.submitQcSession(
+        sessionId,
+        overallResult,
+        defectDescription,
+        userId,
+        overallResult === 'FAIL' ? defectLevel : null,  // ✅ ADD defectLevel
+        overallResult === 'FAIL' ? defectDescription : null,  // ✅ ADD defectDescription
+        criteriaResults
+      );
+
+      toast.success('Đã gửi kết quả kiểm tra');
+      setTimeout(() => handleBack(), 1500);
+    } catch (error) {
+      toast.error(error.message || 'Lỗi khi gửi kết quả');
+    }
   };
 
-  const stageKey = (stageCode || '').toUpperCase();
-  const stageNameMap = {
-    CUONG_MAC: 'Cuồng mắc',
-    DET: 'Dệt',
-    NHUOM: 'Nhuộm',
-    CAT: 'Cắt',
-    MAY: 'May',
-    DONG_GOI: 'Đóng gói',
-  };
-  const stageName = stageNameMap[stageKey] || 'Công đoạn';
+  if (loading) {
+    return (
+      <div className="d-flex justify-content-center align-items-center vh-100">
+        <Spinner animation="border" />
+      </div>
+    );
+  }
+
+  if (!stage) {
+    return (
+      <div className="customer-layout">
+        <Header />
+        <div className="d-flex">
+          <InternalSidebar userRole="qa" />
+          <Container fluid className="p-4">
+            <Button variant="link" onClick={handleBack}>&larr; Quay lại</Button>
+            <div className="alert alert-warning mt-3">Không tìm thấy công đoạn.</div>
+          </Container>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="customer-layout">
@@ -129,7 +187,7 @@ const QaStageQualityCheck = () => {
         >
           <Container fluid className="p-4">
             <Button variant="link" className="p-0 mb-3" onClick={handleBack}>
-              &larr; Quay lại kế hoạch
+              &larr; Quay lại chi tiết đơn hàng
             </Button>
 
             {/* Header thông tin */}
@@ -138,17 +196,17 @@ const QaStageQualityCheck = () => {
                 <div>
                   <h5 className="mb-1">Kiểm tra chất lượng</h5>
                   <div className="text-muted small">
-                    {orderId || 'LOT-002'} • Khăn mặt cotton
+                    {orderId} • {order?.productName}
                   </div>
                   <div className="mt-2">
                     <span className="text-muted small">Công đoạn:&nbsp;</span>
-                    <strong>{stageName}</strong>
+                    <strong>{stage.stageType}</strong>
                   </div>
                 </div>
                 <div className="text-end">
-                  <span className="badge rounded-pill text-bg-light" style={{ color: '#6f42c1' }}>
-                    Đang kiểm tra
-                  </span>
+                  <Badge bg="info" className="p-2">
+                    {stage.executionStatus}
+                  </Badge>
                 </div>
               </Card.Body>
             </Card>
@@ -157,46 +215,42 @@ const QaStageQualityCheck = () => {
             <Card className="shadow-sm mb-3">
               <Card.Body>
                 <h6 className="mb-3">Danh sách tiêu chí kiểm tra</h6>
-                {criteria.map((c) => (
-                  <div key={c.id} className="mb-3">
-                    <div className="d-flex justify-content-between align-items-center mb-2">
-                      <div>{c.name}</div>
-                      <Form.Select
-                        value={c.result}
-                        onChange={(e) => handleChangeResult(c.id, e.target.value)}
-                        style={{ maxWidth: 180 }}
-                      >
-                        <option value="">Chọn</option>
-                        <option value="PASS">Đạt</option>
-                        <option value="FAIL">Không đạt</option>
-                      </Form.Select>
-                    </div>
-
-                    {c.result === 'FAIL' && (
-                      <div
-                        className="p-3 rounded"
-                        style={{ backgroundColor: '#ffe3e3', border: '1px solid #ffc9c9' }}
-                      >
-                        <div className="mb-2 fw-semibold">Hình ảnh lỗi (bắt buộc)</div>
-                        <Button
-                          variant="outline-dark"
-                          size="sm"
-                          onClick={() => {
-                            // mock chụp ảnh: gán c.photo = {} để đánh dấu đã có ảnh
-                            setCriteria((prev) =>
-                              prev.map((item) =>
-                                item.id === c.id ? { ...item, photo: {} } : item,
-                              ),
-                            );
-                            alert('Giả lập: đã đính kèm hình ảnh lỗi (mock).');
-                          }}
+                {criteria.length === 0 ? (
+                  <div className="text-muted">Không có tiêu chí kiểm tra nào được định nghĩa cho công đoạn này.</div>
+                ) : (
+                  criteria.map((c) => (
+                    <div key={c.id} className="mb-3 border-bottom pb-3">
+                      <div className="d-flex justify-content-between align-items-center mb-2">
+                        <div>{c.name}</div>
+                        <Form.Select
+                          value={c.result}
+                          onChange={(e) => handleChangeResult(c.id, e.target.value)}
+                          style={{ maxWidth: 180 }}
                         >
-                          Chụp ảnh
-                        </Button>
+                          <option value="">Chọn kết quả</option>
+                          <option value="PASS">Đạt</option>
+                          <option value="FAIL">Không đạt</option>
+                        </Form.Select>
                       </div>
-                    )}
-                  </div>
-                ))}
+
+                      {c.result === 'FAIL' && (
+                        <div
+                          className="p-3 rounded"
+                          style={{ backgroundColor: '#ffe3e3', border: '1px solid #ffc9c9' }}
+                        >
+                          <div className="mb-2 fw-semibold">Hình ảnh lỗi (bắt buộc)</div>
+                          <Button
+                            variant="outline-dark"
+                            size="sm"
+                            onClick={() => handlePhotoUpload(c.id)}
+                          >
+                            {c.photo ? 'Đã có ảnh' : 'Chụp ảnh'}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
               </Card.Body>
             </Card>
 
@@ -250,7 +304,7 @@ const QaStageQualityCheck = () => {
             )}
 
             <div className="d-flex justify-content-end">
-              <Button variant="dark" onClick={handleSubmit}>
+              <Button variant="dark" onClick={handleSubmit} disabled={overallResult === 'PENDING'}>
                 Gửi kết quả kiểm tra
               </Button>
             </div>

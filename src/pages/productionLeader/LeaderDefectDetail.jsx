@@ -1,62 +1,94 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Container, Card, Row, Col, Badge, Button } from 'react-bootstrap';
+import { Container, Card, Row, Col, Badge, Button, Alert, Spinner } from 'react-bootstrap';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
-
-const DEFECT_DETAIL_LIBRARY = {
-  L0001: {
-    id: 'L0001',
-    lotCode: 'LOT-001',
-    product: 'Áo sơ mi nam',
-    stage: 'Dệt',
-    size: 'L',
-    quantity: 1000,
-    description: 'd',
-    severity: 'minor',
-    checklist: [
-      {
-        title: 'Độ bền sợi',
-        status: 'fail',
-        images: ['https://placekitten.com/640/240'],
-      },
-    ],
-  },
-  L0002: {
-    id: 'L0002',
-    lotCode: 'LOT-002',
-    product: 'Quần lử nữ',
-    stage: 'May',
-    size: 'M',
-    quantity: 2000,
-    description: 'Đường may lệch',
-    severity: 'minor',
-    checklist: [
-      {
-        title: 'Độ bền sợi',
-        status: 'fail',
-        images: ['https://placekitten.com/641/240'],
-      },
-    ],
-  },
-};
+import { productionService } from '../../api/productionService';
 
 const severityConfig = {
-  minor: { label: 'Lỗi nhẹ', variant: 'warning' },
-  major: { label: 'Lỗi nặng', variant: 'danger' },
-};
-
-const checklistVariant = {
-  pass: { border: '#c3ebd3', background: '#e8f7ef', badge: 'success', label: 'Đạt' },
-  fail: { border: '#f9cfd9', background: '#fdecef', badge: 'danger', label: 'Không đạt' },
+  MINOR: { label: 'Lỗi nhẹ', variant: 'warning' },
+  MAJOR: { label: 'Lỗi nặng', variant: 'danger' },
 };
 
 const LeaderDefectDetail = () => {
   const navigate = useNavigate();
   const { defectId } = useParams();
-  const [isFixing, setIsFixing] = useState(false);
-  const defect = useMemo(() => DEFECT_DETAIL_LIBRARY[defectId] || DEFECT_DETAIL_LIBRARY.L0001, [defectId]);
-  const severity = severityConfig[defect.severity];
+  const [defect, setDefect] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [starting, setStarting] = useState(false);
+
+  useEffect(() => {
+    fetchDefectDetail();
+  }, [defectId]);
+
+  const fetchDefectDetail = async () => {
+    try {
+      setLoading(true);
+      const data = await productionService.getDefectDetail(defectId);
+      setDefect(data);
+    } catch (err) {
+      console.error('Error fetching defect detail:', err);
+      setError('Không thể tải chi tiết lỗi');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStartRework = async () => {
+    try {
+      setStarting(true);
+      // Get userId from sessionStorage (set during login in authService.internalLogin)
+      // Fallback to localStorage for backward compatibility
+      const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
+      await productionService.startReworkFromDefect(defectId, userId);
+      alert('Đã bắt đầu làm lại công đoạn');
+      navigate('/leader/defects');
+    } catch (err) {
+      console.error('Error starting rework:', err);
+      alert('Không thể bắt đầu làm lại: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setStarting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="customer-layout">
+        <Header />
+        <div className="d-flex">
+          <InternalSidebar userRole="leader" />
+          <div className="flex-grow-1" style={{ backgroundColor: '#f8f9fa', minHeight: 'calc(100vh - 70px)' }}>
+            <Container fluid className="p-4">
+              <div className="text-center py-5">
+                <Spinner animation="border" />
+                <p className="mt-2">Đang tải...</p>
+              </div>
+            </Container>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !defect) {
+    return (
+      <div className="customer-layout">
+        <Header />
+        <div className="d-flex">
+          <InternalSidebar userRole="leader" />
+          <div className="flex-grow-1" style={{ backgroundColor: '#f8f9fa', minHeight: 'calc(100vh - 70px)' }}>
+            <Container fluid className="p-4">
+              <Alert variant="danger">{error || 'Không tìm thấy lỗi'}</Alert>
+              <Button variant="link" onClick={() => navigate('/leader/defects')}>← Quay lại</Button>
+            </Container>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const severity = severityConfig[defect.severity] || { label: defect.severity, variant: 'secondary' };
 
   return (
     <div className="customer-layout">
@@ -79,82 +111,44 @@ const LeaderDefectDetail = () => {
                 </div>
                 <Row className="g-3">
                   <Col md={6}>
-                    <div className="text-muted small mb-1">Mã lô</div>
-                    <div className="fw-semibold">{defect.lotCode}</div>
-                  </Col>
-                  <Col md={6}>
-                    <div className="text-muted small mb-1">Sản phẩm</div>
-                    <div className="fw-semibold">{defect.product}</div>
-                  </Col>
-                  <Col md={6}>
-                    <div className="text-muted small mb-1">Kích thước</div>
-                    <div className="fw-semibold">{defect.size}</div>
+                    <div className="text-muted small mb-1">Mã đơn</div>
+                    <div className="fw-semibold">{defect.poNumber || 'N/A'}</div>
                   </Col>
                   <Col md={6}>
                     <div className="text-muted small mb-1">Công đoạn</div>
-                    <div className="fw-semibold">{defect.stage}</div>
+                    <div className="fw-semibold">{defect.stageType || 'N/A'}</div>
                   </Col>
                   <Col md={6}>
-                    <div className="text-muted small mb-1">Số lượng</div>
-                    <div className="fw-semibold">{defect.quantity.toLocaleString('vi-VN')}</div>
+                    <div className="text-muted small mb-1">Loại lỗi</div>
+                    <div className="fw-semibold">{defect.issueType || 'N/A'}</div>
+                  </Col>
+                  <Col md={6}>
+                    <div className="text-muted small mb-1">Trạng thái</div>
+                    <div className="fw-semibold">{defect.status || 'N/A'}</div>
                   </Col>
                   <Col md={12}>
                     <div className="text-muted small mb-1">Mô tả lỗi</div>
-                    <div className="fw-semibold">{defect.description}</div>
+                    <div className="fw-semibold">{defect.description || 'Không có mô tả'}</div>
                   </Col>
                 </Row>
-              </Card.Body>
-            </Card>
-
-            <Card className="shadow-sm mb-4">
-              <Card.Header className="bg-white">
-                <strong>Tiêu chí lỗi</strong>
-              </Card.Header>
-              <Card.Body className="d-flex flex-column gap-3">
-                {defect.checklist.map((item) => {
-                  const variant = checklistVariant[item.status];
-                  return (
-                    <div
-                      key={item.title}
-                      className="p-3 rounded"
-                      style={{ border: `1px solid ${variant.border}`, background: variant.background }}
-                    >
-                      <div className="d-flex justify-content-between align-items-center mb-2">
-                        <div className="fw-semibold">{item.title}</div>
-                        <Badge bg={variant.badge}>{variant.label}</Badge>
-                      </div>
-                      {item.images?.map((src) => (
-                        <img key={src} src={src} alt={item.title} className="rounded" style={{ maxWidth: '100%' }} />
-                      ))}
-                    </div>
-                  );
-                })}
               </Card.Body>
             </Card>
 
             <Card className="shadow-sm">
               <Card.Body className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
                 <div>
-                  <strong>{isFixing ? 'Cập nhật tiến độ sửa lỗi' : 'Xử lý lỗi'}</strong>
+                  <strong>Xử lý lỗi</strong>
                   <p className="text-muted mb-0">
-                    {isFixing
-                      ? 'Bạn có thể chuyển sang màn cập nhật tiến độ để báo cáo kết quả.'
-                      : 'Hãy bắt đầu sửa lỗi và thông báo cho Tech khi hoàn thành.'}
+                    Bắt đầu làm lại công đoạn để sửa lỗi này.
                   </p>
                 </div>
-                {defect.severity === 'minor' ? (
-                  <Button variant="dark" onClick={() => navigate(`/leader/orders/${defect.lotCode}/progress`)}>
-                    Bắt đầu sửa lỗi
-                  </Button>
-                ) : !isFixing ? (
-                  <Button variant="dark" onClick={() => setIsFixing(true)}>
-                    Bắt đầu sửa lỗi
-                  </Button>
-                ) : (
-                  <Button variant="dark" onClick={() => navigate(`/leader/orders/${defect.lotCode}/progress`)}>
-                    Cập nhật tiến độ
-                  </Button>
-                )}
+                <Button
+                  variant="dark"
+                  onClick={handleStartRework}
+                  disabled={starting || defect.status === 'IN_PROGRESS'}
+                >
+                  {starting ? 'Đang xử lý...' : defect.status === 'IN_PROGRESS' ? 'Đang sửa' : 'Bắt đầu sửa lỗi'}
+                </Button>
               </Card.Body>
             </Card>
           </Container>
@@ -165,4 +159,3 @@ const LeaderDefectDetail = () => {
 };
 
 export default LeaderDefectDetail;
-

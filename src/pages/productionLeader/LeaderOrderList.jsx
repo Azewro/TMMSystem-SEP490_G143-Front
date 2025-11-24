@@ -1,79 +1,95 @@
-import React, { useState, useMemo } from 'react';
-import { Container, Card, Table, Button, Badge, Form, InputGroup } from 'react-bootstrap';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Container, Card, Table, Button, Badge, Form, InputGroup, Spinner } from 'react-bootstrap';
 import { FaSearch } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
-
-// Mock data cho danh sách đơn hàng của Product Process Leader
-const MOCK_LEADER_ORDERS = [
-  {
-    id: 'LOT-002',
-    productName: 'Khăn mặt cotton',
-    size: '30x30cm',
-    quantity: 2000,
-    expectedDeliveryDate: '2025-11-18',
-    expectedFinishDate: '2025-12-01',
-    status: 'CHO_KIEM_TRA',
-    statusLabel: 'chờ kiểm tra'
-  },
-  {
-    id: 'LOT-003',
-    productName: 'Khăn spa trắng',
-    size: '50x100cm',
-    quantity: 1500,
-    expectedDeliveryDate: '2025-11-15',
-    expectedFinishDate: '2025-11-28',
-    status: 'DANG_LAM',
-    statusLabel: 'đang làm'
-  },
-  {
-    id: 'LOT-004',
-    productName: 'Khăn khách sạn',
-    size: '60x120cm',
-    quantity: 800,
-    expectedDeliveryDate: '2025-11-10',
-    expectedFinishDate: '2025-11-25',
-    status: 'HOAN_THANH',
-    statusLabel: 'Hoàn thành'
-  }
-];
-
-const getStatusVariant = (status) => {
-  switch (status) {
-    case 'CHO_KIEM_TRA':
-      return 'secondary';
-    case 'DANG_LAM':
-      return 'info';
-    case 'HOAN_THANH':
-      return 'success';
-    default:
-      return 'light';
-  }
-};
+import { productionService } from '../../api/productionService';
+import { orderService } from '../../api/orderService';
+import { getStatusLabel, getStatusVariant, getButtonForStage } from '../../utils/statusMapper';
+import toast from 'react-hot-toast';
 
 const LeaderOrderList = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  // Get userId from sessionStorage (set during login in authService.internalLogin)
+  // Fallback to localStorage for backward compatibility
+  const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        setLoading(true);
+        const ordersData = await productionService.getLeaderOrders(userId);
+        
+        // Fetch order details to get stages for each order
+        const ordersWithStages = await Promise.all(
+          ordersData.map(async (order) => {
+            try {
+              const orderDetail = await orderService.getOrderById(order.id);
+              // Find the stage assigned to this leader
+              const leaderStage = (orderDetail.stages || []).find(
+                stage => stage.assignedLeaderId === userId || 
+                         stage.assignedLeader?.id === userId
+              );
+              
+              return {
+                ...order,
+                leaderStage: leaderStage ? {
+                  id: leaderStage.id,
+                  status: leaderStage.executionStatus || leaderStage.status,
+                  statusLabel: getStatusLabel(leaderStage.executionStatus || leaderStage.status),
+                  progress: leaderStage.progressPercent || 0
+                } : null
+              };
+            } catch (err) {
+              console.warn(`Could not fetch detail for order ${order.id}:`, err);
+              return {
+                ...order,
+                leaderStage: null
+              };
+            }
+          })
+        );
+        
+        setOrders(ordersWithStages);
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+        toast.error('Không thể tải danh sách đơn hàng');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchOrders();
+  }, [userId]);
 
   const filteredOrders = useMemo(() => {
-    if (!searchTerm) return MOCK_LEADER_ORDERS;
+    if (!searchTerm) return orders;
     const term = searchTerm.toLowerCase();
-    return MOCK_LEADER_ORDERS.filter(
+    return orders.filter(
       (o) =>
-        o.id.toLowerCase().includes(term) ||
-        o.productName.toLowerCase().includes(term)
+        o.poNumber.toLowerCase().includes(term) ||
+        (o.contract?.contractNumber || '').toLowerCase().includes(term)
     );
-  }, [searchTerm]);
+  }, [searchTerm, orders]);
 
   const handleStart = (order) => {
-    const confirmed = window.confirm(
-      `Bắt đầu cập nhật tiến độ cho lô ${order.id}?`
-    );
-    if (confirmed) {
-      navigate(`/leader/orders/${order.id}/progress`);
-    }
+    navigate(`/leader/orders/${order.id}/progress`);
   };
+
+  const handleViewDetail = (order) => {
+    navigate(`/leader/orders/${order.id}`);
+  };
+
+  if (loading) {
+    return (
+      <div className="d-flex justify-content-center align-items-center vh-100">
+        <Spinner animation="border" />
+      </div>
+    );
+  }
 
   return (
     <div className="customer-layout">
@@ -94,7 +110,7 @@ const LeaderOrderList = () => {
                     <FaSearch />
                   </InputGroup.Text>
                   <Form.Control
-                    placeholder="Tìm kiếm theo mã lô hàng hoặc mô tả..."
+                    placeholder="Tìm kiếm theo mã lô hàng hoặc hợp đồng..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
@@ -108,44 +124,65 @@ const LeaderOrderList = () => {
                   <thead className="table-light">
                     <tr>
                       <th style={{ width: 60 }}>STT</th>
-                      <th>Mã lô</th>
-                      <th>Tên sản phẩm</th>
-                      <th>Kích thước</th>
+                      <th>Mã đơn hàng</th>
+                      <th>Sản phẩm</th>
                       <th>Số lượng</th>
-                      <th>Ngày bắt đầu dự kiến</th>
-                      <th>Ngày kết thúc dự kiến</th>
+                      <th>Ngày bắt đầu</th>
+                      <th>Ngày kết thúc</th>
                       <th>Trạng thái</th>
                       <th style={{ width: 120 }}>Hành động</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredOrders.map((order, index) => (
-                      <tr key={order.id}>
-                        <td>{index + 1}</td>
-                        <td>
-                          <strong>{order.id}</strong>
-                        </td>
-                        <td>{order.productName}</td>
-                        <td>{order.size}</td>
-                        <td>{order.quantity.toLocaleString('vi-VN')}</td>
-                        <td>{order.expectedDeliveryDate}</td>
-                        <td>{order.expectedFinishDate}</td>
-                        <td>
-                          <Badge bg={getStatusVariant(order.status)}>
-                            {order.statusLabel}
-                          </Badge>
-                        </td>
-                        <td className="text-end">
-                          <Button
-                            size="sm"
-                            variant="dark"
-                            onClick={() => handleStart(order)}
-                          >
-                            Bắt đầu
-                          </Button>
-                        </td>
+                    {filteredOrders.length === 0 ? (
+                      <tr>
+                        <td colSpan="8" className="text-center py-4">Không có đơn hàng nào</td>
                       </tr>
-                    ))}
+                    ) : (
+                      filteredOrders.map((order, index) => {
+                        const stage = order.leaderStage;
+                        const buttonConfig = stage ? getButtonForStage(stage.status, 'leader') : 
+                          { text: 'Chi tiết', action: 'detail', variant: 'dark' };
+                        
+                        return (
+                        <tr key={order.id}>
+                          <td>{index + 1}</td>
+                          <td>
+                            <strong>{order.poNumber}</strong>
+                          </td>
+                          <td>{order.contract?.contractNumber || 'N/A'}</td>
+                          <td>{order.totalQuantity?.toLocaleString('vi-VN')}</td>
+                          <td>{order.plannedStartDate}</td>
+                          <td>{order.plannedEndDate}</td>
+                          <td>
+                              <Badge bg={stage ? getStatusVariant(stage.status) : getStatusVariant(order.executionStatus || order.status)}>
+                                {stage ? stage.statusLabel : getStatusLabel(order.executionStatus || order.status)}
+                            </Badge>
+                          </td>
+                          <td className="text-end">
+                              {buttonConfig.action === 'start' || buttonConfig.action === 'update' ? (
+                            <Button
+                              size="sm"
+                                  variant={buttonConfig.variant}
+                              onClick={() => handleStart(order)}
+                                  disabled={stage?.status === 'PENDING'} // Disable nếu chưa đến lượt
+                                >
+                                  {buttonConfig.text}
+                                </Button>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant={buttonConfig.variant}
+                                  onClick={() => handleViewDetail(order)}
+                                >
+                                  {buttonConfig.text}
+                            </Button>
+                              )}
+                          </td>
+                        </tr>
+                        );
+                      })
+                    )}
                   </tbody>
                 </Table>
               </Card.Body>

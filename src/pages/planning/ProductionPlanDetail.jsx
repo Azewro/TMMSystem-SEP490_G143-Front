@@ -628,7 +628,9 @@ const ProductionPlanDetail = () => {
     };
 
     const mainDetail = editablePlan?.details?.[0] || {};
-    const isReadOnly = editablePlan?.status !== 'DRAFT';
+    // Cho phép chỉnh sửa khi status là DRAFT hoặc REJECTED
+    const isReadOnly = editablePlan?.status !== 'DRAFT' && editablePlan?.status !== 'REJECTED';
+    const isRejected = editablePlan?.status === 'REJECTED';
 
     if (loading) {
         return (
@@ -880,7 +882,7 @@ const ProductionPlanDetail = () => {
                                 </Button>
                                 <Button variant="primary" onClick={handleSubmit} disabled={submitting || calculating}>
                                     <FaPaperPlane className="me-2" />
-                                    {submitting ? 'Đang gửi...' : 'Gửi phê duyệt'}
+                                    {submitting ? 'Đang gửi...' : isRejected ? 'Gửi lại phê duyệt' : 'Gửi phê duyệt'}
                                 </Button>
                             </div>
                         )}

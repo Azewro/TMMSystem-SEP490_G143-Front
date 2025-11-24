@@ -69,6 +69,7 @@ import StageProgressDetail from './pages/productionManager/StageProgressDetail';
 
 // Production Leader Pages
 import LeaderOrderList from './pages/productionLeader/LeaderOrderList';
+import LeaderOrderDetail from './pages/productionLeader/LeaderOrderDetail';
 import LeaderStageProgress from './pages/productionLeader/LeaderStageProgress';
 import LeaderDefectList from './pages/productionLeader/LeaderDefectList';
 import LeaderDefectDetail from './pages/productionLeader/LeaderDefectDetail';
@@ -153,6 +154,7 @@ function App() {
 
               {/* Leader (product process leader) routes */}
               <Route path="/leader/orders" element={<LeaderOrderList />} />
+              <Route path="/leader/orders/:orderId" element={<LeaderOrderDetail />} />
               <Route path="/leader/orders/:orderId/progress" element={<LeaderStageProgress />} />
               <Route path="/leader/defects" element={<LeaderDefectList />} />
               <Route path="/leader/defects/:defectId" element={<LeaderDefectDetail />} />

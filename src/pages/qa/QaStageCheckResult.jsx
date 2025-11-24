@@ -1,8 +1,11 @@
-import React from 'react';
-import { Container, Card, Button, Badge } from 'react-bootstrap';
+import React, { useState, useEffect } from 'react';
+import { Container, Card, Button, Badge, Spinner } from 'react-bootstrap';
 import { useNavigate, useParams } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
+import { productionService } from '../../api/productionService';
+import { orderService } from '../../api/orderService';
+import toast from 'react-hot-toast';
 
 const QA_RESULTS_BY_STAGE = {
   CUONG_MAC: {
@@ -40,18 +43,82 @@ const QA_RESULTS_BY_STAGE = {
 
 const QaStageCheckResult = () => {
   const navigate = useNavigate();
-  const { orderId, stageCode } = useParams();
-  const stageKey = (stageCode || '').toUpperCase();
-  const qaResult = QA_RESULTS_BY_STAGE[stageKey] || QA_RESULTS_BY_STAGE.CUONG_MAC;
+  const { orderId, stageCode } = useParams(); // Route uses :stageCode, not :stageId
+  const [qaResult, setQaResult] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const stageNameMap = {
-    CUONG_MAC: 'Cuồng mắc',
-    DET: 'Dệt',
-    NHUOM: 'Nhuộm',
-    CAT: 'Cắt',
-    MAY: 'May',
-    DONG_GOI: 'Đóng gói',
-  };
+  useEffect(() => {
+    const fetchStageResult = async () => {
+      try {
+        setLoading(true);
+        
+        // First, fetch order to get stages and find the stage by stageCode
+        const orderData = await orderService.getOrderById(orderId);
+        
+        // Find stage by stageCode (stageType)
+        const foundStage = orderData.stages?.find(s => 
+          s.stageType === stageCode || 
+          s.stageType === stageCode.toUpperCase()
+        );
+        
+        if (!foundStage) {
+          throw new Error(`Stage not found for code: ${stageCode}`);
+        }
+        
+        // Fetch full stage details using stage ID
+        const stage = await productionService.getStage(foundStage.id);
+        
+        // Map backend data to match mock structure
+        const mapped = {
+          lotCode: orderData.lotCode || orderData.poNumber || 'N/A',
+          productName: orderData.productName || orderData.contract?.contractNumber || 'N/A',
+          criteria: stage.qcCheckpoints?.map(cp => ({
+            title: cp.checkpointName,
+            result: cp.result || 'PASS',
+            remark: cp.notes,
+            image: cp.photoUrl
+          })) || [],
+          overall: stage.executionStatus === 'QC_PASSED' ? 'PASS' : 
+                   (stage.executionStatus === 'QC_FAILED' ? 'FAIL' : 'PENDING'),
+          summary: stage.executionStatus === 'QC_PASSED' ? 'Tất cả tiêu chí đều Đạt.' : 
+                   (stage.executionStatus === 'QC_FAILED' ? 'Có tiêu chí Không đạt. Vui lòng xử lý lỗi theo quy định.' : 'Chưa có kết quả kiểm tra'),
+          defectLevel: stage.defectLevel,
+          defectDescription: stage.defectDescription,
+          stageType: stage.stageType || stageCode
+        };
+        setQaResult(mapped);
+      } catch (error) {
+        console.error('Error fetching stage result:', error);
+        toast.error('Không thể tải kết quả kiểm tra');
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (orderId && stageCode) fetchStageResult();
+  }, [orderId, stageCode]);
+
+  if (loading) {
+    return (
+      <div className="d-flex justify-content-center align-items-center vh-100">
+        <Spinner animation="border" />
+      </div>
+    );
+  }
+
+  if (!qaResult) {
+    return (
+      <div className="customer-layout">
+        <Header />
+        <div className="d-flex">
+          <InternalSidebar userRole="qa" />
+          <Container fluid className="p-4">
+            <Button variant="link" onClick={() => navigate(`/qa/orders/${orderId}`)}>&larr; Quay lại</Button>
+            <div className="alert alert-warning mt-3">Không tìm thấy kết quả kiểm tra</div>
+          </Container>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="customer-layout">
@@ -73,7 +140,7 @@ const QaStageCheckResult = () => {
                       {qaResult.lotCode} • {qaResult.productName}
                     </div>
                     <div className="text-muted small">
-                      Công đoạn: <strong>{stageNameMap[stageKey] || 'Công đoạn'}</strong>
+                      Công đoạn: <strong>{qaResult.stageType || 'N/A'}</strong>
                     </div>
                   </div>
                   <Badge bg={qaResult.overall === 'PASS' ? 'success' : 'danger'}>

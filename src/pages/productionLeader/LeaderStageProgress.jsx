@@ -1,113 +1,143 @@
-import React, { useMemo, useState } from 'react';
-import { Container, Card, Button, ProgressBar, Table, Form, Badge } from 'react-bootstrap';
+import React, { useMemo, useState, useEffect } from 'react';
+import { Container, Card, Button, ProgressBar, Table, Form, Badge, Spinner } from 'react-bootstrap';
 import { useNavigate, useParams } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
-
-const QA_CRITERIA = [
-  { title: 'Độ bền sợi', result: 'FAIL', image: 'https://placekitten.com/640/260' },
-  { title: 'Hình dáng khăn', result: 'PASS' },
-  { title: 'Bề mặt vải', result: 'PASS' },
-];
-
-const ORDER_SUMMARY = {
-  id: 'LOT-002',
-  productName: 'Khăn mặt cotton',
-  size: '30x30cm',
-  quantity: 2000,
-  expectedStartDate: '2025-11-18',
-  expectedFinishDate: '2025-12-01',
-  statusLabel: 'Chờ kiểm tra',
-  statusVariant: 'secondary',
-};
+import { productionService } from '../../api/productionService';
+import { executionService } from '../../api/executionService';
+import toast from 'react-hot-toast';
 
 const LeaderStageProgress = () => {
   const navigate = useNavigate();
   const { orderId } = useParams();
+  // Get userId from sessionStorage (set during login in authService.internalLogin)
+  // Fallback to localStorage for backward compatibility
+  const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
 
-  const [currentProgress, setCurrentProgress] = useState(10);
+  const [order, setOrder] = useState(null);
+  const [stage, setStage] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [currentProgress, setCurrentProgress] = useState(0);
   const [inputProgress, setInputProgress] = useState('');
-  const [totalHours, setTotalHours] = useState(0.4);
-  const [history, setHistory] = useState([
-    {
-      id: 1,
-      description: 'Tăng từ 0% → 10%',
-      durationHours: 0.4,
-      startTime: '2025-11-19 16:42',
-      endTime: '2025-11-19 16:42',
-    },
-  ]);
-  const [stageStartTime, setStageStartTime] = useState('2025-11-19 16:42');
-  const [stageEndTime, setStageEndTime] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const orderInfo = useMemo(
-    () => ({
-      ...ORDER_SUMMARY,
-      id: orderId || ORDER_SUMMARY.id,
-    }),
-    [orderId],
-  );
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        if (orderId) {
+          const data = await productionService.getLeaderOrderDetail(orderId, userId);
+          setOrder(data);
+          if (data.stages && data.stages.length > 0) {
+            const currentStage = data.stages[0];
+            setStage(currentStage);
+            setCurrentProgress(currentStage.progressPercent || 0);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        toast.error('Không thể tải thông tin công đoạn');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [orderId, userId, refreshKey]);
 
   const handleBack = () => {
     navigate('/leader/orders');
   };
 
-  const handleUpdateProgress = () => {
+  const handleStartStage = async () => {
+    if (!stage) return;
+    try {
+      await executionService.startStage(stage.id, userId);
+      toast.success('Đã bắt đầu công đoạn');
+      setRefreshKey(prev => prev + 1);
+    } catch (error) {
+      toast.error(error.message || 'Lỗi khi bắt đầu công đoạn');
+    }
+  };
+
+  const handleUpdateProgress = async () => {
+    if (!stage) return;
     const target = Number(inputProgress);
     if (Number.isNaN(target) || target < 0 || target > 100) {
-      alert('Vui lòng nhập tiến độ từ 0 đến 100');
+      toast.error('Vui lòng nhập tiến độ từ 0 đến 100');
       return;
     }
     if (target <= currentProgress) {
-      alert('Tiến độ mới phải lớn hơn tiến độ hiện tại');
+      toast.error('Tiến độ mới phải lớn hơn tiến độ hiện tại');
       return;
     }
 
-    if (!stageStartTime) {
-      const confirmed = window.confirm(`Bắt đầu cập nhật tiến độ cho lô ${orderId || 'LOT-002'}?`);
-      if (!confirmed) {
-        return;
-      }
-      const startFormatted = new Date().toLocaleString('vi-VN', { hour12: false });
-      setStageStartTime(startFormatted);
+    try {
+      await executionService.updateProgress(stage.id, userId, target);
+      toast.success('Cập nhật tiến độ thành công');
+      setInputProgress('');
+      setRefreshKey(prev => prev + 1);
+    } catch (error) {
+      toast.error(error.message || 'Lỗi khi cập nhật tiến độ');
     }
-
-    const now = new Date();
-    const formatted = now.toLocaleString('vi-VN', { hour12: false });
-
-    // Đơn giản: giả lập thời gian làm 0.4 giờ cho mỗi lần cập nhật
-    const deltaHours = 0.4;
-
-    const newHistoryItem = {
-      id: history.length + 1,
-      description: `Tăng từ ${currentProgress}% → ${target}%`,
-      durationHours: deltaHours,
-      startTime: formatted,
-      endTime: formatted
-    };
-
-    setHistory((prev) => [...prev, newHistoryItem]);
-    setCurrentProgress(target);
-    setTotalHours((prev) => +(prev + deltaHours).toFixed(1));
-    if (target === 100) {
-      setStageEndTime(formatted);
-    }
-    setInputProgress('');
   };
 
-  const infoFields = [
-    { label: 'Công đoạn', value: 'Cuồng Mắc' },
-    { label: 'Thời gian bắt đầu công đoạn', value: stageStartTime || 'Chưa bắt đầu' },
-    { label: 'Thời gian kết thúc công đoạn', value: stageEndTime || 'Chưa hoàn thành' },
-    { label: 'Thời gian đã làm', value: `${totalHours.toFixed(1)} giờ` },
-    { label: 'Người phụ trách', value: 'Nguyễn Văn A' }
-  ];
+  const statusConfig = useMemo(() => {
+    if (!stage) return { label: '...', variant: 'secondary' };
+    const status = stage.executionStatus || stage.status;
+    switch (status) {
+      case 'PENDING': return { label: 'Đợi', variant: 'secondary' };
+      case 'WAITING': return { label: 'Chờ làm', variant: 'primary' };
+      case 'READY': return { label: 'Sẵn sàng', variant: 'primary' };
+      case 'IN_PROGRESS': return { label: 'Đang làm', variant: 'info' };
+      case 'WAITING_QC': return { label: 'Chờ kiểm tra', variant: 'warning' };
+      case 'QC_PASSED': return { label: 'Đạt QC', variant: 'success' };
+      case 'QC_FAILED': return { label: 'Lỗi QC', variant: 'danger' };
+      case 'COMPLETED': return { label: 'Hoàn thành', variant: 'success' };
+      default: return { label: status, variant: 'secondary' };
+    }
+  }, [stage]);
 
-  const statusConfig = currentProgress >= 100
-    ? { label: 'Hoàn thành', variant: 'success' }
-    : currentProgress > 0
-      ? { label: 'Đang làm', variant: 'info' }
-      : { label: 'Chưa bắt đầu', variant: 'secondary' };
+  // Check if stage is pending (chưa đến lượt)
+  const isPending = stage && (stage.executionStatus === 'PENDING' || stage.status === 'PENDING');
+  // canStart: WAITING, READY (sẵn sàng sản xuất) hoặc WAITING_REWORK (chờ sửa)
+  const canStart = stage && (
+    stage.executionStatus === 'WAITING' || 
+    stage.executionStatus === 'READY' || 
+    stage.executionStatus === 'WAITING_REWORK' ||
+    stage.status === 'WAITING' || 
+    stage.status === 'READY' ||
+    stage.status === 'WAITING_REWORK'
+  );
+  // canUpdate: IN_PROGRESS (đang làm) hoặc REWORK_IN_PROGRESS (đang sửa)
+  const canUpdate = stage && (
+    stage.executionStatus === 'IN_PROGRESS' || 
+    stage.executionStatus === 'REWORK_IN_PROGRESS' ||
+    stage.status === 'IN_PROGRESS' ||
+    stage.status === 'REWORK_IN_PROGRESS'
+  );
+
+  if (loading) {
+    return (
+      <div className="d-flex justify-content-center align-items-center vh-100">
+        <Spinner animation="border" />
+      </div>
+    );
+  }
+
+  if (!order || !stage) {
+    return (
+      <div className="customer-layout">
+        <Header />
+        <div className="d-flex">
+          <InternalSidebar userRole="leader" />
+          <Container fluid className="p-4">
+            <Button variant="link" onClick={handleBack}>&larr; Quay lại</Button>
+            <div className="alert alert-warning mt-3">Không tìm thấy thông tin công đoạn cho đơn hàng này.</div>
+          </Container>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="customer-layout">
@@ -120,7 +150,7 @@ const LeaderStageProgress = () => {
         >
           <Container fluid className="p-4">
             <Button variant="link" className="p-0 mb-3" onClick={handleBack}>
-              &larr; Quay lại kế hoạch
+              &larr; Quay lại danh sách
             </Button>
 
             <Card className="shadow-sm mb-3">
@@ -143,59 +173,48 @@ const LeaderStageProgress = () => {
                       QR
                     </div>
                     <div>
-                      <div className="text-muted small mb-1">Mã lô sản xuất</div>
-                      <h5 className="mb-1">{orderInfo.id}</h5>
-                      <small className="text-muted">Đơn hàng {orderInfo.productName}</small>
+                      <div className="text-muted small mb-1">Mã đơn hàng</div>
+                      <h5 className="mb-1">{order.poNumber}</h5>
+                      <small className="text-muted">Sản phẩm: {order.contract?.contractNumber || 'N/A'}</small>
                     </div>
                   </div>
                   <div className="col-lg-4">
                     <div className="mb-2">
-                      <div className="text-muted small">Tên sản phẩm</div>
-                      <div className="fw-semibold">{orderInfo.productName}</div>
+                      <div className="text-muted small">Tổng số lượng</div>
+                      <div className="fw-semibold">{order.totalQuantity?.toLocaleString('vi-VN')}</div>
                     </div>
                     <div className="mb-2">
-                      <div className="text-muted small">Kích thước</div>
-                      <div className="fw-semibold">{orderInfo.size}</div>
-                    </div>
-              <div>
-                      <div className="text-muted small">Số lượng</div>
-                      <div className="fw-semibold">{orderInfo.quantity.toLocaleString('vi-VN')} sản phẩm</div>
+                      <div className="text-muted small">Ngày bắt đầu KH</div>
+                      <div className="fw-semibold">{order.plannedStartDate}</div>
                     </div>
                   </div>
                   <div className="col-lg-4">
-                    <div className="mb-2">
-                      <div className="text-muted small">Ngày bắt đầu dự kiến</div>
-                      <div className="fw-semibold">{orderInfo.expectedStartDate}</div>
-                    </div>
-                    <div className="mb-2">
-                      <div className="text-muted small">Ngày kết thúc dự kiến</div>
-                      <div className="fw-semibold">{orderInfo.expectedFinishDate}</div>
-                    </div>
                     <div className="d-flex align-items-center gap-2">
-                      <div className="text-muted small mb-0">Trạng thái</div>
-                      <Badge bg={orderInfo.statusVariant} className="status-badge">
-                        {orderInfo.statusLabel}
+                      <div className="text-muted small mb-0">Trạng thái công đoạn</div>
+                      <Badge bg={statusConfig.variant} className="status-badge">
+                        {statusConfig.label}
                       </Badge>
-              </div>
-              </div>
-            </div>
+                    </div>
+                  </div>
+                </div>
               </Card.Body>
             </Card>
 
             <Card className="shadow-sm mb-3">
               <Card.Body>
                 <div className="row g-3">
-                  {infoFields.map((field) => (
-                    <div key={field.label} className="col-12 col-md-6 col-lg-4">
-                      <div className="text-muted small mb-1">{field.label}</div>
-                      <Form.Control
-                        readOnly
-                        value={field.value}
-                        className="fw-semibold"
-                        style={{ backgroundColor: '#f8f9fb' }}
-                      />
-                    </div>
-                  ))}
+                  <div className="col-12 col-md-6 col-lg-4">
+                    <div className="text-muted small mb-1">Công đoạn</div>
+                    <Form.Control readOnly value={stage.stageType} className="fw-semibold" style={{ backgroundColor: '#f8f9fb' }} />
+                  </div>
+                  <div className="col-12 col-md-6 col-lg-4">
+                    <div className="text-muted small mb-1">Bắt đầu thực tế</div>
+                    <Form.Control readOnly value={stage.startAt ? new Date(stage.startAt).toLocaleString('vi-VN') : 'Chưa bắt đầu'} className="fw-semibold" style={{ backgroundColor: '#f8f9fb' }} />
+                  </div>
+                  <div className="col-12 col-md-6 col-lg-4">
+                    <div className="text-muted small mb-1">Kết thúc thực tế</div>
+                    <Form.Control readOnly value={stage.completeAt ? new Date(stage.completeAt).toLocaleString('vi-VN') : 'Chưa kết thúc'} className="fw-semibold" style={{ backgroundColor: '#f8f9fb' }} />
+                  </div>
                 </div>
               </Card.Body>
             </Card>
@@ -206,123 +225,83 @@ const LeaderStageProgress = () => {
                   <div className="text-muted mb-1">Tiến độ hiện tại</div>
                   <div className="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
                     <div className="h5 mb-0">{currentProgress}%</div>
-                    <div className="d-flex align-items-center gap-3">
-                      <Badge bg={statusConfig.variant}>{statusConfig.label}</Badge>
-                    </div>
                   </div>
                   <ProgressBar
                     now={currentProgress}
                     label={`${currentProgress}%`}
                     style={{ height: 18, borderRadius: 999 }}
+                    variant={currentProgress === 100 ? 'success' : 'primary'}
                   />
                 </div>
               </Card.Body>
             </Card>
 
-            <Card className="shadow-sm mb-3" style={{ borderColor: '#e7f1ff', backgroundColor: '#f5f9ff' }}>
-              <Card.Body>
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <strong>Cập nhật tiến độ</strong>
-                  <small className="text-muted">Nhập tiến độ từ 0 đến 100</small>
-                </div>
-                <div className="d-flex align-items-center gap-3">
-                  <Form.Control
-                    type="number"
-                    min={0}
-                    max={100}
-                    placeholder="Tiến độ (%)"
-                    value={inputProgress}
-                    onChange={(e) => setInputProgress(e.target.value)}
-                    style={{ maxWidth: 200 }}
-                  />
-                  <Button variant="dark" onClick={handleUpdateProgress}>
-                    Cập nhật
-                  </Button>
-                </div>
-              </Card.Body>
-            </Card>
-
-            <Card className="shadow-sm">
-              <Card.Body className="p-0">
-                <div className="p-3 border-bottom">
-                  <strong>Lịch sử tiến độ</strong>
-                </div>
-                {history.length === 0 ? (
-                  <div className="p-4 text-center text-muted">
-                    Chưa có lịch sử cập nhật
+            {/* Action Area */}
+            {isPending && (
+              <Card className="shadow-sm mb-3" style={{ borderColor: '#e9ecef', backgroundColor: '#f8f9fa' }}>
+                <Card.Body>
+                  <div className="alert alert-info mb-0">
+                    <strong>Chưa đến lượt:</strong> Công đoạn này đang ở trạng thái "đợi". Bạn chỉ có thể xem thông tin, không thể bắt đầu hoặc cập nhật tiến độ cho đến khi đến lượt của bạn.
                   </div>
-                ) : (
-                  <Table responsive className="mb-0 align-middle">
-                    <thead className="table-light">
-                      <tr>
-                        <th>Tiến trình</th>
-                        <th>Thời gian làm</th>
-                        <th>Thời gian bắt đầu</th>
-                        <th>Thời gian kết thúc</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {history.map((item) => (
-                        <tr key={item.id}>
-                          <td>{item.description}</td>
-                          <td>{item.durationHours} giờ</td>
-                          <td>{item.startTime}</td>
-                          <td>{item.endTime}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </Table>
-                )}
-              </Card.Body>
-            </Card>
+                </Card.Body>
+              </Card>
+            )}
 
-            <Card className="shadow-sm mt-3">
-              <Card.Body>
-                <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                  <strong>Kết quả kiểm tra</strong>
+            {canStart && !isPending && (
+              <Card className="shadow-sm mb-3" style={{ borderColor: '#e7f1ff', backgroundColor: '#f5f9ff' }}>
+                <Card.Body className="d-flex justify-content-center">
+                  <Button variant="primary" size="lg" onClick={handleStartStage}>
+                    Bắt đầu công đoạn
+                  </Button>
+                </Card.Body>
+              </Card>
+            )}
+
+            {canUpdate && !isPending && (
+              <Card className="shadow-sm mb-3" style={{ borderColor: '#e7f1ff', backgroundColor: '#f5f9ff' }}>
+                <Card.Body>
+                  <div className="d-flex justify-content-between align-items-center mb-3">
+                    <strong>Cập nhật tiến độ</strong>
+                    <small className="text-muted">Nhập tiến độ từ 0 đến 100</small>
+                  </div>
                   <div className="d-flex align-items-center gap-3">
-                    <small className="text-muted">Kết quả do KCS gửi</small>
-                    <Badge
-                      bg={QA_CRITERIA.some((item) => item.result === 'FAIL') ? 'danger' : 'success'}
-                    >
-                      {QA_CRITERIA.some((item) => item.result === 'FAIL') ? 'Lỗi nặng' : 'Đạt'}
+                    <Form.Control
+                      type="number"
+                      min={0}
+                      max={100}
+                      placeholder="Tiến độ (%)"
+                      value={inputProgress}
+                      onChange={(e) => setInputProgress(e.target.value)}
+                      style={{ maxWidth: 200 }}
+                      disabled={isPending}
+                    />
+                    <Button variant="dark" onClick={handleUpdateProgress} disabled={isPending}>
+                      Cập nhật
+                    </Button>
+                  </div>
+                </Card.Body>
+              </Card>
+            )}
+
+            {/* QC Results (Simplified) */}
+            {(stage.executionStatus === 'QC_PASSED' || stage.executionStatus === 'QC_FAILED') && (
+              <Card className="shadow-sm mt-3">
+                <Card.Body>
+                  <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <strong>Kết quả kiểm tra gần nhất</strong>
+                    <Badge bg={stage.executionStatus === 'QC_PASSED' ? 'success' : 'danger'}>
+                      {stage.executionStatus === 'QC_PASSED' ? 'Đạt' : 'Không đạt'}
                     </Badge>
                   </div>
-                </div>
-                <div className="d-flex flex-column gap-3">
-                  {QA_CRITERIA.map((item, index) => (
-                    <div
-                      key={`${item.title}-${index}`}
-                      className="p-3 rounded"
-                      style={{
-                        border: `1px solid ${item.result === 'PASS' ? '#c3ebd3' : '#f9cfd9'}`,
-                        backgroundColor: item.result === 'PASS' ? '#e8f7ef' : '#fdecef',
-                      }}
-                    >
-                      <div className="d-flex justify-content-between align-items-center">
-                        <div className="fw-semibold">{item.title}</div>
-                        <Badge bg={item.result === 'PASS' ? 'success' : 'danger'}>
-                          {item.result === 'PASS' ? 'Đạt' : 'Không đạt'}
-                        </Badge>
-                      </div>
-                      {item.result === 'FAIL' ? (
-                        <img
-                          src={
-                            item.image ||
-                            'https://placehold.co/640x240?text=QC+Image'
-                          }
-                          alt={item.title}
-                          className="rounded mt-2"
-                          style={{ maxWidth: '100%', height: 'auto' }}
-                        />
-                      ) : (
-                        item.remark && <div className="text-muted mt-1 small">{item.remark}</div>
-                      )}
+                  {stage.notes && (
+                    <div className="alert alert-light border">
+                      <strong>Ghi chú:</strong> {stage.notes}
                     </div>
-                  ))}
-                </div>
-              </Card.Body>
-            </Card>
+                  )}
+                </Card.Body>
+              </Card>
+            )}
+
           </Container>
         </div>
       </div>
@@ -331,5 +310,3 @@ const LeaderStageProgress = () => {
 };
 
 export default LeaderStageProgress;
-
-

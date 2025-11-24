@@ -1,8 +1,11 @@
-import React, { useMemo, useState } from 'react';
-import { Container, Card, Table, Button, Badge, Form, InputGroup } from 'react-bootstrap';
+import React, { useMemo, useState, useEffect } from 'react';
+import { Container, Card, Table, Button, Badge, Form, InputGroup, Spinner } from 'react-bootstrap';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { useNavigate } from 'react-router-dom';
+import { productionService } from '../../api/productionService';
+import { getStatusLabel, getStatusVariant } from '../../utils/statusMapper';
+import toast from 'react-hot-toast';
 
 // Mock data cho màn danh sách đơn hàng sản xuất (Production Manager)
 const MOCK_PRODUCTION_ORDERS = [
@@ -56,18 +59,7 @@ const MOCK_PRODUCTION_ORDERS = [
   }
 ];
 
-const getStatusVariant = (status) => {
-  switch (status) {
-    case 'CHO_SAN_XUAT':
-      return 'secondary';
-    case 'DANG_SAN_XUAT':
-      return 'info';
-    case 'HOAN_THANH':
-      return 'success';
-    default:
-      return 'light';
-  }
-};
+// Removed local getStatusVariant - using the one from statusMapper.js for consistency
 
 const STATUS_FILTERS = [
   { value: 'ALL', label: 'Tất cả trạng thái' },
@@ -80,13 +72,43 @@ const ProductionOrderList = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        setLoading(true);
+        const data = await productionService.getManagerOrders();
+        // Map backend data to match mock structure
+        const mappedData = data.map(order => ({
+          id: order.id,
+          lotCode: order.lotCode || order.poNumber,
+          productName: order.productName || order.contract?.contractNumber || 'N/A',
+          size: order.size || '-',
+          quantity: order.totalQuantity || 0,
+          expectedStartDate: order.expectedStartDate || order.plannedStartDate,
+          expectedFinishDate: order.expectedFinishDate || order.plannedEndDate,
+          status: order.executionStatus || order.status,
+          statusLabel: order.statusLabel || getStatusLabel(order.executionStatus || order.status)
+        }));
+        setOrders(mappedData);
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+        toast.error('Không thể tải danh sách đơn hàng');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchOrders();
+  }, []);
 
   const handleViewPlan = (orderId) => {
     navigate(`/production/orders/${orderId}`);
   };
 
   const filteredOrders = useMemo(() => {
-    return MOCK_PRODUCTION_ORDERS.filter((order) => {
+    return orders.filter((order) => {
       const matchesSearch =
         !searchTerm ||
         order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -98,7 +120,15 @@ const ProductionOrderList = () => {
 
       return matchesSearch && matchesStatus;
     });
-  }, [searchTerm, statusFilter]);
+  }, [orders, searchTerm, statusFilter]);
+
+  if (loading) {
+    return (
+      <div className="d-flex justify-content-center align-items-center vh-100">
+        <Spinner animation="border" />
+      </div>
+    );
+  }
 
   return (
     <div className="customer-layout">

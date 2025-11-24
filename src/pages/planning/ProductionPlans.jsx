@@ -154,8 +154,12 @@ const ProductionPlans = () => {
                               <Badge bg={statusConfig.variant}>{statusConfig.text}</Badge>
                             </td>
                             <td className="text-center">
-                              <Button variant="primary" size="sm" onClick={() => handleViewDetail(plan.id)}>
-                                Xem chi tiết
+                              <Button 
+                                variant={plan.status === 'REJECTED' ? 'warning' : 'primary'} 
+                                size="sm" 
+                                onClick={() => handleViewDetail(plan.id)}
+                              >
+                                {plan.status === 'REJECTED' ? 'Chỉnh sửa lại' : 'Xem chi tiết'}
                               </Button>
                             </td>
                           </tr>
