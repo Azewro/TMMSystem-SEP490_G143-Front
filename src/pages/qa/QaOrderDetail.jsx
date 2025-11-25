@@ -199,40 +199,40 @@ const QaOrderDetail = () => {
                         
                         return (
                           <tr key={stage.id || stage.code}>
-                            <td>{stage.name}</td>
-                            <td>{stage.assignee}</td>
-                            <td>{stage.progress ?? 0}%</td>
-                            <td>
+                        <td>{stage.name}</td>
+                        <td>{stage.assignee}</td>
+                        <td>{stage.progress ?? 0}%</td>
+                        <td>
                               <Badge bg={getStatusVariant(stage.status)}>
                                 {stage.statusLabel}
                               </Badge>
-                            </td>
-                            <td className="text-end">
-                              <div className="d-flex justify-content-end gap-2">
+                        </td>
+                        <td className="text-end">
+                          <div className="d-flex justify-content-end gap-2">
                                 {/* Luôn hiển thị button "Chi tiết" */}
                                 <Button 
                                   size="sm" 
                                   variant="outline-secondary"
                                   onClick={() => handleViewStageDetail(stage.id, stage.code)}
                                 >
-                                  Chi tiết
-                                </Button>
+                              Chi tiết
+                            </Button>
                                 
                                 {/* Luôn hiển thị button "Kiểm tra", nhưng disabled nếu chưa đến lượt */}
-                                <Button
-                                  size="sm"
-                                  variant="dark"
+                            <Button
+                              size="sm"
+                              variant="dark"
                                   onClick={() => handleInspectStage(stage.id, stage.code)}
                                   disabled={!canInspect}
                                   title={!canInspect ? 
                                     'Chưa đến lượt kiểm tra. Chỉ có thể kiểm tra khi trạng thái là "chờ kiểm tra" hoặc "đang kiểm tra"' : 
                                     'Bắt đầu kiểm tra'}
-                                >
-                                  Kiểm tra
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
+                            >
+                              Kiểm tra
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
                         );
                       })
                     ) : (

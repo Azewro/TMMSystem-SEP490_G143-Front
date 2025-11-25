@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Container, Card, Button, Form, Spinner, Badge } from 'react-bootstrap';
 import { useNavigate, useParams } from 'react-router-dom';
 import Header from '../../components/common/Header';
@@ -6,6 +6,81 @@ import InternalSidebar from '../../components/common/InternalSidebar';
 import { orderService } from '../../api/orderService';
 import { executionService } from '../../api/executionService';
 import toast from 'react-hot-toast';
+import { API_BASE_URL } from '../../utils/constants';
+
+const DEFAULT_CRITERIA = {
+  CUONG_MAC: [
+    { name: 'Chất lượng sợi' },
+    { name: 'Độ căng sợi' },
+    { name: 'Sợi mắc đều' },
+    { name: 'Khổ & chiều dài cây sợi' },
+  ],
+  WARPING: [
+    { name: 'Chất lượng sợi' },
+    { name: 'Độ căng sợi' },
+    { name: 'Sợi mắc đều' },
+    { name: 'Khổ & chiều dài cây sợi' },
+  ],
+  DET: [
+    { name: 'Độ bền sợi nền' },
+    { name: 'Hình dáng khăn' },
+    { name: 'Bề mặt vải' },
+  ],
+  WEAVING: [
+    { name: 'Độ bền sợi nền' },
+    { name: 'Hình dáng khăn' },
+    { name: 'Bề mặt vải' },
+  ],
+  NHUOM: [
+    { name: 'Màu sắc chuẩn' },
+    { name: 'Độ bền màu' },
+    { name: 'Vết loang/đốm' },
+  ],
+  DYEING: [
+    { name: 'Màu sắc chuẩn' },
+    { name: 'Độ bền màu' },
+    { name: 'Vết loang/đốm' },
+  ],
+  CAT: [
+    { name: 'Kích thước chuẩn' },
+    { name: 'Đường cắt sạch' },
+  ],
+  CUTTING: [
+    { name: 'Kích thước chuẩn' },
+    { name: 'Đường cắt sạch' },
+  ],
+  MAY: [
+    { name: 'Đường may thẳng' },
+    { name: 'Mật độ mũi chỉ' },
+  ],
+  HEMMING: [
+    { name: 'Đường may thẳng' },
+    { name: 'Mật độ mũi chỉ' },
+  ],
+  DONG_GOI: [
+    { name: 'Đủ phụ kiện kèm' },
+    { name: 'Tem/nhãn đúng chuẩn' },
+  ],
+  PACKAGING: [
+    { name: 'Đủ phụ kiện kèm' },
+    { name: 'Tem/nhãn đúng chuẩn' },
+  ],
+};
+
+const STAGE_ALIAS = {
+  WARPING: 'CUONG_MAC',
+  CUONG_MAC: 'WARPING',
+  WEAVING: 'DET',
+  DET: 'WEAVING',
+  DYEING: 'NHUOM',
+  NHUOM: 'DYEING',
+  CUTTING: 'CAT',
+  CAT: 'CUTTING',
+  HEMMING: 'MAY',
+  MAY: 'HEMMING',
+  PACKAGING: 'DONG_GOI',
+  DONG_GOI: 'PACKAGING',
+};
 
 const QaStageQualityCheck = () => {
   const navigate = useNavigate();
@@ -22,6 +97,8 @@ const QaStageQualityCheck = () => {
   const [defectLevel, setDefectLevel] = useState('');
   const [defectDescription, setDefectDescription] = useState('');
   const [sessionId, setSessionId] = useState(null);
+  const fileInputsRef = useRef({});
+  const [photoUploadingId, setPhotoUploadingId] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -51,16 +128,19 @@ const QaStageQualityCheck = () => {
 
           // 3. Fetch Checkpoints
           const cpData = await executionService.getStageCheckpoints(foundStage.id);
-          setCheckpoints(cpData);
+          const normalizedCheckpoints = cpData && cpData.length > 0
+            ? cpData
+            : buildFallbackCheckpoints(foundStage.stageType);
+          setCheckpoints(normalizedCheckpoints);
 
           // Initialize criteria state
-          setCriteria(cpData.map(cp => ({
-            id: cp.id,
-            name: cp.checkpointName,
-            result: '', // 'PASS' or 'FAIL'
+          setCriteria(normalizedCheckpoints.map((cp, index) => ({
+            id: cp.id || cp.tempId || `mock-${index}`,
+            name: cp.checkpointName || cp.name,
+            result: '',
             notes: '',
             photo: null,
-            qcCheckpointId: cp.id
+            qcCheckpointId: cp.id || null
           })));
         }
       } catch (error) {
@@ -72,6 +152,17 @@ const QaStageQualityCheck = () => {
     };
     fetchData();
   }, [orderId, stageCode, userId]);
+
+  const buildFallbackCheckpoints = (stageType) => {
+    if (!stageType) return [];
+    const key = stageType.toUpperCase();
+    const entries = DEFAULT_CRITERIA[key] || DEFAULT_CRITERIA[STAGE_ALIAS[key]];
+    if (!entries) return [];
+    return entries.map((item, index) => ({
+      checkpointName: item.name || item,
+      tempId: `fallback-${key}-${index}`,
+    }));
+  };
 
   const overallResult = useMemo(() => {
     if (criteria.length === 0) return 'PENDING';
@@ -99,14 +190,39 @@ const QaStageQualityCheck = () => {
     );
   };
 
-  const handlePhotoUpload = (id) => {
-    // Mock photo upload
-    setCriteria((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, photo: 'https://placehold.co/640x240?text=QC+Image' } : item,
-      ),
-    );
-    toast.success('Đã đính kèm ảnh (giả lập)');
+  const handlePhotoUploadClick = (criterionId) => {
+    const input = fileInputsRef.current[criterionId];
+    if (input) {
+      input.click();
+    }
+  };
+
+  const handlePhotoInputChange = async (criterionId, event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      setPhotoUploadingId(criterionId);
+      const uploadResult = await executionService.uploadQcPhoto(file, stage?.id, userId);
+      const photoUrl = uploadResult?.url || (uploadResult?.fileName
+        ? `${API_BASE_URL}/api/files/${uploadResult.fileName}`
+        : null);
+      if (!photoUrl) {
+        throw new Error('Không thể lấy URL ảnh');
+      }
+      setCriteria((prev) =>
+        prev.map((item) =>
+          item.id === criterionId ? { ...item, photo: photoUrl } : item,
+        ),
+      );
+      toast.success('Đã tải ảnh lỗi');
+    } catch (error) {
+      console.error('Upload QC photo failed', error);
+      toast.error(error.response?.data?.message || error.message || 'Không thể tải ảnh');
+    } finally {
+      setPhotoUploadingId(null);
+      // Reset input value so the same file can be uploaded again if needed
+      event.target.value = '';
+    }
   };
 
   const handleSubmit = async () => {
@@ -239,13 +355,35 @@ const QaStageQualityCheck = () => {
                           style={{ backgroundColor: '#ffe3e3', border: '1px solid #ffc9c9' }}
                         >
                           <div className="mb-2 fw-semibold">Hình ảnh lỗi (bắt buộc)</div>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="d-none"
+                            ref={(el) => (fileInputsRef.current[c.id] = el)}
+                            onChange={(event) => handlePhotoInputChange(c.id, event)}
+                          />
                           <Button
                             variant="outline-dark"
                             size="sm"
-                            onClick={() => handlePhotoUpload(c.id)}
+                            disabled={photoUploadingId === c.id}
+                            onClick={() => handlePhotoUploadClick(c.id)}
                           >
-                            {c.photo ? 'Đã có ảnh' : 'Chụp ảnh'}
+                            {photoUploadingId === c.id
+                              ? 'Đang tải...'
+                              : c.photo
+                                ? 'Đổi ảnh'
+                                : 'Chụp ảnh'}
                           </Button>
+                          {c.photo && (
+                            <div className="mt-2">
+                              <img
+                                src={c.photo}
+                                alt="Ảnh lỗi"
+                                className="rounded border"
+                                style={{ maxWidth: '100%', height: 'auto' }}
+                              />
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

@@ -19,7 +19,7 @@ export const getStatusLabel = (status) => {
     // ProductionStage statuses
     'PENDING': 'đợi',
     'WAITING': 'chờ làm',
-    'READY': 'chờ làm',
+    'READY': 'sẵn sàng sản xuất',
     'IN_PROGRESS': 'đang làm',
     'WAITING_QC': 'chờ kiểm tra',
     'QC_IN_PROGRESS': 'đang kiểm tra',

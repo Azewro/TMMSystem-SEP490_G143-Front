@@ -19,8 +19,67 @@ const StageProgressDetail = () => {
   const [loading, setLoading] = useState(true);
   const [progressInput, setProgressInput] = useState('');
   const [qcCheckpoints, setQcCheckpoints] = useState([]);
+  const [history, setHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [error, setError] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  const formatTimestamp = (value) => {
+    if (!value) return '-';
+    try {
+      return new Date(value).toLocaleString('vi-VN');
+    } catch {
+      return value;
+    }
+  };
+
+  const mapTrackingAction = (action) => {
+    switch (action) {
+      case 'START':
+        return 'Bắt đầu';
+      case 'UPDATE_PROGRESS':
+        return 'Cập nhật tiến độ';
+      case 'COMPLETE':
+        return 'Hoàn thành';
+      case 'RESUME':
+        return 'Tiếp tục';
+      case 'PAUSE':
+        return 'Tạm dừng';
+      default:
+        return action || 'Không xác định';
+    }
+  };
+
+  const formatTrackingProgress = (tracking) => {
+    if (tracking?.quantityCompleted === null || tracking?.quantityCompleted === undefined) {
+      return '-';
+    }
+    return `${tracking.quantityCompleted}%`;
+  };
+
+  const loadStageTrackings = async (targetStageId) => {
+    if (!targetStageId) {
+      setHistory([]);
+      return;
+    }
+    try {
+      setHistoryLoading(true);
+      const trackings = await executionService.getStageTrackings(targetStageId);
+      const mappedHistory = (trackings || []).map((tracking) => ({
+        id: tracking.id,
+        action: mapTrackingAction(tracking.action),
+        progress: formatTrackingProgress(tracking),
+        timestamp: formatTimestamp(tracking.timestamp),
+        operator: tracking.operatorName || 'Không xác định',
+        notes: tracking.notes || '',
+      }));
+      setHistory(mappedHistory);
+    } catch (err) {
+      console.error('Error loading stage trackings:', err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchStage = async () => {
@@ -66,6 +125,7 @@ const StageProgressDetail = () => {
           // If checkpoints don't exist yet, that's okay - we'll show "Chưa kiểm tra"
         }
         setQcCheckpoints(checkpoints);
+        await loadStageTrackings(stage.id);
         
         // Map backend data to match UI structure
         const mapped = {
@@ -409,25 +469,29 @@ const StageProgressDetail = () => {
                 <div className="p-3 border-bottom">
                   <strong>Lịch sử tiến độ</strong>
                 </div>
-                {stageData.history.length === 0 ? (
+                {historyLoading ? (
+                  <div className="p-4 text-center text-muted">Đang tải lịch sử...</div>
+                ) : history.length === 0 ? (
                   <div className="p-4 text-center text-muted">Chưa có lịch sử cập nhật</div>
                 ) : (
                   <Table responsive className="mb-0 align-middle">
                     <thead className="table-light">
                       <tr>
-                        <th>Tiến trình</th>
-                        <th>Thời gian làm</th>
-                        <th>Thời gian bắt đầu</th>
-                        <th>Thời gian kết thúc</th>
+                        <th>Hành động</th>
+                        <th>Tiến độ</th>
+                        <th>Thời gian</th>
+                        <th>Người cập nhật</th>
+                        <th>Ghi chú</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {stageData.history.map((item) => (
+                      {history.map((item) => (
                         <tr key={item.id}>
-                          <td>{item.description}</td>
-                          <td>{item.durationHours} giờ</td>
-                          <td>{item.startTime}</td>
-                          <td>{item.endTime}</td>
+                          <td>{item.action}</td>
+                          <td>{item.progress}</td>
+                          <td>{item.timestamp}</td>
+                          <td>{item.operator}</td>
+                          <td>{item.notes}</td>
                         </tr>
                       ))}
                     </tbody>

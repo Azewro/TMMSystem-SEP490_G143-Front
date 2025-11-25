@@ -20,6 +20,65 @@ const LeaderStageProgress = () => {
   const [currentProgress, setCurrentProgress] = useState(0);
   const [inputProgress, setInputProgress] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
+  const [history, setHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  const formatTimestamp = (value) => {
+    if (!value) return '-';
+    try {
+      return new Date(value).toLocaleString('vi-VN');
+    } catch {
+      return value;
+    }
+  };
+
+  const mapTrackingAction = (action) => {
+    switch (action) {
+      case 'START':
+        return 'Bắt đầu';
+      case 'UPDATE_PROGRESS':
+        return 'Cập nhật tiến độ';
+      case 'COMPLETE':
+        return 'Hoàn thành';
+      case 'RESUME':
+        return 'Tiếp tục';
+      case 'PAUSE':
+        return 'Tạm dừng';
+      default:
+        return action || 'Không xác định';
+    }
+  };
+
+  const formatTrackingProgress = (tracking) => {
+    if (tracking?.quantityCompleted === null || tracking?.quantityCompleted === undefined) {
+      return '-';
+    }
+    return `${tracking.quantityCompleted}%`;
+  };
+
+  const loadStageHistory = async (stageId) => {
+    if (!stageId) {
+      setHistory([]);
+      return;
+    }
+    try {
+      setHistoryLoading(true);
+      const trackings = await executionService.getStageTrackings(stageId);
+      const mapped = (trackings || []).map((tracking) => ({
+        id: tracking.id,
+        action: mapTrackingAction(tracking.action),
+        progress: formatTrackingProgress(tracking),
+        timestamp: formatTimestamp(tracking.timestamp),
+        operator: tracking.operatorName || 'Không xác định',
+        notes: tracking.notes || '',
+      }));
+      setHistory(mapped);
+    } catch (error) {
+      console.error('Error loading stage history:', error);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -32,6 +91,7 @@ const LeaderStageProgress = () => {
             const currentStage = data.stages[0];
             setStage(currentStage);
             setCurrentProgress(currentStage.progressPercent || 0);
+            await loadStageHistory(currentStage.id);
           }
         }
       } catch (error) {
@@ -43,6 +103,12 @@ const LeaderStageProgress = () => {
     };
     fetchData();
   }, [orderId, userId, refreshKey]);
+
+  useEffect(() => {
+    if (stage?.id) {
+      loadStageHistory(stage.id);
+    }
+  }, [stage?.id]);
 
   const handleBack = () => {
     navigate('/leader/orders');
@@ -99,8 +165,8 @@ const LeaderStageProgress = () => {
 
   // Check if stage is pending (chưa đến lượt)
   const isPending = stage && (stage.executionStatus === 'PENDING' || stage.status === 'PENDING');
-  // canStart: WAITING, READY (sẵn sàng sản xuất) hoặc WAITING_REWORK (chờ sửa)
-  const canStart = stage && (
+  // canStart: WAITING, READY (sẵn sàng sản xuất) hoặc WAITING_REWORK (chờ sửa) và tiến độ < 100%
+  const canStart = stage && stage.progressPercent < 100 && (
     stage.executionStatus === 'WAITING' || 
     stage.executionStatus === 'READY' || 
     stage.executionStatus === 'WAITING_REWORK' ||
@@ -282,6 +348,43 @@ const LeaderStageProgress = () => {
                 </Card.Body>
               </Card>
             )}
+
+            <Card className="shadow-sm mb-3">
+              <Card.Body className="p-0">
+                <div className="p-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+                  <strong>Lịch sử cập nhật tiến độ</strong>
+                  {historyLoading && <small className="text-muted">Đang tải...</small>}
+                </div>
+                {historyLoading ? (
+                  <div className="p-4 text-center text-muted">Đang tải lịch sử...</div>
+                ) : history.length === 0 ? (
+                  <div className="p-4 text-center text-muted">Chưa có lịch sử cập nhật</div>
+                ) : (
+                  <Table responsive className="mb-0 align-middle">
+                    <thead className="table-light">
+                      <tr>
+                        <th>Hành động</th>
+                        <th>Tiến độ</th>
+                        <th>Thời gian</th>
+                        <th>Người cập nhật</th>
+                        <th>Ghi chú</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {history.map((item) => (
+                        <tr key={item.id}>
+                          <td>{item.action}</td>
+                          <td>{item.progress}</td>
+                          <td>{item.timestamp}</td>
+                          <td>{item.operator}</td>
+                          <td>{item.notes}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                )}
+              </Card.Body>
+            </Card>
 
             {/* QC Results (Simplified) */}
             {(stage.executionStatus === 'QC_PASSED' || stage.executionStatus === 'QC_FAILED') && (

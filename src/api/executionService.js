@@ -46,5 +46,25 @@ export const executionService = {
             params: { qcUserId }
         });
         return response.data;
+    },
+
+    getStageTrackings: async (stageId) => {
+        const response = await apiClient.get(`/v1/execution/stages/${stageId}/trackings`);
+        return response.data;
+    },
+
+    uploadQcPhoto: async (file, stageId, qcUserId) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        if (stageId) {
+            formData.append('stageId', stageId);
+        }
+        if (qcUserId) {
+            formData.append('qcUserId', qcUserId);
+        }
+        const response = await apiClient.post('/api/files/qc/photos', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
     }
 };

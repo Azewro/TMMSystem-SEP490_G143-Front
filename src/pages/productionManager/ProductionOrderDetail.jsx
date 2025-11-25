@@ -202,13 +202,27 @@ const ProductionOrderDetail = () => {
                       order.stages.map((stage) => {
                         // For dyeing stage (NHUOM), PM can start/update progress
                         const isDyeingStage = stage.code === 'DYEING' || stage.code === 'NHUOM';
-                        const buttonConfig = isDyeingStage ? getButtonForStage(stage.status, 'production') : 
-                          { text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' };
                         
-                        // For dyeing stage, always show action button, but disabled when PENDING
+                        // For dyeing stage, determine button text and action based on status
+                        // Button thứ 2 luôn là "Bắt đầu" hoặc "Cập nhật tiến độ", không bao giờ là "Chi tiết"
+                        let dyeingButtonText = 'Bắt đầu';
+                        let dyeingButtonVariant = 'dark';
                         const isDyeingPending = isDyeingStage && stage.status === 'PENDING';
                         const canStartDyeing = isDyeingStage && (stage.status === 'WAITING' || stage.status === 'READY' || stage.status === 'WAITING_REWORK');
                         const canUpdateDyeing = isDyeingStage && (stage.status === 'IN_PROGRESS' || stage.status === 'REWORK_IN_PROGRESS');
+                        
+                        if (isDyeingStage) {
+                          if (canUpdateDyeing) {
+                            // Đang làm hoặc đang sửa -> "Cập nhật tiến độ"
+                            dyeingButtonText = 'Cập nhật tiến độ';
+                            dyeingButtonVariant = 'dark';
+                          } else {
+                            // Các trạng thái khác (PENDING, WAITING, READY, WAITING_REWORK, WAITING_QC, etc.) -> "Bắt đầu"
+                            // Button sẽ disabled khi PENDING
+                            dyeingButtonText = 'Bắt đầu';
+                            dyeingButtonVariant = 'dark';
+                          }
+                        }
                         
                         return (
                       <tr key={stage.id}>
@@ -236,13 +250,13 @@ const ProductionOrderDetail = () => {
                                 {isDyeingStage && (
                                   <Button
                                     size="sm"
-                                    variant={buttonConfig.variant}
+                                    variant={dyeingButtonVariant}
                                     className="btn-pill-outline"
                                     onClick={() => handleViewStage(stage)}
                                     disabled={isDyeingPending}
-                                    title={isDyeingPending ? 'Chưa đến lượt, chỉ có thể xem' : buttonConfig.text}
+                                    title={isDyeingPending ? 'Chưa đến lượt, chỉ có thể xem' : dyeingButtonText}
                                   >
-                                    {buttonConfig.text}
+                                    {dyeingButtonText}
                                   </Button>
                                 )}
                           </div>
