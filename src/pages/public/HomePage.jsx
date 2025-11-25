@@ -8,7 +8,7 @@ import Footer from '../../components/common/Footer';
 import Pagination from '../../components/Pagination';
 import Sidebar from '../../components/common/Sidebar';
 import { useAuth } from '../../context/AuthContext';
-import '../../styles/CustomerHomePage.css';
+import { useIsMobile, useIsTablet } from '../../utils/useMediaQuery';
 
 const PartnerLogo = ({ name }) => (
     <div className="partner-logo">
@@ -22,7 +22,13 @@ const HomePage = () => {
     const [error, setError] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [searchTerm, setSearchTerm] = useState('');
-    const productsPerPage = 8;
+
+    const isMobile = useIsMobile();
+    const isTablet = useIsTablet();
+
+    // Responsive products per page: 2 for mobile, 8 for tablet, 12 for desktop
+    const productsPerPage = isMobile ? 2 : isTablet ? 8 : 12;
+
     const { isAuthenticated } = useAuth();
 
     useEffect(() => {
@@ -48,7 +54,7 @@ const HomePage = () => {
         if (!searchTerm.trim()) return products;
         const searchLower = searchTerm.toLowerCase().trim();
         const searchWords = searchLower.split(/\s+/).filter(word => word.length > 0);
-        
+
         return products.filter(product => {
             const productNameLower = (product.name || '').toLowerCase();
             // Check if all search words are found in product name
@@ -74,13 +80,22 @@ const HomePage = () => {
     return (
         <>
             <Header />
-            <div className="d-flex">
-                {isAuthenticated && <Sidebar />}
+            <div className={isAuthenticated && !isMobile ? 'd-flex' : ''}>
+                {isAuthenticated && !isMobile && <Sidebar />}
                 <div className="flex-grow-1">
                     <div className="customer-home-page">
-                        <section className="hero-banner text-white text-center">
+                        <section className="hero-banner text-white text-center" style={{
+                            backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(/khan-spa.png)',
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                            backgroundRepeat: 'no-repeat',
+                            minHeight: '400px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}>
                             <Container>
-                                <h1 className="hero-title">Khăn Bông Mỹ Đức</h1>
+                                <h1 className="hero-title" style={{ fontSize: 'clamp(1.75rem, 5vw, 3rem)' }}>Khăn Bông Mỹ Đức</h1>
                                 <p className="hero-subtitle">Chất lượng mềm mại, trải nghiệm đẳng cấp.</p>
                                 <Button variant="light" size="lg" href="#featured-products">Xem Sản Phẩm</Button>
                             </Container>
@@ -92,7 +107,7 @@ const HomePage = () => {
                                     <Col md={6}>
                                         <img src="/banner.png" alt="Khăn Bông Mỹ Đức" className="img-fluid rounded shadow" />
                                     </Col>
-                                    <Col md={6}>
+                                    <Col md={6} className="mt-4 mt-md-0">
                                         <h2 className="section-title">Về Chúng Tôi</h2>
                                         <p className="lead">
                                             <strong>Khăn bông Mỹ Đức</strong> là thương hiệu khăn bông được các doanh nghiệp về khách sạn và spa tại Hà Nội rất tin tưởng và yêu mến.
@@ -140,7 +155,7 @@ const HomePage = () => {
 
                                 {!loading && !error && (
                                     <>
-                                        <Row xs={1} md={2} lg={4} xl={4} className="g-4">
+                                        <Row xs={2} sm={2} md={3} lg={4} xl={4} className="g-4">
                                             {currentProducts.map((product) => (
                                                 <Col key={product.id}>
                                                     <ProductCard product={product} />
