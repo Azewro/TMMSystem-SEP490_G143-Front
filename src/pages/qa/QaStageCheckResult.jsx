@@ -5,41 +5,8 @@ import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { productionService } from '../../api/productionService';
 import { orderService } from '../../api/orderService';
+import { qcService } from '../../api/qcService';
 import toast from 'react-hot-toast';
-
-const QA_RESULTS_BY_STAGE = {
-  CUONG_MAC: {
-    lotCode: 'LOT-002',
-    productName: 'Khăn mặt cotton',
-    criteria: [
-      {
-        title: 'Độ bền sợi',
-        result: 'FAIL',
-        remark: 'Không đạt',
-        image: 'https://placekitten.com/600/260',
-      },
-      { title: 'Hình dáng khăn', result: 'PASS', remark: 'Đạt' },
-      { title: 'Bề mặt vải', result: 'PASS', remark: 'Đạt' },
-    ],
-    overall: 'FAIL',
-    summary: 'Có tiêu chí Không đạt. Vui lòng xử lý lỗi theo quy định.',
-    defectLevel: 'Lỗi nặng',
-    defectDescription: 'Độ bền sợi không đạt, yêu cầu Leader xử lý lại theo quy trình.',
-  },
-  DET: {
-    lotCode: 'LOT-002',
-    productName: 'Khăn mặt cotton',
-    criteria: [
-      { title: 'Độ bền sợi', result: 'PASS' },
-      { title: 'Mật độ sợi', result: 'PASS' },
-      { title: 'Hình dáng khăn', result: 'PASS' },
-    ],
-    overall: 'PASS',
-    summary: 'Tất cả tiêu chí đều Đạt.',
-    defectLevel: null,
-    defectDescription: null,
-  },
-};
 
 const QaStageCheckResult = () => {
   const navigate = useNavigate();
@@ -67,17 +34,26 @@ const QaStageCheckResult = () => {
         
         // Fetch full stage details using stage ID
         const stage = await productionService.getStage(foundStage.id);
+
+        // Fetch inspection criteria/results
+        let inspections = [];
+        try {
+          inspections = await qcService.getStageInspections(foundStage.id);
+        } catch (inspectionError) {
+          console.warn('Could not load inspection criteria:', inspectionError);
+        }
+        const criteria = (inspections || []).map((item, index) => ({
+          title: item.checkpointName || `Tiêu chí ${index + 1}`,
+          result: (item.result || 'PASS').toUpperCase(),
+          remark: item.notes,
+          image: item.photoUrl
+        }));
         
         // Map backend data to match mock structure
         const mapped = {
           lotCode: orderData.lotCode || orderData.poNumber || 'N/A',
           productName: orderData.productName || orderData.contract?.contractNumber || 'N/A',
-          criteria: stage.qcCheckpoints?.map(cp => ({
-            title: cp.checkpointName,
-            result: cp.result || 'PASS',
-            remark: cp.notes,
-            image: cp.photoUrl
-          })) || [],
+          criteria,
           overall: stage.executionStatus === 'QC_PASSED' ? 'PASS' : 
                    (stage.executionStatus === 'QC_FAILED' ? 'FAIL' : 'PENDING'),
           summary: stage.executionStatus === 'QC_PASSED' ? 'Tất cả tiêu chí đều Đạt.' : 
@@ -153,34 +129,40 @@ const QaStageCheckResult = () => {
             <Card className="shadow-sm mb-3">
               <Card.Body>
                 <h6 className="mb-3">Tiêu chí kiểm tra</h6>
-                <div className="d-flex flex-column gap-3">
-                  {qaResult.criteria.map((criteria) => (
-                    <div
-                      key={criteria.title}
-                      className="p-3 rounded"
-                      style={{
-                        border: `1px solid ${criteria.result === 'PASS' ? '#c3ebd3' : '#f9cfd9'}`,
-                        backgroundColor: criteria.result === 'PASS' ? '#e8f7ef' : '#fdecef',
-                      }}
-                    >
-                      <div className="d-flex justify-content-between align-items-center mb-2">
-                        <div className="fw-semibold">{criteria.title}</div>
-                        <Badge bg={criteria.result === 'PASS' ? 'success' : 'danger'}>
-                          {criteria.result === 'PASS' ? 'Đạt' : 'Không đạt'}
-                        </Badge>
+                {qaResult.criteria.length === 0 ? (
+                  <div className="text-muted small">
+                    Chưa có tiêu chí kiểm tra nào được lưu cho công đoạn này.
+                  </div>
+                ) : (
+                  <div className="d-flex flex-column gap-3">
+                    {qaResult.criteria.map((criteria) => (
+                      <div
+                        key={criteria.title}
+                        className="p-3 rounded"
+                        style={{
+                          border: `1px solid ${criteria.result === 'PASS' ? '#c3ebd3' : '#f9cfd9'}`,
+                          backgroundColor: criteria.result === 'PASS' ? '#e8f7ef' : '#fdecef',
+                        }}
+                      >
+                        <div className="d-flex justify-content-between align-items-center mb-2">
+                          <div className="fw-semibold">{criteria.title}</div>
+                          <Badge bg={criteria.result === 'PASS' ? 'success' : 'danger'}>
+                            {criteria.result === 'PASS' ? 'Đạt' : 'Không đạt'}
+                          </Badge>
+                        </div>
+                        {criteria.image && (
+                          <img
+                            src={criteria.image}
+                            alt={criteria.title}
+                            className="rounded mb-2"
+                            style={{ maxWidth: '100%', height: 'auto' }}
+                          />
+                        )}
+                        {criteria.remark && <div className="text-muted small">{criteria.remark}</div>}
                       </div>
-                      {criteria.image && (
-                        <img
-                          src={criteria.image}
-                          alt={criteria.title}
-                          className="rounded mb-2"
-                          style={{ maxWidth: '100%', height: 'auto' }}
-                        />
-                      )}
-                      {criteria.remark && <div className="text-muted small">{criteria.remark}</div>}
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </Card.Body>
             </Card>
 

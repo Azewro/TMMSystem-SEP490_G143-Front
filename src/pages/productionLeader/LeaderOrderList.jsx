@@ -22,7 +22,15 @@ const LeaderOrderList = () => {
     const fetchOrders = async () => {
       try {
         setLoading(true);
-        const ordersData = await productionService.getLeaderOrders(userId);
+        if (!userId) {
+          toast.error('Không tìm thấy thông tin người dùng');
+          setLoading(false);
+          return;
+        }
+
+        const numericUserId = Number(userId);
+
+        const ordersData = await productionService.getLeaderOrders(numericUserId);
         
         // Fetch order details to get stages for each order
         const ordersWithStages = await Promise.all(
@@ -31,12 +39,21 @@ const LeaderOrderList = () => {
               const orderDetail = await orderService.getOrderById(order.id);
               // Find the stage assigned to this leader
               const leaderStage = (orderDetail.stages || []).find(
-                stage => stage.assignedLeaderId === userId || 
-                         stage.assignedLeader?.id === userId
+                stage => stage.assignedLeaderId === numericUserId || 
+                         stage.assignedLeader?.id === numericUserId
               );
+
+              const productName =
+                orderDetail.productName ||
+                orderDetail.contract?.productName ||
+                orderDetail.productionOrderDetails?.[0]?.product?.name ||
+                orderDetail.productionOrderDetails?.[0]?.productName ||
+                orderDetail.contract?.contractNumber ||
+                'N/A';
               
               return {
                 ...order,
+                productName,
                 leaderStage: leaderStage ? {
                   id: leaderStage.id,
                   status: leaderStage.executionStatus || leaderStage.status,
@@ -71,7 +88,8 @@ const LeaderOrderList = () => {
     return orders.filter(
       (o) =>
         o.poNumber.toLowerCase().includes(term) ||
-        (o.contract?.contractNumber || '').toLowerCase().includes(term)
+        (o.contract?.contractNumber || '').toLowerCase().includes(term) ||
+        (o.productName || '').toLowerCase().includes(term)
     );
   }, [searchTerm, orders]);
 
@@ -150,7 +168,7 @@ const LeaderOrderList = () => {
                           <td>
                             <strong>{order.poNumber}</strong>
                           </td>
-                          <td>{order.contract?.contractNumber || 'N/A'}</td>
+                          <td>{order.productName || order.contract?.contractNumber || 'N/A'}</td>
                           <td>{order.totalQuantity?.toLocaleString('vi-VN')}</td>
                           <td>{order.plannedStartDate}</td>
                           <td>{order.plannedEndDate}</td>

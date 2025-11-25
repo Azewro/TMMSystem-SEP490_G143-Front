@@ -165,8 +165,15 @@ const LeaderStageProgress = () => {
 
   // Check if stage is pending (chưa đến lượt)
   const isPending = stage && (stage.executionStatus === 'PENDING' || stage.status === 'PENDING');
-  // canStart: WAITING, READY (sẵn sàng sản xuất) hoặc WAITING_REWORK (chờ sửa) và tiến độ < 100%
-  const canStart = stage && stage.progressPercent < 100 && (
+  const isStageInProgress = stage && (
+    stage.executionStatus === 'IN_PROGRESS' ||
+    stage.executionStatus === 'REWORK_IN_PROGRESS' ||
+    stage.status === 'IN_PROGRESS' ||
+    stage.status === 'REWORK_IN_PROGRESS'
+  );
+
+  // canStart: WAITING, READY (sẵn sàng sản xuất) hoặc WAITING_REWORK (chờ sửa), chưa IN_PROGRESS và tiến độ < 100%
+  const canStart = stage && !isStageInProgress && stage.progressPercent < 100 && (
     stage.executionStatus === 'WAITING' || 
     stage.executionStatus === 'READY' || 
     stage.executionStatus === 'WAITING_REWORK' ||
@@ -221,7 +228,7 @@ const LeaderStageProgress = () => {
 
             <Card className="shadow-sm mb-3">
               <Card.Body>
-                <div className="row g-4">
+                <div className="row g-4 align-items-center">
                   <div className="col-lg-4 d-flex gap-3 align-items-center">
                     <div
                       style={{
@@ -239,12 +246,14 @@ const LeaderStageProgress = () => {
                       QR
                     </div>
                     <div>
-                      <div className="text-muted small mb-1">Mã đơn hàng</div>
-                      <h5 className="mb-1">{order.poNumber}</h5>
-                      <small className="text-muted">Sản phẩm: {order.contract?.contractNumber || 'N/A'}</small>
+                      <div className="text-muted small mb-1">Mã lô sản xuất</div>
+                      <h5 className="mb-1">{order.lotCode || order.poNumber}</h5>
+                      <small className="text-muted">
+                        Sản phẩm: {order.productName || order.contract?.contractNumber || 'N/A'}
+                      </small>
                     </div>
                   </div>
-                  <div className="col-lg-4">
+                  <div className="col-lg-3">
                     <div className="mb-2">
                       <div className="text-muted small">Tổng số lượng</div>
                       <div className="fw-semibold">{order.totalQuantity?.toLocaleString('vi-VN')}</div>
@@ -254,13 +263,20 @@ const LeaderStageProgress = () => {
                       <div className="fw-semibold">{order.plannedStartDate}</div>
                     </div>
                   </div>
-                  <div className="col-lg-4">
-                    <div className="d-flex align-items-center gap-2">
-                      <div className="text-muted small mb-0">Trạng thái công đoạn</div>
-                      <Badge bg={statusConfig.variant} className="status-badge">
-                        {statusConfig.label}
-                      </Badge>
+                  <div className="col-lg-3">
+                    <div className="text-muted small mb-1">Người phụ trách</div>
+                    <div className="fw-semibold">
+                      {stage.assignedLeader?.fullName ||
+                        stage.assignedLeader?.name ||
+                        stage.assigneeName ||
+                        'Chưa phân công'}
                     </div>
+                  </div>
+                  <div className="col-lg-2">
+                    <div className="text-muted small mb-1">Trạng thái công đoạn</div>
+                    <Badge bg={statusConfig.variant} className="status-badge">
+                      {statusConfig.label}
+                    </Badge>
                   </div>
                 </div>
               </Card.Body>
