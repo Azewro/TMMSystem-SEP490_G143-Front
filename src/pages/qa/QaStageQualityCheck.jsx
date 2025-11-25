@@ -7,6 +7,7 @@ import { orderService } from '../../api/orderService';
 import { executionService } from '../../api/executionService';
 import toast from 'react-hot-toast';
 import { API_BASE_URL } from '../../utils/constants';
+import CameraCapture from '../../components/common/CameraCapture';
 
 const DEFAULT_CRITERIA = {
   CUONG_MAC: [
@@ -99,6 +100,8 @@ const QaStageQualityCheck = () => {
   const [sessionId, setSessionId] = useState(null);
   const fileInputsRef = useRef({});
   const [photoUploadingId, setPhotoUploadingId] = useState(null);
+  const [showCamera, setShowCamera] = useState(false);
+  const [activeCameraCriterionId, setActiveCameraCriterionId] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -222,6 +225,40 @@ const QaStageQualityCheck = () => {
       setPhotoUploadingId(null);
       // Reset input value so the same file can be uploaded again if needed
       event.target.value = '';
+    }
+  };
+
+  const handleOpenCamera = (criterionId) => {
+    setActiveCameraCriterionId(criterionId);
+    setShowCamera(true);
+  };
+
+  const handleCameraCapture = async (file) => {
+    if (!activeCameraCriterionId || !file) return;
+
+    try {
+      setPhotoUploadingId(activeCameraCriterionId);
+      const uploadResult = await executionService.uploadQcPhoto(file, stage?.id, userId);
+      const photoUrl = uploadResult?.url || (uploadResult?.fileName
+        ? `${API_BASE_URL}/api/files/${uploadResult.fileName}`
+        : null);
+
+      if (!photoUrl) {
+        throw new Error('Không thể lấy URL ảnh');
+      }
+
+      setCriteria((prev) =>
+        prev.map((item) =>
+          item.id === activeCameraCriterionId ? { ...item, photo: photoUrl } : item,
+        ),
+      );
+      toast.success('Đã tải ảnh chụp lên');
+    } catch (error) {
+      console.error('Upload captured photo failed', error);
+      toast.error(error.response?.data?.message || error.message || 'Không thể tải ảnh');
+    } finally {
+      setPhotoUploadingId(null);
+      setActiveCameraCriterionId(null);
     }
   };
 
@@ -367,12 +404,22 @@ const QaStageQualityCheck = () => {
                             size="sm"
                             disabled={photoUploadingId === c.id}
                             onClick={() => handlePhotoUploadClick(c.id)}
+                            className="me-2"
                           >
                             {photoUploadingId === c.id
                               ? 'Đang tải...'
                               : c.photo
                                 ? 'Đổi ảnh'
-                                : 'Chụp ảnh'}
+                                : 'Tải ảnh'}
+                          </Button>
+                          <Button
+                            variant="outline-primary"
+                            size="sm"
+                            disabled={photoUploadingId === c.id}
+                            onClick={() => handleOpenCamera(c.id)}
+                          >
+                            <i className="bi bi-camera-fill me-1"></i>
+                            Chụp trực tiếp
                           </Button>
                           {c.photo && (
                             <div className="mt-2">
@@ -449,7 +496,13 @@ const QaStageQualityCheck = () => {
           </Container>
         </div>
       </div>
-    </div>
+
+      <CameraCapture
+        show={showCamera}
+        onHide={() => setShowCamera(false)}
+        onCapture={handleCameraCapture}
+      />
+    </div >
   );
 };
 
