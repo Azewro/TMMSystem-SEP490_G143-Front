@@ -23,6 +23,7 @@ const StageProgressDetail = () => {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [error, setError] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [elapsedDisplay, setElapsedDisplay] = useState('0.0 giờ');
 
   const formatTimestamp = (value) => {
     if (!value) return '-';
@@ -181,6 +182,43 @@ const StageProgressDetail = () => {
     fetchStage();
   }, [stageId, orderId, refreshKey]);
 
+  useEffect(() => {
+    let intervalId;
+    if (stageData?.stageStartTime && !stageData?.stageEndTime) {
+      const updateElapsed = () => {
+        const start = new Date(stageData.stageStartTime);
+        const now = new Date();
+        if (!isNaN(start.getTime())) {
+          const diffMs = now - start;
+          const hours = diffMs / (1000 * 60 * 60);
+          const formatted = hours < 1
+            ? `${(hours * 60).toFixed(0)} phút`
+            : `${hours.toFixed(1)} giờ`;
+          setElapsedDisplay(formatted);
+        }
+      };
+      updateElapsed();
+      intervalId = setInterval(updateElapsed, 60000);
+    } else if (stageData?.stageStartTime && stageData?.stageEndTime) {
+      const start = new Date(stageData.stageStartTime);
+      const end = new Date(stageData.stageEndTime);
+      if (!isNaN(start.getTime()) && !isNaN(end.getTime()) && end > start) {
+        const diffMs = end - start;
+        const hours = diffMs / (1000 * 60 * 60);
+        setElapsedDisplay(hours < 1 ? `${(hours * 60).toFixed(0)} phút` : `${hours.toFixed(1)} giờ`);
+      } else {
+        setElapsedDisplay('0.0 giờ');
+      }
+    } else if (stageData?.workedHours) {
+      setElapsedDisplay(`${Number(stageData.workedHours).toFixed(1)} giờ`);
+    } else {
+      setElapsedDisplay('0.0 giờ');
+    }
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [stageData?.stageStartTime, stageData?.stageEndTime, stageData?.workedHours]);
+
   const handleBack = () => {
     navigate(`/production/orders/${orderId}`);
   };
@@ -265,7 +303,7 @@ const StageProgressDetail = () => {
           })() : 
           'Chưa hoàn thành' 
       },
-      { label: 'Thời gian đã làm', value: `${(stageData.workedHours || 0).toFixed(1)} giờ` },
+      { label: 'Thời gian đã làm', value: elapsedDisplay },
       { label: 'Người phụ trách', value: stageData.responsiblePerson },
     ];
     },

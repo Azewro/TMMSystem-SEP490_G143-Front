@@ -92,6 +92,12 @@ const DEFAULT_STAGE_TYPES = ['WARPING', 'WEAVING', 'DYEING', 'CUTTING', 'HEMMING
 const NON_INTERNAL_MACHINE_STAGES = new Set(['DYEING', 'PACKAGING']);
 const DEFAULT_STAGE_DURATION_MINUTES = 4 * 60;
 const PROCESS_LEADER_KEYWORDS = ['product process leader', 'process leader'];
+const PM_ROLE_KEYWORDS = ['production manager', 'pm'];
+const USER_FETCH_SIZE = 200;
+const isDyeingStageType = (stageType = '') => {
+    const normalized = stageType ? stageType.toUpperCase() : '';
+    return normalized === 'DYEING' || normalized === 'NHUOM';
+};
 
 const toDate = (value) => {
     if (!value) return null;
@@ -166,6 +172,7 @@ const ProductionPlanDetail = () => {
     const [machines, setMachines] = useState([]);
     const [inChargeUsers, setInChargeUsers] = useState([]);
     const [qcUsers, setQcUsers] = useState([]);
+    const [pmUsers, setPmUsers] = useState([]);
     const [stageSuggestions, setStageSuggestions] = useState({});
     const [stageSuggestionsLoading, setStageSuggestionsLoading] = useState({});
     const [stageConflicts, setStageConflicts] = useState({});
@@ -280,7 +287,7 @@ const ProductionPlanDetail = () => {
                 productService.getAllProducts(),
                 contractService.getOrderDetails(planData.contractId),
                 productionPlanService.getMaterialConsumption(id),
-                userService.getAllUsers(),
+                userService.getAllUsers(0, USER_FETCH_SIZE),
                 machineService.getAllMachines()
             ]);
 
@@ -373,12 +380,18 @@ const ProductionPlanDetail = () => {
             setMachines(mergeMachinesWithStages(machinesArray, planStages));
 
             const usersArray = allUsers?.content || (Array.isArray(allUsers) ? allUsers : []);
+            const normalizeRole = (roleName) => (roleName ? roleName.toLowerCase() : '');
             const processLeaders = usersArray.filter(u => {
-                const role = u.roleName ? u.roleName.toLowerCase() : '';
+                const role = normalizeRole(u.roleName);
                 return PROCESS_LEADER_KEYWORDS.some(keyword => role.includes(keyword));
             });
+            const productionManagers = usersArray.filter(u => {
+                const role = normalizeRole(u.roleName);
+                return PM_ROLE_KEYWORDS.some(keyword => role.includes(keyword));
+            });
             setInChargeUsers(processLeaders.length ? processLeaders : usersArray);
-            setQcUsers(usersArray.filter(u => u.roleName && u.roleName.toLowerCase() === 'quality assurance department'));
+            setPmUsers(productionManagers.length ? productionManagers : processLeaders);
+            setQcUsers(usersArray.filter(u => normalizeRole(u.roleName) === 'quality assurance department'));
             setStageSuggestions({});
             setStageSuggestionsLoading({});
             setStageConflicts({});
@@ -745,9 +758,18 @@ const ProductionPlanDetail = () => {
                                             </Col>
                                             <Col md={4} className="form-group-custom">
                                                 <Form.Label className="form-label-custom">Người phụ trách</Form.Label>
-                                                <Form.Select value={stage.inChargeId || ''} onChange={(e) => handleStageChange(stage.id, 'inChargeId', e.target.value)} disabled={isReadOnly}>
-                                                    <option value="">Chọn NV</option>
-                                                    {inChargeUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                                                <Form.Select
+                                                    value={stage.inChargeId || ''}
+                                                    onChange={(e) => handleStageChange(stage.id, 'inChargeId', e.target.value)}
+                                                    disabled={isReadOnly}
+                                                >
+                                                    <option value="">
+                                                        {isDyeingStageType(stage.stageType) ? 'Chọn PM' : 'Chọn NV'}
+                                                    </option>
+                                                    {(isDyeingStageType(stage.stageType) ? (pmUsers.length ? pmUsers : inChargeUsers) : inChargeUsers)
+                                                        .map(u => (
+                                                            <option key={u.id} value={u.id}>{u.name}</option>
+                                                        ))}
                                                 </Form.Select>
                                             </Col>
                                             <Col md={4} className="form-group-custom">
