@@ -345,23 +345,23 @@ const QuoteRequest = () => {
           <>
             <h5 className="mb-3">Bước 1: Thông Tin Liên Hệ</h5>
             <Row>
-              <Col md={6}><Form.Group className="mb-3"><Form.Label>Họ và tên <span className="text-danger">*</span></Form.Label><Form.Control type="text" name="contactPerson" defaultValue={formRef.current.contactPerson} onChange={handleFormChange} isInvalid={!!errors.contactPerson} /><Form.Control.Feedback type="invalid">{errors.contactPerson}</Form.Control.Feedback></Form.Group></Col>
-              <Col md={6}><Form.Group className="mb-3"><Form.Label>Số điện thoại <span className="text-danger">*</span></Form.Label><Form.Control type="text" name="contactPhone" defaultValue={formRef.current.contactPhone} onChange={handleFormChange} isInvalid={!!errors.contactPhone} /><Form.Control.Feedback type="invalid">{errors.contactPhone}</Form.Control.Feedback></Form.Group></Col>
-              <Col md={6}><Form.Group className="mb-3"><Form.Label>Email <span className="text-danger">*</span></Form.Label><Form.Control type="email" name="contactEmail" defaultValue={formRef.current.contactEmail} onChange={handleFormChange} isInvalid={!!errors.contactEmail} /><Form.Control.Feedback type="invalid">{errors.contactEmail}</Form.Control.Feedback></Form.Group></Col>
-              <Col md={6}><Form.Group className="mb-3"><Form.Label>Mã nhân viên Sale (nếu có)</Form.Label><Form.Control type="text" name="employeeCode" defaultValue={formRef.current.employeeCode} onChange={handleFormChange} /></Form.Group></Col>
-              <Col md={6}><Form.Group className="mb-3"><Form.Label>Phương thức liên hệ</Form.Label><Form.Select name="contactMethod" defaultValue={formRef.current.contactMethod} onChange={handleFormChange}><option>Điện thoại</option><option>Email</option><option>Cả hai</option></Form.Select></Form.Group></Col>
+              <Col xs={6} md={6}><Form.Group className="mb-3"><Form.Label>Họ và tên <span className="text-danger">*</span></Form.Label><Form.Control type="text" name="contactPerson" defaultValue={formRef.current.contactPerson} onChange={handleFormChange} isInvalid={!!errors.contactPerson} /><Form.Control.Feedback type="invalid">{errors.contactPerson}</Form.Control.Feedback></Form.Group></Col>
+              <Col xs={6} md={6}><Form.Group className="mb-3"><Form.Label>Số điện thoại <span className="text-danger">*</span></Form.Label><Form.Control type="text" name="contactPhone" defaultValue={formRef.current.contactPhone} onChange={handleFormChange} isInvalid={!!errors.contactPhone} /><Form.Control.Feedback type="invalid">{errors.contactPhone}</Form.Control.Feedback></Form.Group></Col>
+              <Col xs={12} md={6}><Form.Group className="mb-3"><Form.Label>Email <span className="text-danger">*</span></Form.Label><Form.Control type="email" name="contactEmail" defaultValue={formRef.current.contactEmail} onChange={handleFormChange} isInvalid={!!errors.contactEmail} /><Form.Control.Feedback type="invalid">{errors.contactEmail}</Form.Control.Feedback></Form.Group></Col>
+              <Col xs={6} md={6}><Form.Group className="mb-3"><Form.Label>Mã NV Sale (nếu có)</Form.Label><Form.Control type="text" name="employeeCode" defaultValue={formRef.current.employeeCode} onChange={handleFormChange} /></Form.Group></Col>
+              <Col xs={6} md={6}><Form.Group className="mb-3"><Form.Label>Phương thức liên hệ</Form.Label><Form.Select name="contactMethod" defaultValue={formRef.current.contactMethod} onChange={handleFormChange}><option>Điện thoại</option><option>Email</option><option>Cả hai</option></Form.Select></Form.Group></Col>
             </Row>
 
             <h5 className="mb-3 mt-3">Địa chỉ nhận hàng</h5>
             {errors.address && <Alert variant="danger" size="sm">{errors.address}</Alert>}
             <Row>
-              <Col md={6} className="mb-3">
+              <Col xs={6} md={6} className="mb-3">
                 <Form.Label>Tỉnh/Thành phố <span className="text-danger">*</span></Form.Label>
-                <Select options={provinceOptions} value={provinceOptions.find(option => option.value === selectedProvince)} onChange={option => setSelectedProvince(option ? option.value : '')} isLoading={addressLoading.provinces} placeholder={addressLoading.provinces ? 'Đang tải...' : 'Chọn Tỉnh/Thành phố'} isClearable isSearchable />
+                <Select options={provinceOptions} value={provinceOptions.find(option => option.value === selectedProvince)} onChange={option => setSelectedProvince(option ? option.value : '')} isLoading={addressLoading.provinces} placeholder={addressLoading.provinces ? 'Đang tải...' : 'Chọn Tỉnh...'} isClearable isSearchable />
               </Col>
-              <Col md={6} className="mb-3">
+              <Col xs={6} md={6} className="mb-3">
                 <Form.Label>Xã/Phường <span className="text-danger">*</span></Form.Label>
-                <Select options={communeOptions} value={communeOptions.find(option => option.value === selectedCommune)} onChange={option => setSelectedCommune(option ? option.value : '')} isDisabled={!selectedProvince || addressLoading.communes} isLoading={addressLoading.communes} placeholder={addressLoading.communes ? 'Đang tải...' : 'Chọn Xã/Phường'} isClearable isSearchable />
+                <Select options={communeOptions} value={communeOptions.find(option => option.value === selectedCommune)} onChange={option => setSelectedCommune(option ? option.value : '')} isDisabled={!selectedProvince || addressLoading.communes} isLoading={addressLoading.communes} placeholder={addressLoading.communes ? 'Đang tải...' : 'Chọn Xã...'} isClearable isSearchable />
               </Col>
               <Col md={12} className="mb-3">
                 <Form.Label>Số nhà, tên đường <span className="text-danger">*</span></Form.Label>
@@ -385,8 +385,8 @@ const QuoteRequest = () => {
                       {!isFromCart && quoteItems.length > 1 && <Button variant="link" className="text-danger p-0" onClick={() => handleRemoveProduct(index)}>Xóa</Button>}
                     </div>
                     <Row className="align-items-end mt-2">
-                      <Col md={6}><Form.Group><Form.Label>Số lượng <span className="text-danger">*</span></Form.Label><Form.Control type="number" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} min="100" required isInvalid={!!errors.items?.[index]?.quantity} /><Form.Control.Feedback type="invalid">{errors.items?.[index]?.quantity}</Form.Control.Feedback></Form.Group></Col>
-                      <Col md={6}><Form.Group><Form.Label>Kích thước</Form.Label><div className="form-control-plaintext border rounded px-3 py-2 bg-light" style={{ pointerEvents: 'none', userSelect: 'none' }}>{item.standardDimensions || 'N/A'}</div></Form.Group></Col>
+                      <Col xs={6} md={6}><Form.Group><Form.Label>Số lượng <span className="text-danger">*</span></Form.Label><Form.Control type="number" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} min="100" required isInvalid={!!errors.items?.[index]?.quantity} /><Form.Control.Feedback type="invalid">{errors.items?.[index]?.quantity}</Form.Control.Feedback></Form.Group></Col>
+                      <Col xs={6} md={6}><Form.Group><Form.Label>Kích thước</Form.Label><div className="form-control-plaintext border rounded px-3 py-2 bg-light" style={{ pointerEvents: 'none', userSelect: 'none' }}>{item.standardDimensions || 'N/A'}</div></Form.Group></Col>
                     </Row>
                   </div>
                 );
@@ -403,12 +403,14 @@ const QuoteRequest = () => {
         return (
           <>
             <h5 className="mb-3">Bước 3: Xem Lại Yêu Cầu</h5>
-            <Card bg="light" className="p-3">
+            <Card bg="light" className="p-2 p-md-3">
               <h6>Thông tin liên hệ</h6>
-              <p className="mb-1"><strong>Họ tên:</strong> {formRef.current.contactPerson}</p>
-              <p className="mb-1"><strong>SĐT:</strong> {formRef.current.contactPhone}</p>
-              <p className="mb-1"><strong>Email:</strong> {formRef.current.contactEmail}</p>
-              <p className="mb-1"><strong>Địa chỉ nhận hàng:</strong> {`${detailedAddress}, ${communes.find(c => c.code == selectedCommune)?.name || ''}, ${provinces.find(p => p.code == selectedProvince)?.name || ''}`}</p>
+              <Row>
+                <Col xs={6} md={6}><p className="mb-1"><strong>Họ tên:</strong> {formRef.current.contactPerson}</p></Col>
+                <Col xs={6} md={6}><p className="mb-1"><strong>SĐT:</strong> {formRef.current.contactPhone}</p></Col>
+                <Col xs={12} md={6}><p className="mb-1"><strong>Email:</strong> {formRef.current.contactEmail}</p></Col>
+                <Col xs={12} md={6}><p className="mb-1"><strong>Địa chỉ:</strong> {`${detailedAddress}, ${communes.find(c => c.code == selectedCommune)?.name || ''}, ${provinces.find(p => p.code == selectedProvince)?.name || ''}`}</p></Col>
+              </Row>
               <hr />
               <h6>Chi tiết sản phẩm</h6>
               <ul className="list-unstyled">
@@ -417,8 +419,10 @@ const QuoteRequest = () => {
                   return <li key={index} className="mb-2"><strong>{product?.name || 'Sản phẩm đã chọn'}:</strong> {item.quantity} cái</li>;
                 })}
               </ul>
-              <p><strong>Ngày giao mong muốn:</strong> {formRef.current.expectedDeliveryDate ? formRef.current.expectedDeliveryDate.toLocaleDateString('vi-VN') : 'Chưa chọn'}</p>
-              <p><strong>Ghi chú:</strong> {formRef.current.notes || 'Không có'}</p>
+              <Row>
+                <Col xs={12} md={6}><p><strong>Ngày giao:</strong> {formRef.current.expectedDeliveryDate ? formRef.current.expectedDeliveryDate.toLocaleDateString('vi-VN') : 'Chưa chọn'}</p></Col>
+                <Col xs={12} md={6}><p><strong>Ghi chú:</strong> {formRef.current.notes || 'Không có'}</p></Col>
+              </Row>
             </Card>
           </>
         );
@@ -432,12 +436,12 @@ const QuoteRequest = () => {
       <Header />
       <div className="d-flex">
         {isAuthenticated && <Sidebar />}
-        <div className="flex-grow-1 p-4" style={{ backgroundColor: '#f8f9fa' }}>
+        <div className="flex-grow-1 p-2 p-md-4" style={{ backgroundColor: '#f8f9fa' }}>
           <Container>
             <Row className="justify-content-center">
               <Col lg={10} xl={8}>
                 <Card className="shadow-sm">
-                  <Card.Body className="p-4">
+                  <Card.Body className="p-2 p-md-4">
                     <div className="text-center mb-4">
                       <h2 className="fw-bold">Tạo Yêu Cầu Báo Giá</h2>
                       <p className="text-muted">Hoàn thành các bước sau để gửi yêu cầu cho chúng tôi</p>
