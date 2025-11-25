@@ -164,6 +164,8 @@ const LeaderStageProgress = () => {
   }, [stage]);
 
   // Check if stage is pending (chưa đến lượt)
+  const orderStatus = order?.executionStatus || order?.status;
+  const orderLocked = orderStatus === 'WAITING_PRODUCTION' || orderStatus === 'PENDING_APPROVAL' || orderStatus === 'DRAFT';
   const isPending = stage && (stage.executionStatus === 'PENDING' || stage.status === 'PENDING');
   const isStageInProgress = stage && (
     stage.executionStatus === 'IN_PROGRESS' ||
@@ -173,7 +175,7 @@ const LeaderStageProgress = () => {
   );
 
   // canStart: WAITING, READY (sẵn sàng sản xuất) hoặc WAITING_REWORK (chờ sửa), chưa IN_PROGRESS và tiến độ < 100%
-  const canStart = stage && !isStageInProgress && stage.progressPercent < 100 && (
+  const canStart = stage && !isStageInProgress && stage.progressPercent < 100 && !orderLocked && (
     stage.executionStatus === 'WAITING' || 
     stage.executionStatus === 'READY' || 
     stage.executionStatus === 'WAITING_REWORK' ||
@@ -182,7 +184,7 @@ const LeaderStageProgress = () => {
     stage.status === 'WAITING_REWORK'
   );
   // canUpdate: IN_PROGRESS (đang làm) hoặc REWORK_IN_PROGRESS (đang sửa)
-  const canUpdate = stage && (
+  const canUpdate = stage && !orderLocked && (
     stage.executionStatus === 'IN_PROGRESS' || 
     stage.executionStatus === 'REWORK_IN_PROGRESS' ||
     stage.status === 'IN_PROGRESS' ||
@@ -319,7 +321,17 @@ const LeaderStageProgress = () => {
             </Card>
 
             {/* Action Area */}
-            {isPending && (
+            {orderLocked && (
+              <Card className="shadow-sm mb-3" style={{ borderColor: '#ffe1a8', backgroundColor: '#fff7e6' }}>
+                <Card.Body>
+                  <div className="alert alert-warning mb-0">
+                    Quản lý sản xuất chưa ấn “Bắt đầu lệnh làm việc”. Bạn chỉ có thể xem thông tin cho đến khi lệnh được mở.
+                  </div>
+                </Card.Body>
+              </Card>
+            )}
+
+            {isPending && !orderLocked && (
               <Card className="shadow-sm mb-3" style={{ borderColor: '#e9ecef', backgroundColor: '#f8f9fa' }}>
                 <Card.Body>
                   <div className="alert alert-info mb-0">
@@ -329,7 +341,7 @@ const LeaderStageProgress = () => {
               </Card>
             )}
 
-            {canStart && !isPending && (
+            {canStart && !isPending && !orderLocked && (
               <Card className="shadow-sm mb-3" style={{ borderColor: '#e7f1ff', backgroundColor: '#f5f9ff' }}>
                 <Card.Body className="d-flex justify-content-center">
                   <Button variant="primary" size="lg" onClick={handleStartStage}>
@@ -339,7 +351,7 @@ const LeaderStageProgress = () => {
               </Card>
             )}
 
-            {canUpdate && !isPending && (
+            {canUpdate && !isPending && !orderLocked && (
               <Card className="shadow-sm mb-3" style={{ borderColor: '#e7f1ff', backgroundColor: '#f5f9ff' }}>
                 <Card.Body>
                   <div className="d-flex justify-content-between align-items-center mb-3">

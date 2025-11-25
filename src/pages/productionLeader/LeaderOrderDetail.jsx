@@ -36,6 +36,7 @@ const LeaderOrderDetail = () => {
           expectedFinishDate: data.plannedEndDate || data.expectedFinishDate,
           customerName: data.contract?.customer?.name || 'N/A',
           status: data.executionStatus || data.status,
+          orderStatus: data.executionStatus || data.status,
           statusLabel: getStatusLabel(data.executionStatus || data.status),
           stage: leaderStage ? {
             id: leaderStage.id,
@@ -188,7 +189,8 @@ const LeaderOrderDetail = () => {
                       <td className="text-end">
                           {(() => {
                             const buttonConfig = getButtonForStage(order.stage.status, 'leader');
-                            const isDisabled = order.stage.status === 'PENDING'; // Disable nếu chưa đến lượt
+                            const orderLocked = order.orderStatus === 'WAITING_PRODUCTION' || order.orderStatus === 'PENDING_APPROVAL';
+                            const isDisabled = order.stage.status === 'PENDING' || orderLocked; // Disable nếu chưa đến lượt hoặc chưa start
                             if (buttonConfig.action === 'start' || buttonConfig.action === 'update') {
                               return (
                                 <Button 
@@ -196,7 +198,11 @@ const LeaderOrderDetail = () => {
                                   variant={buttonConfig.variant} 
                                   onClick={handleViewStage}
                                   disabled={isDisabled}
-                                  title={isDisabled ? 'Chưa đến lượt, chỉ có thể xem' : ''}
+                                  title={
+                                    orderLocked
+                                      ? 'PM chưa bắt đầu lệnh làm việc'
+                                      : (order.stage.status === 'PENDING' ? 'Chưa đến lượt, chỉ có thể xem' : '')
+                                  }
                                 >
                                   {buttonConfig.text}
                                 </Button>

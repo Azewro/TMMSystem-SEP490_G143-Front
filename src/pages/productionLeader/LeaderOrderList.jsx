@@ -42,7 +42,7 @@ const LeaderOrderList = () => {
                 stage => stage.assignedLeaderId === numericUserId || 
                          stage.assignedLeader?.id === numericUserId
               );
-
+              const orderStatus = orderDetail.executionStatus || orderDetail.status;
               const productName =
                 orderDetail.productName ||
                 orderDetail.contract?.productName ||
@@ -54,6 +54,7 @@ const LeaderOrderList = () => {
               return {
                 ...order,
                 productName,
+                orderStatus,
                 leaderStage: leaderStage ? {
                   id: leaderStage.id,
                   status: leaderStage.executionStatus || leaderStage.status,
@@ -159,6 +160,7 @@ const LeaderOrderList = () => {
                     ) : (
                       filteredOrders.map((order, index) => {
                         const stage = order.leaderStage;
+                        const orderLocked = order.orderStatus === 'WAITING_PRODUCTION' || order.orderStatus === 'PENDING_APPROVAL';
                         const buttonConfig = stage ? getButtonForStage(stage.status, 'leader') : 
                           { text: 'Chi tiết', action: 'detail', variant: 'dark' };
                         
@@ -183,7 +185,8 @@ const LeaderOrderList = () => {
                               size="sm"
                                   variant={buttonConfig.variant}
                               onClick={() => handleStart(order)}
-                                  disabled={stage?.status === 'PENDING'} // Disable nếu chưa đến lượt
+                                  disabled={stage?.status === 'PENDING' || orderLocked}
+                                  title={orderLocked ? 'Chưa được phép, PM chưa bắt đầu lệnh làm việc' : (stage?.status === 'PENDING' ? 'Chưa đến lượt' : '')}
                                 >
                                   {buttonConfig.text}
                                 </Button>
