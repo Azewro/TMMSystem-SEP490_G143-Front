@@ -7,7 +7,19 @@ import { contractService } from '../../api/contractService';
 import { quotationService } from '../../api/quotationService'; // Import quotationService
 import { customerService } from '../../api/customerService'; // Import customerService
 import Pagination from '../../components/Pagination'; // Import Pagination
+import toast from 'react-hot-toast';
 import '../../styles/QuoteRequests.css';
+
+const getFileExtension = (url) => {
+  if (!url) return '';
+  const cleanUrl = url.split(/[?#]/)[0];
+  const parts = cleanUrl.split('.');
+  return parts.length > 1 ? parts.pop().toLowerCase() : '';
+};
+
+const isPdf = (url) => getFileExtension(url) === 'pdf';
+const isImage = (url) => ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'].includes(getFileExtension(url));
+const isDocx = (url) => ['docx', 'doc'].includes(getFileExtension(url));
 
 const STATUS_LABELS = {
   DRAFT: { text: 'Chưa upload', variant: 'secondary' },
@@ -50,12 +62,18 @@ const ContractUpload = () => {
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
-  
+
   // Modal state for view details
   const [viewDetailsModalOpen, setViewDetailsModalOpen] = useState(false);
   const [viewDetailsContract, setViewDetailsContract] = useState(null);
   const [viewDetailsLoading, setViewDetailsLoading] = useState(false);
   const [viewDetailsData, setViewDetailsData] = useState(null);
+
+  // File viewing state
+  const [fileUrl, setFileUrl] = useState('');
+  const [quoteFileUrl, setQuoteFileUrl] = useState('');
+  const [showFileViewer, setShowFileViewer] = useState(false);
+  const [viewerUrl, setViewerUrl] = useState('');
 
   // Search and Filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -102,20 +120,20 @@ const ContractUpload = () => {
       // Enrich contracts with customer info
       const enrichedContracts = Array.isArray(userContracts)
         ? userContracts.map(contract => {
-            const customer = contract.customerId 
-              ? (customerMap.get(contract.customerId) 
-                  || customerMap.get(String(contract.customerId))
-                  || customerMap.get(Number(contract.customerId)))
-              : null;
-            return {
-              ...contract,
-              customer: customer
-            };
-          })
+          const customer = contract.customerId
+            ? (customerMap.get(contract.customerId)
+              || customerMap.get(String(contract.customerId))
+              || customerMap.get(Number(contract.customerId)))
+            : null;
+          return {
+            ...contract,
+            customer: customer
+          };
+        })
         : [];
 
       // Sort by newest date first
-      const sortedContracts = enrichedContracts.sort((a, b) => 
+      const sortedContracts = enrichedContracts.sort((a, b) =>
         new Date(b.contractDate || b.createdAt) - new Date(a.contractDate || a.createdAt)
       );
       setContracts(sortedContracts);
@@ -174,10 +192,38 @@ const ContractUpload = () => {
     setViewDetailsModalOpen(true);
     setViewDetailsLoading(true);
     setViewDetailsData(null);
+    setFileUrl('');
+    setQuoteFileUrl('');
 
     try {
-      const details = await contractService.getOrderDetails(contract.id);
+      // Fetch details and file URLs in parallel
+      const [details, contractUrl] = await Promise.all([
+        contractService.getOrderDetails(contract.id),
+        contractService.getContractFileUrl(contract.id)
+      ]);
+
       setViewDetailsData(details);
+
+      if (contractUrl) {
+        const apiPathIndex = contractUrl.indexOf('/api/');
+        const relativeUrl = apiPathIndex !== -1 ? contractUrl.substring(apiPathIndex) : contractUrl;
+        setFileUrl(relativeUrl);
+      }
+
+      // Fetch optional quote file URL
+      if (contract.quotationId) {
+        try {
+          const quoteUrl = await quotationService.getQuoteFileUrl(contract.quotationId);
+          if (quoteUrl) {
+            const apiPathIndex = quoteUrl.indexOf('/api/');
+            const relativeUrl = apiPathIndex !== -1 ? quoteUrl.substring(apiPathIndex) : quoteUrl;
+            setQuoteFileUrl(relativeUrl);
+          }
+        } catch (quoteUrlError) {
+          console.error('Could not fetch quote file URL:', quoteUrlError);
+        }
+      }
+
     } catch (err) {
       console.error('Unable to load contract details', err);
       setError(err.message || 'Không thể tải chi tiết đơn hàng.');
@@ -190,6 +236,8 @@ const ContractUpload = () => {
     setViewDetailsModalOpen(false);
     setViewDetailsContract(null);
     setViewDetailsData(null);
+    setFileUrl('');
+    setQuoteFileUrl('');
   };
 
   const openUploadModal = async (contract) => {
@@ -223,8 +271,8 @@ const ContractUpload = () => {
 
   const handleUpload = async () => {
     if (!selectedContract || !selectedContract.quotationId) {
-        setError('Hợp đồng được chọn không hợp lệ hoặc thiếu ID báo giá.');
-        return;
+      setError('Hợp đồng được chọn không hợp lệ hoặc thiếu ID báo giá.');
+      return;
     }
     if (!file || !quoteFile) {
       setError('Vui lòng chọn file hợp đồng và file báo giá đã ký.');
@@ -270,6 +318,54 @@ const ContractUpload = () => {
     }
   };
 
+  const handleCloseFileViewer = () => {
+    if (viewerUrl) {
+      URL.revokeObjectURL(viewerUrl);
+    }
+    setShowFileViewer(false);
+    setViewerUrl('');
+  };
+
+  const handleViewFile = async (url) => {
+    if (!url || isDocx(url)) return;
+
+    const toastId = toast.loading('Đang chuẩn bị file để xem...');
+    try {
+      const token = sessionStorage.getItem('token');
+      const headers = { 'Authorization': `Bearer ${token}` };
+      const response = await fetch(url, { headers });
+
+      if (!response.ok) {
+        throw new Error('Không thể tải file.');
+      }
+
+      let blob = await response.blob();
+
+      // Fix: Force content type based on extension if blob type is missing or generic
+      const ext = getFileExtension(url);
+      let mimeType = blob.type;
+
+      if (!mimeType || mimeType === 'application/octet-stream') {
+        if (ext === 'pdf') mimeType = 'application/pdf';
+        else if (['png', 'jpg', 'jpeg'].includes(ext)) mimeType = `image/${ext}`;
+      }
+
+      if (mimeType) {
+        blob = new Blob([blob], { type: mimeType });
+      }
+
+      const objectUrl = URL.createObjectURL(blob);
+
+      setViewerUrl(objectUrl);
+      setShowFileViewer(true);
+      toast.success('Đã mở file.', { id: toastId });
+
+    } catch (error) {
+      console.error('Error viewing file:', error);
+      toast.error('Không thể mở file để xem.', { id: toastId });
+    }
+  };
+
   const renderActionButtons = (contract) => {
     const commonProps = {
       variant: "primary", // Changed to solid blue
@@ -299,9 +395,9 @@ const ContractUpload = () => {
       default:
         // For other statuses like PENDING_APPROVAL, show a generic view button
         return (
-            <Button variant="secondary" size="sm" className="w-100" onClick={() => openViewDetailsModal(contract)}>
-                Xem chi tiết
-            </Button>
+          <Button variant="secondary" size="sm" className="w-100" onClick={() => openViewDetailsModal(contract)}>
+            Xem chi tiết
+          </Button>
         );
     }
   };
@@ -402,8 +498,8 @@ const ContractUpload = () => {
                     ) : currentContracts.length === 0 ? (
                       <tr>
                         <td colSpan={8} className="text-center py-4 text-muted">
-                          {contracts.length === 0 
-                            ? 'Không có đơn hàng nào.' 
+                          {contracts.length === 0
+                            ? 'Không có đơn hàng nào.'
                             : 'Không tìm thấy đơn hàng phù hợp với bộ lọc.'}
                         </td>
                       </tr>
@@ -445,10 +541,10 @@ const ContractUpload = () => {
         </div>
       </div>
 
-      <Modal 
-        show={modalOpen} 
-        onHide={closeModal} 
-        size="lg" 
+      <Modal
+        show={modalOpen}
+        onHide={closeModal}
+        size="lg"
         centered={!viewDetailsModalOpen}
         dialogClassName={viewDetailsModalOpen ? 'modal-side-by-side-right' : ''}
         backdrop={viewDetailsModalOpen ? false : true}
@@ -536,10 +632,10 @@ const ContractUpload = () => {
       </Modal>
 
       {/* View Details Modal */}
-      <Modal 
-        show={viewDetailsModalOpen} 
-        onHide={closeViewDetailsModal} 
-        size="lg" 
+      <Modal
+        show={viewDetailsModalOpen}
+        onHide={closeViewDetailsModal}
+        size="lg"
         centered={!modalOpen}
         dialogClassName={modalOpen ? 'modal-side-by-side-left' : ''}
         backdrop={true}
@@ -586,14 +682,14 @@ const ContractUpload = () => {
                       <p className="mb-2"><strong>Tổng giá trị:</strong> <span className="text-success fw-semibold">{formatCurrency(viewDetailsContract.totalAmount || viewDetailsData.totalAmount)}</span></p>
                     </Col>
                     <Col md={6}>
-                      <p className="mb-2"><strong>Trạng thái:</strong> 
+                      <p className="mb-2"><strong>Trạng thái:</strong>
                         <Badge bg={STATUS_LABELS[viewDetailsContract.status]?.variant || 'secondary'} className="ms-2">
                           {STATUS_LABELS[viewDetailsContract.status]?.text || viewDetailsContract.status}
                         </Badge>
                       </p>
                     </Col>
                   </Row>
-                  
+
                   {/* Order Items Table */}
                   {viewDetailsData.orderItems && viewDetailsData.orderItems.length > 0 && (
                     <div className="mt-3">
@@ -625,7 +721,7 @@ const ContractUpload = () => {
 
               {/* Notes */}
               {(viewDetailsContract.directorApprovalNotes || viewDetailsData.notes) && (
-                <Card>
+                <Card className="mb-3">
                   <Card.Header>
                     <strong>Ghi chú</strong>
                   </Card.Header>
@@ -634,6 +730,59 @@ const ContractUpload = () => {
                   </Card.Body>
                 </Card>
               )}
+
+              {/* File Preview Section */}
+              <div className="d-flex gap-2 flex-wrap">
+                {/* Contract File Buttons */}
+                {fileUrl ? (
+                  <>
+                    <Button
+                      variant="outline-secondary"
+                      onClick={() => handleViewFile(fileUrl)}
+                      disabled={isDocx(fileUrl)}
+                      title={isDocx(fileUrl) ? 'File DOCX cần được tải về để xem' : 'Xem file hợp đồng'}
+                    >
+                      Xem file hợp đồng
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      href={fileUrl}
+                      download
+                    >
+                      Tải về hợp đồng
+                    </Button>
+                  </>
+                ) : (
+                  <Alert variant="warning" className="py-2 px-3 mb-0">
+                    Chưa có file hợp đồng.
+                  </Alert>
+                )}
+
+                {/* Quote File Buttons */}
+                {quoteFileUrl ? (
+                  <>
+                    <Button
+                      variant="outline-info"
+                      onClick={() => handleViewFile(quoteFileUrl)}
+                      disabled={isDocx(quoteFileUrl)}
+                      title={isDocx(quoteFileUrl) ? 'File DOCX cần được tải về để xem' : 'Xem file báo giá'}
+                    >
+                      Xem file báo giá
+                    </Button>
+                    <Button
+                      variant="info"
+                      href={quoteFileUrl}
+                      download
+                    >
+                      Tải về báo giá
+                    </Button>
+                  </>
+                ) : (
+                  <Alert variant="warning" className="py-2 px-3 mb-0">
+                    Chưa có file báo giá.
+                  </Alert>
+                )}
+              </div>
             </div>
           ) : (
             <Alert variant="warning">Không tìm thấy chi tiết đơn hàng.</Alert>
@@ -644,8 +793,8 @@ const ContractUpload = () => {
             Đóng
           </Button>
           {viewDetailsContract && (
-            <Button 
-              variant="primary" 
+            <Button
+              variant="primary"
               onClick={() => {
                 // Không đóng modal xem chi tiết, chỉ mở modal upload
                 openUploadModal(viewDetailsContract);
@@ -655,6 +804,20 @@ const ContractUpload = () => {
             </Button>
           )}
         </Modal.Footer>
+      </Modal>
+
+      {/* File Viewer Modal */}
+      <Modal show={showFileViewer} onHide={handleCloseFileViewer} size="xl" centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Xem file</Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ height: '80vh' }}>
+          {viewerUrl ? (
+            <iframe src={viewerUrl} width="100%" height="100%" title="File Viewer" style={{ border: 'none' }}></iframe>
+          ) : (
+            <div className="text-center">Đang tải file...</div>
+          )}
+        </Modal.Body>
       </Modal>
     </div>
   );

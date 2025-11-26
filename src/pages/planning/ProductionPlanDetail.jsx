@@ -104,7 +104,7 @@ const toDate = (value) => {
     try {
         return new Date(value);
         // eslint-disable-next-line no-empty
-    } catch (err) {}
+    } catch (err) { }
     return null;
 };
 
@@ -161,7 +161,7 @@ const ProductionPlanDetail = () => {
 
     const [initialPlan, setInitialPlan] = useState(null);
     const [editablePlan, setEditablePlan] = useState(null);
-    
+
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -179,24 +179,10 @@ const ProductionPlanDetail = () => {
     const [stageConflictsLoading, setStageConflictsLoading] = useState({});
     const [stageActionLoading, setStageActionLoading] = useState({});
 
-    const mergeMachinesWithStages = useCallback((baseMachines = [], stages = []) => {
-        const machineMap = new Map();
-        baseMachines.forEach(machine => {
-            if (machine?.id) {
-                machineMap.set(machine.id, machine);
-            }
-        });
-        stages.forEach(stage => {
-            if (stage?.assignedMachineId && !machineMap.has(stage.assignedMachineId)) {
-                machineMap.set(stage.assignedMachineId, {
-                    id: stage.assignedMachineId,
-                    name: stage.assignedMachineName || stage.assignedMachineCode || `Máy #${stage.assignedMachineId}`,
-                    code: stage.assignedMachineCode,
-                });
-            }
-        });
-        return Array.from(machineMap.values());
-    }, []);
+    // const mergeMachinesWithStages = useCallback((baseMachines = [], stages = []) => {
+    //     // REMOVED: No machine assignment in planning
+    //     return baseMachines;
+    // }, []);
 
     const replaceStageInEditablePlan = useCallback((updatedStage) => {
         if (!updatedStage) return;
@@ -216,10 +202,7 @@ const ProductionPlanDetail = () => {
                 details: updatedDetails
             };
         });
-        if (normalizedStage.assignedMachineId) {
-            setMachines(prev => mergeMachinesWithStages(prev, [normalizedStage]));
-        }
-    }, [mergeMachinesWithStages]);
+    }, []);
 
     const autoFillStageTimes = useCallback(async (planId, stages, plannedQuantity) => {
         if (!Array.isArray(stages) || stages.length === 0) return null;
@@ -339,12 +322,12 @@ const ProductionPlanDetail = () => {
                     planData.proposedEndDate = autoFillResult.updatedPlan.proposedEndDate;
                 }
             }
-            
+
             if (!planData.details || planData.details.length === 0) {
                 const mainProductItem = contractDetails?.orderItems?.[0];
                 const mainProduct = mainProductItem ? productMap.get(mainProductItem.productId) : null;
                 const totalContractQuantity = contractDetails?.orderItems?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
-                
+
                 planData.details = [{
                     id: `new-detail-${Date.now()}`,
                     lotCode: lotCode,
@@ -367,17 +350,16 @@ const ProductionPlanDetail = () => {
                     };
                 });
             }
-            
+
             planData.lotCode = lotCode;
             planData.productName = productName || planData.details[0]?.productName;
             planData.sizeSnapshot = sizeSnapshot || planData.details[0]?.sizeSnapshot;
-            planData.plannedQuantity = plannedQuantity || planData.details[0]?.plannedQuantity;
 
             setInitialPlan(planData);
             setEditablePlan(JSON.parse(JSON.stringify(planData)));
 
             const machinesArray = allMachines?.content || (Array.isArray(allMachines) ? allMachines : []);
-            setMachines(mergeMachinesWithStages(machinesArray, planStages));
+            setMachines(machinesArray);
 
             const usersArray = allUsers?.content || (Array.isArray(allUsers) ? allUsers : []);
             const normalizeRole = (roleName) => (roleName ? roleName.toLowerCase() : '');
@@ -405,7 +387,7 @@ const ProductionPlanDetail = () => {
         } finally {
             setLoading(false);
         }
-    }, [autoFillStageTimes, id, mergeMachinesWithStages]);
+    }, [autoFillStageTimes, id]);
 
     useEffect(() => {
         if (id) {
@@ -465,28 +447,9 @@ const ProductionPlanDetail = () => {
         }
     };
 
-    const handleAutoAssignMachine = async (stageId, stageType) => {
-        if (NON_INTERNAL_MACHINE_STAGES.has(stageType)) {
-            toast('Công đoạn này không dùng máy nội bộ, vui lòng gán thủ công hoặc dùng vendor.');
-            return;
-        }
-        setStageActionLoading(prev => ({ ...prev, [stageId]: true }));
-        try {
-            const updatedStage = await productionPlanService.autoAssignMachine(stageId);
-            replaceStageInEditablePlan(updatedStage);
-            toast.success('Đã tự động gán máy cho công đoạn.');
-        } catch (err) {
-            console.error('Auto assign machine failed', err);
-            const message = err.response?.data?.message;
-            if (message && message.toLowerCase().includes('no suitable machines')) {
-                toast.error('Không tìm thấy máy phù hợp cho công đoạn này.');
-            } else {
-                toast.error(message || 'Không thể tự động gán máy.');
-            }
-        } finally {
-            setStageActionLoading(prev => ({ ...prev, [stageId]: false }));
-        }
-    };
+    // const handleAutoAssignMachine = async (stageId, stageType) => {
+    //     // REMOVED: No machine assignment in planning
+    // };
 
     const handleCheckConflicts = async (stageId) => {
         setStageConflictsLoading(prev => ({ ...prev, [stageId]: true }));
@@ -564,6 +527,7 @@ const ProductionPlanDetail = () => {
                         plannedQuantity: updatedPlan.details[idx]?.plannedQuantity ?? detail.plannedQuantity,
                         lotCode: updatedPlan.details[idx]?.lotCode ?? detail.lotCode,
                         productName: updatedPlan.details[idx]?.productName ?? detail.productName,
+                        stages: updatedPlan.details[idx]?.stages ? normalizeStages(updatedPlan.details[idx].stages) : detail.stages,
                     }));
                 }
                 return merged;
@@ -626,9 +590,9 @@ const ProductionPlanDetail = () => {
             });
 
             await Promise.all(updatePromises);
-            
+
             await productionPlanService.submitForApproval(editablePlan.id, "Đã cập nhật chi tiết kế hoạch.");
-            
+
             setSuccess('Đã lưu và gửi kế hoạch cho giám đốc phê duyệt thành công!');
             setTimeout(() => navigate('/planning/lots'), 2000);
 
@@ -704,28 +668,28 @@ const ProductionPlanDetail = () => {
                         </Card>
 
                         <div className="mt-4">
-                          <Tabs defaultActiveKey={mainDetail.stages?.[0]?.stageType || 'WARPING'} id="production-plan-stages-tabs" className="mb-3" justify>
-                            {mainDetail.stages?.map((stage, index) => {
-                              const suggestionsForStage = stageSuggestions[stage.id] || [];
-                              const suggestionsFetched = Object.prototype.hasOwnProperty.call(stageSuggestions, stage.id);
-                              const conflictsFetched = Object.prototype.hasOwnProperty.call(stageConflicts, stage.id);
-                              const conflictsForStage = stageConflicts[stage.id] || [];
-                              return (
-                                <Tab eventKey={stage.stageType} title={`${index + 1}. ${getStageTypeName(stage.stageType)}`} key={stage.id}>
-                                    <div className="p-3 bg-light rounded">
-                                        <div className="d-flex flex-wrap gap-2 mb-3">
-                                            <Button
-                                                variant="outline-info"
-                                                size="sm"
-                                                onClick={() => handleFetchMachineSuggestions(stage.id)}
-                                                disabled={isReadOnly || stageSuggestionsLoading[stage.id]}
-                                            >
-                                                {stageSuggestionsLoading[stage.id] ? (
-                                                    <Spinner as="span" animation="border" size="sm" className="me-2" />
-                                                ) : null}
-                                                Gợi ý máy
-                                            </Button>
-                                            <Button
+                            <Tabs defaultActiveKey={mainDetail.stages?.[0]?.stageType || 'WARPING'} id="production-plan-stages-tabs" className="mb-3" justify>
+                                {mainDetail.stages?.map((stage, index) => {
+                                    const suggestionsForStage = stageSuggestions[stage.id] || [];
+                                    const suggestionsFetched = Object.prototype.hasOwnProperty.call(stageSuggestions, stage.id);
+                                    const conflictsFetched = Object.prototype.hasOwnProperty.call(stageConflicts, stage.id);
+                                    const conflictsForStage = stageConflicts[stage.id] || [];
+                                    return (
+                                        <Tab eventKey={stage.stageType} title={`${index + 1}. ${getStageTypeName(stage.stageType)}`} key={stage.id}>
+                                            <div className="p-3 bg-light rounded">
+                                                <div className="d-flex flex-wrap gap-2 mb-3">
+                                                    <Button
+                                                        variant="outline-info"
+                                                        size="sm"
+                                                        onClick={() => handleFetchMachineSuggestions(stage.id)}
+                                                        disabled={isReadOnly || stageSuggestionsLoading[stage.id]}
+                                                    >
+                                                        {stageSuggestionsLoading[stage.id] ? (
+                                                            <Spinner as="span" animation="border" size="sm" className="me-2" />
+                                                        ) : null}
+                                                        Gợi ý máy
+                                                    </Button>
+                                                    {/* <Button
                                                 variant="outline-secondary"
                                                 size="sm"
                                                 onClick={() => handleAutoAssignMachine(stage.id, stage.stageType)}
@@ -735,162 +699,162 @@ const ProductionPlanDetail = () => {
                                                     <Spinner as="span" animation="border" size="sm" className="me-2" />
                                                 ) : null}
                                                 Auto gán máy
-                                            </Button>
-                                            <Button
-                                                variant="outline-warning"
-                                                size="sm"
-                                                onClick={() => handleCheckConflicts(stage.id)}
-                                                disabled={stageConflictsLoading[stage.id]}
-                                            >
-                                                {stageConflictsLoading[stage.id] ? (
-                                                    <Spinner as="span" animation="border" size="sm" className="me-2" />
-                                                ) : null}
-                                                Kiểm tra xung đột
-                                            </Button>
-                                        </div>
-                                        <Row>
-                                            <Col md={4} className="form-group-custom">
+                                            </Button> */}
+                                                    <Button
+                                                        variant="outline-warning"
+                                                        size="sm"
+                                                        onClick={() => handleCheckConflicts(stage.id)}
+                                                        disabled={stageConflictsLoading[stage.id]}
+                                                    >
+                                                        {stageConflictsLoading[stage.id] ? (
+                                                            <Spinner as="span" animation="border" size="sm" className="me-2" />
+                                                        ) : null}
+                                                        Kiểm tra xung đột
+                                                    </Button>
+                                                </div>
+                                                <Row>
+                                                    {/* <Col md={4} className="form-group-custom">
                                                 <Form.Label className="form-label-custom">Máy móc</Form.Label>
                                                 <Form.Select value={stage.assignedMachineId || ''} onChange={(e) => handleStageChange(stage.id, 'assignedMachineId', e.target.value)} disabled={isReadOnly}>
                                                     <option value="">Chọn máy</option>
                                                     {machines.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                                                 </Form.Select>
-                                            </Col>
-                                            <Col md={4} className="form-group-custom">
-                                                <Form.Label className="form-label-custom">Người phụ trách</Form.Label>
-                                                <Form.Select
-                                                    value={stage.inChargeId || ''}
-                                                    onChange={(e) => handleStageChange(stage.id, 'inChargeId', e.target.value)}
-                                                    disabled={isReadOnly}
-                                                >
-                                                    <option value="">
-                                                        {isDyeingStageType(stage.stageType) ? 'Chọn PM' : 'Chọn NV'}
-                                                    </option>
-                                                    {(isDyeingStageType(stage.stageType) ? (pmUsers.length ? pmUsers : inChargeUsers) : inChargeUsers)
-                                                        .map(u => (
-                                                            <option key={u.id} value={u.id}>{u.name}</option>
-                                                        ))}
-                                                </Form.Select>
-                                            </Col>
-                                            <Col md={4} className="form-group-custom">
-                                                <Form.Label className="form-label-custom">Người kiểm tra</Form.Label>
-                                                <Form.Select value={stage.inspectionById || ''} onChange={(e) => handleStageChange(stage.id, 'inspectionById', e.target.value)} disabled={isReadOnly}>
-                                                    <option value="">Chọn QC</option>
-                                                    {qcUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-                                                </Form.Select>
-                                            </Col>
-                                            <Col md={4} className="form-group-custom">
-                                                <Form.Label className="form-label-custom">TG bắt đầu</Form.Label>
-                                                <Form.Control type="datetime-local" value={formatDateTimeForInput(stage.plannedStartTime)} onChange={(e) => handleStageChange(stage.id, 'plannedStartTime', e.target.value)} disabled={isReadOnly} />
-                                            </Col>
-                                            <Col md={4} className="form-group-custom">
-                                                <Form.Label className="form-label-custom">TG kết thúc</Form.Label>
-                                                <Form.Control type="datetime-local" value={formatDateTimeForInput(stage.plannedEndTime)} onChange={(e) => handleStageChange(stage.id, 'plannedEndTime', e.target.value)} disabled={isReadOnly} />
-                                            </Col>
-                                            <Col md={4} className="form-group-custom">
-                                                <Form.Label className="form-label-custom">Thời lượng (giờ)</Form.Label>
-                                                <Form.Control type="number" value={stage.durationInHours || ''} onChange={(e) => handleStageChange(stage.id, 'durationInHours', e.target.value)} disabled={isReadOnly} />
-                                            </Col>
-                                            <Col md={4} className="form-group-custom">
-                                                <Form.Label className="form-label-custom">Năng suất (sp/h)</Form.Label>
-                                                <Form.Control type="number" step="0.01" value={stage.capacityPerHour || ''} onChange={(e) => handleStageChange(stage.id, 'capacityPerHour', e.target.value)} disabled={isReadOnly} />
-                                            </Col>
-                                            <Col md={4} className="form-group-custom">
-                                                <Form.Label className="form-label-custom">Sản lượng ước tính</Form.Label>
-                                                <Form.Control readOnly disabled value={formatNumberValue(stage.estimatedOutput)} />
-                                            </Col>
-                                            <Col md={12} className="form-group-custom">
-                                                <Form.Label className="form-label-custom">Ghi chú</Form.Label>
-                                                <Form.Control as="textarea" rows={2} value={stage.notes || ''} onChange={(e) => handleStageChange(stage.id, 'notes', e.target.value)} disabled={isReadOnly} />
-                                            </Col>
-                                        </Row>
-                                        {suggestionsFetched && suggestionsForStage.length === 0 && (
-                                            <Alert variant="info" className="mt-3">
-                                                Không có gợi ý máy phù hợp cho công đoạn này. Vui lòng chỉnh tay.
-                                            </Alert>
-                                        )}
-                                        {suggestionsForStage.length > 0 && (
-                                            <div className="mt-3">
-                                                <h6 className="mb-2">Gợi ý máy móc</h6>
-                                                <Table responsive bordered size="sm">
-                                                    <thead className="table-light">
-                                                        <tr>
-                                                            <th>Máy / Vendor</th>
-                                                            <th>Năng suất</th>
-                                                            <th>Ưu tiên</th>
-                                                            <th>Thời gian gợi ý</th>
-                                                            <th>Hành động</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {suggestionsForStage.map((suggestion) => (
-                                                            <tr key={`${stage.id}-${suggestion.machineId || suggestion.machineCode}`}>
-                                                                <td>
-                                                                    <div className="fw-semibold">{suggestion.machineName || 'N/A'}</div>
-                                                                    <div className="text-muted small">{suggestion.machineCode || '—'}</div>
-                                                                </td>
-                                                                <td>
-                                                                    {formatNumberValue(suggestion.capacityPerHour)} /h
-                                                                    <div className="small text-muted">
-                                                                        Ước tính: {formatNumberValue(suggestion.estimatedDurationHours)} giờ
-                                                                    </div>
-                                                                </td>
-                                                                <td>
-                                                                    <Badge bg={suggestion.available ? 'success' : 'secondary'}>
-                                                                        {suggestion.priorityScore ? suggestion.priorityScore.toFixed(0) : '—'}
-                                                                    </Badge>
-                                                                    <div className="small text-muted">
-                                                                        {suggestion.available ? 'Sẵn sàng' : 'Bận'}
-                                                                    </div>
-                                                                </td>
-                                                                <td>
-                                                                    <div className="small">
-                                                                        <div>BĐ: {formatDateTimeDisplay(suggestion.suggestedStartTime)}</div>
-                                                                        <div>KT: {formatDateTimeDisplay(suggestion.suggestedEndTime)}</div>
-                                                                    </div>
-                                                                    {suggestion.conflicts && suggestion.conflicts.length > 0 && (
-                                                                        <div className="text-danger small mt-1">
-                                                                            {suggestion.conflicts[0]}
-                                                                        </div>
-                                                                    )}
-                                                                </td>
-                                                                <td className="text-center">
-                                                                    <Button
-                                                                        variant="outline-primary"
-                                                                        size="sm"
-                                                                        onClick={() => handleApplySuggestion(stage.id, suggestion)}
-                                                                        disabled={isReadOnly || stageActionLoading[stage.id]}
-                                                                    >
-                                                                        Áp dụng
-                                                                    </Button>
-                                                                </td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </Table>
-                                            </div>
-                                        )}
-                                        {conflictsFetched && (
-                                            <Alert variant={conflictsForStage.length ? 'warning' : 'success'} className="mt-3">
-                                                {conflictsForStage.length ? (
-                                                    <>
-                                                        <strong>Phát hiện xung đột:</strong>
-                                                        <ul className="mb-0">
-                                                            {conflictsForStage.map((conflict, idx) => (
-                                                                <li key={`${stage.id}-conflict-${idx}`}>{conflict}</li>
-                                                            ))}
-                                                        </ul>
-                                                    </>
-                                                ) : (
-                                                    'Không có xung đột cho công đoạn này.'
+                                            </Col> */}
+                                                    <Col md={4} className="form-group-custom">
+                                                        <Form.Label className="form-label-custom">Người phụ trách</Form.Label>
+                                                        <Form.Select
+                                                            value={stage.inChargeId || ''}
+                                                            onChange={(e) => handleStageChange(stage.id, 'inChargeId', e.target.value)}
+                                                            disabled={isReadOnly}
+                                                        >
+                                                            <option value="">
+                                                                {isDyeingStageType(stage.stageType) ? 'Chọn PM' : 'Chọn NV'}
+                                                            </option>
+                                                            {(isDyeingStageType(stage.stageType) ? (pmUsers.length ? pmUsers : inChargeUsers) : inChargeUsers)
+                                                                .map(u => (
+                                                                    <option key={u.id} value={u.id}>{u.name}</option>
+                                                                ))}
+                                                        </Form.Select>
+                                                    </Col>
+                                                    <Col md={4} className="form-group-custom">
+                                                        <Form.Label className="form-label-custom">Người kiểm tra</Form.Label>
+                                                        <Form.Select value={stage.inspectionById || ''} onChange={(e) => handleStageChange(stage.id, 'inspectionById', e.target.value)} disabled={isReadOnly}>
+                                                            <option value="">Chọn QC</option>
+                                                            {qcUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                                                        </Form.Select>
+                                                    </Col>
+                                                    <Col md={4} className="form-group-custom">
+                                                        <Form.Label className="form-label-custom">TG bắt đầu</Form.Label>
+                                                        <Form.Control type="datetime-local" value={formatDateTimeForInput(stage.plannedStartTime)} onChange={(e) => handleStageChange(stage.id, 'plannedStartTime', e.target.value)} disabled={isReadOnly} />
+                                                    </Col>
+                                                    <Col md={4} className="form-group-custom">
+                                                        <Form.Label className="form-label-custom">TG kết thúc</Form.Label>
+                                                        <Form.Control type="datetime-local" value={formatDateTimeForInput(stage.plannedEndTime)} onChange={(e) => handleStageChange(stage.id, 'plannedEndTime', e.target.value)} disabled={isReadOnly} />
+                                                    </Col>
+                                                    <Col md={4} className="form-group-custom">
+                                                        <Form.Label className="form-label-custom">Thời lượng (giờ)</Form.Label>
+                                                        <Form.Control type="number" value={stage.durationInHours || ''} onChange={(e) => handleStageChange(stage.id, 'durationInHours', e.target.value)} disabled={isReadOnly} />
+                                                    </Col>
+                                                    <Col md={4} className="form-group-custom">
+                                                        <Form.Label className="form-label-custom">Năng suất (sp/h)</Form.Label>
+                                                        <Form.Control type="number" step="0.01" value={stage.capacityPerHour || ''} onChange={(e) => handleStageChange(stage.id, 'capacityPerHour', e.target.value)} disabled={isReadOnly} />
+                                                    </Col>
+                                                    <Col md={4} className="form-group-custom">
+                                                        <Form.Label className="form-label-custom">Sản lượng ước tính</Form.Label>
+                                                        <Form.Control readOnly disabled value={formatNumberValue(stage.estimatedOutput)} />
+                                                    </Col>
+                                                    <Col md={12} className="form-group-custom">
+                                                        <Form.Label className="form-label-custom">Ghi chú</Form.Label>
+                                                        <Form.Control as="textarea" rows={2} value={stage.notes || ''} onChange={(e) => handleStageChange(stage.id, 'notes', e.target.value)} disabled={isReadOnly} />
+                                                    </Col>
+                                                </Row>
+                                                {suggestionsFetched && suggestionsForStage.length === 0 && (
+                                                    <Alert variant="info" className="mt-3">
+                                                        Không có gợi ý máy phù hợp cho công đoạn này. Vui lòng chỉnh tay.
+                                                    </Alert>
                                                 )}
-                                            </Alert>
-                                        )}
-                                    </div>
-                                </Tab>
-                              );
-                            })}
-                          </Tabs>
+                                                {suggestionsForStage.length > 0 && (
+                                                    <div className="mt-3">
+                                                        <h6 className="mb-2">Gợi ý máy móc</h6>
+                                                        <Table responsive bordered size="sm">
+                                                            <thead className="table-light">
+                                                                <tr>
+                                                                    <th>Máy / Vendor</th>
+                                                                    <th>Năng suất</th>
+                                                                    <th>Ưu tiên</th>
+                                                                    <th>Thời gian gợi ý</th>
+                                                                    <th>Hành động</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {suggestionsForStage.map((suggestion) => (
+                                                                    <tr key={`${stage.id}-${suggestion.machineId || suggestion.machineCode}`}>
+                                                                        <td>
+                                                                            <div className="fw-semibold">{suggestion.machineName || 'N/A'}</div>
+                                                                            <div className="text-muted small">{suggestion.machineCode || '—'}</div>
+                                                                        </td>
+                                                                        <td>
+                                                                            {formatNumberValue(suggestion.capacityPerHour)} /h
+                                                                            <div className="small text-muted">
+                                                                                Ước tính: {formatNumberValue(suggestion.estimatedDurationHours)} giờ
+                                                                            </div>
+                                                                        </td>
+                                                                        <td>
+                                                                            <Badge bg={suggestion.available ? 'success' : 'secondary'}>
+                                                                                {suggestion.priorityScore ? suggestion.priorityScore.toFixed(0) : '—'}
+                                                                            </Badge>
+                                                                            <div className="small text-muted">
+                                                                                {suggestion.available ? 'Sẵn sàng' : 'Bận'}
+                                                                            </div>
+                                                                        </td>
+                                                                        <td>
+                                                                            <div className="small">
+                                                                                <div>BĐ: {formatDateTimeDisplay(suggestion.suggestedStartTime)}</div>
+                                                                                <div>KT: {formatDateTimeDisplay(suggestion.suggestedEndTime)}</div>
+                                                                            </div>
+                                                                            {suggestion.conflicts && suggestion.conflicts.length > 0 && (
+                                                                                <div className="text-danger small mt-1">
+                                                                                    {suggestion.conflicts[0]}
+                                                                                </div>
+                                                                            )}
+                                                                        </td>
+                                                                        <td className="text-center">
+                                                                            <Button
+                                                                                variant="outline-primary"
+                                                                                size="sm"
+                                                                                onClick={() => handleApplySuggestion(stage.id, suggestion)}
+                                                                                disabled={isReadOnly || stageActionLoading[stage.id]}
+                                                                            >
+                                                                                Áp dụng
+                                                                            </Button>
+                                                                        </td>
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </Table>
+                                                    </div>
+                                                )}
+                                                {conflictsFetched && (
+                                                    <Alert variant={conflictsForStage.length ? 'warning' : 'success'} className="mt-3">
+                                                        {conflictsForStage.length ? (
+                                                            <>
+                                                                <strong>Phát hiện xung đột:</strong>
+                                                                <ul className="mb-0">
+                                                                    {conflictsForStage.map((conflict, idx) => (
+                                                                        <li key={`${stage.id}-conflict-${idx}`}>{conflict}</li>
+                                                                    ))}
+                                                                </ul>
+                                                            </>
+                                                        ) : (
+                                                            'Không có xung đột cho công đoạn này.'
+                                                        )}
+                                                    </Alert>
+                                                )}
+                                            </div>
+                                        </Tab>
+                                    );
+                                })}
+                            </Tabs>
                         </div>
 
                         {!isReadOnly && (

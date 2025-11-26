@@ -199,13 +199,31 @@ const LeaderOrderDetail = () => {
                           {(() => {
                             const buttonConfig = getButtonForStage(order.stage.status, 'leader');
                             const orderLocked = order.orderStatus === 'WAITING_PRODUCTION' || order.orderStatus === 'PENDING_APPROVAL';
-                            const isDisabled = order.stage.status === 'PENDING' || orderLocked; // Disable nếu chưa đến lượt hoặc chưa start
+                            const isDisabled = order.stage.status === 'PENDING' || orderLocked;
+
+                            const handleAction = async () => {
+                              if (buttonConfig.action === 'start') {
+                                try {
+                                  setLoading(true);
+                                  await productionService.startStageRolling(order.stage.id, userId);
+                                  toast.success('Đã bắt đầu công đoạn');
+                                  window.location.reload();
+                                } catch (error) {
+                                  console.error('Error starting stage:', error);
+                                  toast.error(error.response?.data?.message || 'Không thể bắt đầu công đoạn');
+                                  setLoading(false);
+                                }
+                              } else {
+                                handleViewStage();
+                              }
+                            };
+
                             if (buttonConfig.action === 'start' || buttonConfig.action === 'update') {
                               return (
                                 <Button
                                   size="sm"
                                   variant={buttonConfig.variant}
-                                  onClick={handleViewStage}
+                                  onClick={handleAction}
                                   disabled={isDisabled}
                                   title={
                                     orderLocked
@@ -243,7 +261,7 @@ const LeaderOrderDetail = () => {
           </Container>
         </div>
       </div>
-    </div>
+    </div >
   );
 };
 

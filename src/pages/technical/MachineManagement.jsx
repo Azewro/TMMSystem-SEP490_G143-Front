@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container, Card, Table, Badge, Button, Form, InputGroup, Alert, Pagination } from 'react-bootstrap';
 import { FaSearch, FaPlus, FaEdit, FaTrash, FaCog } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
@@ -10,7 +10,7 @@ import toast from 'react-hot-toast';
 
 const MachineManagement = () => {
   const { user: currentUser } = useAuth();
-  
+
   // Map role from backend to sidebar role format
   const getSidebarRole = () => {
     if (!currentUser?.role) return 'technical';
@@ -18,7 +18,7 @@ const MachineManagement = () => {
     if (role.includes('TECHNICAL')) return 'technical';
     return 'technical';
   };
-  
+
   const [machines, setMachines] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -43,7 +43,7 @@ const MachineManagement = () => {
       // Convert 1-based page to 0-based for backend
       const page = currentPage - 1;
       const response = await machineService.getAllMachines(page, itemsPerPage, searchQuery || undefined, typeFilter || undefined, statusFilter || undefined);
-      
+
       // Handle PageResponse
       let machinesData = [];
       if (response && response.content) {
@@ -55,7 +55,7 @@ const MachineManagement = () => {
         setTotalPages(1);
         setTotalElements(response.length);
       }
-      
+
       setMachines(machinesData);
     } catch (err) {
       console.error('Failed to load machines:', err);
@@ -74,13 +74,8 @@ const MachineManagement = () => {
     }
   }, [searchQuery, typeFilter, statusFilter]);
 
-  const uniqueTypes = useMemo(() => {
-    return [...new Set(machines.map(m => m.type).filter(Boolean))];
-  }, [machines]);
-
-  const uniqueStatuses = useMemo(() => {
-    return [...new Set(machines.map(m => m.status).filter(Boolean))];
-  }, [machines]);
+  const uniqueTypes = ['WEAVING', 'WARPING', 'SEWING', 'CUTTING'];
+  const uniqueStatuses = ['AVAILABLE', 'MAINTENANCE', 'BROKEN', 'IN_USE'];
 
   const handleCreate = () => {
     setSelectedMachine(null);
@@ -288,12 +283,12 @@ const MachineManagement = () => {
             {!loading && totalPages > 1 && (
               <div className="d-flex justify-content-center mt-3">
                 <Pagination>
-                  <Pagination.First 
-                    onClick={() => setCurrentPage(1)} 
+                  <Pagination.First
+                    onClick={() => setCurrentPage(1)}
                     disabled={currentPage === 1}
                   />
-                  <Pagination.Prev 
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} 
+                  <Pagination.Prev
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
                   />
                   {[...Array(totalPages)].map((_, idx) => {
@@ -317,12 +312,12 @@ const MachineManagement = () => {
                     }
                     return null;
                   })}
-                  <Pagination.Next 
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} 
+                  <Pagination.Next
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                     disabled={currentPage === totalPages}
                   />
-                  <Pagination.Last 
-                    onClick={() => setCurrentPage(totalPages)} 
+                  <Pagination.Last
+                    onClick={() => setCurrentPage(totalPages)}
                     disabled={currentPage === totalPages}
                   />
                 </Pagination>

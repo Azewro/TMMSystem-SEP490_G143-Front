@@ -55,5 +55,12 @@ export const productionService = {
             params: { userId }
         });
         return response.data;
+    },
+
+    startStageRolling: async (stageId, userId) => {
+        const response = await apiClient.post(`/v1/production/stages/${stageId}/start-rolling`, null, {
+            params: { userId }
+        });
+        return response.data;
     }
 };
