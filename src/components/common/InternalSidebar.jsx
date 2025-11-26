@@ -1,11 +1,11 @@
 import React from 'react';
-import { Nav } from 'react-bootstrap';
+import { Nav, Offcanvas } from 'react-bootstrap';
 import { FaListAlt, FaFileSignature, FaProjectDiagram, FaUsers, FaUserFriends, FaPlusSquare, FaCog, FaWarehouse, FaExclamationTriangle } from 'react-icons/fa';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import '../../styles/Sidebar.css'; // Reuse the same dark theme
 
-const InternalSidebar = ({ userRole: propUserRole }) => {
+const InternalSidebar = ({ userRole: propUserRole, mobileShow, onMobileClose }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
@@ -76,7 +76,7 @@ const InternalSidebar = ({ userRole: propUserRole }) => {
       { icon: FaWarehouse, label: 'Nhập kho nguyên liệu', path: '/production/material-stock' },
     ],
     // Product Process Leader
-    leader: [ 
+    leader: [
       { icon: FaListAlt, label: 'Đơn hàng của tôi', path: '/leader/orders' },
       { icon: FaExclamationTriangle, label: 'Danh sách lỗi', path: '/leader/defects' },
     ],
@@ -93,36 +93,81 @@ const InternalSidebar = ({ userRole: propUserRole }) => {
   // Select menu items based on user role
   const menuItems = userRole ? (allMenuItems[userRole] || []) : [];
 
-  return (
-    <div className="sidebar sidebar-dark">
-      <div className="sidebar-content p-3">
-        <h5 className="text-white px-3 mb-3">Menu</h5>
-        <Nav className="flex-column">
-          {menuItems.map((item, index) => {
-            const IconComponent = item.icon;
-            const isActive = location.pathname.startsWith(item.path);
-            const isExact = location.pathname === item.path;
+  const SidebarContent = () => (
+    <div className="sidebar-content p-3">
+      <h5 className="text-white px-3 mb-3">Menu</h5>
+      <Nav className="flex-column">
+        {menuItems.map((item, index) => {
+          const IconComponent = item.icon;
+          const isActive = location.pathname.startsWith(item.path);
+          const isExact = location.pathname === item.path;
 
-            return (
-              <Nav.Link
-                key={index}
-                active={isActive}
-                className="sidebar-item d-flex align-items-center py-2 px-3 mb-1 rounded"
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (!isExact) {
-                    navigate(item.path);
-                  }
-                }}
-              >
-                <IconComponent className="me-3" size={16} />
-                <span>{item.label}</span>
-              </Nav.Link>
-            );
-          })}
-        </Nav>
-      </div>
+          return (
+            <Nav.Link
+              key={index}
+              active={isActive}
+              className="sidebar-item d-flex align-items-center py-2 px-3 mb-1 rounded"
+              onClick={(e) => {
+                e.preventDefault();
+                if (!isExact) {
+                  navigate(item.path);
+                }
+                if (onMobileClose) onMobileClose(); // Close sidebar on mobile when item clicked
+              }}
+            >
+              <IconComponent className="me-3" size={16} />
+              <span>{item.label}</span>
+            </Nav.Link>
+          );
+        })}
+      </Nav>
     </div>
+  );
+
+  return (
+    <>
+      {/* Desktop Sidebar */}
+      <div className="sidebar-dark sidebar-desktop d-none d-md-block">
+        <SidebarContent />
+      </div>
+
+      {/* Mobile Sidebar (Offcanvas) */}
+      <Offcanvas show={mobileShow} onHide={onMobileClose} className="sidebar-dark d-md-none" style={{ maxWidth: '280px', backgroundColor: '#212529', color: 'white' }}>
+        <Offcanvas.Header closeButton closeVariant="white">
+          <Offcanvas.Title>Menu</Offcanvas.Title>
+        </Offcanvas.Header>
+        <Offcanvas.Body className="p-0">
+          {/* Re-render content but without the duplicate 'Menu' header if desired, or just reuse SidebarContent */}
+          <div className="sidebar-content p-3">
+            <Nav className="flex-column">
+              {menuItems.map((item, index) => {
+                const IconComponent = item.icon;
+                const isActive = location.pathname.startsWith(item.path);
+                const isExact = location.pathname === item.path;
+
+                return (
+                  <Nav.Link
+                    key={index}
+                    active={isActive}
+                    className="sidebar-item d-flex align-items-center py-2 px-3 mb-1 rounded"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (!isExact) {
+                        navigate(item.path);
+                      }
+                      if (onMobileClose) onMobileClose();
+                    }}
+                  >
+                    <IconComponent className="me-3" size={16} />
+                    <span>{item.label}</span>
+                  </Nav.Link>
+                );
+              })}
+            </Nav>
+          </div>
+        </Offcanvas.Body>
+      </Offcanvas>
+    </>
   );
 };
 

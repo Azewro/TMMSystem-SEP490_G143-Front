@@ -116,9 +116,9 @@ const AssignRfqModal = ({ show, onHide, rfqId, onAssignmentSuccess, isViewMode =
   };
 
   return (
-    <Modal show={show} onHide={handleClose} centered size="lg">
+    <Modal show={show} onHide={handleClose} centered scrollable={true}>
       <Modal.Header closeButton>
-        <Modal.Title>{isViewMode ? `Chi tiết Yêu cầu báo giá ${rfqDetails?.rfqNumber || ''}` : `Phân công cho RFQ ${rfqDetails?.rfqNumber || ''}`}</Modal.Title>
+        <Modal.Title>{isViewMode ? `Chi tiết Yêu cầu báo giá ${rfqDetails?.rfqNumber || ''}` : `Phân công cho Yêu cầu báo giá ${rfqDetails?.rfqNumber || ''}`}</Modal.Title>
       </Modal.Header>
       <Modal.Body>
         {loading ? (
@@ -139,7 +139,7 @@ const AssignRfqModal = ({ show, onHide, rfqId, onAssignmentSuccess, isViewMode =
                   {rfqDetails.employeeCode && <Col md={12}><strong>Mã nhân viên Sale (khách nhập):</strong> {rfqDetails.employeeCode}</Col>}
                 </Row>
                 <h6>Chi tiết sản phẩm</h6>
-                <Table striped bordered size="sm">
+                <Table striped bordered size="sm" responsive>
                   <thead>
                     <tr>
                       <th>#</th>

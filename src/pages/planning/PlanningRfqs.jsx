@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Container, Card, Table, Button, Spinner, Alert, Badge, Form, InputGroup, Row, Col } from 'react-bootstrap';
-import { FaSearch } from 'react-icons/fa';
+import { FaSearch, FaBars } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
@@ -14,6 +14,7 @@ const PlanningRfqs = () => {
   const [allRfqs, setAllRfqs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 
   // Search and Filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -122,9 +123,20 @@ const PlanningRfqs = () => {
     <div>
       <Header />
       <div className="d-flex">
-        <InternalSidebar userRole="planning" />
-        <div className="flex-grow-1 p-4" style={{ backgroundColor: '#f8f9fa' }}>
+        <InternalSidebar
+          userRole="planning"
+          mobileShow={showMobileSidebar}
+          onMobileClose={() => setShowMobileSidebar(false)}
+        />
+        <div className="flex-grow-1 p-2 p-md-4" style={{ backgroundColor: '#f8f9fa' }}>
           <Container fluid>
+            <Button
+              variant="outline-secondary"
+              className="d-md-none mb-3"
+              onClick={() => setShowMobileSidebar(true)}
+            >
+              <FaBars className="me-2" /> Menu
+            </Button>
             <h2 className="mb-4">Yêu cầu báo giá cần xử lý</h2>
             {/* Search and Filter Section */}
             <Card className="mb-3">
@@ -192,44 +204,79 @@ const PlanningRfqs = () => {
                   <Alert variant="danger">{error}</Alert>
                 ) : (
                   <>
-                    <Table striped bordered hover responsive>
-                      <thead>
-                        <tr>
-                          <th>Mã RFQ</th>
-                          <th>Tên Khách Hàng</th>
-                          <th>Ngày tạo</th>
-                          <th>Trạng thái</th>
-                          <th>Hành Động</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredRfqs.length > 0 ? filteredRfqs.map(rfq => (
-                          <tr key={rfq.id}>
-                            <td>{rfq.rfqNumber}</td>
-                            <td>{rfq.contactPerson || 'N/A'}</td>
-                            <td>{new Date(rfq.createdAt).toLocaleDateString('vi-VN')}</td>
-                            <td>
+                    {/* Desktop View: Table */}
+                    <div className="d-none d-md-block">
+                      <Table striped bordered hover responsive>
+                        <thead>
+                          <tr>
+                            <th>Mã RFQ</th>
+                            <th>Tên Khách Hàng</th>
+                            <th>Ngày tạo</th>
+                            <th>Trạng thái</th>
+                            <th>Hành Động</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredRfqs.length > 0 ? filteredRfqs.map(rfq => (
+                            <tr key={rfq.id}>
+                              <td>{rfq.rfqNumber}</td>
+                              <td>{rfq.contactPerson || 'N/A'}</td>
+                              <td>{new Date(rfq.createdAt).toLocaleDateString('vi-VN')}</td>
+                              <td>
+                                <Badge bg={getStatusBadge(rfq.status)}>
+                                  {getStatusText(rfq.status)}
+                                </Badge>
+                              </td>
+                              <td>
+                                <Button variant="primary" size="sm" onClick={() => handleViewDetails(rfq.id)}>
+                                  Xem chi tiết
+                                </Button>
+                              </td>
+                            </tr>
+                          )) : (
+                            <tr>
+                              <td colSpan="5" className="text-center">
+                                {totalElements === 0
+                                  ? 'Không có RFQ nào cần xử lý.'
+                                  : 'Không tìm thấy RFQ phù hợp với bộ lọc.'}
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </Table>
+                    </div>
+
+                    {/* Mobile View: Cards */}
+                    <div className="d-md-none">
+                      {filteredRfqs.length > 0 ? filteredRfqs.map(rfq => (
+                        <Card key={rfq.id} className="mb-3 border-0 border-bottom rounded-0">
+                          <Card.Body>
+                            <div className="d-flex justify-content-between align-items-start mb-2">
+                              <div>
+                                <h6 className="mb-1 fw-bold text-primary">{rfq.rfqNumber}</h6>
+                                <small className="text-muted">{new Date(rfq.createdAt).toLocaleDateString('vi-VN')}</small>
+                              </div>
                               <Badge bg={getStatusBadge(rfq.status)}>
                                 {getStatusText(rfq.status)}
                               </Badge>
-                            </td>
-                            <td>
+                            </div>
+                            <p className="mb-2"><strong>Khách hàng:</strong> {rfq.contactPerson || 'N/A'}</p>
+                            <div className="d-grid">
                               <Button variant="primary" size="sm" onClick={() => handleViewDetails(rfq.id)}>
                                 Xem chi tiết
                               </Button>
-                            </td>
-                          </tr>
-                        )) : (
-                          <tr>
-                            <td colSpan="5" className="text-center">
-                              {totalElements === 0
-                                ? 'Không có RFQ nào cần xử lý.'
-                                : 'Không tìm thấy RFQ phù hợp với bộ lọc.'}
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </Table>
+                            </div>
+                          </Card.Body>
+                        </Card>
+                      )) : (
+                        <div className="text-center p-3 text-muted">
+                          {totalElements === 0
+                            ? 'Không có RFQ nào cần xử lý.'
+                            : 'Không tìm thấy RFQ phù hợp với bộ lọc.'}
+                        </div>
+                      )}
+                    </div>
+
                     <Pagination
                       currentPage={currentPage}
                       totalPages={totalPages}

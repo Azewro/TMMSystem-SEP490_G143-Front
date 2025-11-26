@@ -6,16 +6,17 @@ import { rfqService } from '../../api/rfqService';
 import { customerService } from '../../api/customerService';
 import AssignRfqModal from '../../components/modals/AssignRfqModal';
 import Pagination from '../../components/Pagination'; // Import Pagination component
-import { FaSearch } from 'react-icons/fa';
+import { FaSearch, FaBars } from 'react-icons/fa';
 
 const DirectorRfqList = () => {
   const [allRfqs, setAllRfqs] = useState([]); // Holds all RFQs
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
+
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedRfqId, setSelectedRfqId] = useState(null);
   const [isViewMode, setIsViewMode] = useState(false);
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 
   // Search, Filter and Pagination state
   const [searchTerm, setSearchTerm] = useState('');
@@ -32,21 +33,21 @@ const DirectorRfqList = () => {
     try {
       // Convert 1-based page to 0-based for backend
       const page = currentPage - 1;
-      
+
       // Prepare parameters - only include non-empty values
       const params = {
         page,
         size: ITEMS_PER_PAGE
       };
-      
+
       if (searchTerm && searchTerm.trim()) {
         params.search = searchTerm.trim();
       }
-      
+
       if (statusFilter && statusFilter.trim()) {
         params.status = statusFilter.trim();
       }
-      
+
       const response = await rfqService.getRfqs(params);
 
       // Handle PageResponse
@@ -93,9 +94,9 @@ const DirectorRfqList = () => {
           if (rfq.customerId) {
             try {
               const customer = await customerService.getCustomerById(rfq.customerId);
-              return { 
-                ...rfq, 
-                contactPerson: rfq.contactPerson || customer.contactPerson || customer.companyName || 'N/A' 
+              return {
+                ...rfq,
+                contactPerson: rfq.contactPerson || customer.contactPerson || customer.companyName || 'N/A'
               };
             } catch (customerError) {
               console.error(`Failed to fetch customer for RFQ ${rfq.id}`, customerError);
@@ -122,7 +123,7 @@ const DirectorRfqList = () => {
   useEffect(() => {
     fetchRfqs();
   }, [currentPage, searchTerm, statusFilter, createdDateFilter]);
-  
+
   useEffect(() => {
     // Reset to page 1 when filters change
     setCurrentPage(1);
@@ -141,7 +142,7 @@ const DirectorRfqList = () => {
 
   const handleAssignmentSuccess = () => {
     handleCloseAssignModal();
-    fetchRfqs(); 
+    fetchRfqs();
   };
 
   const handleSearchChange = (e) => {
@@ -192,21 +193,30 @@ const DirectorRfqList = () => {
     { value: 'REJECTED', label: 'Đã từ chối' },
   ];
 
-  // Note: Search and filter are now server-side, no client-side filtering needed
-
   return (
     <div>
       <Header />
       <div className="d-flex">
-        <InternalSidebar userRole="director" />
-        <div className="flex-grow-1 p-4" style={{ backgroundColor: '#f8f9fa' }}>
+        <InternalSidebar
+          userRole="director"
+          mobileShow={showMobileSidebar}
+          onMobileClose={() => setShowMobileSidebar(false)}
+        />
+        <div className="flex-grow-1 p-2 p-md-4" style={{ backgroundColor: '#f8f9fa' }}>
           <Container fluid>
+            <Button
+              variant="outline-secondary"
+              className="d-md-none mb-3"
+              onClick={() => setShowMobileSidebar(true)}
+            >
+              <FaBars className="me-2" /> Menu
+            </Button>
             <h2 className="mb-4">Quản lý Yêu cầu báo giá (RFQ)</h2>
             {/* Search and Filter */}
             <Card className="mb-3">
               <Card.Body>
                 <Row className="g-3 align-items-end">
-                  <Col md={4}>
+                  <Col xs={12} md={4}>
                     <Form.Group>
                       <Form.Label className="mb-1 small">Tìm kiếm</Form.Label>
                       <InputGroup>
@@ -239,7 +249,7 @@ const DirectorRfqList = () => {
                       </InputGroup>
                     </Form.Group>
                   </Col>
-                  <Col md={3}>
+                  <Col xs={12} md={3}>
                     <Form.Group>
                       <Form.Label className="mb-1 small">Lọc theo ngày tạo</Form.Label>
                       <Form.Control
@@ -252,7 +262,7 @@ const DirectorRfqList = () => {
                       />
                     </Form.Group>
                   </Col>
-                  <Col md={3}>
+                  <Col xs={12} md={3}>
                     <Form.Group>
                       <Form.Label className="mb-1 small">Lọc theo trạng thái</Form.Label>
                       <Form.Select
@@ -276,25 +286,27 @@ const DirectorRfqList = () => {
               <Card.Header>
                 Danh sách RFQ chờ xử lý
               </Card.Header>
-              <Card.Body>
+              <Card.Body className="p-0 p-md-3">
                 {loading ? (
-                  <div className="text-center"><Spinner animation="border" /></div>
+                  <div className="text-center p-3"><Spinner animation="border" /></div>
                 ) : error ? (
-                  <Alert variant="danger">{error}</Alert>
+                  <Alert variant="danger" className="m-3">{error}</Alert>
                 ) : (
                   <>
-                    <Table striped bordered hover responsive>
-                      <thead>
-                        <tr>
-                          <th>Mã RFQ</th>
-                          <th>Tên Khách Hàng</th>
-                          <th>Ngày Tạo</th>
-                          <th>Trạng Thái</th>
-                          <th>Hành Động</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {allRfqs.length > 0 ? allRfqs.map(rfq => (
+                    {/* Desktop View: Table */}
+                    <div className="d-none d-md-block">
+                      <Table striped bordered hover responsive>
+                        <thead>
+                          <tr>
+                            <th>Mã RFQ</th>
+                            <th>Tên Khách Hàng</th>
+                            <th>Ngày Tạo</th>
+                            <th>Trạng Thái</th>
+                            <th>Hành Động</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {allRfqs.length > 0 ? allRfqs.map(rfq => (
                             <tr key={rfq.id}>
                               <td>{rfq.rfqNumber}</td>
                               <td>{rfq.contactPerson || 'N/A'}</td>
@@ -305,9 +317,9 @@ const DirectorRfqList = () => {
                                 </Badge>
                               </td>
                               <td>
-                                <Button 
-                                  variant="primary" 
-                                  size="sm" 
+                                <Button
+                                  variant="primary"
+                                  size="sm"
                                   onClick={() => handleOpenAssignModal(rfq.id, rfq.status !== 'DRAFT' || !!rfq.assignedSalesId)}
                                 >
                                   {rfq.status === 'DRAFT' && !rfq.assignedSalesId ? 'Phân công' : 'Xem'}
@@ -315,22 +327,61 @@ const DirectorRfqList = () => {
                               </td>
                             </tr>
                           )) : (
-                          <tr>
-                            <td colSpan="5" className="text-center">
-                              {totalElements === 0 
-                                ? 'Không có RFQ nào.' 
-                                : 'Không tìm thấy RFQ phù hợp với bộ lọc.'}
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </Table>
+                            <tr>
+                              <td colSpan="5" className="text-center">
+                                {totalElements === 0
+                                  ? 'Không có RFQ nào.'
+                                  : 'Không tìm thấy RFQ phù hợp với bộ lọc.'}
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </Table>
+                    </div>
+
+                    {/* Mobile View: Cards */}
+                    <div className="d-md-none">
+                      {allRfqs.length > 0 ? allRfqs.map(rfq => (
+                        <Card key={rfq.id} className="mb-3 border-0 border-bottom rounded-0">
+                          <Card.Body>
+                            <div className="d-flex justify-content-between align-items-start mb-2">
+                              <div>
+                                <h6 className="mb-1 fw-bold text-primary">{rfq.rfqNumber}</h6>
+                                <small className="text-muted">{new Date(rfq.createdAt).toLocaleDateString('vi-VN')}</small>
+                              </div>
+                              <Badge bg={getStatusBadge(rfq)}>
+                                {getStatusText(rfq)}
+                              </Badge>
+                            </div>
+                            <p className="mb-2"><strong>Khách hàng:</strong> {rfq.contactPerson || 'N/A'}</p>
+                            <div className="d-grid">
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                onClick={() => handleOpenAssignModal(rfq.id, rfq.status !== 'DRAFT' || !!rfq.assignedSalesId)}
+                              >
+                                {rfq.status === 'DRAFT' && !rfq.assignedSalesId ? 'Phân công' : 'Xem'}
+                              </Button>
+                            </div>
+                          </Card.Body>
+                        </Card>
+                      )) : (
+                        <div className="text-center p-3 text-muted">
+                          {totalElements === 0
+                            ? 'Không có RFQ nào.'
+                            : 'Không tìm thấy RFQ phù hợp với bộ lọc.'}
+                        </div>
+                      )}
+                    </div>
+
                     {totalPages > 1 && (
-                      <Pagination
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        onPageChange={setCurrentPage}
-                      />
+                      <div className="p-3 border-top">
+                        <Pagination
+                          currentPage={currentPage}
+                          totalPages={totalPages}
+                          onPageChange={setCurrentPage}
+                        />
+                      </div>
                     )}
                   </>
                 )}

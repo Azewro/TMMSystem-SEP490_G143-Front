@@ -6,8 +6,10 @@ import { productService } from '../../api/productService';
 import { userService } from '../../api/userService';
 import toast from 'react-hot-toast';
 import { isVietnamesePhoneNumber } from '../../utils/validators';
+import useMediaQuery from '../../utils/useMediaQuery';
 
 const RFQDetailModal = ({ rfqId, show, handleClose }) => {
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const [rfq, setRfq] = useState(null);
   const [customer, setCustomer] = useState(null);
   const [salesEmployeeCode, setSalesEmployeeCode] = useState(null); // Store sales employee code
@@ -629,7 +631,7 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
   };
 
   return (
-    <Modal show={show} onHide={() => handleClose(false)} size="lg" backdrop="static">
+    <Modal show={show} onHide={() => handleClose(false)} size="lg" backdrop="static" scrollable={isMobile}>
       <Modal.Header closeButton={!isEditMode}>
         <Modal.Title>
           Chi tiết Yêu cầu báo giá {rfq?.rfqNumber || rfqId}
@@ -700,7 +702,7 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
           </>
         )}
       </Modal.Footer>
-    </Modal>
+    </Modal >
   );
 };
 
