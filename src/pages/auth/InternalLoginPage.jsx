@@ -44,6 +44,15 @@ const InternalLoginPage = () => {
       // Hardcode userType to 'internal' for this staff-only login page
       const userData = await login(formData.email, formData.password, 'internal');
 
+      // Check for returnUrl
+      const searchParams = new URLSearchParams(window.location.search);
+      const returnUrl = searchParams.get('returnUrl');
+
+      if (returnUrl) {
+        navigate(decodeURIComponent(returnUrl));
+        return;
+      }
+
       const userRole = userData.role?.toUpperCase() || userData.userType?.toUpperCase();
 
       if (userRole === 'ADMIN' || userRole?.includes('ADMIN')) {
@@ -75,7 +84,7 @@ const InternalLoginPage = () => {
         // Mặc định cho các role nội bộ khác
         navigate('/internal/quote-requests');
       }
-      
+
     } catch (err) {
       setError(err.message || 'Đăng nhập thất bại');
     } finally {

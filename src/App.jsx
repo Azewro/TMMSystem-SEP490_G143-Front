@@ -10,6 +10,8 @@ import LoginPage from './pages/auth/LoginPage';
 import InternalLoginPage from './pages/auth/InternalLoginPage';
 import CustomerForgotPassword from './pages/auth/CustomerForgotPassword';
 import InternalForgotPassword from './pages/auth/InternalForgotPassword';
+import ProtectedRoute from './components/common/ProtectedRoute';
+import UnauthorizedPage from './pages/public/UnauthorizedPage';
 
 
 // Internal Pages
@@ -95,16 +97,17 @@ function App() {
               <Route path="/internal-login" element={<InternalLoginPage />} />
               <Route path="/forgot-password" element={<CustomerForgotPassword />} />
               <Route path="/internal-forgot-password" element={<InternalForgotPassword />} />
+              <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
 
 
-              {/* Internal routes - NO AUTH GUARD (for now) */}
-              <Route path="/internal/dashboard" element={<InternalDashboard />} />
-              <Route path="/sales/quotations" element={<QuotesList />} />
-              <Route path="/internal/quote-requests" element={<QuoteRequests />} />
-              <Route path="/sales/quotations/:id" element={<QuoteDetail />} />
-              <Route path="/internal/orders" element={<OrderList />} />
-              <Route path="/internal/orders/:id" element={<OrderDetail />} />
+              {/* Internal routes - Shared access */}
+              <Route path="/internal/dashboard" element={<ProtectedRoute><InternalDashboard /></ProtectedRoute>} />
+              <Route path="/sales/quotations" element={<ProtectedRoute allowedRoles={['SALE STAFF', 'SALE', 'DIRECTOR']}><QuotesList /></ProtectedRoute>} />
+              <Route path="/internal/quote-requests" element={<ProtectedRoute allowedRoles={['SALE STAFF', 'SALE', 'DIRECTOR']}><QuoteRequests /></ProtectedRoute>} />
+              <Route path="/sales/quotations/:id" element={<ProtectedRoute allowedRoles={['SALE STAFF', 'SALE', 'DIRECTOR']}><QuoteDetail /></ProtectedRoute>} />
+              <Route path="/internal/orders" element={<ProtectedRoute allowedRoles={['SALE STAFF', 'SALE', 'DIRECTOR', 'PLANNING DEPARTMENT', 'PLANNING']}><OrderList /></ProtectedRoute>} />
+              <Route path="/internal/orders/:id" element={<ProtectedRoute allowedRoles={['SALE STAFF', 'SALE', 'DIRECTOR', 'PLANNING DEPARTMENT', 'PLANNING']}><OrderDetail /></ProtectedRoute>} />
 
               {/* Customer routes */}
               <Route path="/customer/quote-request" element={<QuoteRequest />} />
@@ -117,55 +120,55 @@ function App() {
               <Route path="/customer/orders/:id" element={<CustomerOrderDetail />} />
 
               {/* Planning routes */}
-              <Route path="/planning/rfqs" element={<PlanningRfqs />} />
-              <Route path="/planning/rfqs/:id" element={<PlanningRFQDetail />} />
-              <Route path="/planning/production-plans/:id" element={<ProductionPlanDetail />} />
-              <Route path="/planning/lots" element={<ProductionLots />} />
+              <Route path="/planning/rfqs" element={<ProtectedRoute allowedRoles={['PLANNING DEPARTMENT', 'PLANNING', 'PLANNER']}><PlanningRfqs /></ProtectedRoute>} />
+              <Route path="/planning/rfqs/:id" element={<ProtectedRoute allowedRoles={['PLANNING DEPARTMENT', 'PLANNING', 'PLANNER']}><PlanningRFQDetail /></ProtectedRoute>} />
+              <Route path="/planning/production-plans/:id" element={<ProtectedRoute allowedRoles={['PLANNING DEPARTMENT', 'PLANNING', 'PLANNER']}><ProductionPlanDetail /></ProtectedRoute>} />
+              <Route path="/planning/lots" element={<ProtectedRoute allowedRoles={['PLANNING DEPARTMENT', 'PLANNING', 'PLANNER']}><ProductionLots /></ProtectedRoute>} />
 
               {/* Director routes */}
-              <Route path="/director/contract-approval" element={<ContractApproval />} />
-              <Route path="/director/rfqs" element={<DirectorRfqList />} />
-              <Route path="/director/production-plan-approvals" element={<ProductionPlanApprovals />} />
-              <Route path="/director/orders" element={<DirectorOrderList />} />
+              <Route path="/director/contract-approval" element={<ProtectedRoute allowedRoles={['DIRECTOR']}><ContractApproval /></ProtectedRoute>} />
+              <Route path="/director/rfqs" element={<ProtectedRoute allowedRoles={['DIRECTOR']}><DirectorRfqList /></ProtectedRoute>} />
+              <Route path="/director/production-plan-approvals" element={<ProtectedRoute allowedRoles={['DIRECTOR']}><ProductionPlanApprovals /></ProtectedRoute>} />
+              <Route path="/director/orders" element={<ProtectedRoute allowedRoles={['DIRECTOR']}><DirectorOrderList /></ProtectedRoute>} />
 
               {/* Sales routes */}
-              <Route path="/sales/rfqs" element={<MyRfqs />} />
-              <Route path="/sales/create-rfq" element={<CreateRfqForCustomer />} />
-              <Route path="/sales/contracts" element={<ContractUpload />} />
+              <Route path="/sales/rfqs" element={<ProtectedRoute allowedRoles={['SALE STAFF', 'SALE']}><MyRfqs /></ProtectedRoute>} />
+              <Route path="/sales/create-rfq" element={<ProtectedRoute allowedRoles={['SALE STAFF', 'SALE']}><CreateRfqForCustomer /></ProtectedRoute>} />
+              <Route path="/sales/contracts" element={<ProtectedRoute allowedRoles={['SALE STAFF', 'SALE']}><ContractUpload /></ProtectedRoute>} />
 
               {/* Admin routes */}
-              <Route path="/admin/users" element={<AdminUserManagement />} />
-              <Route path="/admin/customers" element={<AdminCustomerManagement />} />
+              <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminUserManagement /></ProtectedRoute>} />
+              <Route path="/admin/customers" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminCustomerManagement /></ProtectedRoute>} />
 
               {/* Technical routes */}
-              <Route path="/technical/machines" element={<MachineManagement />} />
-              <Route path="/technical/defects" element={<TechnicalDefectList />} />
-              <Route path="/technical/defects/:defectId" element={<TechnicalDefectDetail />} />
+              <Route path="/technical/machines" element={<ProtectedRoute allowedRoles={['TECHNICAL DEPARTMENT', 'TECHNICAL']}><MachineManagement /></ProtectedRoute>} />
+              <Route path="/technical/defects" element={<ProtectedRoute allowedRoles={['TECHNICAL DEPARTMENT', 'TECHNICAL']}><TechnicalDefectList /></ProtectedRoute>} />
+              <Route path="/technical/defects/:defectId" element={<ProtectedRoute allowedRoles={['TECHNICAL DEPARTMENT', 'TECHNICAL']}><TechnicalDefectDetail /></ProtectedRoute>} />
 
               {/* Production routes */}
-              <Route path="/production/material-stock" element={<MaterialStockManagement />} />
-              <Route path="/production/orders" element={<ProductionOrderList />} />
-              <Route path="/production/orders/:orderId" element={<ProductionOrderDetail />} />
-              <Route path="/production/orders/:orderId/stages/:stageCode" element={<StageProgressDetail />} />
-              <Route path="/production/fiber-requests" element={<ProductionFiberRequests />} />
-              <Route path="/production/fiber-requests/:lotCode" element={<ProductionFiberRequestDetail />} />
-              <Route path="/production/rework-orders" element={<ProductionReworkOrders />} />
-              <Route path="/production/rework-orders/:orderId" element={<ProductionReworkOrderDetail />} />
-              <Route path="/production/rework-orders/:orderId/stages/:stageCode" element={<ProductionReworkStageDetail />} />
+              <Route path="/production/material-stock" element={<ProtectedRoute allowedRoles={['PRODUCTION MANAGER', 'PRODUCTION_MANAGER']}><MaterialStockManagement /></ProtectedRoute>} />
+              <Route path="/production/orders" element={<ProtectedRoute allowedRoles={['PRODUCTION MANAGER', 'PRODUCTION_MANAGER']}><ProductionOrderList /></ProtectedRoute>} />
+              <Route path="/production/orders/:orderId" element={<ProtectedRoute allowedRoles={['PRODUCTION MANAGER', 'PRODUCTION_MANAGER']}><ProductionOrderDetail /></ProtectedRoute>} />
+              <Route path="/production/orders/:orderId/stages/:stageCode" element={<ProtectedRoute allowedRoles={['PRODUCTION MANAGER', 'PRODUCTION_MANAGER']}><StageProgressDetail /></ProtectedRoute>} />
+              <Route path="/production/fiber-requests" element={<ProtectedRoute allowedRoles={['PRODUCTION MANAGER', 'PRODUCTION_MANAGER']}><ProductionFiberRequests /></ProtectedRoute>} />
+              <Route path="/production/fiber-requests/:lotCode" element={<ProtectedRoute allowedRoles={['PRODUCTION MANAGER', 'PRODUCTION_MANAGER']}><ProductionFiberRequestDetail /></ProtectedRoute>} />
+              <Route path="/production/rework-orders" element={<ProtectedRoute allowedRoles={['PRODUCTION MANAGER', 'PRODUCTION_MANAGER']}><ProductionReworkOrders /></ProtectedRoute>} />
+              <Route path="/production/rework-orders/:orderId" element={<ProtectedRoute allowedRoles={['PRODUCTION MANAGER', 'PRODUCTION_MANAGER']}><ProductionReworkOrderDetail /></ProtectedRoute>} />
+              <Route path="/production/rework-orders/:orderId/stages/:stageCode" element={<ProtectedRoute allowedRoles={['PRODUCTION MANAGER', 'PRODUCTION_MANAGER']}><ProductionReworkStageDetail /></ProtectedRoute>} />
 
               {/* Leader (product process leader) routes */}
-              <Route path="/leader/orders" element={<LeaderOrderList />} />
-              <Route path="/leader/orders/:orderId" element={<LeaderOrderDetail />} />
-              <Route path="/leader/orders/:orderId/progress" element={<LeaderStageProgress />} />
-              <Route path="/leader/defects" element={<LeaderDefectList />} />
-              <Route path="/leader/defects/:defectId" element={<LeaderDefectDetail />} />
+              <Route path="/leader/orders" element={<ProtectedRoute allowedRoles={['PRODUCT PROCESS LEADER', 'PRODUCTION LEADER', 'PROCESS LEADER']}><LeaderOrderList /></ProtectedRoute>} />
+              <Route path="/leader/orders/:orderId" element={<ProtectedRoute allowedRoles={['PRODUCT PROCESS LEADER', 'PRODUCTION LEADER', 'PROCESS LEADER']}><LeaderOrderDetail /></ProtectedRoute>} />
+              <Route path="/leader/orders/:orderId/progress" element={<ProtectedRoute allowedRoles={['PRODUCT PROCESS LEADER', 'PRODUCTION LEADER', 'PROCESS LEADER']}><LeaderStageProgress /></ProtectedRoute>} />
+              <Route path="/leader/defects" element={<ProtectedRoute allowedRoles={['PRODUCT PROCESS LEADER', 'PRODUCTION LEADER', 'PROCESS LEADER']}><LeaderDefectList /></ProtectedRoute>} />
+              <Route path="/leader/defects/:defectId" element={<ProtectedRoute allowedRoles={['PRODUCT PROCESS LEADER', 'PRODUCTION LEADER', 'PROCESS LEADER']}><LeaderDefectDetail /></ProtectedRoute>} />
 
               {/* QA routes */}
-              <Route path="/qa/orders" element={<QaOrderList />} />
-              <Route path="/qa/orders/:orderId" element={<QaOrderDetail />} />
-              <Route path="/qa/orders/:orderId/stages/:stageCode/check" element={<QaStageQualityCheck />} />
-              <Route path="/qa/orders/:orderId/stages/:stageCode/result" element={<QaStageCheckResult />} />
-              <Route path="/qa/scan/:token" element={<QaScanHandler />} />
+              <Route path="/qa/orders" element={<ProtectedRoute allowedRoles={['QUALITY ASSURANCE', 'QA']}><QaOrderList /></ProtectedRoute>} />
+              <Route path="/qa/orders/:orderId" element={<ProtectedRoute allowedRoles={['QUALITY ASSURANCE', 'QA']}><QaOrderDetail /></ProtectedRoute>} />
+              <Route path="/qa/orders/:orderId/stages/:stageCode/check" element={<ProtectedRoute allowedRoles={['QUALITY ASSURANCE', 'QA']}><QaStageQualityCheck /></ProtectedRoute>} />
+              <Route path="/qa/orders/:orderId/stages/:stageCode/result" element={<ProtectedRoute allowedRoles={['QUALITY ASSURANCE', 'QA']}><QaStageCheckResult /></ProtectedRoute>} />
+              <Route path="/qa/scan/:token" element={<ProtectedRoute allowedRoles={['QUALITY ASSURANCE', 'QA', 'PRODUCTION MANAGER', 'PRODUCT PROCESS LEADER', 'PRODUCTION LEADER']}><QaScanHandler /></ProtectedRoute>} />
 
             </Routes>
           </div>

@@ -12,6 +12,15 @@ const QaScanHandler = () => {
 
     useEffect(() => {
         const handleScan = async () => {
+            // 0. Check authentication
+            const authToken = sessionStorage.getItem('userToken') || localStorage.getItem('userToken');
+            if (!authToken) {
+                // Redirect to internal login with return URL
+                const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+                navigate(`/internal-login?returnUrl=${returnUrl}`);
+                return;
+            }
+
             try {
                 if (!token) {
                     throw new Error('Mã QR không hợp lệ (thiếu token)');
