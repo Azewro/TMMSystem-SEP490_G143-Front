@@ -66,5 +66,10 @@ export const executionService = {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
         return response.data;
+    },
+
+    getStageByToken: async (token) => {
+        const response = await apiClient.get(`/v1/execution/stages/by-token/${token}`);
+        return response.data;
     }
 };

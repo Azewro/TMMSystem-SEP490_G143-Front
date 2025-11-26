@@ -21,10 +21,10 @@ const LeaderOrderDetail = () => {
       try {
         setLoading(true);
         const data = await productionService.getLeaderOrderDetail(orderId, userId);
-        
+
         // Find the stage assigned to this leader
         const leaderStage = data.stages && data.stages.length > 0 ? data.stages[0] : null;
-        
+
         // Map backend data to match UI structure
         const mappedOrder = {
           id: data.id || orderId,
@@ -41,13 +41,14 @@ const LeaderOrderDetail = () => {
           stage: leaderStage ? {
             id: leaderStage.id,
             name: getStageTypeName(leaderStage.stageType) || leaderStage.stageType,
-            assignee: leaderStage.assignedLeader?.fullName || 
-                      leaderStage.assigneeName || 
-                      'Chưa phân công',
+            assignee: leaderStage.assignedLeader?.fullName ||
+              leaderStage.assigneeName ||
+              'Chưa phân công',
             status: leaderStage.executionStatus || leaderStage.status,
             statusLabel: getStatusLabel(leaderStage.executionStatus || leaderStage.status),
             progress: leaderStage.progressPercent || 0
-          } : null
+          } : null,
+          qrToken: data.qrToken // Map QR token from backend
         };
         setOrder(mappedOrder);
       } catch (error) {
@@ -111,18 +112,26 @@ const LeaderOrderDetail = () => {
                   <div className="col-md-4 d-flex gap-3 align-items-center">
                     <div
                       style={{
-                        width: 72,
-                        height: 72,
+                        width: 150,
+                        height: 150,
                         borderRadius: 12,
                         border: '1px dashed #ced4da',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: 24,
-                        color: '#adb5bd'
+                        overflow: 'hidden',
+                        backgroundColor: '#fff'
                       }}
                     >
-                      QR
+                      {order.qrToken ? (
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.origin + '/qa/scan/' + order.qrToken)}`}
+                          alt="QR Code"
+                          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                        />
+                      ) : (
+                        <span className="text-muted">No QR</span>
+                      )}
                     </div>
                     <div>
                       <div className="text-muted small mb-1">Mã lô</div>
@@ -177,25 +186,25 @@ const LeaderOrderDetail = () => {
                   </thead>
                   <tbody>
                     {order.stage ? (
-                    <tr>
-                      <td>{order.stage.name}</td>
-                      <td>{order.stage.assignee}</td>
-                      <td>{order.stage.progress ?? 0}%</td>
-                      <td>
+                      <tr>
+                        <td>{order.stage.name}</td>
+                        <td>{order.stage.assignee}</td>
+                        <td>{order.stage.progress ?? 0}%</td>
+                        <td>
                           <Badge bg={getStatusVariant(order.stage.status)}>
                             {order.stage.statusLabel}
                           </Badge>
-                      </td>
-                      <td className="text-end">
+                        </td>
+                        <td className="text-end">
                           {(() => {
                             const buttonConfig = getButtonForStage(order.stage.status, 'leader');
                             const orderLocked = order.orderStatus === 'WAITING_PRODUCTION' || order.orderStatus === 'PENDING_APPROVAL';
                             const isDisabled = order.stage.status === 'PENDING' || orderLocked; // Disable nếu chưa đến lượt hoặc chưa start
                             if (buttonConfig.action === 'start' || buttonConfig.action === 'update') {
                               return (
-                                <Button 
-                                  size="sm" 
-                                  variant={buttonConfig.variant} 
+                                <Button
+                                  size="sm"
+                                  variant={buttonConfig.variant}
                                   onClick={handleViewStage}
                                   disabled={isDisabled}
                                   title={
@@ -209,13 +218,13 @@ const LeaderOrderDetail = () => {
                               );
                             }
                             return (
-                              <Button 
-                                size="sm" 
-                                variant={buttonConfig.variant} 
+                              <Button
+                                size="sm"
+                                variant={buttonConfig.variant}
                                 onClick={handleViewStage}
                               >
                                 {buttonConfig.text}
-                        </Button>
+                              </Button>
                             );
                           })()}
                         </td>
@@ -224,8 +233,8 @@ const LeaderOrderDetail = () => {
                       <tr>
                         <td colSpan="5" className="text-center py-4 text-muted">
                           Chưa có công đoạn được phân công
-                      </td>
-                    </tr>
+                        </td>
+                      </tr>
                     )}
                   </tbody>
                 </Table>

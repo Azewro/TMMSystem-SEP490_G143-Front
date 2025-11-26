@@ -18,31 +18,36 @@ const QaOrderDetail = () => {
       try {
         setLoading(true);
         const data = await orderService.getOrderById(orderId);
-        
+
         // Get current QA userId
         const qcUserId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
-        
+
         // Backend enrichProductionOrderDto returns stages in data.stages
         // Filter và map chỉ các stages được assign cho QA này
         const stages = (data.stages || [])
           .filter(stage => {
             // Chỉ lấy stages được assign cho QA này
-            return stage.qcAssigneeId === Number(qcUserId) || 
-                   stage.qcAssignee?.id === Number(qcUserId);
+            return stage.qcAssigneeId === Number(qcUserId) ||
+              stage.qcAssignee?.id === Number(qcUserId);
           })
           .map(stage => ({
             id: stage.id,
             code: stage.stageType,
             name: getStageTypeName(stage.stageType) || stage.stageType,
-            assignee: stage.assignedLeader?.fullName || 
-                      stage.assigneeName || 
-                      (stage.stageType === 'DYEING' || stage.stageType === 'NHUOM' ? 'Production Manager' : 'Chưa phân công'),
+            assignee: stage.assignedLeader?.fullName ||
+              stage.assigneeName ||
+              (stage.stageType === 'DYEING' || stage.stageType === 'NHUOM' ? 'Production Manager' : 'Chưa phân công'),
             status: stage.executionStatus || stage.status,
             statusLabel: getStatusLabel(stage.executionStatus || stage.status),
             progress: stage.progressPercent || 0,
             qcAssigneeId: stage.qcAssigneeId || stage.qcAssignee?.id
           }));
-        
+
+        // Lấy token từ stage đầu tiên (hoặc bất kỳ stage nào có token)
+        // Lưu ý: data.stages chứa TẤT CẢ stages, không chỉ của QA này
+        const firstStageWithToken = (data.stages || []).find(s => s.qrToken);
+        const qrToken = firstStageWithToken ? firstStageWithToken.qrToken : null;
+
         // Map backend data to match UI structure
         const mappedOrder = {
           id: data.id || orderId,
@@ -53,7 +58,8 @@ const QaOrderDetail = () => {
           expectedStartDate: data.plannedStartDate || data.expectedStartDate,
           expectedFinishDate: data.plannedEndDate || data.expectedFinishDate,
           statusLabel: getStatusLabel(data.executionStatus || data.status),
-          stages: stages
+          stages: stages,
+          qrToken: qrToken // Add token to order object
         };
         setOrder(mappedOrder);
       } catch (error) {
@@ -123,23 +129,39 @@ const QaOrderDetail = () => {
                   <div className="col-lg-4 d-flex gap-3 align-items-center">
                     <div
                       style={{
-                        width: 72,
-                        height: 72,
+                        width: 150,
+                        height: 150,
                         borderRadius: 12,
                         border: '1px dashed #ced4da',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: 24,
-                        color: '#adb5bd',
+                        overflow: 'hidden',
+                        backgroundColor: '#fff'
                       }}
                     >
-                      QR
+                      {order.qrToken ? (
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.origin + '/qa/scan/' + order.qrToken)}`}
+                          alt="QR Code"
+                          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                        />
+                      ) : (
+                        <span className="text-muted">No QR</span>
+                      )}
                     </div>
                     <div>
                       <div className="text-muted small mb-1">Mã lô sản xuất</div>
                       <h5 className="mb-1">{order.lotCode || order.id}</h5>
                       <small className="text-muted">Đơn hàng {order.productName}</small>
+                      {order.qrToken && (
+                        <div className="mt-2">
+                          <Badge bg="light" text="dark" className="border">
+                            <i className="bi bi-qr-code me-1"></i>
+                            Scan to Check
+                          </Badge>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="col-lg-4">
@@ -196,43 +218,43 @@ const QaOrderDetail = () => {
                     {order.stages && order.stages.length > 0 ? (
                       order.stages.map((stage) => {
                         const canInspect = stage.status === 'WAITING_QC' || stage.status === 'QC_IN_PROGRESS';
-                        
+
                         return (
                           <tr key={stage.id || stage.code}>
-                        <td>{stage.name}</td>
-                        <td>{stage.assignee}</td>
-                        <td>{stage.progress ?? 0}%</td>
-                        <td>
+                            <td>{stage.name}</td>
+                            <td>{stage.assignee}</td>
+                            <td>{stage.progress ?? 0}%</td>
+                            <td>
                               <Badge bg={getStatusVariant(stage.status)}>
                                 {stage.statusLabel}
                               </Badge>
-                        </td>
-                        <td className="text-end">
-                          <div className="d-flex justify-content-end gap-2">
+                            </td>
+                            <td className="text-end">
+                              <div className="d-flex justify-content-end gap-2">
                                 {/* Luôn hiển thị button "Chi tiết" */}
-                                <Button 
-                                  size="sm" 
+                                <Button
+                                  size="sm"
                                   variant="outline-secondary"
                                   onClick={() => handleViewStageDetail(stage.id, stage.code)}
                                 >
-                              Chi tiết
-                            </Button>
-                                
+                                  Chi tiết
+                                </Button>
+
                                 {/* Luôn hiển thị button "Kiểm tra", nhưng disabled nếu chưa đến lượt */}
-                            <Button
-                              size="sm"
-                              variant="dark"
+                                <Button
+                                  size="sm"
+                                  variant="dark"
                                   onClick={() => handleInspectStage(stage.id, stage.code)}
                                   disabled={!canInspect}
-                                  title={!canInspect ? 
-                                    'Chưa đến lượt kiểm tra. Chỉ có thể kiểm tra khi trạng thái là "chờ kiểm tra" hoặc "đang kiểm tra"' : 
+                                  title={!canInspect ?
+                                    'Chưa đến lượt kiểm tra. Chỉ có thể kiểm tra khi trạng thái là "chờ kiểm tra" hoặc "đang kiểm tra"' :
                                     'Bắt đầu kiểm tra'}
-                            >
-                              Kiểm tra
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
+                                >
+                                  Kiểm tra
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
                         );
                       })
                     ) : (
@@ -254,5 +276,3 @@ const QaOrderDetail = () => {
 };
 
 export default QaOrderDetail;
-
-

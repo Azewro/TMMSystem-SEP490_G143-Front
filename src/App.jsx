@@ -79,6 +79,7 @@ import QaOrderList from './pages/qa/QaOrderList';
 import QaOrderDetail from './pages/qa/QaOrderDetail';
 import QaStageQualityCheck from './pages/qa/QaStageQualityCheck';
 import QaStageCheckResult from './pages/qa/QaStageCheckResult';
+import QaScanHandler from './pages/qa/QaScanHandler';
 
 function App() {
   return (
@@ -164,6 +165,7 @@ function App() {
               <Route path="/qa/orders/:orderId" element={<QaOrderDetail />} />
               <Route path="/qa/orders/:orderId/stages/:stageCode/check" element={<QaStageQualityCheck />} />
               <Route path="/qa/orders/:orderId/stages/:stageCode/result" element={<QaStageCheckResult />} />
+              <Route path="/qa/scan/:token" element={<QaScanHandler />} />
 
             </Routes>
           </div>

@@ -26,15 +26,15 @@ const ProductionOrderDetail = () => {
 
       // Map stages with proper Vietnamese names and status labels
       const stages = (data.stages || []).map(s => ({
-          id: s.id,
-          code: s.stageType,
+        id: s.id,
+        code: s.stageType,
         name: getStageTypeName(s.stageType) || s.stageType,
-        assignee: s.assignedLeader?.fullName || 
-                  s.assigneeName || 
-                  (s.stageType === 'DYEING' || s.stageType === 'NHUOM' ? 'Production Manager' : 'Chưa phân công'),
+        assignee: s.assignedLeader?.fullName ||
+          s.assigneeName ||
+          (s.stageType === 'DYEING' || s.stageType === 'NHUOM' ? 'Production Manager' : 'Chưa phân công'),
         status: s.executionStatus || s.status,
         statusLabel: getStatusLabel(s.executionStatus || s.status),
-          progress: s.progressPercent || 0
+        progress: s.progressPercent || 0
       }));
 
       const mappedOrder = {
@@ -47,7 +47,8 @@ const ProductionOrderDetail = () => {
         expectedFinishDate: data.plannedEndDate || data.expectedFinishDate,
         status: data.executionStatus || data.status,
         statusLabel: data.statusLabel || getStatusLabel(data.executionStatus || data.status),
-        stages: stages
+        stages: stages,
+        qrToken: data.qrToken // Map QR token from backend
       };
       setOrder(mappedOrder);
     } catch (error) {
@@ -74,7 +75,7 @@ const ProductionOrderDetail = () => {
       // Refresh order data immediately and again after a short delay to ensure backend has updated
       await fetchOrder();
       setTimeout(async () => {
-      await fetchOrder();
+        await fetchOrder();
       }, 1000);
     } catch (error) {
       console.error('Error starting production:', error);
@@ -128,18 +129,26 @@ const ProductionOrderDetail = () => {
                   <div className="col-md-4 d-flex gap-3 align-items-center">
                     <div
                       style={{
-                        width: 72,
-                        height: 72,
+                        width: 150,
+                        height: 150,
                         borderRadius: 12,
                         border: '1px dashed #ced4da',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: 24,
-                        color: '#adb5bd',
+                        overflow: 'hidden',
+                        backgroundColor: '#fff'
                       }}
                     >
-                      QR
+                      {order.qrToken ? (
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.origin + '/qa/scan/' + order.qrToken)}`}
+                          alt="QR Code"
+                          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                        />
+                      ) : (
+                        <span className="text-muted">No QR</span>
+                      )}
                     </div>
                     <div>
                       <div className="text-muted small mb-1">Mã lô sản xuất</div>
@@ -202,7 +211,7 @@ const ProductionOrderDetail = () => {
                       order.stages.map((stage) => {
                         // For dyeing stage (NHUOM), PM can start/update progress
                         const isDyeingStage = stage.code === 'DYEING' || stage.code === 'NHUOM';
-                        
+
                         // For dyeing stage, determine button text and action based on status
                         // Button thứ 2 luôn là "Bắt đầu" hoặc "Cập nhật tiến độ", không bao giờ là "Chi tiết"
                         let dyeingButtonText = 'Bắt đầu';
@@ -210,7 +219,7 @@ const ProductionOrderDetail = () => {
                         const isDyeingPending = isDyeingStage && stage.status === 'PENDING';
                         const canStartDyeing = isDyeingStage && (stage.status === 'WAITING' || stage.status === 'READY' || stage.status === 'WAITING_REWORK');
                         const canUpdateDyeing = isDyeingStage && (stage.status === 'IN_PROGRESS' || stage.status === 'REWORK_IN_PROGRESS');
-                        
+
                         if (isDyeingStage) {
                           if (canUpdateDyeing) {
                             // Đang làm hoặc đang sửa -> "Cập nhật tiến độ"
@@ -223,19 +232,19 @@ const ProductionOrderDetail = () => {
                             dyeingButtonVariant = 'dark';
                           }
                         }
-                        
+
                         return (
-                      <tr key={stage.id}>
-                        <td>{stage.name}</td>
-                        <td>{stage.assignee}</td>
-                        <td>{stage.progress ?? 0}%</td>
-                        <td>
+                          <tr key={stage.id}>
+                            <td>{stage.name}</td>
+                            <td>{stage.assignee}</td>
+                            <td>{stage.progress ?? 0}%</td>
+                            <td>
                               <Badge bg={getStatusVariant(stage.status)}>
                                 {stage.statusLabel}
                               </Badge>
-                        </td>
-                        <td className="text-end">
-                          <div className="d-flex justify-content-end gap-2">
+                            </td>
+                            <td className="text-end">
+                              <div className="d-flex justify-content-end gap-2">
                                 {/* Always show "Chi tiết" button */}
                                 <Button
                                   size="sm"
@@ -245,7 +254,7 @@ const ProductionOrderDetail = () => {
                                 >
                                   Chi tiết
                                 </Button>
-                                
+
                                 {/* For dyeing stage, always show action button ("Bắt đầu" or "Cập nhật tiến độ"), but disabled when PENDING */}
                                 {isDyeingStage && (
                                   <Button
@@ -259,9 +268,9 @@ const ProductionOrderDetail = () => {
                                     {dyeingButtonText}
                                   </Button>
                                 )}
-                          </div>
-                        </td>
-                      </tr>
+                              </div>
+                            </td>
+                          </tr>
                         );
                       })
                     ) : (
@@ -278,17 +287,17 @@ const ProductionOrderDetail = () => {
 
             {/* Only show start button if order hasn't been started yet */}
             {(order.status === 'WAITING_PRODUCTION' || order.status === 'CHO_SAN_XUAT' || order.statusLabel === 'Chờ sản xuất') && (
-            <div className="d-flex justify-content-end mt-4">
-              <Button
-                size="lg"
-                variant="dark"
-                className="px-4"
-                onClick={handleStartProduction}
+              <div className="d-flex justify-content-end mt-4">
+                <Button
+                  size="lg"
+                  variant="dark"
+                  className="px-4"
+                  onClick={handleStartProduction}
                   disabled={loading}
-              >
+                >
                   {loading ? 'Đang xử lý...' : 'Bắt đầu lệnh làm việc'}
-              </Button>
-            </div>
+                </Button>
+              </div>
             )}
           </Container>
         </div>

@@ -176,16 +176,16 @@ const LeaderStageProgress = () => {
 
   // canStart: WAITING, READY (sẵn sàng sản xuất) hoặc WAITING_REWORK (chờ sửa), chưa IN_PROGRESS và tiến độ < 100%
   const canStart = stage && !isStageInProgress && stage.progressPercent < 100 && !orderLocked && (
-    stage.executionStatus === 'WAITING' || 
-    stage.executionStatus === 'READY' || 
+    stage.executionStatus === 'WAITING' ||
+    stage.executionStatus === 'READY' ||
     stage.executionStatus === 'WAITING_REWORK' ||
-    stage.status === 'WAITING' || 
+    stage.status === 'WAITING' ||
     stage.status === 'READY' ||
     stage.status === 'WAITING_REWORK'
   );
   // canUpdate: IN_PROGRESS (đang làm) hoặc REWORK_IN_PROGRESS (đang sửa)
   const canUpdate = stage && !orderLocked && (
-    stage.executionStatus === 'IN_PROGRESS' || 
+    stage.executionStatus === 'IN_PROGRESS' ||
     stage.executionStatus === 'REWORK_IN_PROGRESS' ||
     stage.status === 'IN_PROGRESS' ||
     stage.status === 'REWORK_IN_PROGRESS'
@@ -234,18 +234,26 @@ const LeaderStageProgress = () => {
                   <div className="col-lg-4 d-flex gap-3 align-items-center">
                     <div
                       style={{
-                        width: 72,
-                        height: 72,
+                        width: 150,
+                        height: 150,
                         borderRadius: 12,
                         border: '1px dashed #ced4da',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: 24,
-                        color: '#adb5bd',
+                        overflow: 'hidden',
+                        backgroundColor: '#fff'
                       }}
                     >
-                      QR
+                      {order.qrToken ? (
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.origin + '/qa/scan/' + order.qrToken)}`}
+                          alt="QR Code"
+                          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                        />
+                      ) : (
+                        <span className="text-muted">No QR</span>
+                      )}
                     </div>
                     <div>
                       <div className="text-muted small mb-1">Mã lô sản xuất</div>
