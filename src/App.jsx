@@ -55,6 +55,7 @@ import AdminCustomerManagement from './pages/admin/AdminCustomerManagement';
 
 // Technical Pages
 import MachineManagement from './pages/technical/MachineManagement';
+import MachineDetail from './pages/technical/MachineDetail';
 import TechnicalDefectList from './pages/technical/TechnicalDefectList';
 import TechnicalDefectDetail from './pages/technical/TechnicalDefectDetail';
 
@@ -142,6 +143,7 @@ function App() {
 
               {/* Technical routes */}
               <Route path="/technical/machines" element={<ProtectedRoute allowedRoles={['TECHNICAL DEPARTMENT', 'TECHNICAL']}><MachineManagement /></ProtectedRoute>} />
+              <Route path="/technical/machines/:id" element={<ProtectedRoute allowedRoles={['TECHNICAL DEPARTMENT', 'TECHNICAL']}><MachineDetail /></ProtectedRoute>} />
               <Route path="/technical/defects" element={<ProtectedRoute allowedRoles={['TECHNICAL DEPARTMENT', 'TECHNICAL']}><TechnicalDefectList /></ProtectedRoute>} />
               <Route path="/technical/defects/:defectId" element={<ProtectedRoute allowedRoles={['TECHNICAL DEPARTMENT', 'TECHNICAL']}><TechnicalDefectDetail /></ProtectedRoute>} />
 

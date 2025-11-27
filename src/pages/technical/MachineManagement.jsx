@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Card, Table, Badge, Button, Form, InputGroup, Alert, Pagination } from 'react-bootstrap';
-import { FaSearch, FaPlus, FaEdit, FaTrash, FaCog } from 'react-icons/fa';
+import { FaSearch, FaPlus, FaEdit, FaTrash, FaCog, FaEye } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
@@ -10,6 +11,7 @@ import toast from 'react-hot-toast';
 
 const MachineManagement = () => {
   const { user: currentUser } = useAuth();
+  const navigate = useNavigate();
 
   // Map role from backend to sidebar role format
   const getSidebarRole = () => {
@@ -261,6 +263,14 @@ const MachineManagement = () => {
                               title="Chỉnh sửa"
                             >
                               <FaEdit />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="info"
+                              onClick={() => navigate(`/technical/machines/${machine.id}`)}
+                              title="Xem chi tiết"
+                            >
+                              <FaEye />
                             </Button>
                             <Button
                               size="sm"
