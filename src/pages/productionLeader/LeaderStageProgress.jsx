@@ -167,7 +167,10 @@ const LeaderStageProgress = () => {
   // Check if stage is pending (chưa đến lượt)
   const orderStatus = order?.executionStatus || order?.status;
   const orderLocked = orderStatus === 'WAITING_PRODUCTION' || orderStatus === 'PENDING_APPROVAL' || orderStatus === 'DRAFT';
-  const isPending = stage && (stage.executionStatus === 'PENDING' || stage.status === 'PENDING') && stage.executionStatus !== 'READY_TO_PRODUCE';
+  const isPending = stage && (
+    stage.executionStatus === 'PENDING' ||
+    (!stage.executionStatus && stage.status === 'PENDING')
+  );
   const isStageInProgress = stage && (
     stage.executionStatus === 'IN_PROGRESS' ||
     stage.executionStatus === 'REWORK_IN_PROGRESS' ||
