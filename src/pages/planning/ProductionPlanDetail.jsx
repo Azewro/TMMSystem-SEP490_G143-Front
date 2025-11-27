@@ -681,13 +681,10 @@ const ProductionPlanDetail = () => {
                                                     <Button
                                                         variant="outline-info"
                                                         size="sm"
-                                                        onClick={() => handleFetchMachineSuggestions(stage.id)}
-                                                        disabled={isReadOnly || stageSuggestionsLoading[stage.id]}
+                                                        onClick={() => toast('Tính năng xem lịch máy móc đang phát triển')}
+                                                        disabled={isReadOnly}
                                                     >
-                                                        {stageSuggestionsLoading[stage.id] ? (
-                                                            <Spinner as="span" animation="border" size="sm" className="me-2" />
-                                                        ) : null}
-                                                        Gợi ý máy
+                                                        Xem lịch máy móc
                                                     </Button>
                                                     {/* <Button
                                                 variant="outline-secondary"
@@ -783,7 +780,7 @@ const ProductionPlanDetail = () => {
                                                                     <th>Năng suất</th>
                                                                     <th>Ưu tiên</th>
                                                                     <th>Thời gian gợi ý</th>
-                                                                    <th>Hành động</th>
+
                                                                 </tr>
                                                             </thead>
                                                             <tbody>
@@ -818,16 +815,7 @@ const ProductionPlanDetail = () => {
                                                                                 </div>
                                                                             )}
                                                                         </td>
-                                                                        <td className="text-center">
-                                                                            <Button
-                                                                                variant="outline-primary"
-                                                                                size="sm"
-                                                                                onClick={() => handleApplySuggestion(stage.id, suggestion)}
-                                                                                disabled={isReadOnly || stageActionLoading[stage.id]}
-                                                                            >
-                                                                                Áp dụng
-                                                                            </Button>
-                                                                        </td>
+
                                                                     </tr>
                                                                 ))}
                                                             </tbody>

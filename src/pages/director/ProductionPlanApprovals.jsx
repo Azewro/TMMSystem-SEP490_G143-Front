@@ -114,7 +114,7 @@ const ProductionPlanApprovals = () => {
         productionPlanService.getById(plan.id),
         productionPlanService.getMaterialConsumption(plan.id).catch(() => null)
       ]);
-      
+
       // Format material consumption info
       if (consumptionData && consumptionData.materialSummaries?.length > 0) {
         const materialInfo = consumptionData.materialSummaries
@@ -124,7 +124,7 @@ const ProductionPlanApprovals = () => {
       } else {
         detail.materialConsumption = 'Đang tính toán...';
       }
-      
+
       // Fetch stages if not included in plan details
       if (!detail.details || !detail.details[0]?.stages) {
         try {
@@ -136,7 +136,7 @@ const ProductionPlanApprovals = () => {
           console.warn('Could not fetch stages separately:', err);
         }
       }
-      
+
       setPlanDetails(detail);
     } catch (err) {
       console.error('Failed to fetch plan detail', err);
@@ -252,7 +252,7 @@ const ProductionPlanApprovals = () => {
                     ) : (
                       plans.map((plan) => {
                         const statusConfig = STATUS_LABELS[plan.status] || STATUS_LABELS.PENDING_APPROVAL;
-                        
+
                         // Extract data from combined plan and contractDetails object
                         const productName = plan.contractDetails?.orderItems?.[0]?.productName || 'N/A';
                         const plannedQuantity = plan.contractDetails?.orderItems?.reduce((sum, item) => sum + item.quantity, 0) || 'N/A';
@@ -330,7 +330,7 @@ const ProductionPlanApprovals = () => {
                       <thead className="table-light">
                         <tr>
                           <th style={{ width: 80 }}>Công đoạn</th>
-                          <th>Máy móc</th>
+
                           <th>Người phụ trách</th>
                           <th>Người kiểm tra</th>
                           <th>Bắt đầu</th>
@@ -343,7 +343,7 @@ const ProductionPlanApprovals = () => {
                         {detail.stages?.map((stage) => (
                           <tr key={stage.id}>
                             <td>{getStageTypeName(stage.stageType || stage.stage || stage.stageTypeName)}</td>
-                            <td>{stage.assignedMachineName || stage.assignedMachine?.name || stage.assignedMachine?.code || '—'}</td>
+
                             <td>{stage.inChargeUserName || stage.inChargeUser?.name || stage.inChargeUser?.fullName || '—'}</td>
                             <td>{stage.qcUserName || stage.qcUser?.name || stage.qcUser?.fullName || '—'}</td>
                             <td>{formatDateTime(stage.plannedStartTime || stage.startTime)}</td>
@@ -352,10 +352,10 @@ const ProductionPlanApprovals = () => {
                             <td>{stage.notes || stage.note || '—'}</td>
                           </tr>
                         )) || (
-                          <tr>
-                            <td colSpan={8} className="text-center text-muted">Chưa có công đoạn chi tiết.</td>
-                          </tr>
-                        )}
+                            <tr>
+                              <td colSpan={8} className="text-center text-muted">Chưa có công đoạn chi tiết.</td>
+                            </tr>
+                          )}
                       </tbody>
                     </Table>
                   ))}

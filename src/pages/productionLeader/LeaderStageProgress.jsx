@@ -154,6 +154,7 @@ const LeaderStageProgress = () => {
       case 'PENDING': return { label: 'Đợi', variant: 'secondary' };
       case 'WAITING': return { label: 'Chờ làm', variant: 'primary' };
       case 'READY': return { label: 'Sẵn sàng', variant: 'primary' };
+      case 'READY_TO_PRODUCE': return { label: 'Sẵn sàng', variant: 'success' };
       case 'IN_PROGRESS': return { label: 'Đang làm', variant: 'info' };
       case 'WAITING_QC': return { label: 'Chờ kiểm tra', variant: 'warning' };
       case 'QC_PASSED': return { label: 'Đạt QC', variant: 'success' };
@@ -166,7 +167,7 @@ const LeaderStageProgress = () => {
   // Check if stage is pending (chưa đến lượt)
   const orderStatus = order?.executionStatus || order?.status;
   const orderLocked = orderStatus === 'WAITING_PRODUCTION' || orderStatus === 'PENDING_APPROVAL' || orderStatus === 'DRAFT';
-  const isPending = stage && (stage.executionStatus === 'PENDING' || stage.status === 'PENDING');
+  const isPending = stage && (stage.executionStatus === 'PENDING' || stage.status === 'PENDING') && stage.executionStatus !== 'READY_TO_PRODUCE';
   const isStageInProgress = stage && (
     stage.executionStatus === 'IN_PROGRESS' ||
     stage.executionStatus === 'REWORK_IN_PROGRESS' ||
@@ -178,6 +179,7 @@ const LeaderStageProgress = () => {
   const canStart = stage && !isStageInProgress && stage.progressPercent < 100 && !orderLocked && (
     stage.executionStatus === 'WAITING' ||
     stage.executionStatus === 'READY' ||
+    stage.executionStatus === 'READY_TO_PRODUCE' ||
     stage.executionStatus === 'WAITING_REWORK' ||
     stage.status === 'WAITING' ||
     stage.status === 'READY' ||
