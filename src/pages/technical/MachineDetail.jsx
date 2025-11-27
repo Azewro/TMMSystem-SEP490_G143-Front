@@ -38,9 +38,6 @@ const MachineDetail = () => {
                 setMachine(machineData);
 
                 // Fetch assignments with pagination
-                // Note: Backend API needs to be updated to support pagination. 
-                // Currently assuming it returns a list or a page object. 
-                // We will update this logic after updating the backend.
                 const assignmentsData = await machineService.getAssignments(id, currentPage - 1, itemsPerPage);
 
                 if (assignmentsData.content) {
@@ -125,9 +122,55 @@ const MachineDetail = () => {
                             </div>
                             <div className="mb-3">
                                 <small className="text-muted d-block">Thông số kỹ thuật</small>
-                                <pre className="mb-0" style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: 'inherit' }}>
-                                    {machine.specifications || 'Chưa cập nhật'}
-                                </pre>
+                                {(() => {
+                                    try {
+                                        const specs = machine.specifications ? JSON.parse(machine.specifications) : {};
+                                        const labelMap = {
+                                            brand: "Thương hiệu",
+                                            power: "Công suất",
+                                            modelYear: "Năm sản xuất",
+                                            capacityUnit: "Đơn vị năng suất",
+                                            capacityPerDay: "Năng suất/ngày",
+                                            capacityPerHour: "Năng suất/giờ",
+                                            bathTowels: "Khăn tắm",
+                                            faceTowels: "Khăn mặt",
+                                            sportsTowels: "Khăn thể thao"
+                                        };
+
+                                        if (Object.keys(specs).length === 0) return <span>Chưa cập nhật</span>;
+
+                                        return (
+                                            <Row className="mt-2">
+                                                {Object.entries(specs).map(([key, value]) => (
+                                                    <Col xs={6} key={key} className="mb-2">
+                                                        <small className="text-muted d-block" style={{ fontSize: '0.8em' }}>
+                                                            {labelMap[key] || key}
+                                                        </small>
+                                                        <strong>
+                                                            {typeof value === 'object' && value !== null ? (
+                                                                <ul className="list-unstyled mb-0" style={{ fontSize: '0.9em' }}>
+                                                                    {Object.entries(value).map(([subKey, subValue]) => (
+                                                                        <li key={subKey}>
+                                                                            - {labelMap[subKey] || subKey}: {subValue}
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                            ) : (
+                                                                value
+                                                            )}
+                                                        </strong>
+                                                    </Col>
+                                                ))}
+                                            </Row>
+                                        );
+                                    } catch (e) {
+                                        return (
+                                            <pre className="mb-0" style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: 'inherit' }}>
+                                                {machine.specifications || 'Chưa cập nhật'}
+                                            </pre>
+                                        );
+                                    }
+                                })()}
                             </div>
                         </Card.Body>
                     </Card>
@@ -166,7 +209,7 @@ const MachineDetail = () => {
                                                     </Badge>
                                                 </td>
                                                 <td>
-                                                    {assignment.productionStage ? `Công đoạn ID: ${assignment.productionStage.id}` : '-'}
+                                                    {assignment.productionStageId ? `Công đoạn ID: ${assignment.productionStageId}` : '-'}
                                                 </td>
                                             </tr>
                                         ))

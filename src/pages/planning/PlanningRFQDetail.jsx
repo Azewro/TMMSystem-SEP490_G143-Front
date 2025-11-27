@@ -18,7 +18,7 @@ const PlanningRFQDetail = () => {
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
-  
+
   const [showInsufficientModal, setShowInsufficientModal] = useState(false);
   const [evaluationLoading, setEvaluationLoading] = useState(false);
 
@@ -104,15 +104,15 @@ const PlanningRFQDetail = () => {
     try {
       const result = await quoteService.checkMachineCapacity(id);
       const isSufficient = result?.machineCapacity?.sufficient;
-      
+
       // Lưu dữ liệu báo cáo để hiển thị sau
       setCapacityReportData(result?.machineCapacity);
-      
+
       if (isSufficient) {
         toast.success('Kiểm tra máy móc: Đủ năng lực.');
         // Call the evaluation endpoint but don't use its response, as it's missing the required flags.
         await quoteService.evaluateCapacity(id, { status: 'SUFFICIENT', checkType: 'machine' });
-        
+
         // Manually update the state to reflect the successful check.
         setRFQData(prevRfqData => ({
           ...prevRfqData,
@@ -125,7 +125,7 @@ const PlanningRFQDetail = () => {
         // Không đủ năng lực - chỉ mở modal báo cáo, không tự động mở modal insufficient
         toast.error('Kiểm tra máy móc: Không đủ năng lực.');
         setShowCapacityReportModal(true);
-        
+
         // Cập nhật state để hiển thị nút gửi thông báo
         setRFQData(prevRfqData => ({
           ...prevRfqData,
@@ -204,7 +204,7 @@ const PlanningRFQDetail = () => {
 
   const handleCreateQuote = async () => {
     if (!pricingData) return;
-    
+
     // Final calculation before creating quote
     const finalMargin = parseFloat(displayProfitMargin) || 0;
     const finalMarginMultiplier = 1 + (finalMargin / 100);
@@ -243,22 +243,26 @@ const PlanningRFQDetail = () => {
   // Format năng lực với đơn vị phù hợp
   const formatCapacity = (stageType, capacity) => {
     if (capacity === null || capacity === undefined) return 'N/A';
-    
+
     // Nhuộm vải là outsource
     if (stageType === 'DYEING') {
       return 'Khác';
     }
-    
+
     // Mắc cuồng và Dệt vải: Kg
     if (stageType === 'WARPING' || stageType === 'WEAVING') {
       return `${capacity.toFixed(2)} Kg`;
     }
-    
+
     // Cắt vải và May thành phẩm: khăn
     if (stageType === 'CUTTING' || stageType === 'SEWING') {
       return `${capacity.toFixed(2)} khăn`;
     }
-    
+
+    if (stageType === 'PACKAGING') {
+      return `${capacity.toFixed(0)} sản phẩm`;
+    }
+
     return `${capacity.toFixed(2)}`;
   };
 
@@ -284,144 +288,144 @@ const PlanningRFQDetail = () => {
       <div className="d-flex">
         <InternalSidebar userRole="planning" />
         <div className="flex-grow-1 p-4" style={{ backgroundColor: '#f8f9fa' }}>
-                    <Container>
-                      <Row className="justify-content-center">
-                        <Col lg={10} xl={8}>
-                          <Card className="shadow-sm">
-                            <Card.Header className="d-flex justify-content-between align-items-center">
-                              <h4 className="mb-0">Chi tiết Yêu cầu báo giá: {rfqData?.rfqNumber}</h4>
-                              <Button variant="outline-secondary" size="sm" onClick={() => navigate('/planning/rfqs')}>
-                                <FaArrowLeft className="me-2" /> Quay lại danh sách
+          <Container>
+            <Row className="justify-content-center">
+              <Col lg={10} xl={8}>
+                <Card className="shadow-sm">
+                  <Card.Header className="d-flex justify-content-between align-items-center">
+                    <h4 className="mb-0">Chi tiết Yêu cầu báo giá: {rfqData?.rfqNumber}</h4>
+                    <Button variant="outline-secondary" size="sm" onClick={() => navigate('/planning/rfqs')}>
+                      <FaArrowLeft className="me-2" /> Quay lại danh sách
+                    </Button>
+                  </Card.Header>
+                  <Card.Body>
+                    {/* General Info */}
+                    <h5 className="mb-3">1. Thông tin chung</h5>
+                    <Row className="mb-4">
+                      <Col md={6}>
+                        <p className="mb-1"><strong>Khách hàng:</strong> {rfqData?.contactPerson || '—'}</p>
+                        <p className="mb-1"><strong>Số điện thoại:</strong> {rfqData?.contactPhone || '—'}</p>
+                        <p className="mb-1"><strong>Email:</strong> {rfqData?.contactEmail || '—'}</p>
+                        <p className="mb-1"><strong>Địa chỉ nhận hàng:</strong> {rfqData?.contactAddress || '—'}</p>
+                      </Col>
+                      <Col md={6}>
+                        <p className="mb-1"><strong>Ngày tạo RFQ:</strong> {formatDate(rfqData?.createdAt)}</p>
+                        <p className="mb-1"><strong>Ngày giao mong muốn:</strong> {formatDate(rfqData?.expectedDeliveryDate)}</p>
+                        <p className="mb-1"><strong>Trạng thái:</strong>
+                          <Badge bg={getStatusBadge(currentStatus)} className="ms-2">{getStatusText(currentStatus)}</Badge>
+                        </p>
+                        <p className="mb-1"><strong>Ghi chú:</strong> {rfqData?.notes || '—'}</p>
+                      </Col>
+                    </Row>
+
+                    {/* Product List */}
+                    <h5 className="mb-3">2. Danh sách sản phẩm</h5>
+                    <Table striped bordered hover responsive className="mb-4">
+                      <thead className="table-light">
+                        <tr>
+                          <th>STT</th>
+                          <th>Sản phẩm</th>
+                          <th>Kích thước</th>
+                          <th className="text-center">Số lượng</th>
+                        </tr>                                </thead>
+                      <tbody>
+                        {rfqData?.details?.length ? rfqData.details.map((item, index) => (
+                          <tr key={item.id || index}>
+                            <td className="text-center">{index + 1}</td>
+                            <td>{productMap[item.productId]?.name || `ID: ${item.productId}`}</td>
+                            <td>{item.notes || productMap[item.productId]?.standardDimensions || '—'}</td>
+                            <td className="text-center">{item.quantity}</td>
+                          </tr>
+                        )) : (
+                          <tr><td colSpan="4" className="text-center text-muted">Không có sản phẩm.</td></tr>
+                        )}
+                      </tbody>
+                    </Table>
+
+                    {/* Action Steps */}
+                    <h5 className="mb-3">3. Quy trình xử lý</h5>
+                    <Row className="gy-3">
+                      {/* Step 1: Receive RFQ */}
+                      <Col md={12}>
+                        <Card border={canReceive ? 'primary' : 'light'}>
+                          <Card.Body>
+                            <div className="d-flex justify-content-between align-items-center">
+                              <div>
+                                <h6 className="mb-1"><FaInbox className="me-2" />Bước 1: Tiếp nhận RFQ</h6>
+                                <p className="text-muted mb-0 small">Xác nhận đã nhận RFQ để bắt đầu xử lý.</p>
+                              </div>
+                              <Button variant="primary" disabled={!canReceive || working} onClick={handleReceive}>
+                                {working && canReceive ? <Spinner as="span" animation="border" size="sm" /> : <FaCheckCircle />}
+                                <span className="ms-2">Xác nhận đã nhận</span>
                               </Button>
-                            </Card.Header>
-                            <Card.Body>
-                              {/* General Info */}
-                              <h5 className="mb-3">1. Thông tin chung</h5>
-                              <Row className="mb-4">
-                                <Col md={6}>
-                                  <p className="mb-1"><strong>Khách hàng:</strong> {rfqData?.contactPerson || '—'}</p>
-                                  <p className="mb-1"><strong>Số điện thoại:</strong> {rfqData?.contactPhone || '—'}</p>
-                                  <p className="mb-1"><strong>Email:</strong> {rfqData?.contactEmail || '—'}</p>
-                                  <p className="mb-1"><strong>Địa chỉ nhận hàng:</strong> {rfqData?.contactAddress || '—'}</p>
-                                </Col>
-                                <Col md={6}>
-                                  <p className="mb-1"><strong>Ngày tạo RFQ:</strong> {formatDate(rfqData?.createdAt)}</p>
-                                  <p className="mb-1"><strong>Ngày giao mong muốn:</strong> {formatDate(rfqData?.expectedDeliveryDate)}</p>
-                                  <p className="mb-1"><strong>Trạng thái:</strong>
-                                    <Badge bg={getStatusBadge(currentStatus)} className="ms-2">{getStatusText(currentStatus)}</Badge>
-                                  </p>
-                                  <p className="mb-1"><strong>Ghi chú:</strong> {rfqData?.notes || '—'}</p>
-                                </Col>
-                              </Row>
-          
-                              {/* Product List */}
-                              <h5 className="mb-3">2. Danh sách sản phẩm</h5>
-                              <Table striped bordered hover responsive className="mb-4">
-                                <thead className="table-light">
-                                                          <tr>
-                                                            <th>STT</th>
-                                                            <th>Sản phẩm</th>
-                                                            <th>Kích thước</th>
-                                                            <th className="text-center">Số lượng</th>
-                                                          </tr>                                </thead>
-                                <tbody>
-                                  {rfqData?.details?.length ? rfqData.details.map((item, index) => (
-                                    <tr key={item.id || index}>
-                                      <td className="text-center">{index + 1}</td>
-                                      <td>{productMap[item.productId]?.name || `ID: ${item.productId}`}</td>
-                                      <td>{item.notes || productMap[item.productId]?.standardDimensions || '—'}</td>
-                                      <td className="text-center">{item.quantity}</td>
-                                    </tr>
-                                  )) : (
-                                    <tr><td colSpan="4" className="text-center text-muted">Không có sản phẩm.</td></tr>
-                                  )}
-                                </tbody>
-                              </Table>
-          
-                              {/* Action Steps */}
-                              <h5 className="mb-3">3. Quy trình xử lý</h5>
-                              <Row className="gy-3">
-                                {/* Step 1: Receive RFQ */}
-                                <Col md={12}>
-                                  <Card border={canReceive ? 'primary' : 'light'}>
-                                    <Card.Body>
-                                      <div className="d-flex justify-content-between align-items-center">
-                                        <div>
-                                          <h6 className="mb-1"><FaInbox className="me-2" />Bước 1: Tiếp nhận RFQ</h6>
-                                          <p className="text-muted mb-0 small">Xác nhận đã nhận RFQ để bắt đầu xử lý.</p>
-                                        </div>
-                                        <Button variant="primary" disabled={!canReceive || working} onClick={handleReceive}>
-                                          {working && canReceive ? <Spinner as="span" animation="border" size="sm" /> : <FaCheckCircle />}
-                                          <span className="ms-2">Xác nhận đã nhận</span>
-                                        </Button>
-                                      </div>
-                                    </Card.Body>
-                                  </Card>
-                                </Col>
-                                                      {/* Step 2: Check Capacity */}
-                                                      <Col md={12}>
-                                                        <Card border={canCheckCapacity ? 'primary' : 'light'}>
-                                                          <Card.Body>
-                                                            <div className="d-flex justify-content-between align-items-center">
-                                                              <div>
-                                                                <h6 className="mb-1"><FaCogs className="me-2" />Bước 2: Kiểm tra năng lực máy móc</h6>
-                                                                <p className="text-muted mb-0 small">
-                                                                  {hasCheckedCapacity 
-                                                                    ? `Trạng thái: ${rfqData?.machineCapacitySufficient ? 'Đủ năng lực' : 'Không đủ năng lực'}`
-                                                                    : 'Chạy kiểm tra để xác định năng lực sản xuất.'
-                                                                  }
-                                                                </p>
-                                                              </div>
-                                                              <div className="d-flex align-items-center gap-2">
-                                                                {canShowReport && (
-                                                                  <Button variant="outline-secondary" size="sm" onClick={() => setShowCapacityReportModal(true)}>
-                                                                    Báo cáo chi tiết
-                                                                  </Button>
-                                                                )}
-                                                                <Button variant="primary" onClick={handleCapacityCheck} disabled={!canCheckCapacity || working || rfqData?.machineCapacitySufficient === true}>
-                                                                  {working ? <Spinner as="span" animation="border" size="sm" /> : <FaCogs />}
-                                                                  <span className="ms-2">{working ? 'Đang chạy...' : 'Chạy kiểm tra'}</span>
-                                                                </Button>
-                                                              </div>
-                                                            </div>
-                                                          </Card.Body>
-                                                        </Card>
-                                                      </Col>
-                                {/* Step 3: Create Quote */}
-                                <Col md={12}>
-                                  <Card border={canCreateQuote ? 'primary' : 'light'}>
-                                    <Card.Body>
-                                      <div className="d-flex justify-content-between align-items-center">
-                                        <div>
-                                          <h6 className="mb-1"><FaFileInvoice className="me-2" />Bước 3: Tạo báo giá</h6>
-                                          <p className="text-muted mb-0 small">
-                                            {canCreateQuote 
-                                              ? 'Sau khi đủ năng lực, tạo báo giá chi tiết.' 
-                                              : isInsufficient 
-                                                ? 'Năng lực không đủ. Vui lòng gửi thông báo cho Sales hoặc kiểm tra lại.'
-                                                : 'Vui lòng kiểm tra năng lực máy móc trước.'}
-                                          </p>
-                                        </div>
-                                        <div className="d-flex gap-2">
-                                          {isInsufficient && (
-                                            <Button variant="warning" disabled={working} onClick={() => setShowInsufficientModal(true)}>
-                                              Gửi thông báo cho Sales
-                                            </Button>
-                                          )}
-                                          <Button variant="success" disabled={!canCreateQuote || working} onClick={openQuoteModal}>
-                                            <span className="ms-2">Tạo báo giá</span>
-                                          </Button>
-                                        </div>
-                                      </div>
-                                    </Card.Body>
-                                  </Card>
-                                </Col>
-                              </Row>
-                            </Card.Body>
-                          </Card>
-                        </Col>
-                      </Row>
-                    </Container>        </div>
+                            </div>
+                          </Card.Body>
+                        </Card>
+                      </Col>
+                      {/* Step 2: Check Capacity */}
+                      <Col md={12}>
+                        <Card border={canCheckCapacity ? 'primary' : 'light'}>
+                          <Card.Body>
+                            <div className="d-flex justify-content-between align-items-center">
+                              <div>
+                                <h6 className="mb-1"><FaCogs className="me-2" />Bước 2: Kiểm tra năng lực máy móc</h6>
+                                <p className="text-muted mb-0 small">
+                                  {hasCheckedCapacity
+                                    ? `Trạng thái: ${rfqData?.machineCapacitySufficient ? 'Đủ năng lực' : 'Không đủ năng lực'}`
+                                    : 'Chạy kiểm tra để xác định năng lực sản xuất.'
+                                  }
+                                </p>
+                              </div>
+                              <div className="d-flex align-items-center gap-2">
+                                {canShowReport && (
+                                  <Button variant="outline-secondary" size="sm" onClick={() => setShowCapacityReportModal(true)}>
+                                    Báo cáo chi tiết
+                                  </Button>
+                                )}
+                                <Button variant="primary" onClick={handleCapacityCheck} disabled={!canCheckCapacity || working || rfqData?.machineCapacitySufficient === true}>
+                                  {working ? <Spinner as="span" animation="border" size="sm" /> : <FaCogs />}
+                                  <span className="ms-2">{working ? 'Đang chạy...' : 'Chạy kiểm tra'}</span>
+                                </Button>
+                              </div>
+                            </div>
+                          </Card.Body>
+                        </Card>
+                      </Col>
+                      {/* Step 3: Create Quote */}
+                      <Col md={12}>
+                        <Card border={canCreateQuote ? 'primary' : 'light'}>
+                          <Card.Body>
+                            <div className="d-flex justify-content-between align-items-center">
+                              <div>
+                                <h6 className="mb-1"><FaFileInvoice className="me-2" />Bước 3: Tạo báo giá</h6>
+                                <p className="text-muted mb-0 small">
+                                  {canCreateQuote
+                                    ? 'Sau khi đủ năng lực, tạo báo giá chi tiết.'
+                                    : isInsufficient
+                                      ? 'Năng lực không đủ. Vui lòng gửi thông báo cho Sales hoặc kiểm tra lại.'
+                                      : 'Vui lòng kiểm tra năng lực máy móc trước.'}
+                                </p>
+                              </div>
+                              <div className="d-flex gap-2">
+                                {isInsufficient && (
+                                  <Button variant="warning" disabled={working} onClick={() => setShowInsufficientModal(true)}>
+                                    Gửi thông báo cho Sales
+                                  </Button>
+                                )}
+                                <Button variant="success" disabled={!canCreateQuote || working} onClick={openQuoteModal}>
+                                  <span className="ms-2">Tạo báo giá</span>
+                                </Button>
+                              </div>
+                            </div>
+                          </Card.Body>
+                        </Card>
+                      </Col>
+                    </Row>
+                  </Card.Body>
+                </Card>
+              </Col>
+            </Row>
+          </Container>        </div>
       </div>
 
       {/* Modals */}
@@ -441,7 +445,7 @@ const PlanningRFQDetail = () => {
             <div>
               <Row className="mb-3">
                 <Col md={6}>
-                  <p><strong>Trạng thái:</strong> 
+                  <p><strong>Trạng thái:</strong>
                     <Badge bg={capacityReportData.sufficient ? 'success' : 'danger'} className="ms-2">
                       {capacityReportData.status === 'SUFFICIENT' ? 'Đủ năng lực' : 'Không đủ năng lực'}
                     </Badge>
@@ -554,6 +558,16 @@ const PlanningRFQDetail = () => {
                         <td>{formatCapacity(capacityReportData.sewingStage.stageType, capacityReportData.sewingStage.capacity)}</td>
                       </tr>
                     )}
+                    {capacityReportData.packagingStage && (
+                      <tr>
+                        <td>{capacityReportData.packagingStage.stageName}</td>
+                        <td>{daysToHours(capacityReportData.packagingStage.processingDays)}</td>
+                        <td>{daysToHours(capacityReportData.packagingStage.waitTime)}</td>
+                        <td>{capacityReportData.packagingStage.startDate ? new Date(capacityReportData.packagingStage.startDate).toLocaleDateString('vi-VN') : 'N/A'}</td>
+                        <td>{capacityReportData.packagingStage.endDate ? new Date(capacityReportData.packagingStage.endDate).toLocaleDateString('vi-VN') : 'N/A'}</td>
+                        <td>{formatCapacity(capacityReportData.packagingStage.stageType, capacityReportData.packagingStage.capacity)}</td>
+                      </tr>
+                    )}
                   </tbody>
                 </Table>
               </div>
@@ -641,9 +655,9 @@ const PlanningRFQDetail = () => {
                 </Form.Group>
                 <Form.Group className="mb-3">
                   <Form.Label>Lợi nhuận mong muốn (%)</Form.Label>
-                  <Form.Control 
-                    type="number" 
-                    value={displayProfitMargin} 
+                  <Form.Control
+                    type="number"
+                    value={displayProfitMargin}
                     onChange={(e) => setDisplayProfitMargin(e.target.value)}
                     onBlur={handleProfitMarginBlur}
                   />

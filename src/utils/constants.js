@@ -4,9 +4,9 @@ export const API_BASE_URL = 'https://tmmsystem-sep490g143-production.up.railway.
 // API Endpoints
 export const API_ENDPOINTS = {
   AUTH: {
-    CUSTOMER_LOGIN: '/v1/auth/login', 
+    CUSTOMER_LOGIN: '/v1/auth/login',
     CUSTOMER_REGISTER: '/v1/auth/customer/register',
-    INTERNAL_LOGIN: '/v1/auth/user/login', 
+    INTERNAL_LOGIN: '/v1/auth/user/login',
   },
   CUSTOMERS: '/v1/customers',
   QUOTATIONS: '/v1/quotations',
