@@ -83,6 +83,132 @@ const STAGE_ALIAS = {
   DONG_GOI: 'PACKAGING',
 };
 
+// Mapping checkpoint names from English to Vietnamese
+const CHECKPOINT_NAME_MAP = {
+  // WARPING/CUONG_MAC
+  'Yarn quality': 'Chất lượng sợi',
+  'Consistent tension': 'Độ căng sợi',
+  'Even warping': 'Sợi mắc đều',
+  'Warp width & length': 'Khổ & chiều dài cây sợi',
+  'Warp width and length': 'Khổ & chiều dài cây sợi',
+  
+  // WEAVING/DET
+  'Warp strength': 'Độ bền sợi nền',
+  'Towel shape': 'Hình dáng khăn',
+  'Fabric surface': 'Bề mặt vải',
+  'Surface quality': 'Bề mặt vải',
+  'Fabric density': 'Mật độ vải',
+  'Fabric width': 'Khổ vải',
+  'Weave quality': 'Chất lượng dệt',
+  'Thread count': 'Số sợi',
+  
+  // DYEING/NHUOM
+  'Color accuracy': 'Màu sắc chuẩn',
+  'Color fastness': 'Độ bền màu',
+  'Color bleeding': 'Vết loang/đốm',
+  'Stains/Spots': 'Vết loang/đốm',
+  'Color uniformity': 'Đồng đều màu sắc',
+  'Dye penetration': 'Độ thấm màu',
+  'Color matching': 'Khớp màu',
+  
+  // CUTTING/CAT
+  'Standard size': 'Kích thước chuẩn',
+  'Clean cut': 'Đường cắt sạch',
+  'Cutting accuracy': 'Độ chính xác cắt',
+  'Size accuracy': 'Độ chính xác kích thước',
+  'Edge quality': 'Chất lượng mép cắt',
+  'Cutting line': 'Đường cắt',
+  
+  // HEMMING/MAY
+  'Straight seam': 'Đường may thẳng',
+  'Stitch density': 'Mật độ mũi chỉ',
+  'Sewing quality': 'Chất lượng may',
+  'Seam strength': 'Độ bền đường may',
+  'Thread tension': 'Độ căng chỉ',
+  'Hem quality': 'Chất lượng viền',
+  'Stitch consistency': 'Đồng đều mũi chỉ',
+  
+  // PACKAGING/DONG_GOI
+  'Complete accessories': 'Đủ phụ kiện kèm',
+  'Label accuracy': 'Tem/nhãn đúng chuẩn',
+  'Packaging quality': 'Chất lượng đóng gói',
+  'Package integrity': 'Độ nguyên vẹn bao bì',
+  'Label placement': 'Vị trí tem/nhãn',
+  'Quantity check': 'Kiểm tra số lượng',
+  'Packaging material': 'Chất liệu đóng gói',
+};
+
+// Function to translate checkpoint name to Vietnamese
+const translateCheckpointName = (name) => {
+  if (!name) return name;
+  
+  // If already in Vietnamese (contains Vietnamese characters), return as is
+  if (/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(name)) {
+    return name;
+  }
+  
+  // Check exact match first
+  if (CHECKPOINT_NAME_MAP[name]) {
+    return CHECKPOINT_NAME_MAP[name];
+  }
+  
+  // Check case-insensitive match
+  const lowerName = name.toLowerCase().trim();
+  for (const [en, vi] of Object.entries(CHECKPOINT_NAME_MAP)) {
+    if (en.toLowerCase() === lowerName) {
+      return vi;
+    }
+  }
+  
+  // Try partial matching for common patterns
+  const partialMatches = {
+    'yarn': 'Chất lượng sợi',
+    'tension': 'Độ căng sợi',
+    'warping': 'Sợi mắc đều',
+    'warp': 'Sợi nền',
+    'fabric density': 'Mật độ vải',
+    'fabric width': 'Khổ vải',
+    'fabric surface': 'Bề mặt vải',
+    'fabric': 'Vải',
+    'towel': 'Khăn',
+    'shape': 'Hình dáng',
+    'color': 'Màu sắc',
+    'dyeing': 'Nhuộm',
+    'cut': 'Cắt',
+    'cutting': 'Cắt',
+    'size': 'Kích thước',
+    'seam': 'Đường may',
+    'stitch': 'Mũi chỉ',
+    'hemming': 'May',
+    'sewing': 'May',
+    'packaging': 'Đóng gói',
+    'label': 'Tem/nhãn',
+    'accessories': 'Phụ kiện',
+  };
+  
+  // Try to find partial match
+  for (const [keyword, translation] of Object.entries(partialMatches)) {
+    if (lowerName.includes(keyword)) {
+      // If it's a direct match with a common word, try to construct Vietnamese name
+      if (lowerName === keyword) {
+        return translation;
+      }
+      // For compound names, try to translate
+      if (lowerName.includes('fabric density')) return 'Mật độ vải';
+      if (lowerName.includes('fabric width')) return 'Khổ vải';
+      if (lowerName.includes('fabric surface')) return 'Bề mặt vải';
+      if (lowerName.includes('towel shape')) return 'Hình dáng khăn';
+      if (lowerName.includes('color accuracy')) return 'Màu sắc chuẩn';
+      if (lowerName.includes('color fastness')) return 'Độ bền màu';
+      if (lowerName.includes('straight seam')) return 'Đường may thẳng';
+      if (lowerName.includes('stitch density')) return 'Mật độ mũi chỉ';
+    }
+  }
+  
+  // Return original if no match found
+  return name;
+};
+
 const QaStageQualityCheck = () => {
   const navigate = useNavigate();
   const { orderId, stageCode } = useParams();
@@ -137,14 +263,17 @@ const QaStageQualityCheck = () => {
           setCheckpoints(normalizedCheckpoints);
 
           // Initialize criteria state
-          setCriteria(normalizedCheckpoints.map((cp, index) => ({
-            id: cp.id || cp.tempId || `mock-${index}`,
-            name: cp.checkpointName || cp.name,
-            result: '',
-            notes: '',
-            photo: null,
-            qcCheckpointId: cp.id || null
-          })));
+          setCriteria(normalizedCheckpoints.map((cp, index) => {
+            const checkpointName = cp.checkpointName || cp.name;
+            return {
+              id: cp.id || cp.tempId || `mock-${index}`,
+              name: translateCheckpointName(checkpointName),
+              result: '',
+              notes: '',
+              photo: null,
+              qcCheckpointId: cp.id || null
+            };
+          }));
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -161,10 +290,13 @@ const QaStageQualityCheck = () => {
     const key = stageType.toUpperCase();
     const entries = DEFAULT_CRITERIA[key] || DEFAULT_CRITERIA[STAGE_ALIAS[key]];
     if (!entries) return [];
-    return entries.map((item, index) => ({
-      checkpointName: item.name || item,
-      tempId: `fallback-${key}-${index}`,
-    }));
+    return entries.map((item, index) => {
+      const checkpointName = item.name || item;
+      return {
+        checkpointName: translateCheckpointName(checkpointName),
+        tempId: `fallback-${key}-${index}`,
+      };
+    });
   };
 
   const overallResult = useMemo(() => {

@@ -217,7 +217,10 @@ const QaOrderDetail = () => {
                   <tbody>
                     {order.stages && order.stages.length > 0 ? (
                       order.stages.map((stage) => {
+                        // Chỉ hiển thị nút "Kiểm tra" khi chưa kiểm tra xong (WAITING_QC hoặc QC_IN_PROGRESS)
+                        // Sau khi đã kiểm tra (QC_PASSED hoặc QC_FAILED), nút "Kiểm tra" sẽ biến mất
                         const canInspect = stage.status === 'WAITING_QC' || stage.status === 'QC_IN_PROGRESS';
+                        const hasBeenChecked = stage.status === 'QC_PASSED' || stage.status === 'QC_FAILED';
 
                         return (
                           <tr key={stage.id || stage.code}>
@@ -240,18 +243,20 @@ const QaOrderDetail = () => {
                                   Chi tiết
                                 </Button>
 
-                                {/* Luôn hiển thị button "Kiểm tra", nhưng disabled nếu chưa đến lượt */}
-                                <Button
-                                  size="sm"
-                                  variant="dark"
-                                  onClick={() => handleInspectStage(stage.id, stage.code)}
-                                  disabled={!canInspect}
-                                  title={!canInspect ?
-                                    'Chưa đến lượt kiểm tra. Chỉ có thể kiểm tra khi trạng thái là "chờ kiểm tra" hoặc "đang kiểm tra"' :
-                                    'Bắt đầu kiểm tra'}
-                                >
-                                  Kiểm tra
-                                </Button>
+                                {/* Chỉ hiển thị button "Kiểm tra" khi chưa kiểm tra xong */}
+                                {!hasBeenChecked && (
+                                  <Button
+                                    size="sm"
+                                    variant="dark"
+                                    onClick={() => handleInspectStage(stage.id, stage.code)}
+                                    disabled={!canInspect}
+                                    title={!canInspect ?
+                                      'Chưa đến lượt kiểm tra. Chỉ có thể kiểm tra khi trạng thái là "chờ kiểm tra" hoặc "đang kiểm tra"' :
+                                      'Bắt đầu kiểm tra'}
+                                  >
+                                    Kiểm tra
+                                  </Button>
+                                )}
                               </div>
                             </td>
                           </tr>

@@ -12,7 +12,7 @@ const DirectorRfqList = () => {
   const [allRfqs, setAllRfqs] = useState([]); // Holds all RFQs
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
+
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedRfqId, setSelectedRfqId] = useState(null);
   const [isViewMode, setIsViewMode] = useState(false);
@@ -32,21 +32,21 @@ const DirectorRfqList = () => {
     try {
       // Convert 1-based page to 0-based for backend
       const page = currentPage - 1;
-      
+
       // Prepare parameters - only include non-empty values
       const params = {
         page,
         size: ITEMS_PER_PAGE
       };
-      
+
       if (searchTerm && searchTerm.trim()) {
         params.search = searchTerm.trim();
       }
-      
+
       if (statusFilter && statusFilter.trim()) {
         params.status = statusFilter.trim();
       }
-      
+
       const response = await rfqService.getRfqs(params);
 
       // Handle PageResponse
@@ -93,9 +93,9 @@ const DirectorRfqList = () => {
           if (rfq.customerId) {
             try {
               const customer = await customerService.getCustomerById(rfq.customerId);
-              return { 
-                ...rfq, 
-                contactPerson: rfq.contactPerson || customer.contactPerson || customer.companyName || 'N/A' 
+              return {
+                ...rfq,
+                contactPerson: rfq.contactPerson || customer.contactPerson || customer.companyName || 'N/A'
               };
             } catch (customerError) {
               console.error(`Failed to fetch customer for RFQ ${rfq.id}`, customerError);
@@ -122,7 +122,7 @@ const DirectorRfqList = () => {
   useEffect(() => {
     fetchRfqs();
   }, [currentPage, searchTerm, statusFilter, createdDateFilter]);
-  
+
   useEffect(() => {
     // Reset to page 1 when filters change
     setCurrentPage(1);
@@ -141,7 +141,7 @@ const DirectorRfqList = () => {
 
   const handleAssignmentSuccess = () => {
     handleCloseAssignModal();
-    fetchRfqs(); 
+    fetchRfqs();
   };
 
   const handleSearchChange = (e) => {
@@ -295,30 +295,30 @@ const DirectorRfqList = () => {
                       </thead>
                       <tbody>
                         {allRfqs.length > 0 ? allRfqs.map(rfq => (
-                            <tr key={rfq.id}>
-                              <td>{rfq.rfqNumber}</td>
-                              <td>{rfq.contactPerson || 'N/A'}</td>
-                              <td>{new Date(rfq.createdAt).toLocaleDateString('vi-VN')}</td>
-                              <td>
-                                <Badge bg={getStatusBadge(rfq)}>
-                                  {getStatusText(rfq)}
-                                </Badge>
-                              </td>
-                              <td>
-                                <Button 
-                                  variant="primary" 
-                                  size="sm" 
-                                  onClick={() => handleOpenAssignModal(rfq.id, rfq.status !== 'DRAFT' || !!rfq.assignedSalesId)}
-                                >
-                                  {rfq.status === 'DRAFT' && !rfq.assignedSalesId ? 'Phân công' : 'Xem'}
-                                </Button>
-                              </td>
-                            </tr>
-                          )) : (
+                          <tr key={rfq.id}>
+                            <td>{rfq.rfqNumber}</td>
+                            <td>{rfq.contactPerson || 'N/A'}</td>
+                            <td>{new Date(rfq.createdAt).toLocaleDateString('vi-VN')}</td>
+                            <td>
+                              <Badge bg={getStatusBadge(rfq)}>
+                                {getStatusText(rfq)}
+                              </Badge>
+                            </td>
+                            <td>
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                onClick={() => handleOpenAssignModal(rfq.id, rfq.status !== 'DRAFT' || !!rfq.assignedSalesId)}
+                              >
+                                {rfq.status === 'DRAFT' && !rfq.assignedSalesId ? 'Phân công' : 'Xem'}
+                              </Button>
+                            </td>
+                          </tr>
+                        )) : (
                           <tr>
                             <td colSpan="5" className="text-center">
-                              {totalElements === 0 
-                                ? 'Không có RFQ nào.' 
+                              {totalElements === 0
+                                ? 'Không có RFQ nào.'
                                 : 'Không tìm thấy RFQ phù hợp với bộ lọc.'}
                             </td>
                           </tr>

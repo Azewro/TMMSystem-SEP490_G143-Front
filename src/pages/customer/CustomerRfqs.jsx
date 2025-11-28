@@ -36,15 +36,15 @@ const CustomerRfqs = () => {
     try {
       // Convert 1-based page to 0-based for backend
       const page = currentPage - 1;
-      const response = await rfqService.getRfqs({ 
-        customerId: user.customerId, 
-        page, 
+      const response = await rfqService.getRfqs({
+        customerId: user.customerId,
+        page,
         size: ITEMS_PER_PAGE,
         search: searchTerm || undefined,
         status: statusFilter || undefined,
         createdDate: createdDateFilter || undefined
       });
-      
+
       // Handle PageResponse
       let rfqs = [];
       if (response && response.content) {
@@ -56,7 +56,7 @@ const CustomerRfqs = () => {
         setTotalPages(1);
         setTotalElements(response.length);
       }
-      
+
       // Backend already sorts by createdAt DESC, no need to sort again
       setRfqs(rfqs);
     } catch (err) {
@@ -122,8 +122,8 @@ const CustomerRfqs = () => {
         }
 
         // Find quotation matching this RFQ
-        quotationFound = quotations.find(q => 
-          q.rfqId === rfq.id || 
+        quotationFound = quotations.find(q =>
+          q.rfqId === rfq.id ||
           q.rfq?.id === rfq.id ||
           (q.rfq && typeof q.rfq === 'object' && q.rfq.id === rfq.id)
         );
@@ -154,7 +154,7 @@ const CustomerRfqs = () => {
       setError('Bạn cần đăng nhập để xem các yêu cầu báo giá.');
     }
   }, [user, currentPage, searchTerm, statusFilter, createdDateFilter]);
-  
+
   useEffect(() => {
     // Reset to page 1 when filters change
     if (user && user.customerId) {
@@ -212,7 +212,7 @@ const CustomerRfqs = () => {
         <div className="flex-grow-1 p-4 customer-quote-requests-page" style={{ backgroundColor: '#f8f9fa' }}>
           <Container fluid>
             <h2 className="mb-4">Yêu cầu báo giá của tôi</h2>
-            
+
             {/* Search and Filter */}
             <Card className="mb-3">
               <Card.Body>
@@ -257,8 +257,8 @@ const CustomerRfqs = () => {
                   </Col>
                   {createdDateFilter && (
                     <Col md={2}>
-                      <Button 
-                        variant="outline-secondary" 
+                      <Button
+                        variant="outline-secondary"
                         onClick={() => {
                           setCreatedDateFilter('');
                           setCurrentPage(1);
