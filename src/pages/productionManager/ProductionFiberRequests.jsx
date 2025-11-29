@@ -18,7 +18,7 @@ const ProductionFiberRequests = () => {
     setLoading(true);
     try {
       // Fetch Pending Material Requests
-      const reqResponse = await api.get('/execution/material-requisitions?status=PENDING');
+      const reqResponse = await api.get('/v1/execution/material-requisitions?status=PENDING');
       setRequests(reqResponse.data);
     } catch (error) {
       console.error("Error fetching data:", error);

@@ -25,7 +25,7 @@ const ProductionReworkOrders = () => {
     try {
       // Fetch Rework Orders (Assuming we can filter by type or just fetch all and filter client side)
       // For now fetching all orders and filtering by "-REWORK" in poNumber
-      const orderResponse = await api.get('/production/manager/orders');
+      const orderResponse = await api.get('/v1/production/manager/orders');
       const reworks = orderResponse.data.filter(o => o.poNumber && o.poNumber.includes('-REWORK'));
       setReworkOrders(reworks);
 

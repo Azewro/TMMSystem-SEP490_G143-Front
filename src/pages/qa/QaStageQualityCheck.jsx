@@ -91,7 +91,7 @@ const CHECKPOINT_NAME_MAP = {
   'Even warping': 'Sợi mắc đều',
   'Warp width & length': 'Khổ & chiều dài cây sợi',
   'Warp width and length': 'Khổ & chiều dài cây sợi',
-  
+
   // WEAVING/DET
   'Warp strength': 'Độ bền sợi nền',
   'Towel shape': 'Hình dáng khăn',
@@ -101,7 +101,7 @@ const CHECKPOINT_NAME_MAP = {
   'Fabric width': 'Khổ vải',
   'Weave quality': 'Chất lượng dệt',
   'Thread count': 'Số sợi',
-  
+
   // DYEING/NHUOM
   'Color accuracy': 'Màu sắc chuẩn',
   'Color fastness': 'Độ bền màu',
@@ -110,7 +110,7 @@ const CHECKPOINT_NAME_MAP = {
   'Color uniformity': 'Đồng đều màu sắc',
   'Dye penetration': 'Độ thấm màu',
   'Color matching': 'Khớp màu',
-  
+
   // CUTTING/CAT
   'Standard size': 'Kích thước chuẩn',
   'Clean cut': 'Đường cắt sạch',
@@ -118,7 +118,7 @@ const CHECKPOINT_NAME_MAP = {
   'Size accuracy': 'Độ chính xác kích thước',
   'Edge quality': 'Chất lượng mép cắt',
   'Cutting line': 'Đường cắt',
-  
+
   // HEMMING/MAY
   'Straight seam': 'Đường may thẳng',
   'Stitch density': 'Mật độ mũi chỉ',
@@ -127,7 +127,7 @@ const CHECKPOINT_NAME_MAP = {
   'Thread tension': 'Độ căng chỉ',
   'Hem quality': 'Chất lượng viền',
   'Stitch consistency': 'Đồng đều mũi chỉ',
-  
+
   // PACKAGING/DONG_GOI
   'Complete accessories': 'Đủ phụ kiện kèm',
   'Label accuracy': 'Tem/nhãn đúng chuẩn',
@@ -141,17 +141,17 @@ const CHECKPOINT_NAME_MAP = {
 // Function to translate checkpoint name to Vietnamese
 const translateCheckpointName = (name) => {
   if (!name) return name;
-  
+
   // If already in Vietnamese (contains Vietnamese characters), return as is
   if (/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(name)) {
     return name;
   }
-  
+
   // Check exact match first
   if (CHECKPOINT_NAME_MAP[name]) {
     return CHECKPOINT_NAME_MAP[name];
   }
-  
+
   // Check case-insensitive match
   const lowerName = name.toLowerCase().trim();
   for (const [en, vi] of Object.entries(CHECKPOINT_NAME_MAP)) {
@@ -159,7 +159,7 @@ const translateCheckpointName = (name) => {
       return vi;
     }
   }
-  
+
   // Try partial matching for common patterns
   const partialMatches = {
     'yarn': 'Chất lượng sợi',
@@ -185,7 +185,7 @@ const translateCheckpointName = (name) => {
     'label': 'Tem/nhãn',
     'accessories': 'Phụ kiện',
   };
-  
+
   // Try to find partial match
   for (const [keyword, translation] of Object.entries(partialMatches)) {
     if (lowerName.includes(keyword)) {
@@ -204,7 +204,7 @@ const translateCheckpointName = (name) => {
       if (lowerName.includes('stitch density')) return 'Mật độ mũi chỉ';
     }
   }
-  
+
   // Return original if no match found
   return name;
 };
@@ -402,10 +402,10 @@ const QaStageQualityCheck = () => {
     if (overallResult === 'FAIL') {
       const missingPhoto = criteria.some((c) => c.result === 'FAIL' && !c.photo);
       // Relaxing photo requirement for now as we don't have real upload
-      // if (missingPhoto) {
-      //   toast.error('Vui lòng bổ sung hình ảnh lỗi cho các tiêu chí Không đạt yêu cầu.');
-      //   return;
-      // }
+      if (missingPhoto) {
+        toast.error('Vui lòng bổ sung hình ảnh lỗi cho các tiêu chí Không đạt yêu cầu.');
+        return;
+      }
       if (!defectDescription.trim()) {
         toast.error('Vui lòng nhập mô tả lỗi.');
         return;

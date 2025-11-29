@@ -25,7 +25,7 @@ const TechnicalDefectList = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/production/tech/defects');
+      const response = await api.get('/v1/production/tech/defects');
       setDefects(response.data);
     } catch (error) {
       console.error("Error fetching defects:", error);
@@ -63,6 +63,7 @@ const TechnicalDefectList = () => {
                         <th>Sản phẩm</th>
                         <th>Kích thước</th>
                         <th>Công đoạn lỗi</th>
+                        <th>Hình ảnh</th>
                         <th>Mức độ</th>
                         <th>Trạng thái</th>
                         <th>Ngày gửi</th>
@@ -71,7 +72,7 @@ const TechnicalDefectList = () => {
                     </thead>
                     <tbody>
                       {defects.length === 0 ? (
-                        <tr><td colSpan="8" className="text-center">Không có lỗi nào</td></tr>
+                        <tr><td colSpan="9" className="text-center">Không có lỗi nào</td></tr>
                       ) : (
                         defects.map((defect) => {
                           const severity = severityConfig[defect.severity] || { label: defect.severity, variant: 'secondary' };
@@ -82,6 +83,15 @@ const TechnicalDefectList = () => {
                               <td>{defect.productName || 'N/A'}</td>
                               <td>{defect.size || 'N/A'}</td>
                               <td>{defect.stageType}</td>
+                              <td>
+                                {defect.evidencePhoto ? (
+                                  <span className="text-primary" title="Có hình ảnh">
+                                    <i className="bi bi-image"></i> 📷
+                                  </span>
+                                ) : (
+                                  <span className="text-muted">-</span>
+                                )}
+                              </td>
                               <td>
                                 <Badge bg={severity.variant}>{severity.label}</Badge>
                               </td>

@@ -69,6 +69,7 @@ const LeaderDefectList = () => {
                       <tr>
                         <th>Mã đơn</th>
                         <th>Công đoạn</th>
+                        <th>Hình ảnh</th>
                         <th>Mức độ</th>
                         <th>Mô tả</th>
                         <th>Trạng thái</th>
@@ -80,6 +81,15 @@ const LeaderDefectList = () => {
                         <tr key={defect.id}>
                           <td>{defect.poNumber || 'N/A'}</td>
                           <td>{defect.stageType || 'N/A'}</td>
+                          <td>
+                            {defect.evidencePhoto ? (
+                              <span className="text-primary" title="Có hình ảnh">
+                                <i className="bi bi-image"></i> 📷
+                              </span>
+                            ) : (
+                              <span className="text-muted">-</span>
+                            )}
+                          </td>
                           <td>
                             <Badge bg={severityConfig[defect.severity]?.variant || 'secondary'}>
                               {severityConfig[defect.severity]?.label || defect.severity}

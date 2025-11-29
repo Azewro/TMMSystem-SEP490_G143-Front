@@ -31,7 +31,7 @@ const TechnicalDefectDetail = () => {
   useEffect(() => {
     const fetchDefect = async () => {
       try {
-        const response = await api.get(`/production/defects/${defectId}`);
+        const response = await api.get(`/v1/production/defects/${defectId}`);
         setDefect(response.data);
       } catch (error) {
         console.error("Error fetching defect:", error);
@@ -52,7 +52,7 @@ const TechnicalDefectDetail = () => {
         finalNotes = `Yêu cầu cấp: ${materialRequest.quantity}kg ${materialRequest.type}. Ghi chú: ${materialRequest.notes}`;
       }
 
-      await api.post('/technical/defects/handle', null, {
+      await api.post('/v1/technical/defects/handle', null, {
         params: {
           stageId: defect.stageId, // Assuming DTO has stageId
           decision: decision,

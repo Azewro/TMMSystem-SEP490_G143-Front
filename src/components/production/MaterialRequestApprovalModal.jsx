@@ -23,7 +23,7 @@ const MaterialRequestApprovalModal = ({ show, onHide, request, onSuccess }) => {
         try {
             const directorId = localStorage.getItem('userId') || 1; // Fallback
             // Use ExecutionController endpoint
-            await api.post(`/execution/material-requisitions/${request.id}/approve`, null, {
+            await api.post(`/v1/execution/material-requisitions/${request.id}/approve`, null, {
                 params: {
                     pmUserId: directorId, // Using directorId as pmUserId for now
                     force: force

@@ -23,6 +23,24 @@ const LeaderStageProgress = () => {
   const [inputProgress, setInputProgress] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
   const [history, setHistory] = useState([]);
+  const [defect, setDefect] = useState(null);
+
+  useEffect(() => {
+    const fetchDefectInfo = async () => {
+      if (location.state?.defectId) {
+        try {
+          const data = await productionService.getDefectDetail(location.state.defectId);
+          setDefect(data);
+        } catch (error) {
+          console.error("Error fetching defect:", error);
+        }
+      }
+    };
+    fetchDefectInfo();
+  }, [location.state?.defectId]);
+
+  // ... (existing code)
+
   const [historyLoading, setHistoryLoading] = useState(false);
 
   const formatTimestamp = (value) => {
@@ -33,6 +51,7 @@ const LeaderStageProgress = () => {
       return value;
     }
   };
+
 
   const mapTrackingAction = (action) => {
     switch (action) {
@@ -359,6 +378,41 @@ const LeaderStageProgress = () => {
                 </div>
               </Card.Body>
             </Card>
+
+            {/* Defect Details for Rework */}
+            {defect && (
+              <Card className="shadow-sm mb-3 border-danger">
+                <Card.Header className="bg-danger text-white">
+                  <strong>Thông tin lỗi cần sửa</strong>
+                </Card.Header>
+                <Card.Body>
+                  <div className="row">
+                    <div className="col-md-8">
+                      <p><strong>Mô tả lỗi:</strong> {defect.issueDescription || defect.description}</p>
+                      <p><strong>Người báo cáo:</strong> {defect.reportedBy || 'QC'}</p>
+                      <p><strong>Mức độ:</strong> {defect.severity}</p>
+                    </div>
+                    <div className="col-md-4">
+                      {defect.evidencePhoto ? (
+                        <div>
+                          <strong>Hình ảnh lỗi:</strong>
+                          <div className="mt-2">
+                            <img
+                              src={defect.evidencePhoto}
+                              alt="Defect Evidence"
+                              className="img-fluid rounded border"
+                              style={{ maxHeight: '200px' }}
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-muted fst-italic">Không có hình ảnh</div>
+                      )}
+                    </div>
+                  </div>
+                </Card.Body>
+              </Card>
+            )}
 
             {/* Action Area */}
             {isPaused && (
