@@ -1,39 +1,41 @@
-import React from 'react';
-import { Container, Card, Table, Badge, Button } from 'react-bootstrap';
+import React, { useState, useEffect } from 'react';
+import { Container, Card, Table, Badge, Button, Spinner } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
-
-const MOCK_FIBER_REQUESTS = [
-  {
-    lotCode: 'LOT-001',
-    product: 'Áo sơ mi nam',
-    stage: 'Dệt',
-    fiberType: 'cotton',
-    quantity: 100,
-    requester: 'Tech - Trần Văn T',
-    status: 'pending',
-    createdAt: '20/11/2025',
-  },
-  {
-    lotCode: 'LOT-002',
-    product: 'Quần lử nữ',
-    stage: 'Nhuộm',
-    fiberType: 'polyester',
-    quantity: 80,
-    requester: 'Tech - Nguyễn Văn B',
-    status: 'approved',
-    createdAt: '21/11/2025',
-  },
-];
-
-const statusConfig = {
-  pending: { label: 'Chờ phê duyệt', variant: 'warning' },
-  approved: { label: 'Đã phê duyệt', variant: 'success' },
-};
+import api from '../../api/apiConfig';
+import MaterialRequestApprovalModal from '../../components/production/MaterialRequestApprovalModal';
+import { toast } from 'react-hot-toast';
 
 const ProductionFiberRequests = () => {
   const navigate = useNavigate();
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      // Fetch Pending Material Requests
+      const reqResponse = await api.get('/execution/material-requisitions?status=PENDING');
+      setRequests(reqResponse.data);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      toast.error("Không thể tải dữ liệu");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleApproveClick = (req) => {
+    setSelectedRequest(req);
+    setShowModal(true);
+  };
 
   return (
     <div className="customer-layout">
@@ -49,44 +51,49 @@ const ProductionFiberRequests = () => {
                   <small className="text-muted">Xem và phê duyệt yêu cầu từ Tech</small>
                 </div>
 
-                <Table hover responsive className="mb-0 align-middle">
-                  <thead className="table-light">
-                    <tr>
-                      <th>Mã lô</th>
-                      <th>Sản phẩm</th>
-                      <th>Công đoạn lỗi</th>
-                      <th>Loại sợi</th>
-                      <th>Khối lượng (kg)</th>
-                      <th>Người yêu cầu</th>
-                      <th>Trạng thái</th>
-                      <th>Ngày tạo</th>
-                      <th>Hành động</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {MOCK_FIBER_REQUESTS.map((item) => (
-                      <tr key={item.lotCode}>
-                        <td>{item.lotCode}</td>
-                        <td>{item.product}</td>
-                        <td>{item.stage}</td>
-                        <td>{item.fiberType}</td>
-                        <td>{item.quantity}</td>
-                        <td>{item.requester}</td>
-                        <td>
-                          <Badge bg={statusConfig[item.status].variant}>{statusConfig[item.status].label}</Badge>
-                        </td>
-                        <td>{item.createdAt}</td>
-                        <td>
-                          <Button variant="outline-dark" size="sm" onClick={() => navigate(`/production/fiber-requests/${item.lotCode}`)}>
-                            Chi tiết
-                          </Button>
-                        </td>
+                {loading ? <Spinner animation="border" /> : (
+                  <Table hover responsive className="mb-0 align-middle">
+                    <thead className="table-light">
+                      <tr>
+                        <th>Mã YC</th>
+                        <th>Công đoạn</th>
+                        <th>Người yêu cầu</th>
+                        <th>Ghi chú</th>
+                        <th>Trạng thái</th>
+                        <th>Hành động</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </Table>
+                    </thead>
+                    <tbody>
+                      {requests.length === 0 ? (
+                        <tr><td colSpan="6" className="text-center">Không có yêu cầu nào</td></tr>
+                      ) : (
+                        requests.map(req => (
+                          <tr key={req.id}>
+                            <td>{req.requisitionNumber}</td>
+                            <td>{req.stageName || req.productionStage?.stageType}</td>
+                            <td>{req.requestedBy?.fullName || 'N/A'}</td>
+                            <td>{req.notes}</td>
+                            <td><Badge bg="warning">Chờ duyệt</Badge></td>
+                            <td>
+                              <Button size="sm" variant="primary" onClick={() => handleApproveClick(req)}>
+                                Xem & Duyệt
+                              </Button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </Table>
+                )}
               </Card.Body>
             </Card>
+
+            <MaterialRequestApprovalModal
+              show={showModal}
+              onHide={() => setShowModal(false)}
+              request={selectedRequest}
+              onSuccess={fetchData}
+            />
           </Container>
         </div>
       </div>

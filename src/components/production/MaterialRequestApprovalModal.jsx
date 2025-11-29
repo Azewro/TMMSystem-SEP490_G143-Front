@@ -15,21 +15,18 @@ const MaterialRequestApprovalModal = ({ show, onHide, request, onSuccess }) => {
         return days;
     };
 
-    const handleApprove = async () => {
-        const days = calculateDuration(approvedQuantity);
-        if (days > 7 && !warning) {
-            setWarning(`Cảnh báo: Thời gian sản xuất dự kiến (${days.toFixed(1)} ngày) vượt quá 7 ngày. Bạn có chắc chắn muốn duyệt?`);
-            return;
-        }
+    const handleApprove = async (force = false) => {
+        // Client-side check (optional, but backend is authoritative)
+        // const days = calculateDuration(approvedQuantity);
 
         setLoading(true);
         try {
             const directorId = localStorage.getItem('userId') || 1; // Fallback
-            await api.post(`/production/orders/approve-material-request`, null, {
+            // Use ExecutionController endpoint
+            await api.post(`/execution/material-requisitions/${request.id}/approve`, null, {
                 params: {
-                    requestId: request.id,
-                    approvedQuantity: approvedQuantity,
-                    directorId: directorId
+                    pmUserId: directorId, // Using directorId as pmUserId for now
+                    force: force
                 }
             });
             toast.success("Đã duyệt yêu cầu và tạo lệnh sản xuất bổ sung");
@@ -37,10 +34,20 @@ const MaterialRequestApprovalModal = ({ show, onHide, request, onSuccess }) => {
             onHide();
         } catch (error) {
             console.error("Error approving request:", error);
-            toast.error("Có lỗi xảy ra khi duyệt yêu cầu");
+            const errorMessage = error.response?.data?.message || error.message || "";
+
+            if (errorMessage.includes("TIME_EXCEEDED_WARNING")) {
+                setWarning(errorMessage.replace("java.lang.RuntimeException: TIME_EXCEEDED_WARNING: ", ""));
+            } else {
+                toast.error("Có lỗi xảy ra: " + errorMessage);
+            }
         } finally {
             setLoading(false);
         }
+    };
+
+    const onConfirmWarning = () => {
+        handleApprove(true);
     };
 
     return (
@@ -84,7 +91,7 @@ const MaterialRequestApprovalModal = ({ show, onHide, request, onSuccess }) => {
             </Modal.Body>
             <Modal.Footer>
                 <Button variant="secondary" onClick={onHide}>Đóng</Button>
-                <Button variant="primary" onClick={handleApprove} disabled={loading}>
+                <Button variant="primary" onClick={warning ? onConfirmWarning : () => handleApprove(false)} disabled={loading}>
                     {loading ? 'Đang xử lý...' : (warning ? 'Xác nhận duyệt' : 'Duyệt & Tạo lệnh')}
                 </Button>
             </Modal.Footer>
