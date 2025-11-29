@@ -5,12 +5,7 @@ import { productionPlanService } from '../../api/productionPlanService';
 import { contractService } from '../../api/contractService';
 import '../../styles/QuoteRequests.css';
 import InternalSidebar from '../../components/common/InternalSidebar';
-
-const STATUS_LABELS = {
-  PENDING_APPROVAL: { text: 'Chờ duyệt', variant: 'warning' },
-  APPROVED: { text: 'Đã duyệt', variant: 'success' },
-  REJECTED: { text: 'Đã từ chối', variant: 'danger' }
-};
+import { getDirectorPlanStatus } from '../../utils/statusMapper';
 
 const formatDate = (value) => {
   if (!value) return '';
@@ -251,7 +246,7 @@ const ProductionPlanApprovals = () => {
                       </tr>
                     ) : (
                       plans.map((plan) => {
-                        const statusConfig = STATUS_LABELS[plan.status] || STATUS_LABELS.PENDING_APPROVAL;
+                        const statusObj = getDirectorPlanStatus(plan.status);
 
                         // Extract data from combined plan and contractDetails object
                         const productName = plan.contractDetails?.orderItems?.[0]?.productName || 'N/A';
@@ -267,7 +262,7 @@ const ProductionPlanApprovals = () => {
                             <td>{formatDate(startDate)}</td>
                             <td>{formatDate(endDate)}</td>
                             <td>
-                              <Badge bg={statusConfig.variant}>{statusConfig.text}</Badge>
+                              <Badge bg={statusObj.variant}>{statusObj.label}</Badge>
                             </td>
                             <td className="text-center">
                               <Button variant="outline-primary" size="sm" onClick={() => openPlan(plan)}>

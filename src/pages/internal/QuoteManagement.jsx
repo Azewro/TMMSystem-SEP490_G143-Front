@@ -6,12 +6,13 @@ import InternalSidebar from '../../components/common/InternalSidebar';
 import '../../styles/QuoteRequests.css';
 import { quoteService } from '../../api/quoteService';
 import { useNavigate } from 'react-router-dom';
+import { getSalesQuoteStatus } from '../../utils/statusMapper';
 
 const QuoteManagement = () => {
     const navigate = useNavigate();
     const [quotes, setQuotes] = useState([]);
     const [filteredQuotes, setFilteredQuotes] = useState([]);
-    const [statusFilter, setStatusFilter] = useState('Tất cả trạng thái');
+    const [statusFilter, setStatusFilter] = useState('ALL');
     const [loading, setLoading] = useState(true);
 
     // Mock data for quotes (fallback)
@@ -23,8 +24,7 @@ const QuoteManagement = () => {
             company: 'Công ty TNHH ABC',
             createdDate: '29/10/2025',
             totalAmount: 281750,
-            status: 'Chờ duyệt',
-            statusColor: 'warning'
+            status: 'DRAFT',
         },
         {
             id: 2,
@@ -33,8 +33,7 @@ const QuoteManagement = () => {
             company: 'Công ty Cổ phần XYZ',
             createdDate: '28/10/2025',
             totalAmount: 456000,
-            status: 'Đã gửi khách hàng',
-            statusColor: 'info'
+            status: 'SENT',
         },
         {
             id: 3,
@@ -43,8 +42,7 @@ const QuoteManagement = () => {
             company: 'Tập đoàn DEF',
             createdDate: '27/10/2025',
             totalAmount: 325000,
-            status: 'Khách hàng đã duyệt',
-            statusColor: 'success'
+            status: 'ACCEPTED',
         }
     ];
 
@@ -70,8 +68,7 @@ const QuoteManagement = () => {
                             company: `Company ${quote.rfqId}`,
                             createdDate: quote.createdAt ? new Date(quote.createdAt).toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN'),
                             totalAmount: quote.totalAmount || 0,
-                            status: quote.status === 'PENDING' ? 'Chờ duyệt' : 'Chờ duyệt',
-                            statusColor: 'warning'
+                            status: quote.status,
                         }));
 
                         console.log('✅ Using REAL quote data:', processedQuotes);
@@ -100,8 +97,7 @@ const QuoteManagement = () => {
                                 company: `Company ${rfq.customerId}`,
                                 createdDate: rfq.updatedAt ? new Date(rfq.updatedAt).toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN'),
                                 totalAmount: 281750, // Mock amount for now
-                                status: 'Chờ duyệt',
-                                statusColor: 'warning'
+                                status: 'DRAFT',
                             }));
 
                             console.log('✅ Using quotes from QUOTED RFQs:', quotesFromRFQs);
@@ -133,7 +129,7 @@ const QuoteManagement = () => {
 
     const handleStatusFilter = (status) => {
         setStatusFilter(status);
-        if (status === 'Tất cả trạng thái') {
+        if (status === 'ALL') {
             setFilteredQuotes(quotes);
         } else {
             setFilteredQuotes(quotes.filter(quote => quote.status === status));
@@ -169,11 +165,11 @@ const QuoteManagement = () => {
                                         onChange={(e) => handleStatusFilter(e.target.value)}
                                         className="status-filter"
                                     >
-                                        <option>Tất cả trạng thái</option>
-                                        <option>Chờ duyệt</option>
-                                        <option>Đã gửi khách hàng</option>
-                                        <option>Khách hàng đã duyệt</option>
-                                        <option>Khách hàng từ chối</option>
+                                        <option value="ALL">Tất cả trạng thái</option>
+                                        <option value="DRAFT">Chờ báo giá</option>
+                                        <option value="SENT">Chờ phê duyệt</option>
+                                        <option value="ACCEPTED">Đã duyệt</option>
+                                        <option value="REJECTED">Từ chối</option>
                                     </Form.Select>
                                 </Col>
                             </Row>
@@ -220,9 +216,10 @@ const QuoteManagement = () => {
                                                             {formatCurrency(quote.totalAmount)}
                                                         </td>
                                                         <td>
-                                                            <Badge bg={quote.statusColor} className="status-badge">
-                                                                {quote.status}
-                                                            </Badge>
+                                                            {(() => {
+                                                                const statusObj = getSalesQuoteStatus(quote.status);
+                                                                return <Badge bg={statusObj.variant} className="status-badge">{statusObj.label}</Badge>;
+                                                            })()}
                                                         </td>
                                                         <td>
                                                             <Button

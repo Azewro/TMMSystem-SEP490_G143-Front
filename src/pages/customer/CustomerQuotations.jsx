@@ -4,51 +4,25 @@ import { FaEye, FaSearch } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import Sidebar from '../../components/common/Sidebar';
-import { quoteService } from '../../api/quoteService';
 import { quotationService } from '../../api/quotationService';
 import { useAuth } from '../../context/AuthContext';
 import Pagination from '../../components/Pagination';
 import toast from 'react-hot-toast';
-
-const getStatusBadge = (status) => {
-  switch (status) {
-    case 'DRAFT': return 'secondary';
-    case 'SENT': return 'info';
-    case 'ACCEPTED': return 'success';
-    case 'REJECTED': return 'danger';
-    case 'EXPIRED': return 'light';
-    case 'CANCELED': return 'dark';
-    case 'ORDER_CREATED': return 'primary';
-    default: return 'light';
-  }
-};
-
-const getStatusText = (status) => {
-  switch (status) {
-    case 'DRAFT': return 'Chờ gửi';
-    case 'SENT': return 'Đã gửi';
-    case 'ACCEPTED': return 'Đã chấp nhận';
-    case 'REJECTED': return 'Đã từ chối';
-    case 'EXPIRED': return 'Hết hạn';
-    case 'CANCELED': return 'Đã hủy';
-    case 'ORDER_CREATED': return 'Đã tạo đơn hàng';
-    default: return status;
-  }
-};
+import { getCustomerQuoteStatus } from '../../utils/statusMapper';
 
 const formatDate = (iso) => {
   if (!iso) return 'N/A';
-  try { 
-    return new Date(iso).toLocaleDateString('vi-VN'); 
-  } catch { 
-    return iso; 
+  try {
+    return new Date(iso).toLocaleDateString('vi-VN');
+  } catch {
+    return iso;
   }
 };
 
 const formatCurrency = (amount) => {
   if (!amount) return '0 ₫';
-  return new Intl.NumberFormat('vi-VN', { 
-    style: 'currency', 
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
     currency: 'VND',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
@@ -63,7 +37,7 @@ const CustomerQuotations = () => {
   const [allQuotes, setAllQuotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -85,31 +59,31 @@ const CustomerQuotations = () => {
     setError('');
     try {
       // Normalize search term: trim and replace multiple spaces with single space
-      const normalizedSearch = debouncedSearchTerm 
+      const normalizedSearch = debouncedSearchTerm
         ? debouncedSearchTerm.trim().replace(/\s+/g, ' ')
         : undefined;
-      
+
       // Convert 1-based page to 0-based for backend
       const page = currentPage - 1;
-      
+
       // Prepare sort parameters
       let finalSortBy = sortBy;
       let finalSortOrder = sortOrder;
-      
+
       // If sorting by date and a specific date is selected, backend will handle it
       // For now, we just pass sortBy and sortOrder to backend
-      
+
       const response = await quotationService.getCustomerQuotations(
-        customerId, 
-        page, 
-        ITEMS_PER_PAGE, 
+        customerId,
+        page,
+        ITEMS_PER_PAGE,
         normalizedSearch,
         statusFilter || undefined,
         finalSortBy,
         finalSortOrder,
         selectedDate || undefined
       );
-      
+
       // Handle PageResponse
       let quotes = [];
       if (response && response.content) {
@@ -121,10 +95,10 @@ const CustomerQuotations = () => {
         setTotalPages(1);
         setTotalElements(response.length);
       }
-      
+
       // Filter out DRAFT quotes (backend should handle this, but keep as safety)
       const filteredData = quotes.filter(quote => quote.status !== 'DRAFT');
-      
+
       setAllQuotes(filteredData);
     } catch (e) {
       setError(e.message || 'Không thể tải báo giá của bạn');
@@ -133,7 +107,7 @@ const CustomerQuotations = () => {
       setLoading(false);
     }
   }, [customerId, currentPage, debouncedSearchTerm, statusFilter, sortBy, sortOrder, selectedDate]);
-  
+
   // Debounce search term
   useEffect(() => {
     // If searchTerm is empty, update debouncedSearchTerm immediately
@@ -271,21 +245,24 @@ const CustomerQuotations = () => {
                     {loading ? (
                       <tr><td colSpan="5" className="text-center py-4"><Spinner animation="border" /></td></tr>
                     ) : allQuotes.length > 0 ? (
-                      allQuotes.map((quote) => (
-                        <tr key={quote.id}>
-                          <td className="fw-semibold text-primary">{quote.quotationNumber}</td>
-                          <td>{formatDate(quote.validUntil)}</td>
-                          <td className="text-success fw-semibold">{formatCurrency(quote.totalAmount)}</td>
-                          <td>
-                            <Badge bg={getStatusBadge(quote.status)}>{getStatusText(quote.status)}</Badge>
-                          </td>
-                          <td className="text-center">
-                            <Button size="sm" variant="primary" onClick={() => handleViewDetail(quote.id)}>
-                              <FaEye className="me-1" /> Chi tiết
-                            </Button>
-                          </td>
-                        </tr>
-                      ))
+                      allQuotes.map((quote) => {
+                        const statusObj = getCustomerQuoteStatus(quote.status);
+                        return (
+                          <tr key={quote.id}>
+                            <td className="fw-semibold text-primary">{quote.quotationNumber}</td>
+                            <td>{formatDate(quote.validUntil)}</td>
+                            <td className="text-success fw-semibold">{formatCurrency(quote.totalAmount)}</td>
+                            <td>
+                              <Badge bg={statusObj.variant}>{statusObj.label}</Badge>
+                            </td>
+                            <td className="text-center">
+                              <Button size="sm" variant="primary" onClick={() => handleViewDetail(quote.id)}>
+                                <FaEye className="me-1" /> Chi tiết
+                              </Button>
+                            </td>
+                          </tr>
+                        );
+                      })
                     ) : (
                       <tr><td colSpan="5" className="text-center py-4 text-muted">
                         {totalElements === 0 ? 'Không có báo giá nào.' : 'Không tìm thấy báo giá phù hợp với bộ lọc.'}

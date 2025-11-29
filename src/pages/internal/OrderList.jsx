@@ -7,13 +7,14 @@ import InternalSidebar from '../../components/common/InternalSidebar';
 
 
 import { quoteService } from '../../api/quoteService'; // To get customer data
+import { getSalesOrderStatus } from '../../utils/statusMapper';
 
 const formatDate = (iso) => {
   if (!iso) return '';
-  try { 
-    return new Date(iso).toLocaleDateString('vi-VN'); 
-  } catch { 
-    return iso; 
+  try {
+    return new Date(iso).toLocaleDateString('vi-VN');
+  } catch {
+    return iso;
   }
 };
 
@@ -42,7 +43,6 @@ const OrderList = () => {
             .map(order => ({
               ...order,
               customer: customerMap.get(order.customerId),
-              displayStatus: 'DRAFT' // Per previous request
             }));
 
           const sortedData = orderLikeQuotes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -87,10 +87,10 @@ const OrderList = () => {
             <div className="mb-3">
               <InputGroup style={{ maxWidth: 420 }}>
                 <InputGroup.Text><FaSearch /></InputGroup.Text>
-                <Form.Control 
-                  placeholder="Tìm kiếm đơn hàng..." 
-                  value={q} 
-                  onChange={(e)=>setQ(e.target.value)} 
+                <Form.Control
+                  placeholder="Tìm kiếm đơn hàng..."
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
                 />
               </InputGroup>
             </div>
@@ -142,13 +142,18 @@ const OrderList = () => {
                         <td>{order.customer?.contactPerson || '—'}</td>
                         <td>{formatDate(order.createdAt)}</td>
                         <td>
-                          <Badge bg="secondary" className="px-2 py-1">
-                            {order.displayStatus}
-                          </Badge>
+                          {(() => {
+                            const statusObj = getSalesOrderStatus(order.status);
+                            return (
+                              <Badge bg={statusObj.variant} className="px-2 py-1">
+                                {statusObj.label}
+                              </Badge>
+                            );
+                          })()}
                         </td>
                         <td className="text-center">
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="light"
                             onClick={() => handleViewDetail(order)}
                           >

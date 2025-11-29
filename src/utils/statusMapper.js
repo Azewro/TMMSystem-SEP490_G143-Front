@@ -198,3 +198,138 @@ export const getStatusVariant = (status) => {
   return variantMap[status] || 'secondary';
 };
 
+
+// --- DIRECTOR ROLE MAPPERS ---
+export const getDirectorRfqStatus = (rfq) => {
+  if (!rfq) return { label: 'Không xác định', variant: 'secondary', value: '' };
+
+  if (rfq.status === 'SENT') {
+    return rfq.assignedSales
+      ? { label: 'Đã phân công', variant: 'primary', value: 'ASSIGNED' }
+      : { label: 'Chờ phân công', variant: 'warning', value: 'WAITING_ASSIGNMENT' };
+  }
+
+  // Fallback to standard mapping
+  const label = getStatusLabel(rfq.status);
+  const variant = getStatusVariant(rfq.status);
+  return { label, variant, value: rfq.status };
+};
+
+export const getDirectorContractStatus = (status) => {
+  if (status === 'PENDING_APPROVAL') return { label: 'Chờ duyệt', variant: 'warning', value: 'PENDING_APPROVAL' };
+  if (status === 'APPROVED') return { label: 'Đã duyệt', variant: 'success', value: 'APPROVED' };
+  if (status === 'REJECTED') return { label: 'Đã từ chối', variant: 'danger', value: 'REJECTED' };
+
+  const label = getStatusLabel(status);
+  const variant = getStatusVariant(status);
+  return { label, variant, value: status };
+};
+
+export const getDirectorPlanStatus = (status) => {
+  if (status === 'PENDING_APPROVAL') return { label: 'Chờ duyệt', variant: 'warning', value: 'PENDING_APPROVAL' };
+  if (status === 'APPROVED') return { label: 'Đã duyệt', variant: 'success', value: 'APPROVED' };
+  if (status === 'REJECTED') return { label: 'Đã từ chối', variant: 'danger', value: 'REJECTED' };
+
+  const label = getStatusLabel(status);
+  const variant = getStatusVariant(status);
+  return { label, variant, value: status };
+};
+
+// --- PLANNING ROLE MAPPERS ---
+export const getPlanningRfqStatus = (rfq) => {
+  if (!rfq) return { label: 'N/A', variant: 'secondary' };
+
+  if (rfq.status === 'FORWARDED_TO_PLANNING') return { label: 'Chờ tiếp nhận', variant: 'warning', value: 'FORWARDED_TO_PLANNING' };
+  if (rfq.status === 'RECEIVED_BY_PLANNING') return { label: 'Chờ tạo', variant: 'primary', value: 'RECEIVED_BY_PLANNING' };
+  if (rfq.status === 'QUOTED') return { label: 'Đã báo giá', variant: 'success', value: 'QUOTED' };
+
+  const label = getStatusLabel(rfq.status);
+  const variant = getStatusVariant(rfq.status);
+  return { label, variant, value: rfq.status };
+};
+
+export const getPlanningPlanStatus = (status) => {
+  if (status === 'READY_FOR_PLANNING') return { label: 'Chờ tạo', variant: 'info', value: 'READY_FOR_PLANNING' };
+  if (status === 'DRAFT') return { label: 'Chờ gửi', variant: 'secondary', value: 'DRAFT' };
+  if (status === 'PENDING_APPROVAL') return { label: 'Chờ duyệt', variant: 'warning', value: 'PENDING_APPROVAL' };
+  if (status === 'APPROVED') return { label: 'Đã duyệt', variant: 'success', value: 'APPROVED' };
+  if (status === 'REJECTED') return { label: 'Từ chối', variant: 'danger', value: 'REJECTED' };
+
+  const label = getStatusLabel(status);
+  const variant = getStatusVariant(status);
+  return { label, variant, value: status };
+};
+
+// --- SALES ROLE MAPPERS ---
+export const getSalesRfqStatus = (status) => {
+  if (status === 'SENT') return { label: 'Chờ xác nhận', variant: 'info', value: 'SENT' };
+  if (status === 'PRELIMINARY_CHECKED') return { label: 'Đã xác nhận', variant: 'primary', value: 'PRELIMINARY_CHECKED' };
+  if (status === 'RECEIVED_BY_PLANNING') return { label: 'Đã xác nhận', variant: 'primary', value: 'RECEIVED_BY_PLANNING' };
+  if (status === 'QUOTED') return { label: 'Đã báo giá', variant: 'success', value: 'QUOTED' };
+  if (status === 'CANCELED') return { label: 'Đã hủy', variant: 'dark', value: 'CANCELED' };
+
+  const label = getStatusLabel(status);
+  const variant = getStatusVariant(status);
+  return { label, variant, value: status };
+};
+
+export const getSalesQuoteStatus = (status) => {
+  if (status === 'DRAFT') return { label: 'Chờ báo giá', variant: 'secondary', value: 'DRAFT' };
+  if (status === 'SENT') return { label: 'Chờ phê duyệt', variant: 'info', value: 'SENT' };
+  if (status === 'ACCEPTED') return { label: 'Đã duyệt', variant: 'success', value: 'ACCEPTED' };
+  if (status === 'REJECTED') return { label: 'Từ chối', variant: 'danger', value: 'REJECTED' };
+
+  const label = getStatusLabel(status);
+  const variant = getStatusVariant(status);
+  return { label, variant, value: status };
+};
+
+export const getSalesOrderStatus = (status) => {
+  if (status === 'PENDING_UPLOAD') return { label: 'Chờ ký HĐ', variant: 'warning', value: 'PENDING_UPLOAD' };
+  if (status === 'PENDING_APPROVAL') return { label: 'Chờ phê duyệt HĐ', variant: 'primary', value: 'PENDING_APPROVAL' };
+  if (status === 'APPROVED') return { label: 'HĐ được duyệt', variant: 'success', value: 'APPROVED' };
+  if (status === 'REJECTED') return { label: 'HĐ bị từ chối', variant: 'danger', value: 'REJECTED' };
+  if (['WAITING_PRODUCTION', 'IN_PROGRESS'].includes(status)) {
+    return { label: 'Đang sản xuất', variant: 'info', value: 'IN_PRODUCTION' };
+  }
+  if (status === 'COMPLETED') return { label: 'Sản xuất xong', variant: 'success', value: 'COMPLETED' };
+
+  const label = getStatusLabel(status);
+  const variant = getStatusVariant(status);
+  return { label, variant, value: status };
+};
+
+// --- CUSTOMER ROLE MAPPERS ---
+export const getCustomerRfqStatus = (status) => {
+  if (status === 'SENT') return { label: 'Chờ xác nhận', variant: 'info', value: 'SENT' };
+  if (status === 'PRELIMINARY_CHECKED') return { label: 'Đã xác nhận', variant: 'primary', value: 'PRELIMINARY_CHECKED' };
+  if (status === 'QUOTED') return { label: 'Chờ phê duyệt báo giá', variant: 'warning', value: 'QUOTED' };
+  if (status === 'CANCELED') return { label: 'Đã hủy', variant: 'dark', value: 'CANCELED' };
+
+  const label = getStatusLabel(status);
+  const variant = getStatusVariant(status);
+  return { label, variant, value: status };
+};
+
+export const getCustomerQuoteStatus = (status) => {
+  if (status === 'SENT') return { label: 'Chờ phê duyệt', variant: 'info', value: 'SENT' };
+  if (status === 'ACCEPTED') return { label: 'Đã duyệt', variant: 'success', value: 'ACCEPTED' };
+  if (status === 'REJECTED') return { label: 'Đã từ chối', variant: 'danger', value: 'REJECTED' };
+
+  const label = getStatusLabel(status);
+  const variant = getStatusVariant(status);
+  return { label, variant, value: status };
+};
+
+export const getCustomerOrderStatus = (status) => {
+  if (status === 'PENDING_UPLOAD') return { label: 'Chờ ký HĐ', variant: 'warning', value: 'PENDING_UPLOAD' };
+  if (['PENDING_APPROVAL', 'APPROVED', 'WAITING_PRODUCTION'].includes(status)) {
+    return { label: 'Chờ sản xuất', variant: 'primary', value: 'PENDING_PROCESS' };
+  }
+  if (status === 'IN_PROGRESS') return { label: 'Đang sản xuất', variant: 'info', value: 'IN_PROGRESS' };
+  if (status === 'COMPLETED') return { label: 'Sản xuất xong', variant: 'success', value: 'COMPLETED' };
+
+  const label = getStatusLabel(status);
+  const variant = getStatusVariant(status);
+  return { label, variant, value: status };
+};

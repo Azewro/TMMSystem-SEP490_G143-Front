@@ -6,6 +6,7 @@ import { rfqService } from '../../api/rfqService';
 import { customerService } from '../../api/customerService';
 import AssignRfqModal from '../../components/modals/AssignRfqModal';
 import Pagination from '../../components/Pagination'; // Import Pagination component
+import { getDirectorRfqStatus } from '../../utils/statusMapper';
 import { FaSearch } from 'react-icons/fa';
 
 const DirectorRfqList = () => {
@@ -149,42 +150,10 @@ const DirectorRfqList = () => {
     setCurrentPage(1); // Reset to first page on new search
   };
 
-  const getStatusBadge = (rfq) => {
-    if (rfq.status === 'DRAFT' && rfq.assignedSalesId) {
-      return 'info'; // Auto-assigned, show as 'SENT'
-    }
-    switch (rfq.status) {
-      case 'DRAFT': return 'secondary'; // Gray
-      case 'SENT': return 'info'; // Blue
-      case 'FORWARDED_TO_PLANNING': return 'warning'; // Yellow
-      case 'PRELIMINARY_CHECKED': return 'primary';
-      case 'RECEIVED_BY_PLANNING': return 'info';
-      case 'QUOTED': return 'success';
-      case 'REJECTED': return 'danger';
-      default: return 'secondary';
-    }
-  };
-
-  const getStatusText = (rfq) => {
-    if (rfq.status === 'DRAFT' && rfq.assignedSalesId) {
-      return 'Đã phân công'; // Auto-assigned
-    }
-    switch (rfq.status) {
-      case 'DRAFT': return 'Chờ xử lý';
-      case 'SENT': return 'Đã phân công';
-      case 'FORWARDED_TO_PLANNING': return 'Đã chuyển Kế hoạch';
-      case 'PRELIMINARY_CHECKED': return 'Đã kiểm tra sơ bộ';
-      case 'RECEIVED_BY_PLANNING': return 'Kế hoạch đã nhận';
-      case 'QUOTED': return 'Đã báo giá';
-      case 'REJECTED': return 'Đã từ chối';
-      default: return rfq.status;
-    }
-  };
-
   const statusOptions = [
     { value: '', label: 'Tất cả trạng thái' },
-    { value: 'DRAFT', label: 'Chờ xử lý' },
-    { value: 'SENT', label: 'Đã phân công' },
+    { value: 'WAITING_ASSIGNMENT', label: 'Chờ phân công' },
+    { value: 'ASSIGNED', label: 'Đã phân công' },
     { value: 'FORWARDED_TO_PLANNING', label: 'Đã chuyển Kế hoạch' },
     { value: 'PRELIMINARY_CHECKED', label: 'Đã kiểm tra sơ bộ' },
     { value: 'RECEIVED_BY_PLANNING', label: 'Kế hoạch đã nhận' },
@@ -300,9 +269,10 @@ const DirectorRfqList = () => {
                             <td>{rfq.contactPerson || 'N/A'}</td>
                             <td>{new Date(rfq.createdAt).toLocaleDateString('vi-VN')}</td>
                             <td>
-                              <Badge bg={getStatusBadge(rfq)}>
-                                {getStatusText(rfq)}
-                              </Badge>
+                              {(() => {
+                                const statusObj = getDirectorRfqStatus(rfq);
+                                return <Badge bg={statusObj.variant}>{statusObj.label}</Badge>;
+                              })()}
                             </td>
                             <td>
                               <Button

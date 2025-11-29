@@ -6,6 +6,7 @@ import { productService } from '../../api/productService';
 import { userService } from '../../api/userService';
 import toast from 'react-hot-toast';
 import { isVietnamesePhoneNumber } from '../../utils/validators';
+import { getSalesRfqStatus } from '../../utils/statusMapper';
 
 const RFQDetailModal = ({ rfqId, show, handleClose }) => {
   const [rfq, setRfq] = useState(null);
@@ -634,9 +635,10 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
         <Modal.Title>
           Chi tiết Yêu cầu báo giá {rfq?.rfqNumber || rfqId}
           {rfq?.status && (
-            <Badge bg={rfq.status === 'DRAFT' ? 'secondary' : rfq.status === 'SENT' ? 'info' : rfq.status === 'FORWARDED_TO_PLANNING' ? 'warning' : rfq.status === 'PRELIMINARY_CHECKED' ? 'primary' : rfq.status === 'QUOTED' ? 'success' : rfq.status === 'REJECTED' ? 'danger' : 'secondary'} className="ms-3">
-              {rfq.status === 'DRAFT' ? 'Bản nháp' : rfq.status === 'SENT' ? 'Chờ xác nhận' : rfq.status === 'FORWARDED_TO_PLANNING' ? 'Đã chuyển Planning' : rfq.status === 'PRELIMINARY_CHECKED' ? 'Đã kiểm tra sơ bộ' : rfq.status === 'QUOTED' ? 'Đã báo giá' : rfq.status === 'REJECTED' ? 'Đã từ chối' : rfq.status}
-            </Badge>
+            (() => {
+              const statusObj = getSalesRfqStatus(rfq.status);
+              return <Badge bg={statusObj.variant} className="ms-3">{statusObj.label}</Badge>;
+            })()
           )}
         </Modal.Title>
       </Modal.Header>

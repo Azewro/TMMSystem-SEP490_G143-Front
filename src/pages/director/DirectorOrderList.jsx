@@ -8,13 +8,7 @@ import { customerService } from '../../api/customerService';
 import Pagination from '../../components/Pagination';
 import '../../styles/QuoteRequests.css';
 
-const STATUS_LABELS = {
-    DRAFT: { text: 'Chưa upload', variant: 'secondary' },
-    PENDING_UPLOAD: { text: 'Chờ upload', variant: 'primary' },
-    PENDING_APPROVAL: { text: 'Đang chờ duyệt', variant: 'warning' },
-    APPROVED: { text: 'Đã duyệt', variant: 'success' },
-    REJECTED: { text: 'Bị từ chối', variant: 'danger' }
-};
+import { getDirectorContractStatus } from '../../utils/statusMapper';
 
 const formatCurrency = (value) => {
     if (!value) return '0 ₫';
@@ -183,11 +177,9 @@ const DirectorOrderList = () => {
                                             }}
                                         >
                                             <option value="">Tất cả trạng thái</option>
-                                            <option value="DRAFT">Chưa upload</option>
-                                            <option value="PENDING_UPLOAD">Chờ upload</option>
-                                            <option value="PENDING_APPROVAL">Đang chờ duyệt</option>
+                                            <option value="PENDING_APPROVAL">Chờ duyệt</option>
                                             <option value="APPROVED">Đã duyệt</option>
-                                            <option value="REJECTED">Bị từ chối</option>
+                                            <option value="REJECTED">Đã từ chối</option>
                                         </Form.Select>
                                     </Col>
                                     <Col md={3}>
@@ -236,7 +228,7 @@ const DirectorOrderList = () => {
                                             </tr>
                                         ) : (
                                             contracts.map((contract, index) => {
-                                                const statusConfig = STATUS_LABELS[contract.status] || STATUS_LABELS.DRAFT;
+                                                const statusObj = getDirectorContractStatus(contract.status);
                                                 return (
                                                     <tr key={contract.id}>
                                                         <td>{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
@@ -245,7 +237,7 @@ const DirectorOrderList = () => {
                                                         <td>{contract.customer?.phoneNumber || 'N/A'}</td>
                                                         <td>{formatDate(contract.deliveryDate)}</td>
                                                         <td>
-                                                            <Badge bg={statusConfig.variant}>{statusConfig.text}</Badge>
+                                                            <Badge bg={statusObj.variant}>{statusObj.label}</Badge>
                                                         </td>
                                                         <td className="text-success fw-semibold">{formatCurrency(contract.totalAmount)}</td>
                                                         <td className="text-center">
@@ -324,9 +316,10 @@ const DirectorOrderList = () => {
                                         </Col>
                                         <Col md={6}>
                                             <p className="mb-2"><strong>Trạng thái:</strong>
-                                                <Badge bg={STATUS_LABELS[viewDetailsContract.status]?.variant || 'secondary'} className="ms-2">
-                                                    {STATUS_LABELS[viewDetailsContract.status]?.text || viewDetailsContract.status}
-                                                </Badge>
+                                                {(() => {
+                                                    const statusObj = getDirectorContractStatus(viewDetailsContract.status);
+                                                    return <Badge bg={statusObj.variant} className="ms-2">{statusObj.label}</Badge>;
+                                                })()}
                                             </p>
                                         </Col>
                                     </Row>

@@ -9,6 +9,7 @@ import { quotationService } from '../../api/quotationService';
 import { useNavigate } from 'react-router-dom';
 import Pagination from '../../components/Pagination';
 import RFQDetailModal from '../../components/modals/RFQDetailModal';
+import { getSalesRfqStatus } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
 
 const MyRfqs = () => {
@@ -33,17 +34,7 @@ const MyRfqs = () => {
   const [totalElements, setTotalElements] = useState(0);
   const ITEMS_PER_PAGE = 10;
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case 'DRAFT': return 'secondary';
-      case 'SENT': return 'info';
-      case 'FORWARDED_TO_PLANNING': return 'warning';
-      case 'PRELIMINARY_CHECKED': return 'primary';
-      case 'QUOTED': return 'success';
-      case 'REJECTED': return 'danger';
-      default: return 'secondary'; // Changed from 'light' to 'secondary' to avoid white color
-    }
-  };
+
 
   const fetchMyRfqs = useCallback(async () => {
     setLoading(true);
@@ -231,17 +222,7 @@ const MyRfqs = () => {
 
   // Note: Search and filter are now server-side, no client-side filtering needed
 
-  const getStatusText = (status) => {
-    switch (status) {
-      case 'DRAFT': return 'Bản nháp';
-      case 'SENT': return 'Chờ xác nhận';
-      case 'FORWARDED_TO_PLANNING': return 'Đã gửi Phòng Kế hoạch';
-      case 'PRELIMINARY_CHECKED': return 'Đã kiểm tra sơ bộ';
-      case 'QUOTED': return 'Đã báo giá';
-      case 'REJECTED': return 'Đã từ chối';
-      default: return status;
-    }
-  };
+
 
   return (
     <div>
@@ -296,12 +277,11 @@ const MyRfqs = () => {
                         }}
                       >
                         <option value="">Tất cả trạng thái</option>
-                        <option value="DRAFT">Bản nháp</option>
                         <option value="SENT">Chờ xác nhận</option>
-                        <option value="FORWARDED_TO_PLANNING">Đã gửi Phòng Kế hoạch</option>
-                        <option value="PRELIMINARY_CHECKED">Đã kiểm tra sơ bộ</option>
+                        <option value="PRELIMINARY_CHECKED">Đã xác nhận</option>
+                        <option value="RECEIVED_BY_PLANNING">Đã xác nhận (Kế hoạch)</option>
                         <option value="QUOTED">Đã báo giá</option>
-                        <option value="REJECTED">Đã từ chối</option>
+                        <option value="CANCELED">Đã hủy</option>
                       </Form.Select>
                     </Form.Group>
                   </Col>
@@ -337,9 +317,10 @@ const MyRfqs = () => {
                             <td>{rfq.contactPerson || 'N/A'}</td>
                             <td>{new Date(rfq.createdAt).toLocaleDateString('vi-VN')}</td>
                             <td>
-                              <Badge bg={getStatusBadge(rfq.status)}>
-                                {getStatusText(rfq.status)}
-                              </Badge>
+                              {(() => {
+                                const statusObj = getSalesRfqStatus(rfq.status);
+                                return <Badge bg={statusObj.variant}>{statusObj.label}</Badge>;
+                              })()}
                             </td>
                             <td>
                               <div className="d-flex gap-2">

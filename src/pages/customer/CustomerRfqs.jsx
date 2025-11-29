@@ -11,6 +11,7 @@ import { quotationService } from '../../api/quotationService';
 import CustomerRfqDetailModal from '../../components/modals/CustomerRfqDetailModal';
 import toast from 'react-hot-toast';
 import '../../styles/CustomerQuoteRequests.css';
+import { getCustomerRfqStatus } from '../../utils/statusMapper';
 
 const CustomerRfqs = () => {
   const { user } = useAuth();
@@ -175,29 +176,13 @@ const CustomerRfqs = () => {
     }
   };
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case 'DRAFT': return { variant: 'warning', label: 'Bản nháp' };
-      case 'SENT': return { variant: 'info', label: 'Đã gửi' };
-      case 'PRELIMINARY_CHECKED': return { variant: 'warning', label: 'Đã kiểm tra sơ bộ' };
-      case 'FORWARDED_TO_PLANNING': return { variant: 'primary', label: 'Đã chuyển đến Planning' };
-      case 'RECEIVED_BY_PLANNING': return { variant: 'primary', label: 'Đang xử lý' };
-      case 'QUOTED': return { variant: 'success', label: 'Đã báo giá' };
-      case 'ACCEPTED': return { variant: 'success', label: 'Đã chấp nhận' };
-      case 'REJECTED': return { variant: 'danger', label: 'Đã từ chối' };
-      case 'CANCELED': return { variant: 'dark', label: 'Đã hủy' };
-      case 'PENDING': return { variant: 'warning', label: 'Chờ xử lý' };
-      default: return { variant: 'warning', label: status || 'Không xác định' };
-    }
-  };
+
 
   const statusOptions = [
     { value: '', label: 'Tất cả trạng thái' },
     { value: 'DRAFT', label: 'Bản nháp' },
     { value: 'SENT', label: 'Đã gửi' },
     { value: 'PRELIMINARY_CHECKED', label: 'Đã kiểm tra sơ bộ' },
-    { value: 'FORWARDED_TO_PLANNING', label: 'Đã chuyển đến Planning' },
-    { value: 'RECEIVED_BY_PLANNING', label: 'Đang xử lý' },
     { value: 'QUOTED', label: 'Đã báo giá' },
     { value: 'ACCEPTED', label: 'Đã chấp nhận' },
     { value: 'REJECTED', label: 'Đã từ chối' },
@@ -294,13 +279,12 @@ const CustomerRfqs = () => {
                       </thead>
                       <tbody>
                         {rfqs.length > 0 ? rfqs.map(rfq => {
-                          const rfqStatus = rfq.status || 'DRAFT';
-                          const badge = getStatusBadge(rfqStatus);
+                          const statusObj = getCustomerRfqStatus(rfq.status);
                           return (
                             <tr key={rfq.id}>
                               <td className="fw-semibold">{formatRfqCode(rfq)}</td>
                               <td>{new Date(rfq.createdAt).toLocaleDateString('vi-VN')}</td>
-                              <td><Badge bg={badge.variant}>{badge.label}</Badge></td>
+                              <td><Badge bg={statusObj.variant}>{statusObj.label}</Badge></td>
                               <td>
                                 <div className="d-flex gap-2 justify-content-center">
                                   <Button variant="outline-primary" size="sm" onClick={() => handleViewDetails(rfq.id)}>

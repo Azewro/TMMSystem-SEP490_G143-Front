@@ -7,6 +7,7 @@ import InternalSidebar from '../../components/common/InternalSidebar';
 import { rfqService } from '../../api/rfqService';
 import { customerService } from '../../api/customerService';
 import Pagination from '../../components/Pagination';
+import { getPlanningRfqStatus } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
 
 const PlanningRfqs = () => {
@@ -25,19 +26,6 @@ const PlanningRfqs = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
   const ITEMS_PER_PAGE = 10;
-
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case 'DRAFT': return 'secondary';
-      case 'SENT': return 'info';
-      case 'FORWARDED_TO_PLANNING': return 'warning';
-      case 'PRELIMINARY_CHECKED': return 'primary';
-      case 'RECEIVED_BY_PLANNING': return 'info';
-      case 'QUOTED': return 'success';
-      case 'REJECTED': return 'danger';
-      default: return 'light';
-    }
-  };
 
   const fetchPlanningRfqs = useCallback(async () => {
     setLoading(true);
@@ -109,15 +97,6 @@ const PlanningRfqs = () => {
   // All filtering is now done server-side via API
   const filteredRfqs = allRfqs;
 
-  const getStatusText = (status) => {
-    switch (status) {
-      case 'FORWARDED_TO_PLANNING': return 'Chờ xử lý';
-      case 'RECEIVED_BY_PLANNING': return 'Đã tiếp nhận';
-      case 'QUOTED': return 'Đã báo giá';
-      default: return status;
-    }
-  };
-
   return (
     <div>
       <Header />
@@ -170,10 +149,10 @@ const PlanningRfqs = () => {
                           setCurrentPage(1);
                         }}
                       >
-                        <option value="FORWARDED_TO_PLANNING">Chờ xử lý</option>
-                        <option value="RECEIVED_BY_PLANNING">Đã tiếp nhận</option>
-                        <option value="QUOTED">Đã báo giá</option>
                         <option value="">Tất cả trạng thái</option>
+                        <option value="FORWARDED_TO_PLANNING">Chờ tiếp nhận</option>
+                        <option value="RECEIVED_BY_PLANNING">Chờ tạo</option>
+                        <option value="QUOTED">Đã báo giá</option>
                       </Form.Select>
                     </Form.Group>
                   </Col>
@@ -209,9 +188,10 @@ const PlanningRfqs = () => {
                             <td>{rfq.contactPerson || 'N/A'}</td>
                             <td>{new Date(rfq.createdAt).toLocaleDateString('vi-VN')}</td>
                             <td>
-                              <Badge bg={getStatusBadge(rfq.status)}>
-                                {getStatusText(rfq.status)}
-                              </Badge>
+                              {(() => {
+                                const statusObj = getPlanningRfqStatus(rfq);
+                                return <Badge bg={statusObj.variant}>{statusObj.label}</Badge>;
+                              })()}
                             </td>
                             <td>
                               <Button variant="primary" size="sm" onClick={() => handleViewDetails(rfq.id)}>

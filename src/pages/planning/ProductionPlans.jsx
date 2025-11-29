@@ -3,23 +3,18 @@ import { Container, Card, Table, Badge, Button, Alert, Form, Spinner } from 'rea
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { productionPlanService } from '../../api/productionPlanService';
-import Pagination from '../../components/Pagination'; // Import Pagination
+import Pagination from '../../components/Pagination';
 import '../../styles/QuoteRequests.css';
 import { useNavigate } from 'react-router-dom';
-
-const STATUS_LABELS = {
-  DRAFT: { text: 'Nháp', variant: 'secondary' },
-  PENDING_APPROVAL: { text: 'Chờ giám đốc duyệt', variant: 'warning' },
-  APPROVED: { text: 'Đã duyệt', variant: 'success' },
-  REJECTED: { text: 'Bị từ chối', variant: 'danger' }
-};
+import { getPlanningPlanStatus } from '../../utils/statusMapper';
 
 const filterOptions = [
   { value: 'ALL', label: 'Tất cả trạng thái' },
-  { value: 'DRAFT', label: 'Nháp' },
+  { value: 'READY_FOR_PLANNING', label: 'Chờ tạo' },
+  { value: 'DRAFT', label: 'Chờ gửi' },
   { value: 'PENDING_APPROVAL', label: 'Chờ duyệt' },
   { value: 'APPROVED', label: 'Đã duyệt' },
-  { value: 'REJECTED', label: 'Bị từ chối' }
+  { value: 'REJECTED', label: 'Từ chối' }
 ];
 
 const formatDate = (value) => {
@@ -142,7 +137,7 @@ const ProductionPlans = () => {
                       </tr>
                     ) : (
                       currentPlans.map((plan, index) => {
-                        const statusConfig = STATUS_LABELS[plan.status] || STATUS_LABELS.DRAFT;
+                        const statusObj = getPlanningPlanStatus(plan.status);
                         return (
                           <tr key={plan.id}>
                             <td>{indexOfFirstPlan + index + 1}</td>
@@ -151,12 +146,12 @@ const ProductionPlans = () => {
                             <td>{plan.customerName || '—'}</td>
                             <td>{formatDate(plan.createdAt)}</td>
                             <td>
-                              <Badge bg={statusConfig.variant}>{statusConfig.text}</Badge>
+                              <Badge bg={statusObj.variant}>{statusObj.label}</Badge>
                             </td>
                             <td className="text-center">
-                              <Button 
-                                variant={plan.status === 'REJECTED' ? 'warning' : 'primary'} 
-                                size="sm" 
+                              <Button
+                                variant={plan.status === 'REJECTED' ? 'warning' : 'primary'}
+                                size="sm"
                                 onClick={() => handleViewDetail(plan.id)}
                               >
                                 {plan.status === 'REJECTED' ? 'Chỉnh sửa lại' : 'Xem chi tiết'}
@@ -169,11 +164,11 @@ const ProductionPlans = () => {
                   </tbody>
                 </Table>
                 {totalPages > 1 && (
-                    <Pagination
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        onPageChange={setCurrentPage}
-                    />
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                  />
                 )}
               </Card.Body>
             </Card>

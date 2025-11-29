@@ -8,21 +8,7 @@ import Pagination from '../../components/Pagination';
 import { contractService } from '../../api/contractService';
 import { useAuth } from '../../context/AuthContext';
 
-const statusMap = {
-  DRAFT: { label: 'Bản nháp', variant: 'secondary' },
-  PENDING_UPLOAD: { label: 'Chờ tải hợp đồng', variant: 'warning' },
-  PENDING_APPROVAL: { label: 'Chờ phê duyệt', variant: 'info' },
-  APPROVED: { label: 'Đã phê duyệt', variant: 'success' },
-  REJECTED: { label: 'Đã từ chối', variant: 'danger' },
-  SIGNED: { label: 'Đã ký', variant: 'primary' },
-  CANCELED: { label: 'Đã hủy', variant: 'dark' },
-  // Legacy statuses for backward compatibility
-  PENDING: { label: 'Chờ xử lý', variant: 'warning' },
-  UPLOADED_SIGNED: { label: 'Đã tải lên hợp đồng', variant: 'info' },
-  DIRECTOR_APPROVED: { label: 'Giám đốc đã duyệt', variant: 'success' },
-  DIRECTOR_REJECTED: { label: 'Giám đốc từ chối', variant: 'danger' },
-  COMPLETED: { label: 'Hoàn thành', variant: 'primary' },
-};
+import { getCustomerOrderStatus } from '../../utils/statusMapper';
 
 const statusOptions = [
   { value: '', label: 'Tất cả trạng thái' },
@@ -33,6 +19,8 @@ const statusOptions = [
   { value: 'REJECTED', label: 'Đã từ chối' },
   { value: 'SIGNED', label: 'Đã ký' },
   { value: 'CANCELED', label: 'Đã hủy' },
+  { value: 'IN_PRODUCTION', label: 'Đang sản xuất' },
+  { value: 'COMPLETED', label: 'Hoàn thành' },
 ];
 
 const formatDate = (iso) => {
@@ -76,7 +64,7 @@ const CustomerOrders = () => {
         // Convert 1-based page to 0-based for backend
         const page = currentPage - 1;
         const response = await contractService.getAllContracts(page, ITEMS_PER_PAGE, searchTerm || undefined, statusFilter || undefined);
-        
+
         // Handle PageResponse
         let allContracts = [];
         if (response && response.content) {
@@ -88,7 +76,7 @@ const CustomerOrders = () => {
           setTotalPages(1);
           setTotalElements(response.length);
         }
-        
+
         // Filter contracts for the current customer
         const customerOrders = allContracts.filter(
           (contract) => contract.customerId === parseInt(user.customerId, 10)
@@ -105,7 +93,7 @@ const CustomerOrders = () => {
       fetchOrders();
     }
   }, [user, currentPage, searchTerm, statusFilter]);
-  
+
   useEffect(() => {
     // Reset to page 1 when filters change
     if (user && user.customerId) {
@@ -121,7 +109,7 @@ const CustomerOrders = () => {
     // Sort
     filtered.sort((a, b) => {
       let aValue, bValue;
-      
+
       if (sortField === 'createdAt') {
         aValue = new Date(a.createdAt || 0).getTime();
         bValue = new Date(b.createdAt || 0).getTime();
@@ -209,14 +197,14 @@ const CustomerOrders = () => {
                   <thead className="table-light">
                     <tr>
                       <th>Mã Đơn Hàng</th>
-                      <th 
+                      <th
                         style={{ cursor: 'pointer' }}
                         onClick={() => handleSort('createdAt')}
                         className="user-select-none"
                       >
                         Ngày Tạo {getSortIcon('createdAt')}
                       </th>
-                      <th 
+                      <th
                         style={{ cursor: 'pointer' }}
                         onClick={() => handleSort('deliveryDate')}
                         className="user-select-none"
@@ -239,13 +227,13 @@ const CustomerOrders = () => {
                       </td></tr>
                     ) : (
                       filteredAndSortedOrders.map((order) => {
-                        const badge = statusMap[order.status] || { label: order.status || 'Không xác định', variant: 'secondary' };
+                        const statusObj = getCustomerOrderStatus(order.status);
                         return (
                           <tr key={order.id}>
                             <td className="fw-semibold">{order.contractNumber || `HD-${order.id}`}</td>
                             <td>{formatDate(order.createdAt)}</td>
                             <td>{formatDate(order.deliveryDate)}</td>
-                            <td><Badge bg={badge.variant}>{badge.label}</Badge></td>
+                            <td><Badge bg={statusObj.variant}>{statusObj.label}</Badge></td>
                             <td>{formatCurrency(order.totalAmount)}</td>
                             <td className="text-center">
                               <Button size="sm" variant="outline-primary" onClick={() => navigate(`/customer/orders/${order.id}`)}>
