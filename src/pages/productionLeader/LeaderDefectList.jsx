@@ -90,10 +90,15 @@ const LeaderDefectList = () => {
                           <td className="d-flex gap-2">
                             <Button
                               size="sm"
-                              variant="outline-dark"
-                              onClick={() => navigate(`/leader/defects/${defect.id}`)}
+                              variant="outline-danger"
+                              onClick={() => navigate(`/leader/orders/${defect.orderId}/progress`, {
+                                state: {
+                                  defectId: defect.id,
+                                  severity: defect.severity
+                                }
+                              })}
                             >
-                              Xem chi tiết
+                              Tạm dừng và sửa lỗi
                             </Button>
                           </td>
                         </tr>

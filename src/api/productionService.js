@@ -62,5 +62,18 @@ export const productionService = {
             params: { userId }
         });
         return response.data;
+    },
+
+    // Material Request APIs
+    getMaterialRequest: async (id) => {
+        const response = await apiClient.get(`/v1/production/material-requests/${id}`);
+        return response.data;
+    },
+
+    approveMaterialRequest: async (id, approvedQuantity, directorId) => {
+        const response = await apiClient.post(`/v1/production/material-requests/${id}/approve`, null, {
+            params: { approvedQuantity, directorId }
+        });
+        return response.data;
     }
 };

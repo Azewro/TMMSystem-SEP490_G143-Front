@@ -1,84 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Container, Card, Row, Col, Badge, Button, Form } from 'react-bootstrap';
+import { Container, Card, Row, Col, Badge, Button, Form, Spinner } from 'react-bootstrap';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
-
-const DEFECT_LIBRARY = {
-  L0001: {
-    id: 'L0001',
-    lotCode: 'LOT-001',
-    product: 'Áo sơ mi nam',
-    size: 'L',
-    quantity: 1000,
-    stage: 'Dệt',
-    severity: 'minor',
-    note: '11111',
-    creator: 'KSC - Nguyễn Văn K',
-    checklist: [
-      {
-        title: 'Độ bền sợi',
-        status: 'fail',
-        remark: 'Không đạt',
-        images: [
-          'https://placekitten.com/480/240',
-        ],
-      },
-      {
-        title: 'Hình dáng khăn',
-        status: 'pass',
-        remark: 'Đạt',
-      },
-      {
-        title: 'Bề mặt vải',
-        status: 'pass',
-        remark: 'Đạt',
-      },
-    ],
-    actionNote: 'Lỗi này được đánh giá là lỗi nhẹ. Bạn có thể gửi yêu cầu xử lý về Leader công đoạn Dệt.',
-    leader: 'Leader công đoạn Dệt',
-  },
-  L0002: {
-    id: 'L0002',
-    lotCode: 'LOT-002',
-    product: 'Quần lử nữ',
-    size: 'M',
-    quantity: 800,
-    stage: 'Nhuộm',
-    severity: 'major',
-    note: '99999',
-    creator: 'KSC - Nguyễn Văn K',
-    checklist: [
-      {
-        title: 'Màu sắc đồng đều',
-        status: 'fail',
-        remark: 'Không đạt',
-        images: [
-          'https://placekitten.com/480/240',
-        ],
-      },
-      {
-        title: 'Độ bền sợi',
-        status: 'fail',
-        remark: 'Không đạt',
-        images: [
-          'https://placekitten.com/481/240',
-        ],
-      },
-      {
-        title: 'Hình dáng khăn',
-        status: 'pass',
-        remark: 'Đạt',
-      },
-      {
-        title: 'Bề mặt vải',
-        status: 'pass',
-        remark: 'Đạt',
-      },
-    ],
-    actionNote: 'Lỗi được đánh giá là lỗi nặng. Vui lòng điền thông tin yêu cầu cấp lại sợi để gửi cho PM phê duyệt.',
-  },
-};
+import api from '../../api/apiConfig';
+import { toast } from 'react-hot-toast';
 
 const severityStyles = {
   minor: { label: 'Lỗi nhẹ', variant: 'warning' },
@@ -86,15 +12,68 @@ const severityStyles = {
 };
 
 const checklistVariant = {
-  pass: { background: '#e8f7ef', border: '#c3ebd3', badgeVariant: 'success', badgeText: 'Đạt' },
-  fail: { background: '#fdecef', border: '#f9cfd9', badgeVariant: 'danger', badgeText: 'Không đạt' },
+  PASS: { background: '#e8f7ef', border: '#c3ebd3', badgeVariant: 'success', badgeText: 'Đạt' },
+  FAIL: { background: '#fdecef', border: '#f9cfd9', badgeVariant: 'danger', badgeText: 'Không đạt' },
 };
 
 const TechnicalDefectDetail = () => {
   const navigate = useNavigate();
   const { defectId } = useParams();
-  const defect = useMemo(() => DEFECT_LIBRARY[defectId] || DEFECT_LIBRARY.L0001, [defectId]);
-  const severity = severityStyles[defect.severity];
+  const [defect, setDefect] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [notes, setNotes] = useState('');
+  const [materialRequest, setMaterialRequest] = useState({
+    type: '',
+    quantity: '',
+    notes: ''
+  });
+
+  useEffect(() => {
+    const fetchDefect = async () => {
+      try {
+        const response = await api.get(`/production/defects/${defectId}`);
+        setDefect(response.data);
+      } catch (error) {
+        console.error("Error fetching defect:", error);
+        toast.error("Không thể tải thông tin lỗi");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDefect();
+  }, [defectId]);
+
+  const handleDecision = async (decision) => {
+    try {
+      const userId = localStorage.getItem('userId') || 1; // Fallback to 1 for testing
+
+      let finalNotes = notes;
+      if (decision === 'MATERIAL_REQUEST') {
+        finalNotes = `Yêu cầu cấp: ${materialRequest.quantity}kg ${materialRequest.type}. Ghi chú: ${materialRequest.notes}`;
+      }
+
+      await api.post('/technical/defects/handle', null, {
+        params: {
+          stageId: defect.stageId, // Assuming DTO has stageId
+          decision: decision,
+          notes: finalNotes,
+          technicalUserId: userId,
+          quantity: materialRequest.quantity || 0
+        }
+      });
+
+      toast.success("Đã gửi xử lý thành công");
+      navigate('/technical/defects');
+    } catch (error) {
+      console.error("Error handling defect:", error);
+      toast.error("Có lỗi xảy ra khi xử lý");
+    }
+  };
+
+  if (loading) return <div className="text-center p-5"><Spinner animation="border" /></div>;
+  if (!defect) return <div className="text-center p-5">Không tìm thấy lỗi</div>;
+
+  const severity = severityStyles[defect.severity?.toLowerCase()] || severityStyles.minor;
 
   return (
     <div className="customer-layout">
@@ -111,7 +90,7 @@ const TechnicalDefectDetail = () => {
               <Card.Body>
                 <div className="d-flex justify-content-between flex-wrap gap-2 mb-3">
                   <div>
-                    <h5 className="mb-1">Chi Tiết Lỗi</h5>
+                    <h5 className="mb-1">Chi Tiết Lỗi #{defect.id}</h5>
                     <small className="text-muted">Xem và xử lý lỗi</small>
                   </div>
                   <Badge bg={severity.variant} className="align-self-start">
@@ -120,36 +99,20 @@ const TechnicalDefectDetail = () => {
                 </div>
                 <Row className="g-3">
                   <Col md={4}>
-                    <div className="text-muted small mb-1">Sản phẩm</div>
-                    <div className="fw-semibold">{defect.product}</div>
+                    <div className="text-muted small mb-1">Công đoạn</div>
+                    <div className="fw-semibold">{defect.stageName}</div>
                   </Col>
                   <Col md={4}>
                     <div className="text-muted small mb-1">Mã lô</div>
-                    <div className="fw-semibold">{defect.lotCode}</div>
+                    <div className="fw-semibold">{defect.batchNumber || 'N/A'}</div>
                   </Col>
                   <Col md={4}>
-                    <div className="text-muted small mb-1">Kích thước</div>
-                    <div className="fw-semibold">{defect.size}</div>
-                  </Col>
-                  <Col md={4}>
-                    <div className="text-muted small mb-1">Số lượng</div>
-                    <div className="fw-semibold">{defect.quantity.toLocaleString('vi-VN')}</div>
-                  </Col>
-                  <Col md={4}>
-                    <div className="text-muted small mb-1">Công đoạn lỗi</div>
-                    <div className="fw-semibold">{defect.stage}</div>
-                  </Col>
-                  <Col md={6}>
-                    <div className="text-muted small mb-1">Mức độ lỗi</div>
-                    <div className="fw-semibold">{severity.label}</div>
-                  </Col>
-                  <Col md={6}>
-                    <div className="text-muted small mb-1">Người tạo</div>
-                    <div className="fw-semibold">{defect.creator}</div>
+                    <div className="text-muted small mb-1">Người báo cáo</div>
+                    <div className="fw-semibold">{defect.reportedBy}</div>
                   </Col>
                   <Col md={12}>
-                    <div className="text-muted small mb-1">Ghi chú</div>
-                    <div className="fw-semibold">{defect.note}</div>
+                    <div className="text-muted small mb-1">Mô tả lỗi</div>
+                    <div className="fw-semibold">{defect.issueDescription}</div>
                   </Col>
                 </Row>
               </Card.Body>
@@ -157,67 +120,66 @@ const TechnicalDefectDetail = () => {
 
             <Card className="shadow-sm mb-4">
               <Card.Header className="bg-white">
-                <strong>Tiêu chí kiểm tra</strong>
+                <strong>Hình ảnh lỗi</strong>
               </Card.Header>
-              <Card.Body className="d-flex flex-column gap-3">
-                {defect.checklist.map((item, index) => {
-                  const variant = checklistVariant[item.status];
-                  return (
-                    <div
-                      key={item.title}
-                      style={{
-                        border: `1px solid ${variant.border}`,
-                        backgroundColor: variant.background,
-                        borderRadius: 8,
-                      }}
-                      className="p-3"
-                    >
-                      <div className="d-flex justify-content-between align-items-center mb-2">
-                        <div className="fw-semibold">{item.title}</div>
-                        <Badge bg={variant.badgeVariant}>{variant.badgeText}</Badge>
-                      </div>
-                      {item.images?.map((src, imgIndex) => (
-                        <img
-                          key={src}
-                          src={src}
-                          alt={`${item.title}-${imgIndex}`}
-                          className="rounded mb-2"
-                          style={{ maxWidth: '100%', height: 'auto' }}
-                        />
-                      ))}
-                      <div className="text-muted">{item.remark}</div>
-                    </div>
-                  );
-                })}
+              <Card.Body>
+                {defect.evidencePhoto && (
+                  <img src={defect.evidencePhoto} alt="Evidence" style={{ maxWidth: '100%', maxHeight: '300px' }} className="rounded" />
+                )}
+                {!defect.evidencePhoto && <p className="text-muted">Không có hình ảnh</p>}
               </Card.Body>
             </Card>
 
-            {defect.severity === 'minor' ? (
+            {defect.severity === 'MINOR' ? (
               <Card className="shadow-sm">
                 <Card.Body>
                   <strong>Xử lý lỗi nhẹ</strong>
-                  <p className="text-muted mt-2 mb-4">{defect.actionNote}</p>
-                  <Button variant="dark">Yêu cầu làm lại</Button>
+                  <p className="text-muted mt-2 mb-4">Lỗi này được đánh giá là lỗi nhẹ. Bạn có thể yêu cầu Leader làm lại (Rework).</p>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Ghi chú cho Leader</Form.Label>
+                    <Form.Control
+                      as="textarea"
+                      rows={2}
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Nhập hướng dẫn sửa lỗi..."
+                    />
+                  </Form.Group>
+                  <Button variant="warning" onClick={() => handleDecision('REWORK')}>Yêu cầu làm lại</Button>
                 </Card.Body>
               </Card>
             ) : (
               <Card className="shadow-sm">
                 <Card.Body>
                   <strong>Yêu cầu cấp lại sợi (Lỗi nặng)</strong>
-                  <p className="text-muted mt-2 mb-4">{defect.actionNote}</p>
+                  <p className="text-muted mt-2 mb-4">Lỗi được đánh giá là lỗi nặng. Vui lòng điền thông tin yêu cầu cấp lại sợi để gửi cho PM phê duyệt.</p>
                   <Row className="g-3 mb-3">
                     <Col md={6}>
-                      <Form.Control placeholder="Loại sợi cần cấp (ví dụ: Cotton 100%)" />
+                      <Form.Control
+                        placeholder="Loại sợi cần cấp (ví dụ: Cotton 100%)"
+                        value={materialRequest.type}
+                        onChange={(e) => setMaterialRequest({ ...materialRequest, type: e.target.value })}
+                      />
                     </Col>
                     <Col md={6}>
-                      <Form.Control placeholder="Khối lượng cần cấp (kg)" />
+                      <Form.Control
+                        placeholder="Khối lượng cần cấp (kg)"
+                        value={materialRequest.quantity}
+                        onChange={(e) => setMaterialRequest({ ...materialRequest, quantity: e.target.value })}
+                      />
                     </Col>
                     <Col md={12}>
-                      <Form.Control as="textarea" rows={3} placeholder="Ghi chú thêm về yêu cầu..." />
+                      <Form.Control
+                        as="textarea"
+                        rows={3}
+                        placeholder="Ghi chú thêm về yêu cầu..."
+                        value={materialRequest.notes}
+                        onChange={(e) => setMaterialRequest({ ...materialRequest, notes: e.target.value })}
+                      />
                     </Col>
                   </Row>
                   <div className="d-flex justify-content-end">
-                    <Button variant="dark">Tạo phiếu yêu cầu cấp sợi</Button>
+                    <Button variant="danger" onClick={() => handleDecision('MATERIAL_REQUEST')}>Tạo phiếu yêu cầu cấp sợi</Button>
                   </div>
                 </Card.Body>
               </Card>

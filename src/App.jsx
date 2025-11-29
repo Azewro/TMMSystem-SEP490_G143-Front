@@ -147,18 +147,18 @@ function App() {
               <Route path="/technical/defects" element={<ProtectedRoute allowedRoles={['TECHNICAL DEPARTMENT', 'TECHNICAL']}><TechnicalDefectList /></ProtectedRoute>} />
               <Route path="/technical/defects/:defectId" element={<ProtectedRoute allowedRoles={['TECHNICAL DEPARTMENT', 'TECHNICAL']}><TechnicalDefectDetail /></ProtectedRoute>} />
 
-              {/* Production routes */}
-              <Route path="/production/material-stock" element={<ProtectedRoute allowedRoles={['PRODUCTION MANAGER', 'PRODUCTION_MANAGER']}><MaterialStockManagement /></ProtectedRoute>} />
-              <Route path="/production/orders" element={<ProtectedRoute allowedRoles={['PRODUCTION MANAGER', 'PRODUCTION_MANAGER']}><ProductionOrderList /></ProtectedRoute>} />
-              <Route path="/production/orders/:orderId" element={<ProtectedRoute allowedRoles={['PRODUCTION MANAGER', 'PRODUCTION_MANAGER']}><ProductionOrderDetail /></ProtectedRoute>} />
-              <Route path="/production/orders/:orderId/stages/:stageCode" element={<ProtectedRoute allowedRoles={['PRODUCTION MANAGER', 'PRODUCTION_MANAGER']}><StageProgressDetail /></ProtectedRoute>} />
-              <Route path="/production/fiber-requests" element={<ProtectedRoute allowedRoles={['PRODUCTION MANAGER', 'PRODUCTION_MANAGER']}><ProductionFiberRequests /></ProtectedRoute>} />
-              <Route path="/production/fiber-requests/:lotCode" element={<ProtectedRoute allowedRoles={['PRODUCTION MANAGER', 'PRODUCTION_MANAGER']}><ProductionFiberRequestDetail /></ProtectedRoute>} />
-              <Route path="/production/rework-orders" element={<ProtectedRoute allowedRoles={['PRODUCTION MANAGER', 'PRODUCTION_MANAGER']}><ProductionReworkOrders /></ProtectedRoute>} />
-              <Route path="/production/rework-orders/:orderId" element={<ProtectedRoute allowedRoles={['PRODUCTION MANAGER', 'PRODUCTION_MANAGER']}><ProductionReworkOrderDetail /></ProtectedRoute>} />
-              <Route path="/production/rework-orders/:orderId/stages/:stageCode" element={<ProtectedRoute allowedRoles={['PRODUCTION MANAGER', 'PRODUCTION_MANAGER']}><ProductionReworkStageDetail /></ProtectedRoute>} />
+              {/* Production Manager Routes */}
+              <Route path="/production/material-stock" element={<ProtectedRoute allowedRoles={['PRODUCTION MANAGER', 'PRODUCTION']}><MaterialStockManagement /></ProtectedRoute>} />
+              <Route path="/production/orders" element={<ProtectedRoute allowedRoles={['PRODUCTION MANAGER', 'PRODUCTION']}><ProductionOrderList /></ProtectedRoute>} />
+              <Route path="/production/orders/:orderId" element={<ProtectedRoute allowedRoles={['PRODUCTION MANAGER', 'PRODUCTION']}><ProductionOrderDetail /></ProtectedRoute>} />
+              <Route path="/production/fiber-requests" element={<ProtectedRoute allowedRoles={['PRODUCTION MANAGER', 'PRODUCTION']}><ProductionFiberRequests /></ProtectedRoute>} />
+              <Route path="/production/fiber-requests/:id" element={<ProtectedRoute allowedRoles={['PRODUCTION MANAGER', 'PRODUCTION']}><ProductionFiberRequestDetail /></ProtectedRoute>} />
+              <Route path="/production/rework-orders" element={<ProtectedRoute allowedRoles={['PRODUCTION MANAGER', 'PRODUCTION']}><ProductionReworkOrders /></ProtectedRoute>} />
+              <Route path="/production/rework-orders/:orderId" element={<ProtectedRoute allowedRoles={['PRODUCTION MANAGER', 'PRODUCTION']}><ProductionReworkOrderDetail /></ProtectedRoute>} />
+              <Route path="/production/rework-orders/:orderId/stages/:stageCode" element={<ProtectedRoute allowedRoles={['PRODUCTION MANAGER', 'PRODUCTION']}><ProductionReworkStageDetail /></ProtectedRoute>} />
+              <Route path="/production/stage-progress/:stageId" element={<ProtectedRoute allowedRoles={['PRODUCTION MANAGER', 'PRODUCTION']}><StageProgressDetail /></ProtectedRoute>} />
 
-              {/* Leader (product process leader) routes */}
+              {/* Leader Routes */}
               <Route path="/leader/orders" element={<ProtectedRoute allowedRoles={['PRODUCT PROCESS LEADER', 'PRODUCTION LEADER', 'PROCESS LEADER']}><LeaderOrderList /></ProtectedRoute>} />
               <Route path="/leader/orders/:orderId" element={<ProtectedRoute allowedRoles={['PRODUCT PROCESS LEADER', 'PRODUCTION LEADER', 'PROCESS LEADER']}><LeaderOrderDetail /></ProtectedRoute>} />
               <Route path="/leader/orders/:orderId/progress" element={<ProtectedRoute allowedRoles={['PRODUCT PROCESS LEADER', 'PRODUCTION LEADER', 'PROCESS LEADER']}><LeaderStageProgress /></ProtectedRoute>} />

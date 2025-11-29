@@ -1,42 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Container, Card, Row, Col, Badge, Button } from 'react-bootstrap';
+import { Container, Card, Row, Col, Badge, Button, Spinner, Form } from 'react-bootstrap';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
-
-const FIBER_REQUEST_LIBRARY = {
-  'LOT-001': {
-    lotCode: 'LOT-001',
-    defectCode: 'L0001',
-    product: 'Áo sơ mi nam',
-    size: 'L',
-    quantity: 1000,
-    stage: 'Dệt',
-    severity: 'major',
-    description: 'h',
-    creator: 'KCS - Hie',
-    fiberType: 'cotton',
-    fiberWeight: 100,
-    requester: 'Tech - Trần Văn T',
-    createdAt: '20/11/2025',
-    note: 'hihi',
-    checklist: [
-      {
-        title: 'Màu sắc đồng đều',
-        status: 'fail',
-        images: ['https://placekitten.com/480/220'],
-      },
-      {
-        title: 'Hình dáng khăn',
-        status: 'pass',
-      },
-      {
-        title: 'Bề mặt vải',
-        status: 'pass',
-      },
-    ],
-  },
-};
+import { productionService } from '../../api/productionService';
+import toast from 'react-hot-toast';
 
 const severityConfig = {
   minor: { label: 'Lỗi nhẹ', variant: 'warning' },
@@ -50,19 +18,71 @@ const checklistVariant = {
 
 const ProductionFiberRequestDetail = () => {
   const navigate = useNavigate();
-  const { lotCode } = useParams();
-  const [approved, setApproved] = useState(false);
+  const { id } = useParams();
+  const [request, setRequest] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [approvedQuantity, setApprovedQuantity] = useState(0);
+  const [processing, setProcessing] = useState(false);
 
-  const request = useMemo(() => FIBER_REQUEST_LIBRARY[lotCode] || FIBER_REQUEST_LIBRARY['LOT-001'], [lotCode]);
-  const severity = severityConfig[request.severity];
+  // Get userId for directorId (assuming PM/Director role)
+  const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
 
-  const handlePrimaryAction = () => {
-    if (!approved) {
-      setApproved(true);
-    } else {
-      navigate('/production/rework-orders/LOT-2025-001');
+  useEffect(() => {
+    const fetchRequest = async () => {
+      try {
+        setLoading(true);
+        const data = await productionService.getMaterialRequest(id);
+        setRequest(data);
+        setApprovedQuantity(data.quantityRequested || 0);
+      } catch (error) {
+        console.error('Error fetching request:', error);
+        toast.error('Không thể tải thông tin yêu cầu');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchRequest();
+  }, [id]);
+
+  const handleApprove = async () => {
+    if (!userId) {
+      toast.error('Không tìm thấy thông tin người dùng');
+      return;
+    }
+    try {
+      setProcessing(true);
+      await productionService.approveMaterialRequest(id, approvedQuantity, userId);
+      toast.success('Đã phê duyệt yêu cầu và tạo lệnh sản xuất bù');
+      navigate('/production/rework-orders');
+    } catch (error) {
+      console.error('Error approving request:', error);
+      toast.error('Lỗi khi phê duyệt yêu cầu');
+    } finally {
+      setProcessing(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="d-flex justify-content-center align-items-center vh-100">
+        <Spinner animation="border" />
+      </div>
+    );
+  }
+
+  if (!request) {
+    return (
+      <div className="text-center mt-5">
+        <h4>Không tìm thấy yêu cầu</h4>
+        <Button variant="link" onClick={() => navigate('/production/orders')}>
+          Quay lại danh sách
+        </Button>
+      </div>
+    );
+  }
+
+  const severity = request.sourceIssue ? severityConfig[request.sourceIssue.severity] || severityConfig.minor : severityConfig.minor;
+  const isPending = request.status === 'PENDING';
 
   return (
     <div className="customer-layout">
@@ -71,8 +91,8 @@ const ProductionFiberRequestDetail = () => {
         <InternalSidebar userRole="production" />
         <div className="flex-grow-1" style={{ backgroundColor: '#f8f9fa', minHeight: 'calc(100vh - 70px)' }}>
           <Container fluid className="p-4">
-            <Button variant="link" className="p-0 mb-3" onClick={() => navigate('/production/fiber-requests')}>
-              &larr; Quay lại
+            <Button variant="link" className="p-0 mb-3" onClick={() => navigate('/production/orders')}>
+              &larr; Quay lại danh sách đơn hàng
             </Button>
 
             <Card className="shadow-sm mb-4">
@@ -80,111 +100,92 @@ const ProductionFiberRequestDetail = () => {
                 <div className="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
                   <div>
                     <h5 className="mb-1">Chi Tiết Yêu Cầu Cấp Sợi</h5>
-                    <small className="text-muted">Xem và phê duyệt yêu cầu</small>
+                    <small className="text-muted">Mã yêu cầu: {request.requisitionNumber}</small>
                   </div>
-                  <Badge bg={severity.variant}>{severity.label}</Badge>
+                  <div className="d-flex gap-2">
+                    <Badge bg={request.status === 'PENDING' ? 'warning' : 'success'}>
+                      {request.status === 'PENDING' ? 'Chờ duyệt' : 'Đã duyệt'}
+                    </Badge>
+                    {request.sourceIssue && (
+                      <Badge bg={severity.variant}>{severity.label}</Badge>
+                    )}
+                  </div>
                 </div>
                 <Row className="g-3">
                   <Col md={6}>
-                    <div className="text-muted small mb-1">Mã lô</div>
-                    <div className="fw-semibold">{request.lotCode}</div>
-                  </Col>
-                  <Col md={6}>
-                    <div className="text-muted small mb-1">Sản phẩm</div>
-                    <div className="fw-semibold">{request.product}</div>
-                  </Col>
-                  <Col md={6}>
-                    <div className="text-muted small mb-1">Kích thước</div>
-                    <div className="fw-semibold">{request.size}</div>
-                  </Col>
-                  <Col md={6}>
-                    <div className="text-muted small mb-1">Số lượng</div>
-                    <div className="fw-semibold">{request.quantity.toLocaleString('vi-VN')}</div>
-                  </Col>
-                  <Col md={6}>
-                    <div className="text-muted small mb-1">Công đoạn lỗi</div>
-                    <div className="fw-semibold">{request.stage}</div>
-                  </Col>
-                  <Col md={6}>
-                    <div className="text-muted small mb-1">Mô tả lỗi</div>
-                    <div className="fw-semibold">{request.description}</div>
-                  </Col>
-                  <Col md={6}>
-                    <div className="text-muted small mb-1">Người tạo</div>
-                    <div className="fw-semibold">{request.creator}</div>
-                  </Col>
-                </Row>
-              </Card.Body>
-            </Card>
-
-            <Card className="shadow-sm mb-4">
-              <Card.Header className="bg-white">
-                <strong>Tiêu chí kiểm tra</strong>
-              </Card.Header>
-              <Card.Body className="d-flex flex-column gap-3">
-                {request.checklist.map((item) => {
-                  const variant = checklistVariant[item.status];
-                  return (
-                    <div
-                      key={item.title}
-                      className="p-3 rounded"
-                      style={{ border: `1px solid ${variant.border}`, background: variant.background }}
-                    >
-                      <div className="d-flex justify-content-between align-items-center mb-2">
-                        <div className="fw-semibold">{item.title}</div>
-                        <Badge bg={variant.badge}>{variant.badgeText}</Badge>
-                      </div>
-                      {item.images?.map((src) => (
-                        <img key={src} src={src} alt={item.title} className="rounded mb-2" style={{ maxWidth: '100%' }} />
-                      ))}
-                    </div>
-                  );
-                })}
-              </Card.Body>
-            </Card>
-
-            <Card className="shadow-sm mb-4">
-              <Card.Body>
-                <Row className="g-3">
-                  <Col md={6}>
-                    <div className="text-muted small mb-1">Loại sợi</div>
-                    <div className="fw-semibold text-capitalize">{request.fiberType}</div>
-                  </Col>
-                  <Col md={6}>
-                    <div className="text-muted small mb-1">Khối lượng cần cấp</div>
-                    <div className="fw-semibold">{request.fiberWeight} kg</div>
+                    <div className="text-muted small mb-1">Công đoạn</div>
+                    <div className="fw-semibold">{request.productionStage?.stageType}</div>
                   </Col>
                   <Col md={6}>
                     <div className="text-muted small mb-1">Người yêu cầu</div>
-                    <div className="fw-semibold">{request.requester}</div>
+                    <div className="fw-semibold">{request.requestedBy?.name || 'N/A'}</div>
                   </Col>
                   <Col md={6}>
-                    <div className="text-muted small mb-1">Ngày tạo</div>
-                    <div className="fw-semibold">{request.createdAt}</div>
+                    <div className="text-muted small mb-1">Ngày yêu cầu</div>
+                    <div className="fw-semibold">{request.requestedAt ? new Date(request.requestedAt).toLocaleString('vi-VN') : '-'}</div>
+                  </Col>
+                  <Col md={6}>
+                    <div className="text-muted small mb-1">Số lượng yêu cầu</div>
+                    <div className="fw-semibold">{request.quantityRequested?.toLocaleString('vi-VN')} kg</div>
                   </Col>
                   <Col md={12}>
                     <div className="text-muted small mb-1">Ghi chú</div>
-                    <div className="fw-semibold">{request.note}</div>
+                    <div className="fw-semibold">{request.notes || '-'}</div>
                   </Col>
                 </Row>
               </Card.Body>
             </Card>
 
-            <Card className="shadow-sm">
-              <Card.Body className="d-flex flex-column flex-lg-row justify-content-between align-items-center gap-3">
-                <div>
-                  <strong>{approved ? 'Tạo lệnh sản xuất bù' : 'Phê duyệt yêu cầu'}</strong>
-                  <p className="text-muted mb-0">
-                    {approved
-                      ? 'Yêu cầu đã được phê duyệt. Bạn có thể tạo lệnh sản xuất bù.'
-                      : 'Vui lòng xem xét và phê duyệt yêu cầu cấp sợi này.'}
-                  </p>
-                </div>
-                <Button variant="dark" onClick={handlePrimaryAction}>
-                  {approved ? 'Tạo lệnh sản xuất bù' : 'Phê duyệt'}
-                </Button>
-              </Card.Body>
-            </Card>
+            {request.sourceIssue && (
+              <Card className="shadow-sm mb-4">
+                <Card.Header className="bg-white">
+                  <strong>Thông tin lỗi (QC)</strong>
+                </Card.Header>
+                <Card.Body>
+                  <Row className="g-3">
+                    <Col md={12}>
+                      <div className="text-muted small mb-1">Mô tả lỗi</div>
+                      <div>{request.sourceIssue.description}</div>
+                    </Col>
+                    {request.sourceIssue.evidencePhoto && (
+                      <Col md={12}>
+                        <div className="text-muted small mb-1">Ảnh bằng chứng</div>
+                        <img src={request.sourceIssue.evidencePhoto} alt="Evidence" style={{ maxWidth: '100%', maxHeight: '300px' }} className="rounded" />
+                      </Col>
+                    )}
+                  </Row>
+                </Card.Body>
+              </Card>
+            )}
+
+            {isPending && (
+              <Card className="shadow-sm">
+                <Card.Body>
+                  <h6 className="mb-3">Phê duyệt yêu cầu</h6>
+                  <Row className="align-items-end">
+                    <Col md={4}>
+                      <Form.Group>
+                        <Form.Label>Số lượng phê duyệt (kg)</Form.Label>
+                        <Form.Control
+                          type="number"
+                          value={approvedQuantity}
+                          onChange={(e) => setApprovedQuantity(e.target.value)}
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col md={8}>
+                      <Button
+                        variant="primary"
+                        onClick={handleApprove}
+                        disabled={processing}
+                      >
+                        {processing ? <Spinner size="sm" animation="border" /> : 'Phê duyệt & Tạo lệnh bù'}
+                      </Button>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+            )}
           </Container>
         </div>
       </div>

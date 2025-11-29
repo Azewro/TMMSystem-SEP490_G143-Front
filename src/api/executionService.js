@@ -15,6 +15,13 @@ export const executionService = {
         return response.data;
     },
 
+    pauseStage: async (stageId, userId, reason, notes) => {
+        const response = await apiClient.post(`/v1/production/stages/${stageId}/pause`, null, {
+            params: { leaderUserId: userId, pauseReason: reason, pauseNotes: notes }
+        });
+        return response.data;
+    },
+
     startQcSession: async (stageId, qcUserId) => {
         const response = await apiClient.post(`/v1/execution/stages/${stageId}/qc/start`, null, {
             params: { qcUserId }

@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Container, Card, Button, ProgressBar, Table, Form, Badge, Spinner } from 'react-bootstrap';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { productionService } from '../../api/productionService';
@@ -9,6 +9,8 @@ import toast from 'react-hot-toast';
 
 const LeaderStageProgress = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { severity } = location.state || {};
   const { orderId } = useParams();
   // Get userId from sessionStorage (set during login in authService.internalLogin)
   // Fallback to localStorage for backward compatibility
@@ -147,8 +149,31 @@ const LeaderStageProgress = () => {
     }
   };
 
+  const [showPauseModal, setShowPauseModal] = useState(false);
+  const [pauseReason, setPauseReason] = useState('OTHER');
+  const [pauseNotes, setPauseNotes] = useState('');
+
+  const handlePause = () => {
+    setShowPauseModal(true);
+  };
+
+  const confirmPause = async () => {
+    if (!stage) return;
+    try {
+      await executionService.pauseStage(stage.id, userId, pauseReason, pauseNotes);
+      toast.success('Đã tạm dừng công đoạn');
+      setShowPauseModal(false);
+      setRefreshKey(prev => prev + 1);
+    } catch (error) {
+      toast.error(error.message || 'Lỗi khi tạm dừng công đoạn');
+    }
+  };
+
   const statusConfig = useMemo(() => {
     if (!stage) return { label: '...', variant: 'secondary' };
+    // Check for PAUSED status specifically
+    if (stage.status === 'PAUSED') return { label: 'Tạm dừng', variant: 'danger' };
+
     const status = stage.executionStatus || stage.status;
     switch (status) {
       case 'PENDING': return { label: 'Đợi', variant: 'secondary' };
@@ -167,6 +192,8 @@ const LeaderStageProgress = () => {
   // Check if stage is pending (chưa đến lượt)
   const orderStatus = order?.executionStatus || order?.status;
   const orderLocked = orderStatus === 'WAITING_PRODUCTION' || orderStatus === 'PENDING_APPROVAL' || orderStatus === 'DRAFT';
+  const isPaused = stage?.status === 'PAUSED';
+
   const isPending = stage && (
     stage.executionStatus === 'PENDING' ||
     (!stage.executionStatus && stage.status === 'PENDING')
@@ -179,7 +206,7 @@ const LeaderStageProgress = () => {
   );
 
   // canStart: WAITING, READY (sẵn sàng sản xuất) hoặc WAITING_REWORK (chờ sửa), chưa IN_PROGRESS và tiến độ < 100%
-  const canStart = stage && !isStageInProgress && stage.progressPercent < 100 && !orderLocked && (
+  const canStart = stage && !isStageInProgress && stage.progressPercent < 100 && !orderLocked && !isPaused && (
     stage.executionStatus === 'WAITING' ||
     stage.executionStatus === 'READY' ||
     stage.executionStatus === 'READY_TO_PRODUCE' ||
@@ -189,7 +216,7 @@ const LeaderStageProgress = () => {
     stage.status === 'WAITING_REWORK'
   );
   // canUpdate: IN_PROGRESS (đang làm) hoặc REWORK_IN_PROGRESS (đang sửa)
-  const canUpdate = stage && !orderLocked && (
+  const canUpdate = stage && !orderLocked && !isPaused && (
     stage.executionStatus === 'IN_PROGRESS' ||
     stage.executionStatus === 'REWORK_IN_PROGRESS' ||
     stage.status === 'IN_PROGRESS' ||
@@ -334,7 +361,17 @@ const LeaderStageProgress = () => {
             </Card>
 
             {/* Action Area */}
-            {orderLocked && (
+            {isPaused && (
+              <Card className="shadow-sm mb-3" style={{ borderColor: '#f5c6cb', backgroundColor: '#f8d7da' }}>
+                <Card.Body>
+                  <div className="alert alert-danger mb-0">
+                    <strong>Đang tạm dừng:</strong> Công đoạn này đang bị tạm dừng (có thể do máy đang xử lý đơn hàng ưu tiên khác hoặc sự cố). Vui lòng chờ hoặc liên hệ quản lý.
+                  </div>
+                </Card.Body>
+              </Card>
+            )}
+
+            {orderLocked && !isPaused && (
               <Card className="shadow-sm mb-3" style={{ borderColor: '#ffe1a8', backgroundColor: '#fff7e6' }}>
                 <Card.Body>
                   <div className="alert alert-warning mb-0">
@@ -385,6 +422,9 @@ const LeaderStageProgress = () => {
                     <Button variant="dark" onClick={handleUpdateProgress} disabled={isPending}>
                       Cập nhật
                     </Button>
+                    <Button variant="outline-danger" onClick={handlePause} disabled={isPending}>
+                      Tạm dừng
+                    </Button>
                   </div>
                 </Card.Body>
               </Card>
@@ -393,7 +433,13 @@ const LeaderStageProgress = () => {
             <Card className="shadow-sm mb-3">
               <Card.Body className="p-0">
                 <div className="p-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
-                  <strong>Lịch sử cập nhật tiến độ</strong>
+                  <strong>
+                    {severity === 'MINOR'
+                      ? 'Lịch sử cập nhật lỗi'
+                      : severity === 'MAJOR'
+                        ? 'Lịch sử cập nhật sản xuất bổ sung'
+                        : 'Lịch sử cập nhật tiến độ'}
+                  </strong>
                   {historyLoading && <small className="text-muted">Đang tải...</small>}
                 </div>
                 {historyLoading ? (
@@ -449,6 +495,39 @@ const LeaderStageProgress = () => {
           </Container>
         </div>
       </div>
+
+      {/* Pause Modal */}
+      {showPauseModal && (
+        <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Tạm dừng công đoạn</h5>
+                <button type="button" className="btn-close" onClick={() => setShowPauseModal(false)}></button>
+              </div>
+              <div className="modal-body">
+                <Form.Group className="mb-3">
+                  <Form.Label>Lý do tạm dừng</Form.Label>
+                  <Form.Select value={pauseReason} onChange={(e) => setPauseReason(e.target.value)}>
+                    <option value="MACHINE_ISSUE">Sự cố máy móc</option>
+                    <option value="MATERIAL_SHORTAGE">Thiếu nguyên liệu</option>
+                    <option value="PRIORITY_ORDER">Đơn hàng ưu tiên</option>
+                    <option value="OTHER">Khác</option>
+                  </Form.Select>
+                </Form.Group>
+                <Form.Group className="mb-3">
+                  <Form.Label>Ghi chú</Form.Label>
+                  <Form.Control as="textarea" rows={3} value={pauseNotes} onChange={(e) => setPauseNotes(e.target.value)} />
+                </Form.Group>
+              </div>
+              <div className="modal-footer">
+                <Button variant="secondary" onClick={() => setShowPauseModal(false)}>Hủy</Button>
+                <Button variant="danger" onClick={confirmPause}>Xác nhận tạm dừng</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

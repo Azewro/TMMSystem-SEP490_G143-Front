@@ -28,8 +28,8 @@ export const getStatusLabel = (status) => {
     'QC_FAILED': 'không đạt',
     'WAITING_REWORK': 'chờ sửa',
     'REWORK_IN_PROGRESS': 'đang sửa',
-    'COMPLETED': 'hoàn thành',
-    'DANG_LAM': 'đang làm', // Legacy status
+    'PAUSED': 'Tạm dừng',
+    'WAITING_MATERIAL': 'Chờ phê duyệt cấp sợi', // Frontend-only status
   };
   return statusMap[status] || status;
 };
@@ -56,9 +56,9 @@ export const getStageTypeName = (stageType) => {
 // Get button configuration based on stage status and user role
 export const getButtonForStage = (status, userRole) => {
   if (userRole === 'leader') {
-    // PENDING: đợi - không có button (chỉ xem được)
+    // PENDING: đợi - không có button
     if (status === 'PENDING') {
-      return { text: 'Xem chi tiết', action: 'detail', variant: 'outline-secondary', disabled: false };
+      return { text: '', action: 'none', variant: 'secondary', disabled: true };
     }
     // WAITING/READY/READY_TO_PRODUCE: sẵn sàng sản xuất - button "Bắt đầu"
     if (status === 'WAITING' || status === 'READY' || status === 'READY_TO_PRODUCE') {
@@ -84,13 +84,17 @@ export const getButtonForStage = (status, userRole) => {
     if (status === 'QC_FAILED') {
       return { text: 'Xem chi tiết', action: 'detail', variant: 'outline-secondary', disabled: false };
     }
-    // WAITING_REWORK: chờ sửa - button "Bắt đầu" (sau khi kỹ thuật gửi yêu cầu làm lại)
+    // WAITING_REWORK: chờ sửa - button "Bắt đầu"
     if (status === 'WAITING_REWORK') {
       return { text: 'Bắt đầu', action: 'start', variant: 'warning', disabled: false };
     }
     // REWORK_IN_PROGRESS: đang sửa - button "Cập nhật tiến độ"
     if (status === 'REWORK_IN_PROGRESS') {
       return { text: 'Cập nhật tiến độ', action: 'update', variant: 'primary', disabled: false };
+    }
+    // PAUSED: tạm dừng - không có button (theo yêu cầu Leader > Danh sách đơn hàng)
+    if (status === 'PAUSED') {
+      return { text: '', action: 'none', variant: 'secondary', disabled: true };
     }
     // COMPLETED: hoàn thành - button "Xem chi tiết"
     if (status === 'COMPLETED') {
@@ -103,43 +107,9 @@ export const getButtonForStage = (status, userRole) => {
     if (status === 'WAITING_QC') {
       return { text: 'Kiểm tra', action: 'inspect', variant: 'warning' };
     }
-    // QC_IN_PROGRESS: đang kiểm tra - button "Kiểm tra" (có thể tiếp tục kiểm tra)
+    // QC_IN_PROGRESS: đang kiểm tra - button "Kiểm tra"
     if (status === 'QC_IN_PROGRESS') {
       return { text: 'Kiểm tra', action: 'inspect', variant: 'warning' };
-    }
-    // QC_PASSED: đạt - button "Chi tiết" (chi tiết chính là kết quả kiểm tra)
-    if (status === 'QC_PASSED') {
-      return { text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' };
-    }
-    // QC_FAILED: không đạt - button "Chi tiết" (chi tiết chính là kết quả kiểm tra)
-    if (status === 'QC_FAILED') {
-      return { text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' };
-    }
-    // Các trạng thái khác: button "Chi tiết"
-    return { text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' };
-  }
-
-  if (userRole === 'production' || userRole === 'pm') {
-    // For dyeing stage (NHUOM) managed by PM
-    // PENDING: đợi - không có button (chỉ xem)
-    if (status === 'PENDING') {
-      return { text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' };
-    }
-    // WAITING/READY/READY_TO_PRODUCE: chờ làm - button "Bắt đầu" (với công đoạn nhuộm)
-    if (status === 'WAITING' || status === 'READY' || status === 'READY_TO_PRODUCE') {
-      return { text: 'Bắt đầu', action: 'start', variant: 'success' };
-    }
-    // IN_PROGRESS: đang làm - button "Chi tiết, cập nhật công đoạn" (với công đoạn nhuộm)
-    if (status === 'IN_PROGRESS') {
-      return { text: 'Cập nhật tiến độ', action: 'update', variant: 'primary' };
-    }
-    // WAITING_QC: chờ kiểm tra - button "Chi tiết"
-    if (status === 'WAITING_QC') {
-      return { text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' };
-    }
-    // QC_IN_PROGRESS: đang kiểm tra - button "Chi tiết"
-    if (status === 'QC_IN_PROGRESS') {
-      return { text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' };
     }
     // QC_PASSED: đạt - button "Chi tiết"
     if (status === 'QC_PASSED') {
@@ -149,18 +119,27 @@ export const getButtonForStage = (status, userRole) => {
     if (status === 'QC_FAILED') {
       return { text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' };
     }
-    // WAITING_REWORK: chờ sửa - button "Chi tiết, bắt đầu" (với công đoạn nhuộm)
+    return { text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' };
+  }
+
+  if (userRole === 'production' || userRole === 'pm') {
+    // For dyeing stage (NHUOM) managed by PM
+    if (status === 'PENDING') {
+      return { text: '', action: 'none', variant: 'secondary', disabled: true };
+    }
+    if (status === 'WAITING' || status === 'READY' || status === 'READY_TO_PRODUCE') {
+      return { text: 'Bắt đầu', action: 'start', variant: 'success' };
+    }
+    if (status === 'IN_PROGRESS') {
+      return { text: 'Cập nhật tiến độ', action: 'update', variant: 'primary' };
+    }
     if (status === 'WAITING_REWORK') {
       return { text: 'Bắt đầu', action: 'start', variant: 'warning' };
     }
-    // REWORK_IN_PROGRESS: đang sửa - button "Chi tiết"
     if (status === 'REWORK_IN_PROGRESS') {
-      return { text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' };
+      return { text: 'Cập nhật tiến độ', action: 'update', variant: 'primary' };
     }
-    // COMPLETED: hoàn thành - button "Chi tiết"
-    if (status === 'COMPLETED') {
-      return { text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' };
-    }
+    // Default fallback
     return { text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' };
   }
 
@@ -194,6 +173,8 @@ export const getStatusVariant = (status) => {
     'REWORK_IN_PROGRESS': 'info',
     'COMPLETED': 'success',
     'DANG_LAM': 'info',
+    'PAUSED': 'danger',
+    'WAITING_MATERIAL': 'warning',
   };
   return variantMap[status] || 'secondary';
 };

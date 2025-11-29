@@ -81,17 +81,24 @@ const ProductionOrderList = () => {
         setLoading(true);
         const data = await productionService.getManagerOrders();
         // Map backend data to match mock structure
-        const mappedData = data.map(order => ({
-          id: order.id,
-          lotCode: order.lotCode || order.poNumber,
-          productName: order.productName || order.contract?.contractNumber || 'N/A',
-          size: order.size || '-',
-          quantity: order.totalQuantity || 0,
-          expectedStartDate: order.expectedStartDate || order.plannedStartDate,
-          expectedFinishDate: order.expectedFinishDate || order.plannedEndDate,
-          status: order.executionStatus || order.status,
-          statusLabel: order.statusLabel || getStatusLabel(order.executionStatus || order.status)
-        }));
+        const mappedData = data.map(order => {
+          const hasPendingReq = !!order.pendingMaterialRequestId;
+          const status = hasPendingReq ? 'WAITING_MATERIAL' : (order.executionStatus || order.status);
+          const statusLabel = hasPendingReq ? 'Chờ phê duyệt cấp sợi' : (order.statusLabel || getStatusLabel(status));
+
+          return {
+            id: order.id,
+            lotCode: order.lotCode || order.poNumber,
+            productName: order.productName || order.contract?.contractNumber || 'N/A',
+            size: order.size || '-',
+            quantity: order.totalQuantity || 0,
+            expectedStartDate: order.expectedStartDate || order.plannedStartDate,
+            expectedFinishDate: order.expectedFinishDate || order.plannedEndDate,
+            status: status,
+            statusLabel: statusLabel,
+            pendingMaterialRequestId: order.pendingMaterialRequestId
+          };
+        });
         setOrders(mappedData);
       } catch (error) {
         console.error('Error fetching orders:', error);
@@ -105,6 +112,10 @@ const ProductionOrderList = () => {
 
   const handleViewPlan = (orderId) => {
     navigate(`/production/orders/${orderId}`);
+  };
+
+  const handleViewMaterialRequest = (requestId) => {
+    navigate(`/production/fiber-requests/${requestId}`);
   };
 
   const filteredOrders = useMemo(() => {
@@ -209,6 +220,16 @@ const ProductionOrderList = () => {
                           </Badge>
                         </td>
                         <td className="text-end">
+                          {order.pendingMaterialRequestId ? (
+                            <Button
+                              size="sm"
+                              variant="warning"
+                              className="me-2"
+                              onClick={() => handleViewMaterialRequest(order.pendingMaterialRequestId)}
+                            >
+                              Xem yêu cầu
+                            </Button>
+                          ) : null}
                           <Button
                             size="sm"
                             variant="primary"

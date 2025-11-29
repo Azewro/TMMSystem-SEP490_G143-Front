@@ -678,36 +678,7 @@ const ProductionPlanDetail = () => {
                                         <Tab eventKey={stage.stageType} title={`${index + 1}. ${getStageTypeName(stage.stageType)}`} key={stage.id}>
                                             <div className="p-3 bg-light rounded">
                                                 <div className="d-flex flex-wrap gap-2 mb-3">
-                                                    <Button
-                                                        variant="outline-info"
-                                                        size="sm"
-                                                        onClick={() => toast('Tính năng xem lịch máy móc đang phát triển')}
-                                                        disabled={isReadOnly}
-                                                    >
-                                                        Xem lịch máy móc
-                                                    </Button>
-                                                    {/* <Button
-                                                variant="outline-secondary"
-                                                size="sm"
-                                                onClick={() => handleAutoAssignMachine(stage.id, stage.stageType)}
-                                                disabled={isReadOnly || stageActionLoading[stage.id] || NON_INTERNAL_MACHINE_STAGES.has(stage.stageType)}
-                                            >
-                                                {stageActionLoading[stage.id] ? (
-                                                    <Spinner as="span" animation="border" size="sm" className="me-2" />
-                                                ) : null}
-                                                Auto gán máy
-                                            </Button> */}
-                                                    <Button
-                                                        variant="outline-warning"
-                                                        size="sm"
-                                                        onClick={() => handleCheckConflicts(stage.id)}
-                                                        disabled={stageConflictsLoading[stage.id]}
-                                                    >
-                                                        {stageConflictsLoading[stage.id] ? (
-                                                            <Spinner as="span" animation="border" size="sm" className="me-2" />
-                                                        ) : null}
-                                                        Kiểm tra xung đột
-                                                    </Button>
+                                                    {/* Buttons removed as per user request */}
                                                 </div>
                                                 <Row>
                                                     {/* <Col md={4} className="form-group-custom">
@@ -752,14 +723,7 @@ const ProductionPlanDetail = () => {
                                                         <Form.Label className="form-label-custom">Thời lượng (giờ)</Form.Label>
                                                         <Form.Control type="number" value={stage.durationInHours || ''} onChange={(e) => handleStageChange(stage.id, 'durationInHours', e.target.value)} disabled={isReadOnly} />
                                                     </Col>
-                                                    <Col md={4} className="form-group-custom">
-                                                        <Form.Label className="form-label-custom">Năng suất (sp/h)</Form.Label>
-                                                        <Form.Control type="number" step="0.01" value={stage.capacityPerHour || ''} onChange={(e) => handleStageChange(stage.id, 'capacityPerHour', e.target.value)} disabled={isReadOnly} />
-                                                    </Col>
-                                                    <Col md={4} className="form-group-custom">
-                                                        <Form.Label className="form-label-custom">Sản lượng ước tính</Form.Label>
-                                                        <Form.Control readOnly disabled value={formatNumberValue(stage.estimatedOutput)} />
-                                                    </Col>
+                                                    {/* Fields removed as per user request: Năng suất (sp/h) and Sản lượng ước tính */}
                                                     <Col md={12} className="form-group-custom">
                                                         <Form.Label className="form-label-custom">Ghi chú</Form.Label>
                                                         <Form.Control as="textarea" rows={2} value={stage.notes || ''} onChange={(e) => handleStageChange(stage.id, 'notes', e.target.value)} disabled={isReadOnly} />
