@@ -291,17 +291,17 @@ const CustomerRfqs = () => {
                                     Chi tiết
                                   </Button>
                                   {/* Button điều kiện */}
-                                  {rfqStatus === 'ACCEPTED' && (
+                                  {rfq.status === 'ACCEPTED' && (
                                     <Button variant="success" size="sm" onClick={() => handleViewQuotation(rfq)}>
                                       Xem báo giá
                                     </Button>
                                   )}
-                                  {rfqStatus === 'QUOTED' && (
+                                  {rfq.status === 'QUOTED' && (
                                     <Button variant="success" size="sm" onClick={() => handleViewQuotation(rfq)}>
                                       Xem báo giá
                                     </Button>
                                   )}
-                                  {rfqStatus === 'DRAFT' && (
+                                  {rfq.status === 'DRAFT' && (
                                     <Button variant="danger" size="sm" onClick={() => handleCancelRfq(rfq.id)}>
                                       Hủy RFQ
                                     </Button>
