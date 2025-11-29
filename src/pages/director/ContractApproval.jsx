@@ -7,6 +7,7 @@ import { contractService } from '../../api/contractService';
 import { quotationService } from '../../api/quotationService'; // Import quotationService
 import { productionPlanService } from '../../api/productionPlanService'; // Import productionPlanService
 import { customerService } from '../../api/customerService';
+import { API_BASE_URL } from '../../utils/constants';
 import Pagination from '../../components/Pagination';
 import toast from 'react-hot-toast';
 import '../../styles/QuoteRequests.css';
@@ -263,13 +264,21 @@ const DirectorContractApproval = () => {
   };
 
   const handleViewFile = async (url) => {
-    if (!url || isDocx(url)) return;
+    if (!url || isDocx(url)) {
+      if (isDocx(url)) {
+        toast.error('File DOCX cần được tải về để xem');
+      }
+      return;
+    }
 
     const toastId = toast.loading('Đang chuẩn bị file để xem...');
     try {
-      const token = sessionStorage.getItem('token');
+      // Construct full URL if it's a relative path (similar to customer)
+      const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+      
+      const token = sessionStorage.getItem('token') || sessionStorage.getItem('userToken') || localStorage.getItem('userToken');
       const headers = { 'Authorization': `Bearer ${token}` };
-      const response = await fetch(url, { headers });
+      const response = await fetch(fullUrl, { headers });
 
       if (!response.ok) {
         throw new Error('Không thể tải file.');
@@ -283,7 +292,7 @@ const DirectorContractApproval = () => {
 
       if (!mimeType || mimeType === 'application/octet-stream') {
         if (ext === 'pdf') mimeType = 'application/pdf';
-        else if (['png', 'jpg', 'jpeg'].includes(ext)) mimeType = `image/${ext}`;
+        else if (['png', 'jpg', 'jpeg'].includes(ext)) mimeType = `image/${ext === 'jpg' ? 'jpeg' : ext}`;
       }
 
       if (mimeType) {
@@ -291,7 +300,6 @@ const DirectorContractApproval = () => {
       }
 
       const objectUrl = URL.createObjectURL(blob);
-
       setViewerUrl(objectUrl);
       setShowFileViewer(true);
       toast.success('Đã mở file.', { id: toastId });
@@ -505,8 +513,34 @@ const DirectorContractApproval = () => {
                     </Button>
                     <Button
                       variant="secondary"
-                      href={fileUrl}
+                      href={fileUrl.startsWith('http') ? fileUrl : `${API_BASE_URL}${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`}
                       download
+                      onClick={(e) => {
+                        // Ensure download works with authentication
+                        const token = sessionStorage.getItem('token') || sessionStorage.getItem('userToken') || localStorage.getItem('userToken');
+                        if (token && !fileUrl.startsWith('http')) {
+                          e.preventDefault();
+                          const fullUrl = `${API_BASE_URL}${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`;
+                          fetch(fullUrl, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                          })
+                            .then(res => res.blob())
+                            .then(blob => {
+                              const url = window.URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = fileUrl.split('/').pop() || 'contract.pdf';
+                              document.body.appendChild(a);
+                              a.click();
+                              window.URL.revokeObjectURL(url);
+                              document.body.removeChild(a);
+                            })
+                            .catch(err => {
+                              console.error('Download error:', err);
+                              toast.error('Không thể tải file');
+                            });
+                        }
+                      }}
                     >
                       Tải về hợp đồng
                     </Button>
@@ -530,8 +564,34 @@ const DirectorContractApproval = () => {
                     </Button>
                     <Button
                       variant="info"
-                      href={quoteFileUrl}
+                      href={quoteFileUrl.startsWith('http') ? quoteFileUrl : `${API_BASE_URL}${quoteFileUrl.startsWith('/') ? '' : '/'}${quoteFileUrl}`}
                       download
+                      onClick={(e) => {
+                        // Ensure download works with authentication
+                        const token = sessionStorage.getItem('token') || sessionStorage.getItem('userToken') || localStorage.getItem('userToken');
+                        if (token && !quoteFileUrl.startsWith('http')) {
+                          e.preventDefault();
+                          const fullUrl = `${API_BASE_URL}${quoteFileUrl.startsWith('/') ? '' : '/'}${quoteFileUrl}`;
+                          fetch(fullUrl, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                          })
+                            .then(res => res.blob())
+                            .then(blob => {
+                              const url = window.URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = quoteFileUrl.split('/').pop() || 'quotation.pdf';
+                              document.body.appendChild(a);
+                              a.click();
+                              window.URL.revokeObjectURL(url);
+                              document.body.removeChild(a);
+                            })
+                            .catch(err => {
+                              console.error('Download error:', err);
+                              toast.error('Không thể tải file');
+                            });
+                        }
+                      }}
                     >
                       Tải về báo giá
                     </Button>
