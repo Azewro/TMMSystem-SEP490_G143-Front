@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import Pagination from '../../components/Pagination';
 import toast from 'react-hot-toast';
 import { getCustomerQuoteStatus } from '../../utils/statusMapper';
+import '../../styles/CustomerQuoteRequests.css';
 
 const formatDate = (iso) => {
   if (!iso) return 'N/A';
@@ -149,133 +150,145 @@ const CustomerQuotations = () => {
       <Header />
       <div className="d-flex">
         <Sidebar />
-        <div className="flex-grow-1 p-4" style={{ backgroundColor: '#f8f9fa' }}>
+        <div className="flex-grow-1 p-4 customer-quote-requests-page" style={{ backgroundColor: '#f8f9fa' }}>
           <Container fluid>
             <h2 className="mb-4">Danh sách báo giá của bạn</h2>
 
             {error && <Alert variant="danger">{error}</Alert>}
 
-            <Card className="shadow-sm">
+            {/* Search and Filter */}
+            <Card className="mb-3">
+              <Card.Body>
+                <Row className="g-3">
+                  <Col md={4}>
+                    <InputGroup>
+                      <InputGroup.Text><FaSearch /></InputGroup.Text>
+                      <Form.Control
+                        type="text"
+                        placeholder="Tìm theo mã báo giá..."
+                        value={searchTerm}
+                        onChange={handleSearchChange}
+                      />
+                    </InputGroup>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Select
+                      value={statusFilter}
+                      onChange={(e) => {
+                        setStatusFilter(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <option value="">Tất cả trạng thái</option>
+                      <option value="SENT">Đã gửi</option>
+                      <option value="ACCEPTED">Đã chấp nhận</option>
+                      <option value="REJECTED">Đã từ chối</option>
+                      <option value="EXPIRED">Hết hạn</option>
+                      <option value="CANCELED">Đã hủy</option>
+                      <option value="ORDER_CREATED">Đã tạo đơn hàng</option>
+                    </Form.Select>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Select
+                      value={sortBy}
+                      onChange={(e) => {
+                        setSortBy(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <option value="createdAt">Sắp xếp theo ngày tạo</option>
+                      <option value="validUntil">Sắp xếp theo ngày giao hàng</option>
+                    </Form.Select>
+                  </Col>
+                  <Col md={2}>
+                    <Form.Select
+                      value={sortOrder}
+                      onChange={(e) => {
+                        setSortOrder(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <option value="desc">Giảm dần</option>
+                      <option value="asc">Tăng dần</option>
+                    </Form.Select>
+                  </Col>
+                  {sortBy === 'validUntil' && (
+                    <Col md={3}>
+                      <Form.Control
+                        type="date"
+                        value={selectedDate}
+                        onChange={(e) => {
+                          setSelectedDate(e.target.value);
+                          setCurrentPage(1);
+                        }}
+                        placeholder="Chọn ngày"
+                      />
+                    </Col>
+                  )}
+                </Row>
+              </Card.Body>
+            </Card>
+
+            <Card>
               <Card.Header>
-                <div className="d-flex flex-column gap-3">
-                  <div className="d-flex justify-content-between align-items-center">
-                    <span>Các báo giá đã nhận</span>
-                  </div>
-                  <div className="d-flex gap-3 flex-wrap">
-                    <div style={{ minWidth: '250px', flex: '1' }}>
-                      <InputGroup>
-                        <InputGroup.Text><FaSearch /></InputGroup.Text>
-                        <Form.Control
-                          type="text"
-                          placeholder="Tìm theo mã báo giá..."
-                          value={searchTerm}
-                          onChange={handleSearchChange}
-                        />
-                      </InputGroup>
-                    </div>
-                    <div style={{ minWidth: '200px' }}>
-                      <Form.Select
-                        value={statusFilter}
-                        onChange={(e) => {
-                          setStatusFilter(e.target.value);
-                          setCurrentPage(1);
-                        }}
-                      >
-                        <option value="">Tất cả trạng thái</option>
-                        <option value="SENT">Đã gửi</option>
-                        <option value="ACCEPTED">Đã chấp nhận</option>
-                        <option value="REJECTED">Đã từ chối</option>
-                        <option value="EXPIRED">Hết hạn</option>
-                        <option value="CANCELED">Đã hủy</option>
-                        <option value="ORDER_CREATED">Đã tạo đơn hàng</option>
-                      </Form.Select>
-                    </div>
-                    <div style={{ minWidth: '200px' }}>
-                      <Form.Select
-                        value={sortBy}
-                        onChange={(e) => {
-                          setSortBy(e.target.value);
-                          setCurrentPage(1);
-                        }}
-                      >
-                        <option value="createdAt">Sắp xếp theo ngày tạo</option>
-                        <option value="validUntil">Sắp xếp theo ngày giao hàng</option>
-                      </Form.Select>
-                    </div>
-                    {sortBy === 'validUntil' && (
-                      <div style={{ minWidth: '200px' }}>
-                        <Form.Control
-                          type="date"
-                          value={selectedDate}
-                          onChange={(e) => {
-                            setSelectedDate(e.target.value);
-                            setCurrentPage(1);
-                          }}
-                          placeholder="Chọn ngày"
+                Danh sách các báo giá đã nhận
+              </Card.Header>
+              <Card.Body className="p-0">
+                {loading ? (
+                  <div className="text-center p-5"><Spinner animation="border" /></div>
+                ) : (
+                  <>
+                    <Table striped bordered hover responsive className="mb-0">
+                      <thead>
+                        <tr>
+                          <th>Mã báo giá</th>
+                          <th>Ngày giao dự kiến</th>
+                          <th>Tổng tiền</th>
+                          <th>Trạng thái</th>
+                          <th>Thao tác</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {allQuotes.length > 0 ? (
+                          allQuotes.map((quote) => {
+                            const statusObj = getCustomerQuoteStatus(quote.status);
+                            return (
+                              <tr key={quote.id}>
+                                <td className="fw-semibold">{quote.quotationNumber}</td>
+                                <td>{formatDate(quote.validUntil)}</td>
+                                <td className="text-success fw-semibold">{formatCurrency(quote.totalAmount)}</td>
+                                <td>
+                                  <Badge bg={statusObj.variant}>{statusObj.label}</Badge>
+                                </td>
+                                <td>
+                                  <div className="d-flex gap-2 justify-content-center">
+                                    <Button size="sm" variant="outline-primary" onClick={() => handleViewDetail(quote.id)}>
+                                      Chi tiết
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        ) : (
+                          <tr>
+                            <td colSpan="5" className="text-center py-4 text-muted">
+                              {totalElements === 0 ? 'Không có báo giá nào.' : 'Không tìm thấy báo giá phù hợp với bộ lọc.'}
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </Table>
+                    {totalPages > 1 && (
+                      <div className="p-3">
+                        <Pagination
+                          currentPage={currentPage}
+                          totalPages={totalPages}
+                          onPageChange={setCurrentPage}
                         />
                       </div>
                     )}
-                    <div style={{ minWidth: '150px' }}>
-                      <Form.Select
-                        value={sortOrder}
-                        onChange={(e) => {
-                          setSortOrder(e.target.value);
-                          setCurrentPage(1);
-                        }}
-                      >
-                        <option value="desc">Giảm dần</option>
-                        <option value="asc">Tăng dần</option>
-                      </Form.Select>
-                    </div>
-                  </div>
-                </div>
-              </Card.Header>
-              <Card.Body className="p-0">
-                <Table responsive hover className="mb-0 align-middle">
-                  <thead className="table-light">
-                    <tr>
-                      <th className="fw-bold">Mã báo giá</th>
-                      <th className="fw-bold">Ngày giao dự kiến</th>
-                      <th className="fw-bold">Tổng tiền</th>
-                      <th className="fw-bold">Trạng thái</th>
-                      <th className="fw-bold text-center">Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loading ? (
-                      <tr><td colSpan="5" className="text-center py-4"><Spinner animation="border" /></td></tr>
-                    ) : allQuotes.length > 0 ? (
-                      allQuotes.map((quote) => {
-                        const statusObj = getCustomerQuoteStatus(quote.status);
-                        return (
-                          <tr key={quote.id}>
-                            <td className="fw-semibold text-primary">{quote.quotationNumber}</td>
-                            <td>{formatDate(quote.validUntil)}</td>
-                            <td className="text-success fw-semibold">{formatCurrency(quote.totalAmount)}</td>
-                            <td>
-                              <Badge bg={statusObj.variant}>{statusObj.label}</Badge>
-                            </td>
-                            <td className="text-center">
-                              <Button size="sm" variant="primary" onClick={() => handleViewDetail(quote.id)}>
-                                <FaEye className="me-1" /> Chi tiết
-                              </Button>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    ) : (
-                      <tr><td colSpan="5" className="text-center py-4 text-muted">
-                        {totalElements === 0 ? 'Không có báo giá nào.' : 'Không tìm thấy báo giá phù hợp với bộ lọc.'}
-                      </td></tr>
-                    )}
-                  </tbody>
-                </Table>
-                {totalPages > 1 && (
-                  <Pagination
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    onPageChange={setCurrentPage}
-                  />
+                  </>
                 )}
               </Card.Body>
             </Card>

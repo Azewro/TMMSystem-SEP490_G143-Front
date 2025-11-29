@@ -221,7 +221,8 @@ export const getPlanningRfqStatus = (rfq) => {
   if (!rfq) return { label: 'N/A', variant: 'secondary' };
 
   if (rfq.status === 'FORWARDED_TO_PLANNING') return { label: 'Chờ tiếp nhận', variant: 'warning', value: 'FORWARDED_TO_PLANNING' };
-  if (rfq.status === 'RECEIVED_BY_PLANNING') return { label: 'Chờ tạo', variant: 'primary', value: 'RECEIVED_BY_PLANNING' };
+  if (rfq.status === 'PRELIMINARY_CHECKED') return { label: 'Chờ xác nhận', variant: 'info', value: 'PRELIMINARY_CHECKED' };
+  if (rfq.status === 'RECEIVED_BY_PLANNING') return { label: 'Đã xác nhận', variant: 'primary', value: 'RECEIVED_BY_PLANNING' };
   if (rfq.status === 'QUOTED') return { label: 'Đã báo giá', variant: 'success', value: 'QUOTED' };
 
   const label = getStatusLabel(rfq.status);
@@ -266,10 +267,10 @@ export const getSalesQuoteStatus = (status) => {
 };
 
 export const getSalesOrderStatus = (status) => {
-  if (status === 'PENDING_UPLOAD') return { label: 'Chờ ký HĐ', variant: 'warning', value: 'PENDING_UPLOAD' };
-  if (status === 'PENDING_APPROVAL') return { label: 'Chờ phê duyệt HĐ', variant: 'primary', value: 'PENDING_APPROVAL' };
-  if (status === 'APPROVED') return { label: 'HĐ được duyệt', variant: 'success', value: 'APPROVED' };
-  if (status === 'REJECTED') return { label: 'HĐ bị từ chối', variant: 'danger', value: 'REJECTED' };
+  if (status === 'PENDING_UPLOAD') return { label: 'Chờ ký hợp đồng', variant: 'warning', value: 'PENDING_UPLOAD' };
+  if (status === 'PENDING_APPROVAL') return { label: 'Chờ phê duyệt hợp đồng đã ký', variant: 'primary', value: 'PENDING_APPROVAL' };
+  if (status === 'APPROVED') return { label: 'Hợp đồng đã ký được phê duyệt', variant: 'success', value: 'APPROVED' };
+  if (status === 'REJECTED') return { label: 'Hợp đồng đã ký bị từ chối', variant: 'danger', value: 'REJECTED' };
   if (['WAITING_PRODUCTION', 'IN_PROGRESS'].includes(status)) {
     return { label: 'Đang sản xuất', variant: 'info', value: 'IN_PRODUCTION' };
   }
@@ -282,8 +283,14 @@ export const getSalesOrderStatus = (status) => {
 
 // --- CUSTOMER ROLE MAPPERS ---
 export const getCustomerRfqStatus = (status) => {
+  if (status === 'DRAFT') return { label: 'Chờ xác nhận', variant: 'info', value: 'DRAFT' };
   if (status === 'SENT') return { label: 'Chờ xác nhận', variant: 'info', value: 'SENT' };
+
+  // Các trạng thái đang xử lý nội bộ -> Khách hàng thấy là "Đã xác nhận"
   if (status === 'PRELIMINARY_CHECKED') return { label: 'Đã xác nhận', variant: 'primary', value: 'PRELIMINARY_CHECKED' };
+  if (status === 'FORWARDED_TO_PLANNING') return { label: 'Đã xác nhận', variant: 'primary', value: 'FORWARDED_TO_PLANNING' };
+  if (status === 'RECEIVED_BY_PLANNING') return { label: 'Đã xác nhận', variant: 'primary', value: 'RECEIVED_BY_PLANNING' };
+
   if (status === 'QUOTED') return { label: 'Chờ phê duyệt báo giá', variant: 'warning', value: 'QUOTED' };
   if (status === 'CANCELED') return { label: 'Đã hủy', variant: 'dark', value: 'CANCELED' };
 
@@ -303,10 +310,10 @@ export const getCustomerQuoteStatus = (status) => {
 };
 
 export const getCustomerOrderStatus = (status) => {
-  if (status === 'PENDING_UPLOAD') return { label: 'Chờ ký HĐ', variant: 'warning', value: 'PENDING_UPLOAD' };
-  if (['PENDING_APPROVAL', 'APPROVED', 'WAITING_PRODUCTION'].includes(status)) {
-    return { label: 'Chờ sản xuất', variant: 'primary', value: 'PENDING_PROCESS' };
-  }
+  if (status === 'PENDING_UPLOAD') return { label: 'Chờ ký hợp đồng', variant: 'warning', value: 'PENDING_UPLOAD' };
+  if (status === 'PENDING_APPROVAL') return { label: 'Chờ sản xuất', variant: 'primary', value: 'PENDING_APPROVAL' };
+  if (status === 'APPROVED') return { label: 'Đang sản xuất', variant: 'info', value: 'APPROVED' };
+  if (status === 'WAITING_PRODUCTION') return { label: 'Đang sản xuất', variant: 'info', value: 'WAITING_PRODUCTION' };
   if (status === 'IN_PROGRESS') return { label: 'Đang sản xuất', variant: 'info', value: 'IN_PROGRESS' };
   if (status === 'COMPLETED') return { label: 'Sản xuất xong', variant: 'success', value: 'COMPLETED' };
 
