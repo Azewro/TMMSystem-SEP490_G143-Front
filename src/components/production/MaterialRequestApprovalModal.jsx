@@ -4,10 +4,28 @@ import api from '../../api/apiConfig';
 import { toast } from 'react-hot-toast';
 
 const MaterialRequestApprovalModal = ({ show, onHide, request, onSuccess }) => {
-    const [approvedQuantity, setApprovedQuantity] = useState(request?.quantityApproved || request?.quantityRequested || 0);
+    const [approvedQuantities, setApprovedQuantities] = useState({});
     const [notes, setNotes] = useState('');
     const [loading, setLoading] = useState(false);
     const [warning, setWarning] = useState(null);
+
+    // Initialize approved quantities when request changes
+    React.useEffect(() => {
+        if (request && request.details) {
+            const initialQuantities = {};
+            request.details.forEach(d => {
+                initialQuantities[d.id] = d.quantityApproved || d.quantityRequested || 0;
+            });
+            setApprovedQuantities(initialQuantities);
+        } else if (request) {
+            // Fallback for legacy requests without details (should be rare)
+            setApprovedQuantities({});
+        }
+    }, [request]);
+
+    const calculateTotalApproved = () => {
+        return Object.values(approvedQuantities).reduce((sum, qty) => sum + (parseFloat(qty) || 0), 0);
+    };
 
     const calculateDuration = (qty) => {
         // Approximate capacities matching backend
@@ -15,11 +33,7 @@ const MaterialRequestApprovalModal = ({ show, onHide, request, onSuccess }) => {
             'WARPING': 2000, 'WEAVING': 500, 'DYEING': 1000, 'CUTTING': 2000, 'HEMMING': 1500, 'PACKAGING': 3000,
             'CUONG_MAC': 2000, 'DET': 500, 'NHUOM': 1000, 'CAT': 2000, 'MAY': 1500, 'DONG_GOI': 3000
         };
-        // Default to 1000 if unknown or generic
-        const stageType = request?.stageName ? request.stageName.split(' ')[0].toUpperCase() : 'UNKNOWN';
-        // Note: stageName might be "Cắt", "Dệt"... need mapping or just use default.
-        // Simple mapping for Vietnamese names if needed, but let's stick to a safe default of 1000 for estimation
-        // or try to map if possible.
+
         let capacity = 1000;
         if (request?.stageName) {
             const name = request.stageName.toUpperCase();
@@ -34,31 +48,41 @@ const MaterialRequestApprovalModal = ({ show, onHide, request, onSuccess }) => {
         return Math.ceil(days * 2) / 2.0; // Round to 0.5
     };
 
+    const handleQuantityChange = (detailId, value) => {
+        setApprovedQuantities(prev => ({
+            ...prev,
+            [detailId]: value
+        }));
+        setWarning(null);
+    };
+
     const handleApprove = async (force = false) => {
-        const days = calculateDuration(approvedQuantity);
+        const totalQty = calculateTotalApproved();
+        const days = calculateDuration(totalQty);
 
         // Confirmation for <= 7 days (only if not forcing)
         if (!force && days <= 7) {
-            const confirmed = window.confirm(`Thời gian khắc phục dự kiến là ${days} ngày. Việc này sẽ làm chậm tiến độ các đơn hàng khác. Bạn có chắc chắn muốn phê duyệt?`);
+            const confirmed = window.confirm(`Tổng số lượng duyệt: ${totalQty} kg.\nThời gian khắc phục dự kiến là ${days} ngày.\nViệc này sẽ làm chậm tiến độ các đơn hàng khác. Bạn có chắc chắn muốn phê duyệt?`);
             if (!confirmed) return;
         }
 
         setLoading(true);
         try {
-            const directorId = localStorage.getItem('userId') || 1;
-            // Correct endpoint based on ProductionController
-            // The previous code used /v1/execution/... but ProductionController has /v1/production/material-requests/{id}/approve
-            // Let's check where approveMaterialRequest is mapped. 
-            // It is in ProductionController: @PostMapping("/material-requests/{id}/approve") -> /v1/production/material-requests/{id}/approve
-            // The previous code had /v1/execution... which might be wrong or proxied. 
-            // I will use /v1/production/... to be safe.
-            await api.post(`/v1/production/material-requests/${request.id}/approve`, null, {
-                params: {
-                    approvedQuantity: approvedQuantity,
-                    directorId: directorId,
-                    force: force
-                }
+            const directorId = parseInt(localStorage.getItem('userId') || sessionStorage.getItem('userId')) || 1;
+
+            // Construct details list
+            const detailsToUpdate = Object.entries(approvedQuantities).map(([id, qty]) => ({
+                id: parseInt(id),
+                quantityApproved: parseFloat(qty)
+            }));
+
+            await api.post(`/v1/production/material-requests/${request.id}/approve`, {
+                directorId: directorId,
+                force: force,
+                notes: notes,
+                details: detailsToUpdate
             });
+
             toast.success("Đã duyệt yêu cầu và tạo lệnh sản xuất bổ sung");
             onSuccess();
             onHide();
@@ -80,6 +104,9 @@ const MaterialRequestApprovalModal = ({ show, onHide, request, onSuccess }) => {
         handleApprove(true);
     };
 
+    const totalApproved = calculateTotalApproved();
+    const estimatedDays = calculateDuration(totalApproved);
+
     return (
         <Modal show={show} onHide={onHide} size="lg">
             <Modal.Header closeButton>
@@ -87,8 +114,8 @@ const MaterialRequestApprovalModal = ({ show, onHide, request, onSuccess }) => {
             </Modal.Header>
             <Modal.Body>
                 <div className="mb-3">
-                    <strong>Công đoạn lỗi:</strong> {request?.stageName} <br />
-                    <strong>Người yêu cầu:</strong> {request?.requestedBy} <br />
+                    <strong>Công đoạn lỗi:</strong> {request?.stageType || request?.stageName} <br />
+                    <strong>Người yêu cầu:</strong> {request?.requestedByName || request?.requestedBy} <br />
                     <strong>Ghi chú:</strong> {request?.notes}
                 </div>
 
@@ -103,20 +130,51 @@ const MaterialRequestApprovalModal = ({ show, onHide, request, onSuccess }) => {
                     </div>
                 </Alert>}
 
-                <Form.Group className="mb-3">
-                    <Form.Label>Số lượng duyệt (kg)</Form.Label>
-                    <Form.Control
-                        type="number"
-                        value={approvedQuantity}
-                        onChange={(e) => {
-                            setApprovedQuantity(e.target.value);
-                            setWarning(null);
-                        }}
-                    />
-                    <Form.Text className="text-muted">
-                        Thời gian dự kiến: {calculateDuration(approvedQuantity).toFixed(1)} ngày
-                    </Form.Text>
-                </Form.Group>
+                <h6 className="mt-4 mb-2">Chi tiết vật tư</h6>
+                {request?.details && request.details.length > 0 ? (
+                    <div className="table-responsive mb-3">
+                        <table className="table table-bordered table-sm">
+                            <thead className="table-light">
+                                <tr>
+                                    <th>Vật tư</th>
+                                    <th style={{ width: '120px' }} className="text-end">SL Yêu cầu</th>
+                                    <th style={{ width: '150px' }}>SL Duyệt (KG)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {request.details.map(d => (
+                                    <tr key={d.id}>
+                                        <td>{d.materialName}</td>
+                                        <td className="text-end">{d.quantityRequested}</td>
+                                        <td>
+                                            <Form.Control
+                                                type="number"
+                                                min="0"
+                                                step="0.1"
+                                                value={approvedQuantities[d.id] !== undefined ? approvedQuantities[d.id] : ''}
+                                                onChange={(e) => handleQuantityChange(d.id, e.target.value)}
+                                            />
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                            <tfoot className="table-light fw-bold">
+                                <tr>
+                                    <td colSpan="2" className="text-end">Tổng cộng:</td>
+                                    <td>{totalApproved.toFixed(2)} KG</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                ) : (
+                    <Alert variant="warning">Không có chi tiết vật tư. Vui lòng kiểm tra lại dữ liệu.</Alert>
+                )}
+
+                <div className="mb-3">
+                    <small className="text-muted">
+                        Thời gian dự kiến khắc phục: <strong>{estimatedDays.toFixed(1)} ngày</strong>
+                    </small>
+                </div>
 
                 <Form.Group className="mb-3">
                     <Form.Label>Ghi chú duyệt</Form.Label>

@@ -141,6 +141,8 @@ const translateCheckpointName = (name) => {
 const TechnicalDefectDetail = () => {
   const navigate = useNavigate();
   const { defectId } = useParams();
+  const [materials, setMaterials] = useState([]);
+  const [quantities, setQuantities] = useState({});
   const [defect, setDefect] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notes, setNotes] = useState('');
@@ -162,26 +164,69 @@ const TechnicalDefectDetail = () => {
         setLoading(false);
       }
     };
+
+    const fetchMaterials = async () => {
+      try {
+        const res = await api.get('/v1/products/materials');
+        setMaterials(res.data);
+      } catch (err) {
+        console.error("Error fetching materials:", err);
+      }
+    };
+
     fetchDefect();
+    fetchMaterials();
   }, [defectId]);
+
+  const handleQuantityChange = (materialId, value) => {
+    setQuantities(prev => ({
+      ...prev,
+      [materialId]: value
+    }));
+  };
 
   const handleDecision = async (decision) => {
     try {
-      const userId = localStorage.getItem('userId') || 1; // Fallback to 1 for testing
-
-      let finalNotes = notes;
-      if (decision === 'MATERIAL_REQUEST') {
-        finalNotes = `Yêu cầu cấp: ${materialRequest.quantity}kg ${materialRequest.type}. Ghi chú: ${materialRequest.notes}`;
+      const userId = parseInt(localStorage.getItem('userId') || sessionStorage.getItem('userId'));
+      if (!userId) {
+        toast.error("Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.");
+        return;
       }
 
-      await api.post('/v1/technical/defects/handle', null, {
-        params: {
-          stageId: defect.stageId, // Assuming DTO has stageId
-          decision: decision,
-          notes: finalNotes,
-          technicalUserId: userId,
-          quantity: materialRequest.quantity || 0
+      let finalNotes = notes;
+      let details = [];
+      let totalQuantity = 0;
+
+      if (decision === 'MATERIAL_REQUEST') {
+        // Collect details
+        details = Object.entries(quantities)
+          .filter(([_, qty]) => qty && parseFloat(qty) > 0)
+          .map(([matId, qty]) => {
+            const mat = materials.find(m => m.id.toString() === matId);
+            totalQuantity += parseFloat(qty);
+            return {
+              materialId: parseInt(matId),
+              quantityRequested: parseFloat(qty),
+              unit: mat ? mat.unit : 'KG',
+              notes: ''
+            };
+          });
+
+        if (details.length === 0) {
+          toast.error("Vui lòng nhập số lượng cho ít nhất một loại sợi");
+          return;
         }
+
+        finalNotes = `Yêu cầu cấp sợi. Ghi chú: ${materialRequest.notes}`;
+      }
+
+      await api.post('/v1/technical/defects/handle', {
+        stageId: defect.stageId,
+        decision: decision,
+        notes: finalNotes,
+        technicalUserId: userId,
+        quantity: totalQuantity,
+        details: details
       });
 
       toast.success("Đã gửi xử lý thành công");
@@ -357,16 +402,12 @@ const TechnicalDefectDetail = () => {
                   <p className="text-muted mt-2 mb-4">Lỗi này được đánh giá là lỗi nhẹ. Bạn có thể yêu cầu Leader làm lại (Rework).</p>
 
                   {/* Persistent Notes Display */}
-                  {(defect.stageStatus === 'WAITING_REWORK' || defect.stageStatus === 'REWORK_IN_PROGRESS') ? (
+                  {(defect.stageStatus === 'WAITING_REWORK' || defect.stageStatus === 'REWORK_IN_PROGRESS' || (defect.reworkHistory && defect.reworkHistory.length > 0)) ? (
                     <div className="alert alert-info">
                       <strong>Đã yêu cầu làm lại.</strong>
                       <div className="mt-1">
                         <small className="text-muted">Ghi chú đã gửi:</small>
                         <div>{defect.issueDescription}</div>
-                        {/* Note: Ideally we should fetch the specific rework note, but issueDescription or a new field might be used. 
-                               For now, assuming issueDescription contains the context or we rely on history. 
-                               Actually, let's check if we can show the last note from history or just disable the form. 
-                           */}
                       </div>
                     </div>
                   ) : (
@@ -391,34 +432,88 @@ const TechnicalDefectDetail = () => {
                 <Card.Body>
                   <strong>Yêu cầu cấp lại sợi (Lỗi nặng)</strong>
                   <p className="text-muted mt-2 mb-4">Lỗi được đánh giá là lỗi nặng. Vui lòng điền thông tin yêu cầu cấp lại sợi để gửi cho PM phê duyệt.</p>
-                  <Row className="g-3 mb-3">
-                    <Col md={6}>
-                      <Form.Control
-                        placeholder="Loại sợi cần cấp (ví dụ: Cotton 100%)"
-                        value={materialRequest.type}
-                        onChange={(e) => setMaterialRequest({ ...materialRequest, type: e.target.value })}
-                      />
-                    </Col>
-                    <Col md={6}>
-                      <Form.Control
-                        placeholder="Khối lượng cần cấp (kg)"
-                        value={materialRequest.quantity}
-                        onChange={(e) => setMaterialRequest({ ...materialRequest, quantity: e.target.value })}
-                      />
-                    </Col>
-                    <Col md={12}>
-                      <Form.Control
-                        as="textarea"
-                        rows={3}
-                        placeholder="Ghi chú thêm về yêu cầu..."
-                        value={materialRequest.notes}
-                        onChange={(e) => setMaterialRequest({ ...materialRequest, notes: e.target.value })}
-                      />
-                    </Col>
-                  </Row>
-                  <div className="d-flex justify-content-end">
-                    <Button variant="danger" onClick={() => handleDecision('MATERIAL_REQUEST')}>Tạo phiếu yêu cầu cấp sợi</Button>
-                  </div>
+
+                  {defect.materialRequisition ? (
+                    <div className="alert alert-success">
+                      <strong><i className="bi bi-check-circle-fill me-2"></i>Đã gửi yêu cầu cấp sợi.</strong>
+                      <div className="mt-2">
+                        <div className="d-flex justify-content-between mb-2">
+                          <span>Trạng thái: <strong>{defect.materialRequisition.status}</strong></span>
+                          <span>Ngày gửi: {new Date(defect.materialRequisition.requestedAt).toLocaleString('vi-VN')}</span>
+                        </div>
+                        <div className="table-responsive bg-white rounded border">
+                          <table className="table table-sm mb-0">
+                            <thead className="bg-light">
+                              <tr>
+                                <th>Vật tư</th>
+                                <th className="text-end">SL Yêu cầu</th>
+                                <th className="text-end">SL Duyệt</th>
+                                <th>Đơn vị</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {defect.materialRequisition.details && defect.materialRequisition.details.map((d) => (
+                                <tr key={d.id}>
+                                  <td>{d.materialName}</td>
+                                  <td className="text-end">{d.quantityRequested}</td>
+                                  <td className="text-end">{d.quantityApproved || '-'}</td>
+                                  <td>{d.unit || 'KG'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="table-responsive mb-3" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                        <table className="table table-bordered table-hover">
+                          <thead className="table-light sticky-top">
+                            <tr>
+                              <th>Vật tư</th>
+                              <th style={{ width: '150px' }}>Số lượng (KG)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {materials.map(mat => (
+                              <tr key={mat.id}>
+                                <td>
+                                  <div className="fw-medium">{mat.name}</div>
+                                  <small className="text-muted">{mat.code}</small>
+                                </td>
+                                <td>
+                                  <Form.Control
+                                    type="number"
+                                    min="0"
+                                    step="0.1"
+                                    placeholder="0"
+                                    value={quantities[mat.id] || ''}
+                                    onChange={(e) => handleQuantityChange(mat.id, e.target.value)}
+                                  />
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <Row className="g-3 mb-3">
+                        <Col md={12}>
+                          <Form.Control
+                            as="textarea"
+                            rows={3}
+                            placeholder="Ghi chú thêm về yêu cầu..."
+                            value={materialRequest.notes}
+                            onChange={(e) => setMaterialRequest({ ...materialRequest, notes: e.target.value })}
+                          />
+                        </Col>
+                      </Row>
+                      <div className="d-flex justify-content-end">
+                        <Button variant="danger" onClick={() => handleDecision('MATERIAL_REQUEST')}>Tạo phiếu yêu cầu cấp sợi</Button>
+                      </div>
+                    </>
+                  )}
                 </Card.Body>
               </Card>
             )}

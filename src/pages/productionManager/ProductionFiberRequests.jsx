@@ -70,8 +70,8 @@ const ProductionFiberRequests = () => {
                         requests.map(req => (
                           <tr key={req.id}>
                             <td>{req.requisitionNumber}</td>
-                            <td>{req.stageName || req.productionStage?.stageType}</td>
-                            <td>{req.requestedBy?.fullName || 'N/A'}</td>
+                            <td>{req.stageType || req.stageName}</td>
+                            <td>{req.requestedByName || req.requestedBy?.fullName || 'N/A'}</td>
                             <td>{req.notes}</td>
                             <td><Badge bg="warning">Chờ duyệt</Badge></td>
                             <td>
