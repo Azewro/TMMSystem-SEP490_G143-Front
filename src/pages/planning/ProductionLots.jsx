@@ -7,34 +7,15 @@ import Pagination from '../../components/Pagination';
 import { productionPlanService } from '../../api/productionPlanService';
 import { FaSync } from 'react-icons/fa';
 import '../../styles/QuoteRequests.css';
-
-const LOT_STATUS_LABELS = {
-  FORMING: { text: 'Đang gom đơn', variant: 'secondary' },
-  READY_FOR_PLANNING: { text: 'Chờ lập kế hoạch', variant: 'info' },
-  PLANNING: { text: 'Đang lập kế hoạch', variant: 'primary' },
-  PLAN_APPROVED: { text: 'Đã có kế hoạch', variant: 'success' },
-  IN_PRODUCTION: { text: 'Đang sản xuất', variant: 'warning' },
-  COMPLETED: { text: 'Hoàn thành', variant: 'success' },
-  CANCELED: { text: 'Đã huỷ', variant: 'danger' },
-};
-
-const PLAN_STATUS_LABELS = {
-  DRAFT: { text: 'Nháp', variant: 'secondary' },
-  PENDING_APPROVAL: { text: 'Chờ duyệt', variant: 'warning' },
-  APPROVED: { text: 'Đã duyệt', variant: 'success' },
-  REJECTED: { text: 'Bị từ chối', variant: 'danger' },
-  SUPERSEDED: { text: 'Đã thay thế', variant: 'dark' },
-};
+import { getPlanningPlanStatus, getProductionLotStatus } from '../../utils/statusMapper';
 
 const STATUS_FILTER_OPTIONS = [
   { value: '', label: 'Tất cả trạng thái' },
-  { value: 'FORMING', label: 'Đang gom đơn' },
-  { value: 'READY_FOR_PLANNING', label: 'Chờ lập kế hoạch' },
-  { value: 'PLANNING', label: 'Đang lập kế hoạch' },
-  { value: 'PLAN_APPROVED', label: 'Đã có kế hoạch' },
-  { value: 'IN_PRODUCTION', label: 'Đang sản xuất' },
-  { value: 'COMPLETED', label: 'Hoàn thành' },
-  { value: 'CANCELED', label: 'Đã huỷ' },
+  { value: 'READY_FOR_PLANNING', label: 'Chờ tạo' },
+  { value: 'DRAFT', label: 'Chờ gửi' },
+  { value: 'PENDING_APPROVAL', label: 'Chờ duyệt' },
+  { value: 'APPROVED', label: 'Đã duyệt' },
+  { value: 'REJECTED', label: 'Từ chối' }
 ];
 
 const formatDate = (value) => {
@@ -86,13 +67,13 @@ const ProductionLots = () => {
   const handleEditPlan = async (lot) => {
     try {
       let planId = lot.currentPlanId;
-      
+
       // If no plan exists, create one from the lot
       if (!planId) {
         const newPlan = await productionPlanService.createPlanFromLot(lot.id);
         planId = newPlan.id;
       }
-      
+
       navigate(`/planning/production-plans/${planId}`);
     } catch (err) {
       console.error('Failed to create or navigate to plan', err);
@@ -170,10 +151,11 @@ const ProductionLots = () => {
                       </thead>
                       <tbody>
                         {currentLots.map((lot) => {
-                          const lotStatus = LOT_STATUS_LABELS[lot.status] || { text: lot.status || '—', variant: 'secondary' };
+                          const lotStatus = getProductionLotStatus(lot.status);
                           const planStatus = lot.currentPlanStatus
-                            ? (PLAN_STATUS_LABELS[lot.currentPlanStatus] || { text: lot.currentPlanStatus, variant: 'secondary' })
+                            ? getPlanningPlanStatus(lot.currentPlanStatus)
                             : null;
+
                           return (
                             <tr key={lot.id}>
                               <td>{lot.lotCode}</td>
@@ -199,19 +181,19 @@ const ProductionLots = () => {
                               </td>
                               <td>{formatDate(lot.deliveryDateTarget || lot.contractDateMin)}</td>
                               <td>
-                                <Badge bg={lotStatus.variant}>{lotStatus.text}</Badge>
+                                <Badge bg={lotStatus.variant}>{lotStatus.label}</Badge>
                               </td>
                               <td>
                                 {planStatus ? (
-                                  <Badge bg={planStatus.variant}>{planStatus.text}</Badge>
+                                  <Badge bg={planStatus.variant}>{planStatus.label}</Badge>
                                 ) : (
                                   <span className="text-muted">Chưa có</span>
                                 )}
                               </td>
                               <td className="text-center">
-                                <Button 
-                                  variant={lot.currentPlanId ? "secondary" : "success"} 
-                                  size="sm" 
+                                <Button
+                                  variant={lot.currentPlanId ? "secondary" : "success"}
+                                  size="sm"
                                   onClick={() => handleEditPlan(lot)}
                                 >
                                   {lot.currentPlanId ? 'Xem' : 'Lập kế hoạch'}

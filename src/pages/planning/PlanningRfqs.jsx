@@ -11,6 +11,7 @@ import { getPlanningRfqStatus } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
 
 const PlanningRfqs = () => {
+  // Force HMR update
   const navigate = useNavigate();
   const [allRfqs, setAllRfqs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,7 +19,7 @@ const PlanningRfqs = () => {
 
   // Search and Filter state
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('FORWARDED_TO_PLANNING');
+  const [statusFilter, setStatusFilter] = useState('');
   const [createdDateFilter, setCreatedDateFilter] = useState('');
 
   // Pagination state - Note: Backend uses 0-based page index
@@ -150,9 +151,11 @@ const PlanningRfqs = () => {
                         }}
                       >
                         <option value="">Tất cả trạng thái</option>
-                        <option value="FORWARDED_TO_PLANNING">Chờ tiếp nhận</option>
-                        <option value="RECEIVED_BY_PLANNING">Chờ tạo</option>
-                        <option value="QUOTED">Đã báo giá</option>
+                        <option value="WAITING_CREATE">Chờ tạo</option>
+                        <option value="WAITING_CONFIRMATION">Chờ xác nhận</option>
+                        <option value="REJECTED">Từ chối</option>
+                        <option value="CONFIRMED">Đã xác nhận</option>
+                        <option value="CANCELED">Đã hủy</option>
                       </Form.Select>
                     </Form.Group>
                   </Col>

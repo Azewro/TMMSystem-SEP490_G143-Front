@@ -12,15 +12,11 @@ import { getCustomerOrderStatus } from '../../utils/statusMapper';
 
 const statusOptions = [
   { value: '', label: 'Tất cả trạng thái' },
-  { value: 'DRAFT', label: 'Bản nháp' },
-  { value: 'PENDING_UPLOAD', label: 'Chờ tải hợp đồng' },
-  { value: 'PENDING_APPROVAL', label: 'Chờ phê duyệt' },
-  { value: 'APPROVED', label: 'Đã phê duyệt' },
-  { value: 'REJECTED', label: 'Đã từ chối' },
-  { value: 'SIGNED', label: 'Đã ký' },
-  { value: 'CANCELED', label: 'Đã hủy' },
+  { value: 'WAITING_SIGNATURE', label: 'Chờ ký hợp đồng' },
+  { value: 'PENDING_PROCESS', label: 'Chờ sản xuất' },
   { value: 'IN_PRODUCTION', label: 'Đang sản xuất' },
-  { value: 'COMPLETED', label: 'Hoàn thành' },
+  { value: 'COMPLETED', label: 'Sản xuất xong' },
+  { value: 'REJECTED', label: 'Đã từ chối' },
 ];
 
 const formatDate = (iso) => {

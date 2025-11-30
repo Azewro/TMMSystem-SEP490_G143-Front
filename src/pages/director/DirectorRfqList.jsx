@@ -153,12 +153,7 @@ const DirectorRfqList = () => {
   const statusOptions = [
     { value: '', label: 'Tất cả trạng thái' },
     { value: 'WAITING_ASSIGNMENT', label: 'Chờ phân công' },
-    { value: 'ASSIGNED', label: 'Đã phân công' },
-    { value: 'FORWARDED_TO_PLANNING', label: 'Đã chuyển Kế hoạch' },
-    { value: 'PRELIMINARY_CHECKED', label: 'Đã kiểm tra sơ bộ' },
-    { value: 'RECEIVED_BY_PLANNING', label: 'Kế hoạch đã nhận' },
-    { value: 'QUOTED', label: 'Đã báo giá' },
-    { value: 'REJECTED', label: 'Đã từ chối' },
+    { value: 'ASSIGNED', label: 'Đã phân công' }
   ];
 
   // Note: Search and filter are now server-side, no client-side filtering needed
