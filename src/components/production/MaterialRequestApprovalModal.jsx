@@ -10,22 +10,52 @@ const MaterialRequestApprovalModal = ({ show, onHide, request, onSuccess }) => {
     const [warning, setWarning] = useState(null);
 
     const calculateDuration = (qty) => {
-        // Mock calculation matching backend logic: 100kg = 1 day
-        const days = qty / 100;
-        return days;
+        // Approximate capacities matching backend
+        const capacities = {
+            'WARPING': 2000, 'WEAVING': 500, 'DYEING': 1000, 'CUTTING': 2000, 'HEMMING': 1500, 'PACKAGING': 3000,
+            'CUONG_MAC': 2000, 'DET': 500, 'NHUOM': 1000, 'CAT': 2000, 'MAY': 1500, 'DONG_GOI': 3000
+        };
+        // Default to 1000 if unknown or generic
+        const stageType = request?.stageName ? request.stageName.split(' ')[0].toUpperCase() : 'UNKNOWN';
+        // Note: stageName might be "Cắt", "Dệt"... need mapping or just use default.
+        // Simple mapping for Vietnamese names if needed, but let's stick to a safe default of 1000 for estimation
+        // or try to map if possible.
+        let capacity = 1000;
+        if (request?.stageName) {
+            const name = request.stageName.toUpperCase();
+            if (name.includes("CẮT") || name.includes("CAT")) capacity = 2000;
+            else if (name.includes("DỆT") || name.includes("DET")) capacity = 500;
+            else if (name.includes("NHUỘM") || name.includes("NHUOM")) capacity = 1000;
+            else if (name.includes("MAY")) capacity = 1500;
+            else if (name.includes("ĐÓNG") || name.includes("DONG")) capacity = 3000;
+        }
+
+        const days = qty / capacity;
+        return Math.ceil(days * 2) / 2.0; // Round to 0.5
     };
 
     const handleApprove = async (force = false) => {
-        // Client-side check (optional, but backend is authoritative)
-        // const days = calculateDuration(approvedQuantity);
+        const days = calculateDuration(approvedQuantity);
+
+        // Confirmation for <= 7 days (only if not forcing)
+        if (!force && days <= 7) {
+            const confirmed = window.confirm(`Thời gian khắc phục dự kiến là ${days} ngày. Việc này sẽ làm chậm tiến độ các đơn hàng khác. Bạn có chắc chắn muốn phê duyệt?`);
+            if (!confirmed) return;
+        }
 
         setLoading(true);
         try {
-            const directorId = localStorage.getItem('userId') || 1; // Fallback
-            // Use ExecutionController endpoint
-            await api.post(`/v1/execution/material-requisitions/${request.id}/approve`, null, {
+            const directorId = localStorage.getItem('userId') || 1;
+            // Correct endpoint based on ProductionController
+            // The previous code used /v1/execution/... but ProductionController has /v1/production/material-requests/{id}/approve
+            // Let's check where approveMaterialRequest is mapped. 
+            // It is in ProductionController: @PostMapping("/material-requests/{id}/approve") -> /v1/production/material-requests/{id}/approve
+            // The previous code had /v1/execution... which might be wrong or proxied. 
+            // I will use /v1/production/... to be safe.
+            await api.post(`/v1/production/material-requests/${request.id}/approve`, null, {
                 params: {
-                    pmUserId: directorId, // Using directorId as pmUserId for now
+                    approvedQuantity: approvedQuantity,
+                    directorId: directorId,
                     force: force
                 }
             });
@@ -62,7 +92,16 @@ const MaterialRequestApprovalModal = ({ show, onHide, request, onSuccess }) => {
                     <strong>Ghi chú:</strong> {request?.notes}
                 </div>
 
-                {warning && <Alert variant="warning">{warning}</Alert>}
+                {warning && <Alert variant="danger">
+                    <Alert.Heading>Cảnh báo thời gian!</Alert.Heading>
+                    <p>{warning}</p>
+                    <hr />
+                    <div className="d-flex justify-content-end">
+                        <Button onClick={onConfirmWarning} variant="danger">
+                            Vẫn phê duyệt
+                        </Button>
+                    </div>
+                </Alert>}
 
                 <Form.Group className="mb-3">
                     <Form.Label>Số lượng duyệt (kg)</Form.Label>
@@ -71,7 +110,7 @@ const MaterialRequestApprovalModal = ({ show, onHide, request, onSuccess }) => {
                         value={approvedQuantity}
                         onChange={(e) => {
                             setApprovedQuantity(e.target.value);
-                            setWarning(null); // Reset warning on change
+                            setWarning(null);
                         }}
                     />
                     <Form.Text className="text-muted">
@@ -91,9 +130,11 @@ const MaterialRequestApprovalModal = ({ show, onHide, request, onSuccess }) => {
             </Modal.Body>
             <Modal.Footer>
                 <Button variant="secondary" onClick={onHide}>Đóng</Button>
-                <Button variant="primary" onClick={warning ? onConfirmWarning : () => handleApprove(false)} disabled={loading}>
-                    {loading ? 'Đang xử lý...' : (warning ? 'Xác nhận duyệt' : 'Duyệt & Tạo lệnh')}
-                </Button>
+                {!warning && (
+                    <Button variant="primary" onClick={() => handleApprove(false)} disabled={loading}>
+                        {loading ? 'Đang xử lý...' : 'Duyệt & Tạo lệnh'}
+                    </Button>
+                )}
             </Modal.Footer>
         </Modal>
     );

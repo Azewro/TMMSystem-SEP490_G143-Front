@@ -8,6 +8,13 @@ export const executionService = {
         return response.data;
     },
 
+    startRework: async (stageId, userId) => {
+        const response = await apiClient.post(`/v1/production/stages/${stageId}/start-rework`, null, {
+            params: { leaderUserId: userId }
+        });
+        return response.data;
+    },
+
     updateProgress: async (stageId, userId, percent) => {
         const response = await apiClient.put(`/v1/execution/stages/${stageId}/progress`, null, {
             params: { userId, percent }
@@ -38,6 +45,11 @@ export const executionService = {
 
     getStageCheckpoints: async (stageId) => {
         const response = await apiClient.get(`/v1/execution/stages/${stageId}/checkpoints`);
+        return response.data;
+    },
+
+    getStageInspections: async (stageId) => {
+        const response = await apiClient.get(`/v1/execution/stages/${stageId}/inspections`);
         return response.data;
     },
 

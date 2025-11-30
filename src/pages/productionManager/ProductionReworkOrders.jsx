@@ -37,6 +37,18 @@ const ProductionReworkOrders = () => {
     }
   };
 
+  const handleStart = async (orderId) => {
+    if (!window.confirm("Bạn có chắc chắn muốn bắt đầu đơn hàng bổ sung này?")) return;
+    try {
+      await api.post(`/v1/production/orders/${orderId}/start-supplementary`);
+      toast.success("Đã bắt đầu đơn hàng bổ sung");
+      fetchData();
+    } catch (error) {
+      console.error("Error starting order:", error);
+      toast.error("Không thể bắt đầu đơn hàng");
+    }
+  };
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -80,9 +92,14 @@ const ProductionReworkOrders = () => {
                               </Badge>
                             </td>
                             <td>
-                              <Button size="sm" variant="outline-dark" onClick={() => navigate(`/production/orders/${order.id}`)}>
+                              <Button size="sm" variant="outline-dark" onClick={() => navigate(`/production/orders/${order.id}`)} className="me-2">
                                 Chi tiết
                               </Button>
+                              {order.executionStatus === 'WAITING_PRODUCTION' && (
+                                <Button size="sm" variant="success" onClick={() => handleStart(order.id)}>
+                                  Bắt đầu
+                                </Button>
+                              )}
                             </td>
                           </tr>
                         ))

@@ -91,7 +91,9 @@ const LeaderStageProgress = () => {
         progress: formatTrackingProgress(tracking),
         timestamp: formatTimestamp(tracking.timestamp),
         operator: tracking.operatorName || 'Không xác định',
+        operator: tracking.operatorName || 'Không xác định',
         notes: tracking.notes || '',
+        isRework: tracking.isRework, // Map isRework
       }));
       setHistory(mapped);
     } catch (error) {
@@ -138,11 +140,26 @@ const LeaderStageProgress = () => {
   const handleStartStage = async () => {
     if (!stage) return;
     try {
-      await executionService.startStage(stage.id, userId);
-      toast.success('Đã bắt đầu công đoạn');
+      // Check if this is a rework stage (either explicitly flagged or part of a rework order)
+      const isRework = stage.isRework || (order && order.poNumber && order.poNumber.includes('-REWORK'));
+
+      if (isRework) {
+        // Use startRework for pre-emption logic
+        await executionService.startRework(stage.id, userId);
+        toast.success('Đã bắt đầu sửa lỗi (Ưu tiên)');
+      } else {
+        // Normal start
+        await executionService.startStage(stage.id, userId);
+        toast.success('Đã bắt đầu công đoạn');
+      }
       setRefreshKey(prev => prev + 1);
     } catch (error) {
-      toast.error(error.message || 'Lỗi khi bắt đầu công đoạn');
+      const msg = error.response?.data?.message || error.message || 'Lỗi khi bắt đầu công đoạn';
+      if (msg.includes("BLOCKING")) {
+        toast.error(msg.replace("java.lang.RuntimeException: BLOCKING: ", ""));
+      } else {
+        toast.error(msg);
+      }
     }
   };
 
@@ -231,11 +248,14 @@ const LeaderStageProgress = () => {
     stage.executionStatus === 'READY_TO_PRODUCE' ||
     stage.executionStatus === 'WAITING_REWORK' ||
     stage.status === 'WAITING' ||
-    stage.status === 'READY' ||
     stage.status === 'WAITING_REWORK'
   );
+
+  // Check if QC Failed (waiting for Tech)
+  const isQcFailed = stage && (stage.executionStatus === 'QC_FAILED' || stage.status === 'QC_FAILED');
+
   // canUpdate: IN_PROGRESS (đang làm) hoặc REWORK_IN_PROGRESS (đang sửa)
-  const canUpdate = stage && !orderLocked && !isPaused && (
+  const canUpdate = stage && !orderLocked && !isPaused && !isQcFailed && (
     stage.executionStatus === 'IN_PROGRESS' ||
     stage.executionStatus === 'REWORK_IN_PROGRESS' ||
     stage.status === 'IN_PROGRESS' ||
@@ -425,6 +445,16 @@ const LeaderStageProgress = () => {
               </Card>
             )}
 
+            {isQcFailed && (
+              <Card className="shadow-sm mb-3" style={{ borderColor: '#f5c6cb', backgroundColor: '#f8d7da' }}>
+                <Card.Body>
+                  <div className="alert alert-danger mb-0">
+                    <strong>Đang chờ kỹ thuật xử lý lỗi:</strong> Công đoạn này đã bị QC đánh dấu lỗi. Vui lòng chờ chỉ đạo từ bộ phận kỹ thuật trước khi tiếp tục.
+                  </div>
+                </Card.Body>
+              </Card>
+            )}
+
             {orderLocked && !isPaused && (
               <Card className="shadow-sm mb-3" style={{ borderColor: '#ffe1a8', backgroundColor: '#fff7e6' }}>
                 <Card.Body>
@@ -487,13 +517,7 @@ const LeaderStageProgress = () => {
             <Card className="shadow-sm mb-3">
               <Card.Body className="p-0">
                 <div className="p-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
-                  <strong>
-                    {severity === 'MINOR'
-                      ? 'Lịch sử cập nhật lỗi'
-                      : severity === 'MAJOR'
-                        ? 'Lịch sử cập nhật sản xuất bổ sung'
-                        : 'Lịch sử cập nhật tiến độ'}
-                  </strong>
+                  <strong>Lịch sử cập nhật</strong>
                   {historyLoading && <small className="text-muted">Đang tải...</small>}
                 </div>
                 {historyLoading ? (
@@ -501,28 +525,69 @@ const LeaderStageProgress = () => {
                 ) : history.length === 0 ? (
                   <div className="p-4 text-center text-muted">Chưa có lịch sử cập nhật</div>
                 ) : (
-                  <Table responsive className="mb-0 align-middle">
-                    <thead className="table-light">
-                      <tr>
-                        <th>Hành động</th>
-                        <th>Tiến độ</th>
-                        <th>Thời gian</th>
-                        <th>Người cập nhật</th>
-                        <th>Ghi chú</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {history.map((item) => (
-                        <tr key={item.id}>
-                          <td>{item.action}</td>
-                          <td>{item.progress}</td>
-                          <td>{item.timestamp}</td>
-                          <td>{item.operator}</td>
-                          <td>{item.notes}</td>
+                  <>
+                    {/* Normal Progress History */}
+                    <div className="p-3 bg-light border-bottom">
+                      <h6 className="mb-0 text-primary">Lịch sử cập nhật tiến độ</h6>
+                    </div>
+                    <Table responsive className="mb-0 align-middle">
+                      <thead className="table-light">
+                        <tr>
+                          <th>Hành động</th>
+                          <th>Tiến độ</th>
+                          <th>Thời gian</th>
+                          <th>Người cập nhật</th>
+                          <th>Ghi chú</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </Table>
+                      </thead>
+                      <tbody>
+                        {history.filter(h => !h.isRework).length > 0 ? (
+                          history.filter(h => !h.isRework).map((item) => (
+                            <tr key={item.id}>
+                              <td>{item.action}</td>
+                              <td>{item.progress}</td>
+                              <td>{item.timestamp}</td>
+                              <td>{item.operator}</td>
+                              <td>{item.notes}</td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr><td colSpan="5" className="text-center text-muted py-3">Chưa có dữ liệu</td></tr>
+                        )}
+                      </tbody>
+                    </Table>
+
+                    {/* Rework Progress History */}
+                    {history.some(h => h.isRework) && (
+                      <>
+                        <div className="p-3 bg-light border-bottom border-top">
+                          <h6 className="mb-0 text-danger">Lịch sử cập nhật tiến độ lỗi</h6>
+                        </div>
+                        <Table responsive className="mb-0 align-middle">
+                          <thead className="table-light">
+                            <tr>
+                              <th>Hành động</th>
+                              <th>Tiến độ</th>
+                              <th>Thời gian</th>
+                              <th>Người cập nhật</th>
+                              <th>Ghi chú</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {history.filter(h => h.isRework).map((item) => (
+                              <tr key={item.id}>
+                                <td>{item.action}</td>
+                                <td>{item.progress}</td>
+                                <td>{item.timestamp}</td>
+                                <td>{item.operator}</td>
+                                <td>{item.notes}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </Table>
+                      </>
+                    )}
+                  </>
                 )}
               </Card.Body>
             </Card>

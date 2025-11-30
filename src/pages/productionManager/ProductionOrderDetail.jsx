@@ -64,7 +64,7 @@ const ProductionOrderDetail = () => {
   };
 
   const handleViewStage = (stage) => {
-    navigate(`/production/orders/${order.id}/stages/${stage.id}`);
+    navigate(`/production/stage-progress/${stage.id}`);
   };
 
   const handleStartProduction = async () => {

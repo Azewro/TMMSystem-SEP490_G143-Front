@@ -46,7 +46,11 @@ const LeaderOrderDetail = () => {
               'Chưa phân công',
             status: leaderStage.executionStatus || leaderStage.status,
             statusLabel: getStatusLabel(leaderStage.executionStatus || leaderStage.status),
-            progress: leaderStage.progressPercent || 0
+            progress: leaderStage.progressPercent || 0,
+            isRework: leaderStage.isRework,
+            defectId: leaderStage.defectId,
+            defectDescription: leaderStage.defectDescription,
+            defectSeverity: leaderStage.defectSeverity
           } : null,
           qrToken: data.qrToken // Map QR token from backend
         };
@@ -169,6 +173,26 @@ const LeaderOrderDetail = () => {
               </Card.Body>
             </Card>
 
+            {/* Defect Info Card for Rework */}
+            {order.stage && order.stage.isRework && order.stage.defectId && (
+              <Card className="shadow-sm mb-3 border-danger">
+                <Card.Header className="bg-danger text-white">
+                  <strong>Thông tin lỗi cần sửa (Rework)</strong>
+                </Card.Header>
+                <Card.Body>
+                  <div className="row">
+                    <div className="col-md-12">
+                      <p><strong>Mô tả lỗi:</strong> {order.stage.defectDescription}</p>
+                      <p><strong>Mức độ:</strong> {order.stage.defectSeverity}</p>
+                      <div className="alert alert-warning mb-0">
+                        <small>Vui lòng thực hiện sửa lỗi theo yêu cầu của bộ phận kỹ thuật.</small>
+                      </div>
+                    </div>
+                  </div>
+                </Card.Body>
+              </Card>
+            )}
+
             <Card className="shadow-sm">
               <Card.Body className="p-0">
                 <div className="p-3 border-bottom">
@@ -199,7 +223,9 @@ const LeaderOrderDetail = () => {
                           {(() => {
                             const buttonConfig = getButtonForStage(order.stage.status, 'leader');
                             const orderLocked = order.orderStatus === 'WAITING_PRODUCTION' || order.orderStatus === 'PENDING_APPROVAL';
-                            const isDisabled = order.stage.status === 'PENDING' || orderLocked;
+                            // Disable if PENDING, Locked, or QC_FAILED (waiting for Tech)
+                            const isQcFailed = order.stage.status === 'QC_FAILED' || order.stage.status === 'QC_FAILED';
+                            const isDisabled = order.stage.status === 'PENDING' || orderLocked || isQcFailed;
 
                             const handleAction = async () => {
                               if (buttonConfig.action === 'start') {
@@ -228,7 +254,8 @@ const LeaderOrderDetail = () => {
                                   title={
                                     orderLocked
                                       ? 'PM chưa bắt đầu lệnh làm việc'
-                                      : (order.stage.status === 'PENDING' ? 'Chưa đến lượt, chỉ có thể xem' : '')
+                                      : (order.stage.status === 'PENDING' ? 'Chưa đến lượt, chỉ có thể xem' :
+                                        (isQcFailed ? 'Đang chờ kỹ thuật xử lý lỗi' : ''))
                                   }
                                 >
                                   {buttonConfig.text}

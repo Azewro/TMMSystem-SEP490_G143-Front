@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Container, Card, Table, Button, Badge, Form, InputGroup, Spinner } from 'react-bootstrap';
+import { Container, Card, Table, Button, Badge, Form, InputGroup, Spinner, Tab, Tabs } from 'react-bootstrap';
 import { FaSearch } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
@@ -31,7 +31,7 @@ const LeaderOrderList = () => {
         const numericUserId = Number(userId);
 
         const ordersData = await productionService.getLeaderOrders(numericUserId);
-        
+
         // Fetch order details to get stages for each order
         const ordersWithStages = await Promise.all(
           ordersData.map(async (order) => {
@@ -39,8 +39,8 @@ const LeaderOrderList = () => {
               const orderDetail = await orderService.getOrderById(order.id);
               // Find the stage assigned to this leader
               const leaderStage = (orderDetail.stages || []).find(
-                stage => stage.assignedLeaderId === numericUserId || 
-                         stage.assignedLeader?.id === numericUserId
+                stage => stage.assignedLeaderId === numericUserId ||
+                  stage.assignedLeader?.id === numericUserId
               );
               const orderStatus = orderDetail.executionStatus || orderDetail.status;
               const productName =
@@ -50,7 +50,7 @@ const LeaderOrderList = () => {
                 orderDetail.productionOrderDetails?.[0]?.productName ||
                 orderDetail.contract?.contractNumber ||
                 'N/A';
-              
+
               return {
                 ...order,
                 productName,
@@ -71,7 +71,7 @@ const LeaderOrderList = () => {
             }
           })
         );
-        
+
         setOrders(ordersWithStages);
       } catch (error) {
         console.error('Error fetching orders:', error);
@@ -122,6 +122,8 @@ const LeaderOrderList = () => {
           <Container fluid className="p-4">
             <h4 className="mb-3">Danh sách đơn hàng</h4>
 
+            <h4 className="mb-3">Danh sách đơn hàng</h4>
+
             <Card className="shadow-sm mb-3">
               <Card.Body>
                 <InputGroup>
@@ -137,83 +139,100 @@ const LeaderOrderList = () => {
               </Card.Body>
             </Card>
 
-            <Card className="shadow-sm">
-              <Card.Body className="p-0">
-                <Table responsive className="mb-0 align-middle">
-                  <thead className="table-light">
-                    <tr>
-                      <th style={{ width: 60 }}>STT</th>
-                      <th>Mã đơn hàng</th>
-                      <th>Sản phẩm</th>
-                      <th>Số lượng</th>
-                      <th>Ngày bắt đầu</th>
-                      <th>Ngày kết thúc</th>
-                      <th>Trạng thái</th>
-                      <th style={{ width: 120 }}>Hành động</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredOrders.length === 0 ? (
-                      <tr>
-                        <td colSpan="8" className="text-center py-4">Không có đơn hàng nào</td>
-                      </tr>
-                    ) : (
-                      filteredOrders.map((order, index) => {
-                        const stage = order.leaderStage;
-                        const orderLocked = order.orderStatus === 'WAITING_PRODUCTION' || order.orderStatus === 'PENDING_APPROVAL';
-                        const buttonConfig = stage ? getButtonForStage(stage.status, 'leader') : 
-                          { text: 'Chi tiết', action: 'detail', variant: 'dark' };
-                        
-                        return (
-                        <tr key={order.id}>
-                          <td>{index + 1}</td>
-                          <td>
-                            <strong>{order.poNumber}</strong>
-                          </td>
-                          <td>{order.productName || order.contract?.contractNumber || 'N/A'}</td>
-                          <td>{order.totalQuantity?.toLocaleString('vi-VN')}</td>
-                          <td>{order.plannedStartDate}</td>
-                          <td>{order.plannedEndDate}</td>
-                          <td>
-                              <Badge bg={stage ? getStatusVariant(stage.status) : getStatusVariant(order.executionStatus || order.status)}>
-                                {stage ? stage.statusLabel : getStatusLabel(order.executionStatus || order.status)}
-                            </Badge>
-                          </td>
-                          <td className="text-end">
-                              {buttonConfig.action === 'start' || buttonConfig.action === 'update' ? (
-                            <Button
-                              size="sm"
-                                  variant={buttonConfig.variant}
-                              onClick={() => handleStart(order)}
-                                  disabled={stage?.status === 'PENDING' || orderLocked}
-                                  title={orderLocked ? 'Chưa được phép, PM chưa bắt đầu lệnh làm việc' : (stage?.status === 'PENDING' ? 'Chưa đến lượt' : '')}
-                                >
-                                  {buttonConfig.text}
-                                </Button>
-                              ) : (
-                                <Button
-                                  size="sm"
-                                  variant={buttonConfig.variant}
-                                  onClick={() => handleViewDetail(order)}
-                                >
-                                  {buttonConfig.text}
-                            </Button>
-                              )}
-                          </td>
-                        </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </Table>
-              </Card.Body>
-            </Card>
+            <Tabs defaultActiveKey="main" className="mb-3">
+              <Tab eventKey="main" title="Đơn hàng chính">
+                <OrderTable orders={filteredOrders.filter(o => !o.poNumber.includes('-REWORK'))} handleStart={handleStart} handleViewDetail={handleViewDetail} />
+              </Tab>
+              <Tab eventKey="rework" title="Đơn hàng bổ sung (Sửa lỗi)">
+                <OrderTable orders={filteredOrders.filter(o => o.poNumber.includes('-REWORK'))} handleStart={handleStart} handleViewDetail={handleViewDetail} isRework={true} />
+              </Tab>
+            </Tabs>
           </Container>
         </div>
       </div>
     </div>
   );
 };
+
+const OrderTable = ({ orders, handleStart, handleViewDetail, isRework = false }) => (
+  <Card className="shadow-sm">
+    <Card.Body className="p-0">
+      <Table responsive className="mb-0 align-middle">
+        <thead className="table-light">
+          <tr>
+            <th style={{ width: 60 }}>STT</th>
+            <th>Mã đơn hàng</th>
+            <th>Sản phẩm</th>
+            <th>Số lượng</th>
+            <th>Ngày bắt đầu</th>
+            <th>Ngày kết thúc</th>
+            <th>Trạng thái</th>
+            <th style={{ width: 120 }}>Hành động</th>
+          </tr>
+        </thead>
+        <tbody>
+          {orders.length === 0 ? (
+            <tr>
+              <td colSpan="8" className="text-center py-4">Không có đơn hàng nào</td>
+            </tr>
+          ) : (
+            orders.map((order, index) => {
+              const stage = order.leaderStage;
+              const orderLocked = order.orderStatus === 'WAITING_PRODUCTION' || order.orderStatus === 'PENDING_APPROVAL';
+              const buttonConfig = stage ? getButtonForStage(stage.status, 'leader') :
+                { text: 'Chi tiết', action: 'detail', variant: 'dark' };
+
+              // Special handling for Rework orders if needed
+              if (isRework && stage?.status === 'WAITING') {
+                // Ensure it says "Bắt đầu sửa" or similar if desired, but "Bắt đầu" is fine
+              }
+
+              return (
+                <tr key={order.id}>
+                  <td>{index + 1}</td>
+                  <td>
+                    <strong>{order.poNumber}</strong>
+                    {isRework && <Badge bg="danger" className="ms-2">Rework</Badge>}
+                  </td>
+                  <td>{order.productName || order.contract?.contractNumber || 'N/A'}</td>
+                  <td>{order.totalQuantity?.toLocaleString('vi-VN')}</td>
+                  <td>{order.plannedStartDate}</td>
+                  <td>{order.plannedEndDate}</td>
+                  <td>
+                    <Badge bg={stage ? getStatusVariant(stage.status) : getStatusVariant(order.executionStatus || order.status)}>
+                      {stage ? stage.statusLabel : getStatusLabel(order.executionStatus || order.status)}
+                    </Badge>
+                  </td>
+                  <td className="text-end">
+                    {buttonConfig.action === 'start' || buttonConfig.action === 'update' ? (
+                      <Button
+                        size="sm"
+                        variant={buttonConfig.variant}
+                        onClick={() => handleStart(order)}
+                        disabled={stage?.status === 'PENDING' || orderLocked}
+                        title={orderLocked ? 'Chưa được phép, PM chưa bắt đầu lệnh làm việc' : (stage?.status === 'PENDING' ? 'Chưa đến lượt' : '')}
+                      >
+                        {buttonConfig.text}
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant={buttonConfig.variant}
+                        onClick={() => handleViewDetail(order)}
+                      >
+                        {buttonConfig.text}
+                      </Button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })
+          )}
+        </tbody>
+      </Table>
+    </Card.Body>
+  </Card>
+);
 
 export default LeaderOrderList;
 

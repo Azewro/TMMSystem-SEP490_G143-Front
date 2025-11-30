@@ -8,11 +8,145 @@ import { executionService } from '../../api/executionService';
 import { orderService } from '../../api/orderService';
 import { getStatusLabel, getStageTypeName, getStatusVariant } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
+import { API_BASE_URL } from '../../utils/constants';
+
+// Mapping checkpoint names from English to Vietnamese
+const CHECKPOINT_NAME_MAP = {
+  // WARPING/CUONG_MAC
+  'Yarn quality': 'Chất lượng sợi',
+  'Consistent tension': 'Độ căng sợi',
+  'Even warping': 'Sợi mắc đều',
+  'Warp width & length': 'Khổ & chiều dài cây sợi',
+  'Warp width and length': 'Khổ & chiều dài cây sợi',
+
+  // WEAVING/DET
+  'Warp strength': 'Độ bền sợi nền',
+  'Towel shape': 'Hình dáng khăn',
+  'Fabric surface': 'Bề mặt vải',
+  'Surface quality': 'Bề mặt vải',
+  'Fabric density': 'Mật độ vải',
+  'Fabric width': 'Khổ vải',
+  'Weave quality': 'Chất lượng dệt',
+  'Thread count': 'Số sợi',
+
+  // DYEING/NHUOM
+  'Color accuracy': 'Màu sắc chuẩn',
+  'Color fastness': 'Độ bền màu',
+  'Color bleeding': 'Vết loang/đốm',
+  'Stains/Spots': 'Vết loang/đốm',
+  'Color uniformity': 'Đồng đều màu sắc',
+  'Dye penetration': 'Độ thấm màu',
+  'Color matching': 'Khớp màu',
+
+  // CUTTING/CAT
+  'Standard size': 'Kích thước chuẩn',
+  'Clean cut': 'Đường cắt sạch',
+  'Cutting accuracy': 'Độ chính xác cắt',
+  'Size accuracy': 'Độ chính xác kích thước',
+  'Edge quality': 'Chất lượng mép cắt',
+  'Cutting line': 'Đường cắt',
+
+  // HEMMING/MAY
+  'Straight seam': 'Đường may thẳng',
+  'Stitch density': 'Mật độ mũi chỉ',
+  'Sewing quality': 'Chất lượng may',
+  'Seam strength': 'Độ bền đường may',
+  'Thread tension': 'Độ căng chỉ',
+  'Hem quality': 'Chất lượng viền',
+  'Stitch consistency': 'Đồng đều mũi chỉ',
+
+  // PACKAGING/DONG_GOI
+  'Complete accessories': 'Đủ phụ kiện kèm',
+  'Label accuracy': 'Tem/nhãn đúng chuẩn',
+  'Packaging quality': 'Chất lượng đóng gói',
+  'Package integrity': 'Độ nguyên vẹn bao bì',
+  'Label placement': 'Vị trí tem/nhãn',
+  'Quantity check': 'Kiểm tra số lượng',
+  'Packaging material': 'Chất liệu đóng gói',
+};
+
+// Function to translate checkpoint name to Vietnamese
+const translateCheckpointName = (name) => {
+  if (!name) return name;
+
+  // If already in Vietnamese (contains Vietnamese characters), return as is
+  if (/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(name)) {
+    return name;
+  }
+
+  // Check exact match first
+  if (CHECKPOINT_NAME_MAP[name]) {
+    return CHECKPOINT_NAME_MAP[name];
+  }
+
+  // Check case-insensitive match
+  const lowerName = name.toLowerCase().trim();
+  for (const [en, vi] of Object.entries(CHECKPOINT_NAME_MAP)) {
+    if (en.toLowerCase() === lowerName) {
+      return vi;
+    }
+  }
+
+  // Try partial matching for common patterns
+  const partialMatches = {
+    'yarn': 'Chất lượng sợi',
+    'tension': 'Độ căng sợi',
+    'warping': 'Sợi mắc đều',
+    'warp': 'Sợi nền',
+    'fabric density': 'Mật độ vải',
+    'fabric width': 'Khổ vải',
+    'fabric surface': 'Bề mặt vải',
+    'fabric': 'Vải',
+    'towel': 'Khăn',
+    'shape': 'Hình dáng',
+    'color': 'Màu sắc',
+    'dyeing': 'Nhuộm',
+    'cut': 'Cắt',
+    'cutting': 'Cắt',
+    'size': 'Kích thước',
+    'seam': 'Đường may',
+    'stitch': 'Mũi chỉ',
+    'hemming': 'May',
+    'sewing': 'May',
+    'packaging': 'Đóng gói',
+    'label': 'Tem/nhãn',
+    'accessories': 'Phụ kiện',
+  };
+
+  // Try to find partial match
+  for (const [keyword, translation] of Object.entries(partialMatches)) {
+    if (lowerName.includes(keyword)) {
+      if (lowerName === keyword) {
+        return translation;
+      }
+      if (lowerName.includes('fabric density')) return 'Mật độ vải';
+      if (lowerName.includes('fabric width')) return 'Khổ vải';
+      if (lowerName.includes('fabric surface')) return 'Bề mặt vải';
+      if (lowerName.includes('towel shape')) return 'Hình dáng khăn';
+      if (lowerName.includes('color accuracy')) return 'Màu sắc chuẩn';
+      if (lowerName.includes('color fastness')) return 'Độ bền màu';
+      if (lowerName.includes('straight seam')) return 'Đường may thẳng';
+      if (lowerName.includes('stitch density')) return 'Mật độ mũi chỉ';
+    }
+  }
+
+  return name;
+};
+
+const formatPhotoUrl = (url) => {
+  if (!url) return null;
+  if (url.startsWith('http')) return url;
+  // If it looks like a domain but missing protocol
+  if (url.includes('railway.app') || url.includes('localhost')) {
+    return `https://${url}`;
+  }
+  // Otherwise assume relative path
+  return `${API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+};
 
 const StageProgressDetail = () => {
   const navigate = useNavigate();
-  const { orderId, stageCode } = useParams(); // Route uses :stageCode, not :stageId
-  const stageId = stageCode; // Use stageCode as stageId for API calls
+  const { stageId } = useParams();
   // Get userId from sessionStorage (PM User)
   const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
   const [stageData, setStageData] = useState(null);
@@ -73,6 +207,7 @@ const StageProgressDetail = () => {
         timestamp: formatTimestamp(tracking.timestamp),
         operator: tracking.operatorName || 'Không xác định',
         notes: tracking.notes || '',
+        isRework: tracking.isRework, // Map isRework
       }));
       setHistory(mappedHistory);
     } catch (err) {
@@ -96,17 +231,12 @@ const StageProgressDetail = () => {
         console.log('Fetching stage:', stageId);
 
         const stage = await productionService.getStage(stageId);
-        console.log('Stage data received:', stage);
-
-        if (!stage) {
-          throw new Error('Stage data is null');
-        }
 
         // Fetch order info separately if needed (for orderCode, productName, quantity)
         let orderInfo = { orderCode: 'N/A', productName: 'N/A', quantity: 0 };
-        if (orderId) {
+        if (stage.productionOrderId) {
           try {
-            const orderData = await orderService.getOrderById(orderId);
+            const orderData = await orderService.getOrderById(stage.productionOrderId);
             orderInfo = {
               orderCode: orderData.lotCode || orderData.poNumber || 'N/A',
               productName: orderData.productName || orderData.contract?.contractNumber || 'N/A',
@@ -119,17 +249,35 @@ const StageProgressDetail = () => {
 
         // Fetch QC checkpoints for all stages (to show inspection results)
         let checkpoints = [];
+        let inspections = [];
         try {
-          checkpoints = await executionService.getStageCheckpoints(stageId);
+          const [cpData, inspectionData] = await Promise.all([
+            executionService.getStageCheckpoints(stageId),
+            executionService.getStageInspections(stageId)
+          ]);
+          checkpoints = cpData || [];
+          inspections = inspectionData || [];
         } catch (err) {
-          console.warn('Could not fetch checkpoints:', err);
-          // If checkpoints don't exist yet, that's okay - we'll show "Chưa kiểm tra"
+          console.warn('Could not fetch QC data:', err);
         }
-        setQcCheckpoints(checkpoints);
+
+        // Merge checkpoints with inspection results
+        const mergedCheckpoints = checkpoints.map(cp => {
+          const inspection = inspections.find(i => i.qcCheckpointId === cp.id);
+          return {
+            ...cp,
+            result: inspection ? inspection.result : null,
+            notes: inspection ? inspection.notes : '',
+            photoUrl: inspection ? inspection.photoUrl : ''
+          };
+        });
+
+        setQcCheckpoints(mergedCheckpoints);
         await loadStageTrackings(stage.id);
 
         // Map backend data to match UI structure
         const mapped = {
+          productionOrderId: stage.productionOrderId,
           orderCode: orderInfo.orderCode || 'N/A',
           productName: orderInfo.productName || 'N/A',
           quantity: orderInfo.quantity || 0,
@@ -158,8 +306,7 @@ const StageProgressDetail = () => {
           response: error.response,
           status: error.response?.status,
           data: error.response?.data,
-          stageId: stageId,
-          orderId: orderId
+          stageId: stageId
         });
 
         let errorMessage = 'Không thể tải thông tin công đoạn';
@@ -180,7 +327,7 @@ const StageProgressDetail = () => {
     };
 
     fetchStage();
-  }, [stageId, orderId, refreshKey]);
+  }, [stageId, refreshKey]);
 
   useEffect(() => {
     let intervalId;
@@ -220,7 +367,11 @@ const StageProgressDetail = () => {
   }, [stageData?.stageStartTime, stageData?.stageEndTime, stageData?.workedHours]);
 
   const handleBack = () => {
-    navigate(`/production/orders/${orderId}`);
+    if (stageData?.productionOrderId) {
+      navigate(`/production/orders/${stageData.productionOrderId}`);
+    } else {
+      navigate('/production/orders');
+    }
   };
 
   const handleStartStage = async () => {
@@ -260,9 +411,9 @@ const StageProgressDetail = () => {
 
   // Map QC checkpoints from API response
   const qaCriteria = qcCheckpoints.map(cp => ({
-    title: cp.checkpointName || cp.name,
-    result: cp.result || 'PASS',
-    image: cp.photoUrl || cp.imageUrl,
+    title: translateCheckpointName(cp.checkpointName || cp.name),
+    result: cp.result, // Don't default to PASS
+    image: formatPhotoUrl(cp.photoUrl || cp.imageUrl),
     remark: cp.notes || cp.remark
   }));
 
@@ -512,28 +663,69 @@ const StageProgressDetail = () => {
                   ) : history.length === 0 ? (
                     <div className="p-4 text-center text-muted">Chưa có lịch sử cập nhật</div>
                   ) : (
-                    <Table responsive className="mb-0 align-middle">
-                      <thead className="table-light">
-                        <tr>
-                          <th>Hành động</th>
-                          <th>Tiến độ</th>
-                          <th>Thời gian</th>
-                          <th>Người cập nhật</th>
-                          <th>Ghi chú</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {history.map((item) => (
-                          <tr key={item.id}>
-                            <td>{item.action}</td>
-                            <td>{item.progress}</td>
-                            <td>{item.timestamp}</td>
-                            <td>{item.operator}</td>
-                            <td>{item.notes}</td>
+                    <>
+                      {/* Normal Progress History */}
+                      <div className="p-3 bg-light border-bottom">
+                        <h6 className="mb-0 text-primary">Lịch sử cập nhật tiến độ</h6>
+                      </div>
+                      <Table responsive className="mb-0 align-middle">
+                        <thead className="table-light">
+                          <tr>
+                            <th>Hành động</th>
+                            <th>Tiến độ</th>
+                            <th>Thời gian</th>
+                            <th>Người cập nhật</th>
+                            <th>Ghi chú</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </Table>
+                        </thead>
+                        <tbody>
+                          {history.filter(h => !h.isRework).length > 0 ? (
+                            history.filter(h => !h.isRework).map((item) => (
+                              <tr key={item.id}>
+                                <td>{item.action}</td>
+                                <td>{item.progress}</td>
+                                <td>{item.timestamp}</td>
+                                <td>{item.operator}</td>
+                                <td>{item.notes}</td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr><td colSpan="5" className="text-center text-muted py-3">Chưa có dữ liệu</td></tr>
+                          )}
+                        </tbody>
+                      </Table>
+
+                      {/* Rework Progress History */}
+                      {history.some(h => h.isRework) && (
+                        <>
+                          <div className="p-3 bg-light border-bottom border-top">
+                            <h6 className="mb-0 text-danger">Lịch sử cập nhật tiến độ lỗi</h6>
+                          </div>
+                          <Table responsive className="mb-0 align-middle">
+                            <thead className="table-light">
+                              <tr>
+                                <th>Hành động</th>
+                                <th>Tiến độ</th>
+                                <th>Thời gian</th>
+                                <th>Người cập nhật</th>
+                                <th>Ghi chú</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {history.filter(h => h.isRework).map((item) => (
+                                <tr key={item.id}>
+                                  <td>{item.action}</td>
+                                  <td>{item.progress}</td>
+                                  <td>{item.timestamp}</td>
+                                  <td>{item.operator}</td>
+                                  <td>{item.notes}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </Table>
+                        </>
+                      )}
+                    </>
                   )}
                 </Card.Body>
               </Card>
@@ -545,7 +737,7 @@ const StageProgressDetail = () => {
                     <strong>Kết quả kiểm tra</strong>
                     <div className="d-flex align-items-center gap-3">
                       <small className="text-muted">Kết quả do KCS gửi về</small>
-                      {qaCriteria.length > 0 ? (
+                      {qaCriteria.length > 0 && qaCriteria.some(item => item.result) ? (
                         <Badge
                           bg={
                             qaCriteria.some((item) => item.result === 'FAIL') ? 'danger' : 'success'
@@ -565,15 +757,19 @@ const StageProgressDetail = () => {
                           key={`${criteriaItem.title}-${index}`}
                           className="p-3 rounded"
                           style={{
-                            border: `1px solid ${criteriaItem.result === 'PASS' ? '#c3ebd3' : '#f9cfd9'}`,
-                            backgroundColor: criteriaItem.result === 'PASS' ? '#e8f7ef' : '#fdecef',
+                            border: `1px solid ${criteriaItem.result === 'PASS' ? '#c3ebd3' : criteriaItem.result === 'FAIL' ? '#f9cfd9' : '#e9ecef'}`,
+                            backgroundColor: criteriaItem.result === 'PASS' ? '#e8f7ef' : criteriaItem.result === 'FAIL' ? '#fdecef' : '#f8f9fa',
                           }}
                         >
                           <div className="d-flex justify-content-between align-items-center">
                             <div className="fw-semibold">{criteriaItem.title}</div>
-                            <Badge bg={criteriaItem.result === 'PASS' ? 'success' : 'danger'}>
-                              {criteriaItem.result === 'PASS' ? 'Đạt' : 'Không đạt'}
-                            </Badge>
+                            {criteriaItem.result ? (
+                              <Badge bg={criteriaItem.result === 'PASS' ? 'success' : 'danger'}>
+                                {criteriaItem.result === 'PASS' ? 'Đạt' : 'Không đạt'}
+                              </Badge>
+                            ) : (
+                              <Badge bg="secondary">Chưa kiểm tra</Badge>
+                            )}
                           </div>
                           {criteriaItem.result === 'FAIL' && criteriaItem.image && (
                             <img
@@ -624,5 +820,3 @@ const StageProgressDetail = () => {
 };
 
 export default StageProgressDetail;
-
-

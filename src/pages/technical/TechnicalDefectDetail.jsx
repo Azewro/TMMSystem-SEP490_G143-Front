@@ -5,15 +5,137 @@ import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import api from '../../api/apiConfig';
 import { toast } from 'react-hot-toast';
+import { API_BASE_URL } from '../../utils/constants';
 
 const severityStyles = {
   minor: { label: 'Lỗi nhẹ', variant: 'warning' },
   major: { label: 'Lỗi nặng', variant: 'danger' },
 };
 
-const checklistVariant = {
-  PASS: { background: '#e8f7ef', border: '#c3ebd3', badgeVariant: 'success', badgeText: 'Đạt' },
-  FAIL: { background: '#fdecef', border: '#f9cfd9', badgeVariant: 'danger', badgeText: 'Không đạt' },
+// Mapping checkpoint names from English to Vietnamese
+const CHECKPOINT_NAME_MAP = {
+  // WARPING/CUONG_MAC
+  'Yarn quality': 'Chất lượng sợi',
+  'Consistent tension': 'Độ căng sợi',
+  'Even warping': 'Sợi mắc đều',
+  'Warp width & length': 'Khổ & chiều dài cây sợi',
+  'Warp width and length': 'Khổ & chiều dài cây sợi',
+
+  // WEAVING/DET
+  'Warp strength': 'Độ bền sợi nền',
+  'Towel shape': 'Hình dáng khăn',
+  'Fabric surface': 'Bề mặt vải',
+  'Surface quality': 'Bề mặt vải',
+  'Fabric density': 'Mật độ vải',
+  'Fabric width': 'Khổ vải',
+  'Weave quality': 'Chất lượng dệt',
+  'Thread count': 'Số sợi',
+
+  // DYEING/NHUOM
+  'Color accuracy': 'Màu sắc chuẩn',
+  'Color fastness': 'Độ bền màu',
+  'Color bleeding': 'Vết loang/đốm',
+  'Stains/Spots': 'Vết loang/đốm',
+  'Color uniformity': 'Đồng đều màu sắc',
+  'Dye penetration': 'Độ thấm màu',
+  'Color matching': 'Khớp màu',
+
+  // CUTTING/CAT
+  'Standard size': 'Kích thước chuẩn',
+  'Clean cut': 'Đường cắt sạch',
+  'Cutting accuracy': 'Độ chính xác cắt',
+  'Size accuracy': 'Độ chính xác kích thước',
+  'Edge quality': 'Chất lượng mép cắt',
+  'Cutting line': 'Đường cắt',
+
+  // HEMMING/MAY
+  'Straight seam': 'Đường may thẳng',
+  'Stitch density': 'Mật độ mũi chỉ',
+  'Sewing quality': 'Chất lượng may',
+  'Seam strength': 'Độ bền đường may',
+  'Thread tension': 'Độ căng chỉ',
+  'Hem quality': 'Chất lượng viền',
+  'Stitch consistency': 'Đồng đều mũi chỉ',
+
+  // PACKAGING/DONG_GOI
+  'Complete accessories': 'Đủ phụ kiện kèm',
+  'Label accuracy': 'Tem/nhãn đúng chuẩn',
+  'Packaging quality': 'Chất lượng đóng gói',
+  'Package integrity': 'Độ nguyên vẹn bao bì',
+  'Label placement': 'Vị trí tem/nhãn',
+  'Quantity check': 'Kiểm tra số lượng',
+  'Packaging material': 'Chất liệu đóng gói',
+};
+
+// Function to translate checkpoint name to Vietnamese
+const translateCheckpointName = (name) => {
+  if (!name) return name;
+
+  // If already in Vietnamese (contains Vietnamese characters), return as is
+  if (/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(name)) {
+    return name;
+  }
+
+  // Check exact match first
+  if (CHECKPOINT_NAME_MAP[name]) {
+    return CHECKPOINT_NAME_MAP[name];
+  }
+
+  // Check case-insensitive match
+  const lowerName = name.toLowerCase().trim();
+  for (const [en, vi] of Object.entries(CHECKPOINT_NAME_MAP)) {
+    if (en.toLowerCase() === lowerName) {
+      return vi;
+    }
+  }
+
+  // Try partial matching for common patterns
+  const partialMatches = {
+    'yarn': 'Chất lượng sợi',
+    'tension': 'Độ căng sợi',
+    'warping': 'Sợi mắc đều',
+    'warp': 'Sợi nền',
+    'fabric density': 'Mật độ vải',
+    'fabric width': 'Khổ vải',
+    'fabric surface': 'Bề mặt vải',
+    'fabric': 'Vải',
+    'towel': 'Khăn',
+    'shape': 'Hình dáng',
+    'color': 'Màu sắc',
+    'dyeing': 'Nhuộm',
+    'cut': 'Cắt',
+    'cutting': 'Cắt',
+    'size': 'Kích thước',
+    'seam': 'Đường may',
+    'stitch': 'Mũi chỉ',
+    'hemming': 'May',
+    'sewing': 'May',
+    'packaging': 'Đóng gói',
+    'label': 'Tem/nhãn',
+    'accessories': 'Phụ kiện',
+  };
+
+  // Try to find partial match
+  for (const [keyword, translation] of Object.entries(partialMatches)) {
+    if (lowerName.includes(keyword)) {
+      // If it's a direct match with a common word, try to construct Vietnamese name
+      if (lowerName === keyword) {
+        return translation;
+      }
+      // For compound names, try to translate
+      if (lowerName.includes('fabric density')) return 'Mật độ vải';
+      if (lowerName.includes('fabric width')) return 'Khổ vải';
+      if (lowerName.includes('fabric surface')) return 'Bề mặt vải';
+      if (lowerName.includes('towel shape')) return 'Hình dáng khăn';
+      if (lowerName.includes('color accuracy')) return 'Màu sắc chuẩn';
+      if (lowerName.includes('color fastness')) return 'Độ bền màu';
+      if (lowerName.includes('straight seam')) return 'Đường may thẳng';
+      if (lowerName.includes('stitch density')) return 'Mật độ mũi chỉ';
+    }
+  }
+
+  // Return original if no match found
+  return name;
 };
 
 const TechnicalDefectDetail = () => {
@@ -118,15 +240,61 @@ const TechnicalDefectDetail = () => {
               </Card.Body>
             </Card>
 
+            {/* Inspection Criteria List */}
             <Card className="shadow-sm mb-4">
               <Card.Header className="bg-white">
-                <strong>Hình ảnh lỗi</strong>
+                <strong>Tiêu chí kiểm tra</strong>
               </Card.Header>
               <Card.Body>
-                {defect.evidencePhoto && (
-                  <img src={defect.evidencePhoto} alt="Evidence" style={{ maxWidth: '100%', maxHeight: '300px' }} className="rounded" />
+                {defect.inspections && defect.inspections.length > 0 ? (
+                  <div className="d-flex flex-column gap-3">
+                    {defect.inspections.map((item, index) => {
+                      // Helper for robust URL
+                      const getFullPhotoUrl = (url) => {
+                        if (!url) return null;
+                        const domain = API_BASE_URL.replace(/^https?:\/\//, '');
+                        if (url.includes(domain)) {
+                          return url.startsWith('http') ? url : `https://${url}`;
+                        }
+                        return `${API_BASE_URL}/api/files/${url}`;
+                      };
+
+                      const itemPhotoUrl = getFullPhotoUrl(item.photoUrl);
+                      const translatedName = translateCheckpointName(item.checkpointName);
+
+                      return (
+                        <div
+                          key={index}
+                          className="p-3 rounded"
+                          style={{
+                            border: `1px solid ${item.result === 'PASS' ? '#c3ebd3' : '#f9cfd9'}`,
+                            backgroundColor: item.result === 'PASS' ? '#e8f7ef' : '#fdecef',
+                          }}
+                        >
+                          <div className="d-flex justify-content-between align-items-center mb-2">
+                            <div className="fw-semibold">{translatedName || `Tiêu chí ${index + 1}`}</div>
+                            <Badge bg={item.result === 'PASS' ? 'success' : 'danger'}>
+                              {item.result === 'PASS' ? 'Đạt' : 'Không đạt'}
+                            </Badge>
+                          </div>
+                          {itemPhotoUrl && (
+                            <div className="mt-2">
+                              <img
+                                src={itemPhotoUrl}
+                                alt={translatedName}
+                                className="rounded mb-2"
+                                style={{ maxWidth: '100%', maxHeight: '400px', objectFit: 'contain' }}
+                              />
+                            </div>
+                          )}
+                          {item.notes && <div className="text-muted small">Ghi chú: {item.notes}</div>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-muted">Không có thông tin chi tiết tiêu chí.</div>
                 )}
-                {!defect.evidencePhoto && <p className="text-muted">Không có hình ảnh</p>}
               </Card.Body>
             </Card>
 
@@ -134,18 +302,88 @@ const TechnicalDefectDetail = () => {
               <Card className="shadow-sm">
                 <Card.Body>
                   <strong>Xử lý lỗi nhẹ</strong>
+
+                  {/* Rework Progress Section */}
+                  {(defect.stageStatus === 'WAITING_REWORK' || defect.stageStatus === 'REWORK_IN_PROGRESS' || (defect.reworkHistory && defect.reworkHistory.length > 0)) && (
+                    <div className="mb-4 p-3 bg-light rounded border">
+                      <h6 className="text-primary mb-3">Tiến độ sửa lỗi (Rework)</h6>
+                      <div className="mb-2">
+                        <div className="d-flex justify-content-between mb-1">
+                          <small>Tiến độ hiện tại</small>
+                          <small className="fw-bold">{defect.reworkProgress || 0}%</small>
+                        </div>
+                        <div className="progress" style={{ height: '10px' }}>
+                          <div
+                            className="progress-bar bg-warning"
+                            role="progressbar"
+                            style={{ width: `${defect.reworkProgress || 0}%` }}
+                            aria-valuenow={defect.reworkProgress || 0}
+                            aria-valuemin="0"
+                            aria-valuemax="100"
+                          ></div>
+                        </div>
+                      </div>
+
+                      {defect.reworkHistory && defect.reworkHistory.length > 0 && (
+                        <div className="mt-3">
+                          <small className="text-muted d-block mb-2">Lịch sử cập nhật:</small>
+                          <div className="table-responsive" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                            <table className="table table-sm table-bordered bg-white mb-0" style={{ fontSize: '0.85rem' }}>
+                              <thead>
+                                <tr>
+                                  <th>Thời gian</th>
+                                  <th>Hành động</th>
+                                  <th>%</th>
+                                  <th>Người cập nhật</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {defect.reworkHistory.map((h) => (
+                                  <tr key={h.id}>
+                                    <td>{new Date(h.timestamp).toLocaleString('vi-VN')}</td>
+                                    <td>{h.action}</td>
+                                    <td>{h.quantityCompleted}%</td>
+                                    <td>{h.operatorName}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <p className="text-muted mt-2 mb-4">Lỗi này được đánh giá là lỗi nhẹ. Bạn có thể yêu cầu Leader làm lại (Rework).</p>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Ghi chú cho Leader</Form.Label>
-                    <Form.Control
-                      as="textarea"
-                      rows={2}
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      placeholder="Nhập hướng dẫn sửa lỗi..."
-                    />
-                  </Form.Group>
-                  <Button variant="warning" onClick={() => handleDecision('REWORK')}>Yêu cầu làm lại</Button>
+
+                  {/* Persistent Notes Display */}
+                  {(defect.stageStatus === 'WAITING_REWORK' || defect.stageStatus === 'REWORK_IN_PROGRESS') ? (
+                    <div className="alert alert-info">
+                      <strong>Đã yêu cầu làm lại.</strong>
+                      <div className="mt-1">
+                        <small className="text-muted">Ghi chú đã gửi:</small>
+                        <div>{defect.issueDescription}</div>
+                        {/* Note: Ideally we should fetch the specific rework note, but issueDescription or a new field might be used. 
+                               For now, assuming issueDescription contains the context or we rely on history. 
+                               Actually, let's check if we can show the last note from history or just disable the form. 
+                           */}
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <Form.Group className="mb-3">
+                        <Form.Label>Ghi chú cho Leader</Form.Label>
+                        <Form.Control
+                          as="textarea"
+                          rows={2}
+                          value={notes}
+                          onChange={(e) => setNotes(e.target.value)}
+                          placeholder="Nhập hướng dẫn sửa lỗi..."
+                        />
+                      </Form.Group>
+                      <Button variant="warning" onClick={() => handleDecision('REWORK')}>Yêu cầu làm lại</Button>
+                    </>
+                  )}
                 </Card.Body>
               </Card>
             ) : (
@@ -192,4 +430,3 @@ const TechnicalDefectDetail = () => {
 };
 
 export default TechnicalDefectDetail;
-

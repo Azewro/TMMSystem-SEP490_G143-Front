@@ -7,6 +7,7 @@ import { productionService } from '../../api/productionService';
 import { orderService } from '../../api/orderService';
 import { qcService } from '../../api/qcService';
 import toast from 'react-hot-toast';
+import { API_BASE_URL } from '../../utils/constants';
 
 // Mapping checkpoint names from English to Vietnamese
 const CHECKPOINT_NAME_MAP = {
@@ -16,7 +17,7 @@ const CHECKPOINT_NAME_MAP = {
   'Even warping': 'Sợi mắc đều',
   'Warp width & length': 'Khổ & chiều dài cây sợi',
   'Warp width and length': 'Khổ & chiều dài cây sợi',
-  
+
   // WEAVING/DET
   'Warp strength': 'Độ bền sợi nền',
   'Towel shape': 'Hình dáng khăn',
@@ -26,7 +27,7 @@ const CHECKPOINT_NAME_MAP = {
   'Fabric width': 'Khổ vải',
   'Weave quality': 'Chất lượng dệt',
   'Thread count': 'Số sợi',
-  
+
   // DYEING/NHUOM
   'Color accuracy': 'Màu sắc chuẩn',
   'Color fastness': 'Độ bền màu',
@@ -35,7 +36,7 @@ const CHECKPOINT_NAME_MAP = {
   'Color uniformity': 'Đồng đều màu sắc',
   'Dye penetration': 'Độ thấm màu',
   'Color matching': 'Khớp màu',
-  
+
   // CUTTING/CAT
   'Standard size': 'Kích thước chuẩn',
   'Clean cut': 'Đường cắt sạch',
@@ -43,7 +44,7 @@ const CHECKPOINT_NAME_MAP = {
   'Size accuracy': 'Độ chính xác kích thước',
   'Edge quality': 'Chất lượng mép cắt',
   'Cutting line': 'Đường cắt',
-  
+
   // HEMMING/MAY
   'Straight seam': 'Đường may thẳng',
   'Stitch density': 'Mật độ mũi chỉ',
@@ -52,7 +53,7 @@ const CHECKPOINT_NAME_MAP = {
   'Thread tension': 'Độ căng chỉ',
   'Hem quality': 'Chất lượng viền',
   'Stitch consistency': 'Đồng đều mũi chỉ',
-  
+
   // PACKAGING/DONG_GOI
   'Complete accessories': 'Đủ phụ kiện kèm',
   'Label accuracy': 'Tem/nhãn đúng chuẩn',
@@ -66,17 +67,17 @@ const CHECKPOINT_NAME_MAP = {
 // Function to translate checkpoint name to Vietnamese
 const translateCheckpointName = (name) => {
   if (!name) return name;
-  
+
   // If already in Vietnamese (contains Vietnamese characters), return as is
   if (/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(name)) {
     return name;
   }
-  
+
   // Check exact match first
   if (CHECKPOINT_NAME_MAP[name]) {
     return CHECKPOINT_NAME_MAP[name];
   }
-  
+
   // Check case-insensitive match
   const lowerName = name.toLowerCase().trim();
   for (const [en, vi] of Object.entries(CHECKPOINT_NAME_MAP)) {
@@ -84,7 +85,7 @@ const translateCheckpointName = (name) => {
       return vi;
     }
   }
-  
+
   // Try partial matching for common patterns
   const partialMatches = {
     'yarn': 'Chất lượng sợi',
@@ -110,7 +111,7 @@ const translateCheckpointName = (name) => {
     'label': 'Tem/nhãn',
     'accessories': 'Phụ kiện',
   };
-  
+
   // Try to find partial match
   for (const [keyword, translation] of Object.entries(partialMatches)) {
     if (lowerName.includes(keyword)) {
@@ -129,7 +130,7 @@ const translateCheckpointName = (name) => {
       if (lowerName.includes('stitch density')) return 'Mật độ mũi chỉ';
     }
   }
-  
+
   // Return original if no match found
   return name;
 };
@@ -144,20 +145,20 @@ const QaStageCheckResult = () => {
     const fetchStageResult = async () => {
       try {
         setLoading(true);
-        
+
         // First, fetch order to get stages and find the stage by stageCode
         const orderData = await orderService.getOrderById(orderId);
-        
+
         // Find stage by stageCode (stageType)
-        const foundStage = orderData.stages?.find(s => 
-          s.stageType === stageCode || 
+        const foundStage = orderData.stages?.find(s =>
+          s.stageType === stageCode ||
           s.stageType === stageCode.toUpperCase()
         );
-        
+
         if (!foundStage) {
           throw new Error(`Stage not found for code: ${stageCode}`);
         }
-        
+
         // Fetch full stage details using stage ID
         const stage = await productionService.getStage(foundStage.id);
 
@@ -168,25 +169,40 @@ const QaStageCheckResult = () => {
         } catch (inspectionError) {
           console.warn('Could not load inspection criteria:', inspectionError);
         }
+
         const criteria = (inspections || []).map((item, index) => {
           const checkpointName = item.checkpointName || `Tiêu chí ${index + 1}`;
+          let photoUrl = item.photoUrl;
+          let fullPhotoUrl = photoUrl;
+
+          if (photoUrl) {
+            const domain = API_BASE_URL.replace(/^https?:\/\//, '');
+            if (photoUrl.includes(domain)) {
+              if (!photoUrl.startsWith('http')) {
+                fullPhotoUrl = `https://${photoUrl}`;
+              }
+            } else {
+              fullPhotoUrl = `${API_BASE_URL}/api/files/${photoUrl}`;
+            }
+          }
+
           return {
             title: translateCheckpointName(checkpointName),
             result: (item.result || 'PASS').toUpperCase(),
             remark: item.notes,
-            image: item.photoUrl
+            image: fullPhotoUrl
           };
         });
-        
+
         // Map backend data to match mock structure
         const mapped = {
           lotCode: orderData.lotCode || orderData.poNumber || 'N/A',
           productName: orderData.productName || orderData.contract?.contractNumber || 'N/A',
           criteria,
-          overall: stage.executionStatus === 'QC_PASSED' ? 'PASS' : 
-                   (stage.executionStatus === 'QC_FAILED' ? 'FAIL' : 'PENDING'),
-          summary: stage.executionStatus === 'QC_PASSED' ? 'Tất cả tiêu chí đều Đạt.' : 
-                   (stage.executionStatus === 'QC_FAILED' ? 'Có tiêu chí Không đạt. Vui lòng xử lý lỗi theo quy định.' : 'Chưa có kết quả kiểm tra'),
+          overall: stage.executionStatus === 'QC_PASSED' ? 'PASS' :
+            (stage.executionStatus === 'QC_FAILED' ? 'FAIL' : 'PENDING'),
+          summary: stage.executionStatus === 'QC_PASSED' ? 'Tất cả tiêu chí đều Đạt.' :
+            (stage.executionStatus === 'QC_FAILED' ? 'Có tiêu chí Không đạt. Vui lòng xử lý lỗi theo quy định.' : 'Chưa có kết quả kiểm tra'),
           defectLevel: stage.defectLevel,
           defectDescription: stage.defectDescription,
           stageType: stage.stageType || stageCode
