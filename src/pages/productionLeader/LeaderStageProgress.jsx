@@ -501,12 +501,12 @@ const LeaderStageProgress = () => {
                       value={inputProgress}
                       onChange={(e) => setInputProgress(e.target.value)}
                       style={{ maxWidth: 200 }}
-                      disabled={isPending}
+                      disabled={isPending || isPaused}
                     />
-                    <Button variant="dark" onClick={handleUpdateProgress} disabled={isPending}>
+                    <Button variant="dark" onClick={handleUpdateProgress} disabled={isPending || isPaused}>
                       Cập nhật
                     </Button>
-                    <Button variant="outline-danger" onClick={handlePause} disabled={isPending}>
+                    <Button variant="outline-danger" onClick={handlePause} disabled={isPending || isPaused}>
                       Tạm dừng
                     </Button>
                   </div>

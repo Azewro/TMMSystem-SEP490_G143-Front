@@ -331,19 +331,32 @@ const QaStageQualityCheck = () => {
       input.click();
     }
   };
-
   const handlePhotoInputChange = async (criterionId, event) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    // Create local preview using FileReader (Base64)
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setCriteria((prev) =>
+        prev.map((item) =>
+          item.id === criterionId ? { ...item, photo: e.target.result } : item,
+        ),
+      );
+    };
+    reader.readAsDataURL(file);
+
     try {
       setPhotoUploadingId(criterionId);
       const uploadResult = await executionService.uploadQcPhoto(file, stage?.id, userId);
       const photoUrl = uploadResult?.url || (uploadResult?.fileName
         ? `${API_BASE_URL}/api/files/${uploadResult.fileName}`
         : null);
+
       if (!photoUrl) {
         throw new Error('Không thể lấy URL ảnh');
       }
+
       setCriteria((prev) =>
         prev.map((item) =>
           item.id === criterionId ? { ...item, photo: photoUrl } : item,
@@ -353,6 +366,13 @@ const QaStageQualityCheck = () => {
     } catch (error) {
       console.error('Upload QC photo failed', error);
       toast.error(error.response?.data?.message || error.message || 'Không thể tải ảnh');
+
+      // Revert on error
+      setCriteria((prev) =>
+        prev.map((item) =>
+          item.id === criterionId ? { ...item, photo: null } : item,
+        ),
+      );
     } finally {
       setPhotoUploadingId(null);
       // Reset input value so the same file can be uploaded again if needed
@@ -367,6 +387,17 @@ const QaStageQualityCheck = () => {
 
   const handleCameraCapture = async (file) => {
     if (!activeCameraCriterionId || !file) return;
+
+    // Create local preview using FileReader (Base64)
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setCriteria((prev) =>
+        prev.map((item) =>
+          item.id === activeCameraCriterionId ? { ...item, photo: e.target.result } : item,
+        ),
+      );
+    };
+    reader.readAsDataURL(file);
 
     try {
       setPhotoUploadingId(activeCameraCriterionId);
@@ -388,6 +419,13 @@ const QaStageQualityCheck = () => {
     } catch (error) {
       console.error('Upload captured photo failed', error);
       toast.error(error.response?.data?.message || error.message || 'Không thể tải ảnh');
+
+      // Revert on error
+      setCriteria((prev) =>
+        prev.map((item) =>
+          item.id === activeCameraCriterionId ? { ...item, photo: null } : item,
+        ),
+      );
     } finally {
       setPhotoUploadingId(null);
       setActiveCameraCriterionId(null);
@@ -426,8 +464,8 @@ const QaStageQualityCheck = () => {
         overallResult,
         defectDescription,
         userId,
-        overallResult === 'FAIL' ? defectLevel : null,  // ✅ ADD defectLevel
-        overallResult === 'FAIL' ? defectDescription : null,  // ✅ ADD defectDescription
+        overallResult === 'FAIL' ? defectLevel : null,
+        overallResult === 'FAIL' ? defectDescription : null,
         criteriaResults
       );
 

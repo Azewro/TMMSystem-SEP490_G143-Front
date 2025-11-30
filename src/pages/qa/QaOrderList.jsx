@@ -23,27 +23,27 @@ const QaOrderList = () => {
         setLoading(true);
         const data = await productionService.getQaOrders(qcUserId);
         console.log('QA Orders data from API:', data); // Debug log
-        
+
         if (!data || data.length === 0) {
           console.log('No QA orders found');
           setOrders([]);
           return;
         }
-        
+
         // Map backend data to match UI structure
         const mappedData = data.map(order => {
           // Find the stage assigned to this QA (qcAssigneeId matches)
           // Backend enrichProductionOrderDto returns all stages, find the one assigned to this QA
-          const qaStage = (order.stages || []).find(s => 
-            s.qcAssigneeId === Number(qcUserId) || 
+          const qaStage = (order.stages || []).find(s =>
+            s.qcAssigneeId === Number(qcUserId) ||
             s.qcAssignee?.id === Number(qcUserId)
           );
-          
+
           // Determine status label - use QA's stage status if available, otherwise use order status
           const status = qaStage?.executionStatus || order.executionStatus || order.status;
-          const statusLabel = qaStage ? getStatusLabel(qaStage.executionStatus) : 
-                            (order.statusLabel || getStatusLabel(order.executionStatus || order.status));
-          
+          const statusLabel = qaStage ? getStatusLabel(qaStage.executionStatus) :
+            (order.statusLabel || getStatusLabel(order.executionStatus || order.status));
+
           return {
             id: order.id,
             lotCode: order.lotCode || order.poNumber || order.id,
@@ -164,15 +164,15 @@ const QaOrderList = () => {
                               {order.statusLabel}
                             </Badge>
                           </td>
-                        <td className="text-end">
-                          <Button
-                            size="sm"
-                            variant="dark"
-                            onClick={() => handleInspect(order)}
-                          >
-                            Xem kế hoạch
-                          </Button>
-                        </td>
+                          <td className="text-end">
+                            <Button
+                              size="sm"
+                              variant="dark"
+                              onClick={() => handleInspect(order)}
+                            >
+                              Xem kế hoạch
+                            </Button>
+                          </td>
                         </tr>
                       ))
                     )}

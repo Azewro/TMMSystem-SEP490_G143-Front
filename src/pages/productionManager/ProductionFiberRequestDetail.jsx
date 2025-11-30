@@ -44,19 +44,57 @@ const ProductionFiberRequestDetail = () => {
     fetchRequest();
   }, [id]);
 
-  const handleApprove = async () => {
+  const calculateDays = () => {
+    const capacities = {
+      'WARPING': 2000, 'CUONG_MAC': 2000,
+      'WEAVING': 500, 'DET': 500,
+      'DYEING': 1000, 'NHUOM': 1000,
+      'CUTTING': 2000, 'CAT': 2000,
+      'HEMMING': 1500, 'MAY': 1500,
+      'PACKAGING': 3000, 'DONG_GOI': 3000
+    };
+    const stageType = request?.productionStage?.stageType?.toUpperCase() || 'UNKNOWN';
+    const capacity = capacities[stageType] || 1000;
+    const days = approvedQuantity / capacity;
+    return Math.ceil(days * 2) / 2.0;
+  };
+
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showWarningModal, setShowWarningModal] = useState(false);
+  const [estimatedDays, setEstimatedDays] = useState(0);
+
+  const handlePreApprove = () => {
+    const days = calculateDays();
+    setEstimatedDays(days);
+    if (days > 7) {
+      setShowWarningModal(true);
+    } else {
+      setShowConfirmModal(true);
+    }
+  };
+
+  const handleConfirmApprove = async (force = false) => {
     if (!userId) {
       toast.error('Không tìm thấy thông tin người dùng');
       return;
     }
     try {
       setProcessing(true);
-      await productionService.approveMaterialRequest(id, approvedQuantity, userId);
+      // Pass force parameter if needed (backend supports it)
+      await productionService.approveMaterialRequest(id, approvedQuantity, userId, force);
       toast.success('Đã phê duyệt yêu cầu và tạo lệnh sản xuất bù');
+      setShowConfirmModal(false);
+      setShowWarningModal(false);
       navigate('/production/rework-orders');
     } catch (error) {
       console.error('Error approving request:', error);
-      toast.error('Lỗi khi phê duyệt yêu cầu');
+      // If backend throws warning despite frontend check (e.g. slight calc diff), handle it
+      if (error.response?.data?.message?.includes('TIME_EXCEEDED_WARNING')) {
+        setEstimatedDays(calculateDays()); // Update days just in case
+        setShowWarningModal(true); // Show warning modal
+      } else {
+        toast.error(error.response?.data?.message || 'Lỗi khi phê duyệt yêu cầu');
+      }
     } finally {
       setProcessing(false);
     }
@@ -176,7 +214,7 @@ const ProductionFiberRequestDetail = () => {
                     <Col md={8}>
                       <Button
                         variant="primary"
-                        onClick={handleApprove}
+                        onClick={handlePreApprove}
                         disabled={processing}
                       >
                         {processing ? <Spinner size="sm" animation="border" /> : 'Phê duyệt & Tạo lệnh bù'}
@@ -189,6 +227,44 @@ const ProductionFiberRequestDetail = () => {
           </Container>
         </div>
       </div>
+
+      {/* Confirmation Modal (<= 7 days) */}
+      <Modal show={showConfirmModal} onHide={() => setShowConfirmModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Xác nhận phê duyệt</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>Hệ thống ước tính thời gian sản xuất bù là <strong>{estimatedDays} ngày</strong>.</p>
+          <p>Bạn có chắc chắn muốn phê duyệt yêu cầu này và tạo lệnh sản xuất bổ sung không?</p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowConfirmModal(false)}>
+            Hủy
+          </Button>
+          <Button variant="primary" onClick={() => handleConfirmApprove(false)} disabled={processing}>
+            {processing ? <Spinner size="sm" animation="border" /> : 'Xác nhận'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Warning Modal (> 7 days) */}
+      <Modal show={showWarningModal} onHide={() => setShowWarningModal(false)} centered>
+        <Modal.Header closeButton className="bg-warning text-dark">
+          <Modal.Title>Cảnh báo thời gian</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>Thời gian làm quá lâu (<strong>{estimatedDays} ngày</strong>) làm cho các đơn hàng sau sẽ bị quá ngày giao hàng.</p>
+          <p>Bạn có chắc chắn muốn phê duyệt không?</p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowWarningModal(false)}>
+            Hủy
+          </Button>
+          <Button variant="danger" onClick={() => handleConfirmApprove(true)} disabled={processing}>
+            {processing ? <Spinner size="sm" animation="border" /> : 'Xác nhận phê duyệt'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 };

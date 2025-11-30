@@ -366,6 +366,41 @@ const StageProgressDetail = () => {
     };
   }, [stageData?.stageStartTime, stageData?.stageEndTime, stageData?.workedHours]);
 
+  // Polling for real-time history updates (every 1 seconds)
+  useEffect(() => {
+    if (!stageId) return;
+
+    const pollHistory = async () => {
+      // Don't set loading state to avoid UI flickering
+      try {
+        const trackings = await executionService.getStageTrackings(stageId);
+        const mappedHistory = (trackings || []).map((tracking) => ({
+          id: tracking.id,
+          action: mapTrackingAction(tracking.action),
+          progress: formatTrackingProgress(tracking),
+          timestamp: formatTimestamp(tracking.timestamp),
+          operator: tracking.operatorName || 'Không xác định',
+          notes: tracking.notes || '',
+          isRework: tracking.isRework,
+        }));
+
+        // Only update if data has changed to avoid unnecessary re-renders
+        setHistory(prev => {
+          if (JSON.stringify(prev) !== JSON.stringify(mappedHistory)) {
+            return mappedHistory;
+          }
+          return prev;
+        });
+      } catch (err) {
+        console.error('Error polling stage trackings:', err);
+      }
+    };
+
+    const intervalId = setInterval(pollHistory, 1000); // Poll every 1 seconds
+
+    return () => clearInterval(intervalId);
+  }, [stageId]);
+
   const handleBack = () => {
     if (stageData?.productionOrderId) {
       navigate(`/production/orders/${stageData.productionOrderId}`);
@@ -610,8 +645,8 @@ const StageProgressDetail = () => {
                 </Card.Body>
               </Card>
 
-              {/* Button "Bắt đầu" for DYEING stage - Always show, but disabled when PENDING */}
-              {isDyeingStage && (
+              {/* Button "Bắt đầu" for DYEING stage - Show only when PENDING or can start (WAITING, READY) */}
+              {isDyeingStage && (isDyeingPending || canStartDyeing) && (
                 <Card className="shadow-sm mb-3" style={{ borderColor: '#e7f1ff', backgroundColor: '#f5f9ff' }}>
                   <Card.Body className="d-flex justify-content-center">
                     <Button
