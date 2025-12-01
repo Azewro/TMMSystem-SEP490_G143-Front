@@ -434,7 +434,7 @@ const StageProgressDetail = () => {
 
   // Check if PM can start the DYEING stage (enabled when WAITING, READY, WAITING_REWORK)
   const canStartDyeing = isDyeingStage &&
-    (stageData?.status === 'WAITING' || stageData?.status === 'READY' || stageData?.status === 'WAITING_REWORK');
+    (stageData?.status === 'WAITING' || stageData?.status === 'READY' || stageData?.status === 'READY_TO_PRODUCE' || stageData?.status === 'WAITING_REWORK');
 
   // Check if stage is pending (disabled state)
   const isDyeingPending = isDyeingStage && stageData?.status === 'PENDING';

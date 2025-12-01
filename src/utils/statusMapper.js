@@ -58,7 +58,7 @@ export const getButtonForStage = (status, userRole) => {
   if (userRole === 'leader') {
     // PENDING: đợi - không có button
     if (status === 'PENDING') {
-      return { text: '', action: 'none', variant: 'secondary', disabled: true };
+      return { text: 'Chờ', action: 'none', variant: 'secondary', disabled: true };
     }
     // WAITING/READY/READY_TO_PRODUCE: sẵn sàng sản xuất - button "Bắt đầu"
     if (status === 'WAITING' || status === 'READY' || status === 'READY_TO_PRODUCE') {
@@ -94,7 +94,7 @@ export const getButtonForStage = (status, userRole) => {
     }
     // PAUSED: tạm dừng - không có button (theo yêu cầu Leader > Danh sách đơn hàng)
     if (status === 'PAUSED') {
-      return { text: '', action: 'none', variant: 'secondary', disabled: true };
+      return { text: 'Tạm dừng', action: 'none', variant: 'secondary', disabled: true };
     }
     // COMPLETED: hoàn thành - button "Xem chi tiết"
     if (status === 'COMPLETED') {

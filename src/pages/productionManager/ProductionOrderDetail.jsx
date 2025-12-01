@@ -217,7 +217,7 @@ const ProductionOrderDetail = () => {
                         let dyeingButtonText = 'Bắt đầu';
                         let dyeingButtonVariant = 'dark';
                         const isDyeingPending = isDyeingStage && stage.status === 'PENDING';
-                        const canStartDyeing = isDyeingStage && (stage.status === 'WAITING' || stage.status === 'READY' || stage.status === 'WAITING_REWORK');
+                        const canStartDyeing = isDyeingStage && (stage.status === 'WAITING' || stage.status === 'READY' || stage.status === 'READY_TO_PRODUCE' || stage.status === 'WAITING_REWORK');
                         const canUpdateDyeing = isDyeingStage && (stage.status === 'IN_PROGRESS' || stage.status === 'REWORK_IN_PROGRESS');
 
                         if (isDyeingStage) {

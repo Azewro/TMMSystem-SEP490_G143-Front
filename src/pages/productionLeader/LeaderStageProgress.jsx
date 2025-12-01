@@ -1,11 +1,12 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Container, Card, Button, ProgressBar, Table, Form, Badge, Spinner } from 'react-bootstrap';
+import { Container, Card, Button, ProgressBar, Table, Form, Badge, Spinner, Alert } from 'react-bootstrap';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { productionService } from '../../api/productionService';
 import { executionService } from '../../api/executionService';
 import toast from 'react-hot-toast';
+import { getStatusLabel } from '../../utils/statusMapper';
 
 const LeaderStageProgress = () => {
   const navigate = useNavigate();
@@ -247,7 +248,7 @@ const LeaderStageProgress = () => {
   const canStart = stage && !isStageInProgress && stage.progressPercent < 100 && !orderLocked && !isPaused && (
     stage.executionStatus === 'WAITING' ||
     stage.executionStatus === 'READY' ||
-    stage.executionStatus === 'READY_TO_PRODUCE' ||
+    stage.executionStatus === 'READY_TO_PRODUCE' || // NEW: Allow start for this status
     stage.executionStatus === 'WAITING_REWORK' ||
     stage.status === 'WAITING' ||
     stage.status === 'WAITING_REWORK'
@@ -268,7 +269,7 @@ const LeaderStageProgress = () => {
     if (loading) return <Spinner animation="border" size="sm" />;
 
     // Rework orders can always start if they are assigned to this leader
-    if (isRework && (stage?.executionStatus === 'WAITING' || stage?.executionStatus === 'PENDING' || stage?.executionStatus === 'READY')) {
+    if (isRework && (stage?.executionStatus === 'WAITING' || stage?.executionStatus === 'PENDING' || stage?.executionStatus === 'READY' || stage?.executionStatus === 'READY_TO_PRODUCE')) {
       return (
         <Button variant="warning" onClick={handleStartStage}>
           Bắt đầu sửa lỗi (Ưu tiên)
@@ -533,8 +534,6 @@ const LeaderStageProgress = () => {
             )}
 
             {renderActions()}
-
-
 
             <Card className="shadow-sm mb-3">
               <Card.Body className="p-0">
