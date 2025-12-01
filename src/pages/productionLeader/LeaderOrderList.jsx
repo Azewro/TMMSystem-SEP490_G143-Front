@@ -122,8 +122,6 @@ const LeaderOrderList = () => {
           <Container fluid className="p-4">
             <h4 className="mb-3">Danh sách đơn hàng</h4>
 
-            <h4 className="mb-3">Danh sách đơn hàng</h4>
-
             <Card className="shadow-sm mb-3">
               <Card.Body>
                 <InputGroup>

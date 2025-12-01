@@ -189,6 +189,8 @@ const LeaderStageProgress = () => {
   const [pauseReason, setPauseReason] = useState('OTHER');
   const [pauseNotes, setPauseNotes] = useState('');
 
+  const isRework = stage?.isRework || (order && order.poNumber && order.poNumber.includes('-REWORK'));
+
   const handlePause = () => {
     setShowPauseModal(true);
   };
@@ -261,6 +263,71 @@ const LeaderStageProgress = () => {
     stage.status === 'IN_PROGRESS' ||
     stage.status === 'REWORK_IN_PROGRESS'
   );
+
+  const renderActions = () => {
+    if (loading) return <Spinner animation="border" size="sm" />;
+
+    // Rework orders can always start if they are assigned to this leader
+    if (isRework && (stage?.executionStatus === 'WAITING' || stage?.executionStatus === 'PENDING' || stage?.executionStatus === 'READY')) {
+      return (
+        <Button variant="warning" onClick={handleStartStage}>
+          Bắt đầu sửa lỗi (Ưu tiên)
+        </Button>
+      );
+    }
+
+    if (isPending) {
+      return (
+        <Alert variant="info">
+          Chưa đến lượt: Công đoạn này đang ở trạng thái '{getStatusLabel(stage?.executionStatus)}'. Bạn chỉ có thể xem thông tin, không thể bắt đầu hoặc cập nhật tiến độ cho đến khi đến lượt của bạn.
+        </Alert>
+      );
+    }
+
+    if (canStart && !isPending && !orderLocked) {
+      return (
+        <Card className="shadow-sm mb-3" style={{ borderColor: '#e7f1ff', backgroundColor: '#f5f9ff' }}>
+          <Card.Body className="d-flex justify-content-center">
+            <Button variant="primary" size="lg" onClick={handleStartStage}>
+              Bắt đầu công đoạn
+            </Button>
+          </Card.Body>
+        </Card>
+      );
+    }
+
+    if (canUpdate && !isPending && !orderLocked) {
+      return (
+        <Card className="shadow-sm mb-3" style={{ borderColor: '#e7f1ff', backgroundColor: '#f5f9ff' }}>
+          <Card.Body>
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <strong>Cập nhật tiến độ</strong>
+              <small className="text-muted">Nhập tiến độ từ 0 đến 100</small>
+            </div>
+            <div className="d-flex align-items-center gap-3">
+              <Form.Control
+                type="number"
+                min={0}
+                max={100}
+                placeholder="Tiến độ (%)"
+                value={inputProgress}
+                onChange={(e) => setInputProgress(e.target.value)}
+                style={{ maxWidth: 200 }}
+                disabled={isPending || isPaused}
+              />
+              <Button variant="dark" onClick={handleUpdateProgress} disabled={isPending || isPaused}>
+                Cập nhật
+              </Button>
+              {/* <Button variant="outline-danger" onClick={handlePause} disabled={isPending || isPaused}>
+                Tạm dừng
+              </Button> */}
+            </div>
+          </Card.Body>
+        </Card>
+      );
+    }
+    return null;
+  };
 
   if (loading) {
     return (
@@ -465,54 +532,9 @@ const LeaderStageProgress = () => {
               </Card>
             )}
 
-            {isPending && !orderLocked && (
-              <Card className="shadow-sm mb-3" style={{ borderColor: '#e9ecef', backgroundColor: '#f8f9fa' }}>
-                <Card.Body>
-                  <div className="alert alert-info mb-0">
-                    <strong>Chưa đến lượt:</strong> Công đoạn này đang ở trạng thái "đợi". Bạn chỉ có thể xem thông tin, không thể bắt đầu hoặc cập nhật tiến độ cho đến khi đến lượt của bạn.
-                  </div>
-                </Card.Body>
-              </Card>
-            )}
+            {renderActions()}
 
-            {canStart && !isPending && !orderLocked && (
-              <Card className="shadow-sm mb-3" style={{ borderColor: '#e7f1ff', backgroundColor: '#f5f9ff' }}>
-                <Card.Body className="d-flex justify-content-center">
-                  <Button variant="primary" size="lg" onClick={handleStartStage}>
-                    Bắt đầu công đoạn
-                  </Button>
-                </Card.Body>
-              </Card>
-            )}
 
-            {canUpdate && !isPending && !orderLocked && (
-              <Card className="shadow-sm mb-3" style={{ borderColor: '#e7f1ff', backgroundColor: '#f5f9ff' }}>
-                <Card.Body>
-                  <div className="d-flex justify-content-between align-items-center mb-3">
-                    <strong>Cập nhật tiến độ</strong>
-                    <small className="text-muted">Nhập tiến độ từ 0 đến 100</small>
-                  </div>
-                  <div className="d-flex align-items-center gap-3">
-                    <Form.Control
-                      type="number"
-                      min={0}
-                      max={100}
-                      placeholder="Tiến độ (%)"
-                      value={inputProgress}
-                      onChange={(e) => setInputProgress(e.target.value)}
-                      style={{ maxWidth: 200 }}
-                      disabled={isPending || isPaused}
-                    />
-                    <Button variant="dark" onClick={handleUpdateProgress} disabled={isPending || isPaused}>
-                      Cập nhật
-                    </Button>
-                    <Button variant="outline-danger" onClick={handlePause} disabled={isPending || isPaused}>
-                      Tạm dừng
-                    </Button>
-                  </div>
-                </Card.Body>
-              </Card>
-            )}
 
             <Card className="shadow-sm mb-3">
               <Card.Body className="p-0">
@@ -593,61 +615,65 @@ const LeaderStageProgress = () => {
             </Card>
 
             {/* QC Results (Simplified) */}
-            {(stage.executionStatus === 'QC_PASSED' || stage.executionStatus === 'QC_FAILED') && (
-              <Card className="shadow-sm mt-3">
-                <Card.Body>
-                  <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                    <strong>Kết quả kiểm tra gần nhất</strong>
-                    <Badge bg={stage.executionStatus === 'QC_PASSED' ? 'success' : 'danger'}>
-                      {stage.executionStatus === 'QC_PASSED' ? 'Đạt' : 'Không đạt'}
-                    </Badge>
-                  </div>
-                  {stage.notes && (
-                    <div className="alert alert-light border">
-                      <strong>Ghi chú:</strong> {stage.notes}
+            {
+              (stage.executionStatus === 'QC_PASSED' || stage.executionStatus === 'QC_FAILED') && (
+                <Card className="shadow-sm mt-3">
+                  <Card.Body>
+                    <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                      <strong>Kết quả kiểm tra gần nhất</strong>
+                      <Badge bg={stage.executionStatus === 'QC_PASSED' ? 'success' : 'danger'}>
+                        {stage.executionStatus === 'QC_PASSED' ? 'Đạt' : 'Không đạt'}
+                      </Badge>
                     </div>
-                  )}
-                </Card.Body>
-              </Card>
-            )}
+                    {stage.notes && (
+                      <div className="alert alert-light border">
+                        <strong>Ghi chú:</strong> {stage.notes}
+                      </div>
+                    )}
+                  </Card.Body>
+                </Card>
+              )
+            }
 
-          </Container>
-        </div>
-      </div>
+          </Container >
+        </div >
+      </div >
 
       {/* Pause Modal */}
-      {showPauseModal && (
-        <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Tạm dừng công đoạn</h5>
-                <button type="button" className="btn-close" onClick={() => setShowPauseModal(false)}></button>
-              </div>
-              <div className="modal-body">
-                <Form.Group className="mb-3">
-                  <Form.Label>Lý do tạm dừng</Form.Label>
-                  <Form.Select value={pauseReason} onChange={(e) => setPauseReason(e.target.value)}>
-                    <option value="MACHINE_ISSUE">Sự cố máy móc</option>
-                    <option value="MATERIAL_SHORTAGE">Thiếu nguyên liệu</option>
-                    <option value="PRIORITY_ORDER">Đơn hàng ưu tiên</option>
-                    <option value="OTHER">Khác</option>
-                  </Form.Select>
-                </Form.Group>
-                <Form.Group className="mb-3">
-                  <Form.Label>Ghi chú</Form.Label>
-                  <Form.Control as="textarea" rows={3} value={pauseNotes} onChange={(e) => setPauseNotes(e.target.value)} />
-                </Form.Group>
-              </div>
-              <div className="modal-footer">
-                <Button variant="secondary" onClick={() => setShowPauseModal(false)}>Hủy</Button>
-                <Button variant="danger" onClick={confirmPause}>Xác nhận tạm dừng</Button>
+      {
+        showPauseModal && (
+          <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+            <div className="modal-dialog">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">Tạm dừng công đoạn</h5>
+                  <button type="button" className="btn-close" onClick={() => setShowPauseModal(false)}></button>
+                </div>
+                <div className="modal-body">
+                  <Form.Group className="mb-3">
+                    <Form.Label>Lý do tạm dừng</Form.Label>
+                    <Form.Select value={pauseReason} onChange={(e) => setPauseReason(e.target.value)}>
+                      <option value="MACHINE_ISSUE">Sự cố máy móc</option>
+                      <option value="MATERIAL_SHORTAGE">Thiếu nguyên liệu</option>
+                      <option value="PRIORITY_ORDER">Đơn hàng ưu tiên</option>
+                      <option value="OTHER">Khác</option>
+                    </Form.Select>
+                  </Form.Group>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Ghi chú</Form.Label>
+                    <Form.Control as="textarea" rows={3} value={pauseNotes} onChange={(e) => setPauseNotes(e.target.value)} />
+                  </Form.Group>
+                </div>
+                <div className="modal-footer">
+                  <Button variant="secondary" onClick={() => setShowPauseModal(false)}>Hủy</Button>
+                  <Button variant="danger" onClick={confirmPause}>Xác nhận tạm dừng</Button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 };
 
