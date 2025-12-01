@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { Container, Card, Table, Button, Modal, Alert, Spinner, Form, Badge } from 'react-bootstrap';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Container, Card, Table, Button, Modal, Alert, Spinner, Form, Badge, Row, Col, InputGroup } from 'react-bootstrap';
 import Header from '../../components/common/Header';
 import { productionPlanService } from '../../api/productionPlanService';
 import { contractService } from '../../api/contractService';
 import '../../styles/QuoteRequests.css';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { getDirectorPlanStatus } from '../../utils/statusMapper';
+import { FaSearch } from 'react-icons/fa';
 
 const formatDate = (value) => {
   if (!value) return '';
@@ -64,14 +65,47 @@ const ProductionPlanApprovals = () => {
   const [decision, setDecision] = useState('');
   const [processing, setProcessing] = useState(false);
 
-  const loadPlans = async () => {
+  // Filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('PENDING_APPROVAL');
+  const [dateFilter, setDateFilter] = useState('');
+
+  const loadPlans = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const pendingSummaries = await productionPlanService.getPendingApproval();
-      if (Array.isArray(pendingSummaries) && pendingSummaries.length > 0) {
+      let fetchedPlans = [];
+      if (statusFilter === 'ALL') {
+        fetchedPlans = await productionPlanService.getAll();
+      } else if (statusFilter) {
+        fetchedPlans = await productionPlanService.getPlansByStatus(statusFilter);
+      } else {
+        // Default fallback if needed, though we set default to PENDING_APPROVAL
+        fetchedPlans = await productionPlanService.getPendingApproval();
+      }
+
+      if (Array.isArray(fetchedPlans) && fetchedPlans.length > 0) {
+        // Client-side filtering for Search and Date
+        let filtered = fetchedPlans;
+
+        if (searchTerm) {
+          const lowerSearch = searchTerm.toLowerCase();
+          filtered = filtered.filter(p =>
+            (p.planCode && p.planCode.toLowerCase().includes(lowerSearch)) ||
+            (p.contractNumber && p.contractNumber.toLowerCase().includes(lowerSearch))
+          );
+        }
+
+        if (dateFilter) {
+          filtered = filtered.filter(p => {
+            if (!p.createdAt) return false;
+            const pDate = new Date(p.createdAt).toISOString().split('T')[0];
+            return pDate === dateFilter;
+          });
+        }
+
         const enrichedPlans = await Promise.all(
-          pendingSummaries.map(async (plan) => {
+          filtered.map(async (plan) => {
             try {
               const contractDetails = await contractService.getOrderDetails(plan.contractId);
               return { ...plan, contractDetails }; // Combine plan with its contract details
@@ -86,16 +120,16 @@ const ProductionPlanApprovals = () => {
         setPlans([]);
       }
     } catch (err) {
-      console.error('Failed to fetch pending plans', err);
-      setError(err.message || 'Không thể tải danh sách kế hoạch chờ duyệt.');
+      console.error('Failed to fetch plans', err);
+      setError(err.message || 'Không thể tải danh sách kế hoạch.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter, searchTerm, dateFilter]);
 
   useEffect(() => {
     loadPlans();
-  }, []);
+  }, [loadPlans]);
 
   const openPlan = async (plan) => {
     setSelectedPlan(plan);
@@ -190,6 +224,15 @@ const ProductionPlanApprovals = () => {
     }
   };
 
+  const statusOptions = [
+    { value: 'ALL', label: 'Tất cả trạng thái' },
+    { value: 'PENDING_APPROVAL', label: 'Chờ duyệt' },
+    { value: 'APPROVED', label: 'Đã duyệt' },
+    { value: 'REJECTED', label: 'Đã từ chối' },
+    { value: 'DRAFT', label: 'Nháp' },
+    { value: 'SUPERSEDED', label: 'Đã thay thế' }
+  ];
+
   return (
     <div>
       <Header />
@@ -201,6 +244,51 @@ const ProductionPlanApprovals = () => {
               <h2 className="mb-2">Phê Duyệt Kế Hoạch Sản Xuất</h2>
               <p className="text-muted mb-0">Xem xét và phê duyệt kế hoạch sản xuất từ bộ phận Kế hoạch</p>
             </div>
+
+            {/* Filter Bar */}
+            <Card className="mb-3">
+              <Card.Body>
+                <Row className="g-3 align-items-end">
+                  <Col md={4}>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Tìm kiếm</Form.Label>
+                      <InputGroup>
+                        <InputGroup.Text><FaSearch /></InputGroup.Text>
+                        <Form.Control
+                          type="text"
+                          placeholder="Tìm theo mã kế hoạch..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                      </InputGroup>
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Lọc theo ngày tạo</Form.Label>
+                      <Form.Control
+                        type="date"
+                        value={dateFilter}
+                        onChange={(e) => setDateFilter(e.target.value)}
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Lọc theo trạng thái</Form.Label>
+                      <Form.Select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                      >
+                        {statusOptions.map(option => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                </Row>
+              </Card.Body>
+            </Card>
 
             {error && (
               <Alert variant="danger" onClose={() => setError('')} dismissible>
@@ -216,7 +304,7 @@ const ProductionPlanApprovals = () => {
 
             <Card className="shadow-sm">
               <Card.Header>
-                <strong>Danh sách kế hoạch chờ duyệt</strong>
+                <strong>Danh sách kế hoạch</strong>
               </Card.Header>
               <Card.Body>
                 <Table responsive hover className="mb-0 align-middle">
@@ -241,7 +329,7 @@ const ProductionPlanApprovals = () => {
                     ) : plans.length === 0 ? (
                       <tr>
                         <td colSpan={7} className="text-center py-4 text-muted">
-                          Không có kế hoạch nào cần phê duyệt.
+                          Không có kế hoạch nào phù hợp.
                         </td>
                       </tr>
                     ) : (
@@ -376,12 +464,16 @@ const ProductionPlanApprovals = () => {
           <Button variant="secondary" onClick={closeModal} disabled={processing}>
             Đóng
           </Button>
-          <Button variant="danger" onClick={handleReject} disabled={processing}>
-            ✖ {processing && decision.trim() ? 'Đang xử lý...' : 'Từ chối'}
-          </Button>
-          <Button variant="success" onClick={handleApprove} disabled={processing}>
-            ✔ {processing && !decision.trim() ? 'Đang xử lý...' : 'Phê duyệt'}
-          </Button>
+          {selectedPlan && selectedPlan.status === 'PENDING_APPROVAL' && (
+            <>
+              <Button variant="danger" onClick={handleReject} disabled={processing}>
+                ✖ {processing && decision.trim() ? 'Đang xử lý...' : 'Từ chối'}
+              </Button>
+              <Button variant="success" onClick={handleApprove} disabled={processing}>
+                ✔ {processing && !decision.trim() ? 'Đang xử lý...' : 'Phê duyệt'}
+              </Button>
+            </>
+          )}
         </Modal.Footer>
       </Modal>
     </div>

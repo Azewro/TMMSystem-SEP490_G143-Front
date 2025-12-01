@@ -98,9 +98,9 @@ const CustomerQuotations = () => {
       }
 
       // Filter out DRAFT quotes (backend should handle this, but keep as safety)
-      const filteredData = quotes.filter(quote => quote.status !== 'DRAFT');
+      // const filteredData = quotes.filter(quote => quote.status !== 'DRAFT');
 
-      setAllQuotes(filteredData);
+      setAllQuotes(quotes);
     } catch (e) {
       setError(e.message || 'Không thể tải báo giá của bạn');
       toast.error(e.message || 'Không thể tải báo giá của bạn');
@@ -180,12 +180,10 @@ const CustomerQuotations = () => {
                       }}
                     >
                       <option value="">Tất cả trạng thái</option>
-                      <option value="SENT">Đã gửi</option>
-                      <option value="ACCEPTED">Đã chấp nhận</option>
-                      <option value="REJECTED">Đã từ chối</option>
-                      <option value="EXPIRED">Hết hạn</option>
-                      <option value="CANCELED">Đã hủy</option>
-                      <option value="ORDER_CREATED">Đã tạo đơn hàng</option>
+                      <option value="DRAFT">Chờ báo giá</option>
+                      <option value="SENT">Chờ phê duyệt</option>
+                      <option value="REJECTED_ALL">Từ chối</option>
+                      <option value="APPROVED">Phê duyệt</option>
                     </Form.Select>
                   </Col>
                   <Col md={3}>

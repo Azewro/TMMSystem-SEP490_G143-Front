@@ -180,12 +180,9 @@ const CustomerRfqs = () => {
 
   const statusOptions = [
     { value: '', label: 'Tất cả trạng thái' },
-    { value: 'DRAFT', label: 'Bản nháp' },
-    { value: 'SENT', label: 'Đã gửi' },
-    { value: 'PRELIMINARY_CHECKED', label: 'Đã kiểm tra sơ bộ' },
-    { value: 'QUOTED', label: 'Đã báo giá' },
-    { value: 'ACCEPTED', label: 'Đã chấp nhận' },
-    { value: 'REJECTED', label: 'Đã từ chối' },
+    { value: 'WAITING_CONFIRMATION', label: 'Chờ xác nhận' },
+    { value: 'CONFIRMED', label: 'Đã xác nhận' },
+    { value: 'QUOTED', label: 'Chờ phê duyệt báo giá' },
     { value: 'CANCELED', label: 'Đã hủy' },
   ];
 
@@ -291,11 +288,6 @@ const CustomerRfqs = () => {
                                     Chi tiết
                                   </Button>
                                   {/* Button điều kiện */}
-                                  {rfq.status === 'ACCEPTED' && (
-                                    <Button variant="success" size="sm" onClick={() => handleViewQuotation(rfq)}>
-                                      Xem báo giá
-                                    </Button>
-                                  )}
                                   {rfq.status === 'QUOTED' && (
                                     <Button variant="success" size="sm" onClick={() => handleViewQuotation(rfq)}>
                                       Xem báo giá

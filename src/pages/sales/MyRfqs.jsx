@@ -277,9 +277,8 @@ const MyRfqs = () => {
                         }}
                       >
                         <option value="">Tất cả trạng thái</option>
-                        <option value="SENT">Chờ xác nhận</option>
-                        <option value="PRELIMINARY_CHECKED">Đã xác nhận</option>
-                        <option value="RECEIVED_BY_PLANNING">Đã xác nhận (Kế hoạch)</option>
+                        <option value="WAITING_CONFIRMATION">Chờ xác nhận</option>
+                        <option value="CONFIRMED">Đã xác nhận</option>
                         <option value="QUOTED">Đã báo giá</option>
                         <option value="CANCELED">Đã hủy</option>
                       </Form.Select>

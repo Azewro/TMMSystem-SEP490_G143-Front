@@ -6,30 +6,35 @@ export const productionPlanService = {
     return response.data;
   },
 
-  getById: async (planId) => {
-    const response = await apiClient.get(`/v1/production-plans/${planId}`);
-    return response.data;
-  },
-
   getPendingApproval: async () => {
     const response = await apiClient.get('/v1/production-plans/pending-approval');
     return response.data;
   },
 
-    async submitForApproval(planId, notes) {
-        const response = await apiClient.put(`/v1/production-plans/${planId}/submit`, { notes });
-        return response.data;
-    },
+  getPlansByStatus: async (status) => {
+    const response = await apiClient.get(`/v1/production-plans/status/${status}`);
+    return response.data;
+  },
 
-    async calculateSchedule(planId) {
-        const response = await apiClient.post(`/v1/production-plans/${planId}/calculate-schedule`);
-        return response.data;
-    },
+  getById: async (planId) => {
+    const response = await apiClient.get(`/v1/production-plans/${planId}`);
+    return response.data;
+  },
 
-    async approve(planId, notes) {
-        const response = await apiClient.put(`/v1/production-plans/${planId}/approve`, { approvalNotes: notes });
-        return response.data;
-    },
+  async submitForApproval(planId, notes) {
+    const response = await apiClient.put(`/v1/production-plans/${planId}/submit`, { notes });
+    return response.data;
+  },
+
+  async calculateSchedule(planId) {
+    const response = await apiClient.post(`/v1/production-plans/${planId}/calculate-schedule`);
+    return response.data;
+  },
+
+  async approve(planId, notes) {
+    const response = await apiClient.put(`/v1/production-plans/${planId}/approve`, { approvalNotes: notes });
+    return response.data;
+  },
 
   rejectPlan: async (planId, rejectionReason) => {
     const response = await apiClient.put(`/v1/production-plans/${planId}/reject`, { rejectionReason });

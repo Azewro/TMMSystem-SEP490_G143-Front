@@ -10,32 +10,7 @@ import { userService } from '../../api/userService'; // Import userService
 import { customerService } from '../../api/customerService'; // Import customerService
 import Pagination from '../../components/Pagination';
 import toast from 'react-hot-toast';
-
-const getStatusBadge = (status) => {
-  switch (status) {
-    case 'DRAFT': return 'secondary';
-    case 'SENT': return 'info';
-    case 'ACCEPTED': return 'success';
-    case 'REJECTED': return 'danger';
-    case 'EXPIRED': return 'light';
-    case 'CANCELED': return 'dark';
-    case 'ORDER_CREATED': return 'primary';
-    default: return 'light';
-  }
-};
-
-const getStatusText = (status) => {
-  switch (status) {
-    case 'DRAFT': return 'Chờ gửi khách hàng';
-    case 'SENT': return 'Đã gửi';
-    case 'ACCEPTED': return 'Đã chấp nhận';
-    case 'REJECTED': return 'Đã từ chối';
-    case 'EXPIRED': return 'Hết hạn';
-    case 'CANCELED': return 'Đã hủy';
-    case 'ORDER_CREATED': return 'Đã tạo đơn hàng';
-    default: return status;
-  }
-};
+import { getSalesQuoteStatus } from '../../utils/statusMapper';
 
 const formatDate = (iso) => {
   if (!iso) return '';
@@ -240,13 +215,12 @@ const QuotesList = () => {
                       }}
                     >
                       <option value="">Tất cả trạng thái</option>
-                      <option value="DRAFT">Chờ gửi khách hàng</option>
-                      <option value="SENT">Đã gửi</option>
-                      <option value="ACCEPTED">Đã chấp nhận</option>
-                      <option value="REJECTED">Đã từ chối</option>
-                      <option value="EXPIRED">Hết hạn</option>
+                      <option value="WAITING_QUOTE">Chờ báo giá</option>
+                      <option value="RECEIVED">Đã nhận</option>
+                      <option value="SENT">Chờ phê duyệt</option>
+                      <option value="ACCEPTED">Đã duyệt</option>
+                      <option value="REJECTED">Từ chối</option>
                       <option value="CANCELED">Đã hủy</option>
-                      <option value="ORDER_CREATED">Đã tạo đơn hàng</option>
                     </Form.Select>
                   </div>
                 </div>
@@ -292,6 +266,8 @@ const QuotesList = () => {
                         });
                       }
 
+                      const statusObj = getSalesQuoteStatus(quote.status, quote);
+
                       return (
                         <tr key={quote.id}>
                           <td className="fw-semibold text-primary">
@@ -308,8 +284,8 @@ const QuotesList = () => {
                             {formatCurrency(quote.totalAmount)}
                           </td>
                           <td>
-                            <Badge bg={getStatusBadge(quote.status)} className="px-2 py-1">
-                              {getStatusText(quote.status)}
+                            <Badge bg={statusObj.variant} className="px-2 py-1">
+                              {statusObj.label}
                             </Badge>
                           </td>
                           <td className="text-center">

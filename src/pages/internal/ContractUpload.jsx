@@ -8,6 +8,7 @@ import { quotationService } from '../../api/quotationService'; // Import quotati
 import { customerService } from '../../api/customerService'; // Import customerService
 import { API_BASE_URL } from '../../utils/constants';
 import Pagination from '../../components/Pagination'; // Import Pagination
+import { getSalesOrderStatus } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
 import '../../styles/QuoteRequests.css';
 
@@ -21,14 +22,6 @@ const getFileExtension = (url) => {
 const isPdf = (url) => getFileExtension(url) === 'pdf';
 const isImage = (url) => ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'].includes(getFileExtension(url));
 const isDocx = (url) => ['docx', 'doc'].includes(getFileExtension(url));
-
-const STATUS_LABELS = {
-  DRAFT: { text: 'Chưa upload', variant: 'secondary' },
-  PENDING_UPLOAD: { text: 'Chờ upload', variant: 'primary' },
-  PENDING_APPROVAL: { text: 'Đang chờ duyệt', variant: 'warning' },
-  APPROVED: { text: 'Đã duyệt', variant: 'success' },
-  REJECTED: { text: 'Bị từ chối', variant: 'danger' }
-};
 
 const formatCurrency = (value) => {
   if (!value) return '0 ₫';
@@ -156,7 +149,13 @@ const ContractUpload = () => {
 
     // Filter by status
     if (statusFilter) {
-      filtered = filtered.filter(contract => contract.status === statusFilter);
+      if (statusFilter === 'WAITING_SIGNATURE') {
+        filtered = filtered.filter(c => ['DRAFT', 'PENDING_UPLOAD'].includes(c.status));
+      } else if (statusFilter === 'IN_PRODUCTION') {
+        filtered = filtered.filter(c => ['WAITING_PRODUCTION', 'IN_PROGRESS'].includes(c.status));
+      } else {
+        filtered = filtered.filter(contract => contract.status === statusFilter);
+      }
     }
     // If no statusFilter, show all contracts (no filtering)
 
@@ -339,7 +338,7 @@ const ContractUpload = () => {
     try {
       // Construct full URL if it's a relative path (similar to customer)
       const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
-      
+
       const token = sessionStorage.getItem('token') || sessionStorage.getItem('userToken') || localStorage.getItem('userToken');
       const headers = { 'Authorization': `Bearer ${token}` };
       const response = await fetch(fullUrl, { headers });
@@ -460,11 +459,12 @@ const ContractUpload = () => {
                       }}
                     >
                       <option value="">Tất cả trạng thái</option>
-                      <option value="DRAFT">Chưa upload</option>
-                      <option value="PENDING_UPLOAD">Chờ upload</option>
-                      <option value="PENDING_APPROVAL">Đang chờ duyệt</option>
-                      <option value="APPROVED">Đã duyệt</option>
-                      <option value="REJECTED">Bị từ chối</option>
+                      <option value="WAITING_SIGNATURE">Chờ ký hợp đồng</option>
+                      <option value="PENDING_APPROVAL">Chờ phê duyệt hợp đồng đã ký</option>
+                      <option value="REJECTED">Hợp đồng đã ký bị từ chối</option>
+                      <option value="APPROVED">Hợp đồng đã ký được phê duyệt</option>
+                      <option value="IN_PRODUCTION">Đang sản xuất</option>
+                      <option value="COMPLETED">Sản xuất xong</option>
                     </Form.Select>
                   </Col>
                   <Col md={3}>
@@ -513,7 +513,7 @@ const ContractUpload = () => {
                       </tr>
                     ) : (
                       currentContracts.map((contract, index) => {
-                        const statusConfig = STATUS_LABELS[contract.status] || STATUS_LABELS.DRAFT;
+                        const statusObj = getSalesOrderStatus(contract.status);
                         return (
                           <tr key={contract.id}>
                             <td>{indexOfFirstContract + index + 1}</td>
@@ -522,7 +522,7 @@ const ContractUpload = () => {
                             <td>{contract.customer?.phoneNumber || 'N/A'}</td>
                             <td>{formatDate(contract.deliveryDate)}</td>
                             <td>
-                              <Badge bg={statusConfig.variant}>{statusConfig.text}</Badge>
+                              <Badge bg={statusObj.variant}>{statusObj.label}</Badge>
                             </td>
                             <td className="text-success fw-semibold">{formatCurrency(contract.totalAmount)}</td>
                             <td className="text-center">
@@ -691,8 +691,8 @@ const ContractUpload = () => {
                     </Col>
                     <Col md={6}>
                       <p className="mb-2"><strong>Trạng thái:</strong>
-                        <Badge bg={STATUS_LABELS[viewDetailsContract.status]?.variant || 'secondary'} className="ms-2">
-                          {STATUS_LABELS[viewDetailsContract.status]?.text || viewDetailsContract.status}
+                        <Badge bg={getSalesOrderStatus(viewDetailsContract.status).variant} className="ms-2">
+                          {getSalesOrderStatus(viewDetailsContract.status).label}
                         </Badge>
                       </p>
                     </Col>
