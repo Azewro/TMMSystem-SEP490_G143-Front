@@ -64,6 +64,7 @@ const ProductionPlanApprovals = () => {
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [decision, setDecision] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [modalError, setModalError] = useState(''); // NEW: Error state specifically for modal
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -134,6 +135,7 @@ const ProductionPlanApprovals = () => {
   const openPlan = async (plan) => {
     setSelectedPlan(plan);
     setDecision('');
+    setModalError(''); // Reset modal error
     setPlanDetails(null);
     setDetailsLoading(true);
 
@@ -179,12 +181,14 @@ const ProductionPlanApprovals = () => {
     setSelectedPlan(null);
     setPlanDetails(null);
     setDecision('');
+    setModalError('');
   };
 
   const handleApprove = async () => {
     if (!selectedPlan) return;
     setProcessing(true);
     setError('');
+    setModalError(''); // Reset modal error
     setSuccess('');
 
     try {
@@ -194,7 +198,8 @@ const ProductionPlanApprovals = () => {
       loadPlans();
     } catch (err) {
       console.error('Approve plan failed', err);
-      setError(err.message || 'Không thể phê duyệt kế hoạch.');
+      // Show error in modal instead of main page
+      setModalError(err.message || 'Không thể phê duyệt kế hoạch.');
     } finally {
       setProcessing(false);
     }
@@ -380,6 +385,11 @@ const ProductionPlanApprovals = () => {
             </div>
           ) : planDetails ? (
             <>
+              {modalError && (
+                <Alert variant="danger" onClose={() => setModalError('')} dismissible>
+                  {modalError}
+                </Alert>
+              )}
               {/* Thông Tin Chung Section */}
               <Card className="mb-3">
                 <Card.Header>

@@ -11,7 +11,7 @@ import toast from 'react-hot-toast';
 
 const MaterialStockManagement = () => {
   const { user: currentUser } = useAuth();
-  
+
   // Map role from backend to sidebar role format
   const getSidebarRole = () => {
     if (!currentUser?.role) return 'production';
@@ -20,7 +20,7 @@ const MaterialStockManagement = () => {
     if (role.includes('PRODUCTION')) return 'production';
     return 'production';
   };
-  
+
   const [materialStocks, setMaterialStocks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -40,12 +40,12 @@ const MaterialStockManagement = () => {
       // Convert 1-based page to 0-based for backend
       const page = currentPage - 1;
       const response = await materialStockService.getAllMaterialStocks(
-        page, 
-        ITEMS_PER_PAGE, 
-        searchTerm || undefined, 
+        page,
+        ITEMS_PER_PAGE,
+        searchTerm || undefined,
         receivedDateFilter || undefined
       );
-      
+
       // Handle PageResponse
       let stocks = [];
       if (response && response.content) {
@@ -57,7 +57,7 @@ const MaterialStockManagement = () => {
         setTotalPages(1);
         setTotalElements(response.length);
       }
-      
+
       setMaterialStocks(stocks);
     } catch (err) {
       console.error('Failed to load material stocks:', err);
@@ -72,7 +72,7 @@ const MaterialStockManagement = () => {
   useEffect(() => {
     fetchMaterialStocks();
   }, [fetchMaterialStocks]);
-  
+
   useEffect(() => {
     // Reset to page 1 when filters change
     setCurrentPage(1);
@@ -165,7 +165,7 @@ const MaterialStockManagement = () => {
               <h4 className="mb-0">Quản lý nhập kho nguyên liệu</h4>
               <Button variant="primary" onClick={handleCreate}>
                 <FaPlus className="me-2" />
-                Nhập kho mới
+                Nhập thêm nguyên liệu
               </Button>
             </div>
 
@@ -245,8 +245,8 @@ const MaterialStockManagement = () => {
                       </tr>
                     )}
                     {!loading && materialStocks.map((stock, idx) => {
-                      const totalAmount = stock.quantity && stock.unitPrice 
-                        ? stock.quantity * stock.unitPrice 
+                      const totalAmount = stock.quantity && stock.unitPrice
+                        ? stock.quantity * stock.unitPrice
                         : null;
                       return (
                         <tr key={stock.id}>
