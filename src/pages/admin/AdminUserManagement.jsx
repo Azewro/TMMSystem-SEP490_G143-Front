@@ -11,7 +11,7 @@ import toast from 'react-hot-toast';
 
 const AdminUserManagement = () => {
   const { user: currentUser } = useAuth();
-  
+
   // Map role from backend to sidebar role format
   const getSidebarRole = () => {
     if (!currentUser?.role) return 'admin';
@@ -62,7 +62,7 @@ const AdminUserManagement = () => {
       // Convert 1-based page to 0-based for backend
       const page = currentPage - 1;
       const response = await userService.getAllUsers(page, itemsPerPage, searchQuery || undefined, roleFilter || undefined, statusFilter !== '' ? statusFilter === 'true' : undefined);
-      
+
       // Handle PageResponse
       let usersData = [];
       if (response && response.content) {
@@ -74,7 +74,7 @@ const AdminUserManagement = () => {
         setTotalPages(1);
         setTotalElements(response.length);
       }
-      
+
       setUsers(usersData);
     } catch (err) {
       console.error('Failed to load users:', err);
@@ -253,7 +253,7 @@ const AdminUserManagement = () => {
                         <td>{user.roleName || '—'}</td>
                         <td>
                           <Badge bg={user.isActive ? 'success' : 'danger'} className="px-2 py-1">
-                            {user.isActive ? 'Active' : 'De-active'}
+                            {user.isActive ? 'Hoạt động' : 'Bị Vô Hiệu Hóa'}
                           </Badge>
                         </td>
                         <td className="text-center">
@@ -295,12 +295,12 @@ const AdminUserManagement = () => {
             {!loading && totalPages > 1 && (
               <div className="d-flex justify-content-center mt-3">
                 <Pagination>
-                  <Pagination.First 
-                    onClick={() => setCurrentPage(1)} 
+                  <Pagination.First
+                    onClick={() => setCurrentPage(1)}
                     disabled={currentPage === 1}
                   />
-                  <Pagination.Prev 
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} 
+                  <Pagination.Prev
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
                   />
                   {[...Array(totalPages)].map((_, idx) => {
@@ -324,12 +324,12 @@ const AdminUserManagement = () => {
                     }
                     return null;
                   })}
-                  <Pagination.Next 
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} 
+                  <Pagination.Next
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                     disabled={currentPage === totalPages}
                   />
-                  <Pagination.Last 
-                    onClick={() => setCurrentPage(totalPages)} 
+                  <Pagination.Last
+                    onClick={() => setCurrentPage(totalPages)}
                     disabled={currentPage === totalPages}
                   />
                 </Pagination>

@@ -64,6 +64,11 @@ const ProductionFiberRequestDetail = () => {
   const [estimatedDays, setEstimatedDays] = useState(0);
 
   const handlePreApprove = () => {
+    const qty = Number(approvedQuantity);
+    if (isNaN(qty) || qty <= 0) {
+      toast.error('Số lượng phê duyệt phải lớn hơn 0');
+      return;
+    }
     const days = calculateDays();
     setEstimatedDays(days);
     if (days > 7) {

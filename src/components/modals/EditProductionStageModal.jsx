@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Form, Alert, Spinner } from 'react-bootstrap';
 import { productionPlanService } from '../../api/productionPlanService';
-import { userService } from '../../api/userService'; // Assuming user service to fetch available users
+import { userService } from '../../api/userService';
 import { FaSave, FaTimes } from 'react-icons/fa';
 
 const EditProductionStageModal = ({ show, onHide, stage, onSuccess }) => {
@@ -27,12 +27,12 @@ const EditProductionStageModal = ({ show, onHide, stage, onSuccess }) => {
     const fetchDropdownData = async () => {
       try {
         setLoading(true);
-        // Fetch all internal users (assuming a service for this)
-        const users = await userService.getAllInternalUsers(); // This API call needs to be confirmed/implemented
+        // Fetch all internal users
+        const users = await userService.getAllInternalUsers();
         setAvailableUsers(users);
 
-        // Fetch machine suggestions (assuming a service for this)
-        const machines = await productionPlanService.getMachineSuggestions(); // This API call needs to be confirmed/implemented
+        // Fetch machine suggestions
+        const machines = await productionPlanService.getMachineSuggestions();
         setAvailableMachines(machines);
       } catch (err) {
         console.error('Failed to fetch dropdown data', err);
@@ -56,6 +56,31 @@ const EditProductionStageModal = ({ show, onHide, stage, onSuccess }) => {
     setLoading(true);
     setError('');
 
+    // Client-side validation
+    if (!formData.plannedStartTime || !formData.plannedEndTime) {
+      setError('Vui lòng nhập đầy đủ thời gian bắt đầu và kết thúc dự kiến.');
+      setLoading(false);
+      return;
+    }
+
+    if (new Date(formData.plannedEndTime) <= new Date(formData.plannedStartTime)) {
+      setError('Thời gian kết thúc phải sau thời gian bắt đầu.');
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.inChargeId) {
+      setError('Vui lòng chọn người phụ trách.');
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.inspectionById) {
+      setError('Vui lòng chọn người kiểm tra (QC).');
+      setLoading(false);
+      return;
+    }
+
     try {
       // API call to update the stage
       await productionPlanService.updateStage(stage.id, {
@@ -66,7 +91,7 @@ const EditProductionStageModal = ({ show, onHide, stage, onSuccess }) => {
         plannedStartTime: formData.plannedStartTime ? new Date(formData.plannedStartTime).toISOString() : null,
         plannedEndTime: formData.plannedEndTime ? new Date(formData.plannedEndTime).toISOString() : null,
         durationInHours: parseFloat(formData.durationInHours) || null,
-        status: formData.status, // Assuming status can also be edited
+        status: formData.status,
         notes: formData.notes,
       });
       onSuccess();
@@ -87,7 +112,7 @@ const EditProductionStageModal = ({ show, onHide, stage, onSuccess }) => {
       <Modal.Body>
         {loading && <div className="text-center py-3"><Spinner animation="border" /> Đang tải...</div>}
         {error && <Alert variant="danger">{error}</Alert>}
-        
+
         {stage && (
           <Form onSubmit={handleSubmit}>
             <Form.Group className="mb-3">

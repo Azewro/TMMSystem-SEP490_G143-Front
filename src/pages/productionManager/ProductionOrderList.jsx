@@ -203,43 +203,49 @@ const ProductionOrderList = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredOrders.map((order, index) => (
-                      <tr key={order.id}>
-                        <td>{index + 1}</td>
-                        <td>
-                          <strong>{order.lotCode}</strong>
-                        </td>
-                        <td>{order.productName}</td>
-                        <td>{order.size}</td>
-                        <td>{order.quantity.toLocaleString('vi-VN')}</td>
-                        <td>{order.expectedStartDate}</td>
-                        <td>{order.expectedFinishDate}</td>
-                        <td>
-                          <Badge bg={getStatusVariant(order.status)}>
-                            {order.statusLabel}
-                          </Badge>
-                        </td>
-                        <td className="text-end">
-                          {order.pendingMaterialRequestId ? (
+                    {filteredOrders.length === 0 ? (
+                      <tr>
+                        <td colSpan="9" className="text-center py-4">Không có đơn hàng nào</td>
+                      </tr>
+                    ) : (
+                      filteredOrders.map((order, index) => (
+                        <tr key={order.id}>
+                          <td>{index + 1}</td>
+                          <td>
+                            <strong>{order.lotCode}</strong>
+                          </td>
+                          <td>{order.productName}</td>
+                          <td>{order.size}</td>
+                          <td>{order.quantity.toLocaleString('vi-VN')}</td>
+                          <td>{order.expectedStartDate}</td>
+                          <td>{order.expectedFinishDate}</td>
+                          <td>
+                            <Badge bg={getStatusVariant(order.status)}>
+                              {order.statusLabel}
+                            </Badge>
+                          </td>
+                          <td className="text-end">
+                            {order.pendingMaterialRequestId ? (
+                              <Button
+                                size="sm"
+                                variant="warning"
+                                className="me-2"
+                                onClick={() => handleViewMaterialRequest(order.pendingMaterialRequestId)}
+                              >
+                                Xem yêu cầu
+                              </Button>
+                            ) : null}
                             <Button
                               size="sm"
-                              variant="warning"
-                              className="me-2"
-                              onClick={() => handleViewMaterialRequest(order.pendingMaterialRequestId)}
+                              variant="primary"
+                              onClick={() => handleViewPlan(order.id)}
                             >
-                              Xem yêu cầu
+                              Xem kế hoạch
                             </Button>
-                          ) : null}
-                          <Button
-                            size="sm"
-                            variant="primary"
-                            onClick={() => handleViewPlan(order.id)}
-                          >
-                            Xem kế hoạch
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </Table>
               </Card.Body>

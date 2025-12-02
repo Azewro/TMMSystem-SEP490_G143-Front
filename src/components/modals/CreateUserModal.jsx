@@ -85,7 +85,7 @@ const CreateUserModal = ({ show, onHide, onSave, user = null }) => {
 
   const validate = () => {
     const newErrors = {};
-    
+
     if (!formData.email) {
       newErrors.email = 'Email là bắt buộc';
     } else if (!validateEmail(formData.email)) {
@@ -120,7 +120,7 @@ const CreateUserModal = ({ show, onHide, onSave, user = null }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validate()) {
       return;
     }
@@ -147,10 +147,10 @@ const CreateUserModal = ({ show, onHide, onSave, user = null }) => {
       const errorMessage = error.message || 'Có lỗi xảy ra';
       // Check for specific error messages
       if (errorMessage.toLowerCase().includes('email đã được sử dụng') ||
-          errorMessage.toLowerCase().includes('email already')) {
+        errorMessage.toLowerCase().includes('email already')) {
         setErrors(prev => ({ ...prev, email: 'Email này đã được sử dụng.' }));
       } else if (errorMessage.toLowerCase().includes('số điện thoại đã được sử dụng') ||
-                 errorMessage.toLowerCase().includes('phone number already')) {
+        errorMessage.toLowerCase().includes('phone number already')) {
         setErrors(prev => ({ ...prev, phoneNumber: 'Số điện thoại đã tồn tại trong hệ thống.' }));
       } else {
         setErrors(prev => ({ ...prev, _general: errorMessage }));
@@ -181,9 +181,9 @@ const CreateUserModal = ({ show, onHide, onSave, user = null }) => {
   };
 
   return (
-    <Modal 
-      show={show} 
-      onHide={handleClose} 
+    <Modal
+      show={show}
+      onHide={handleClose}
       size="lg"
       centered
       style={{ maxHeight: '90vh' }}
@@ -191,7 +191,7 @@ const CreateUserModal = ({ show, onHide, onSave, user = null }) => {
       <Modal.Header closeButton style={{ borderBottom: '1px solid #dee2e6' }}>
         <Modal.Title>{user ? 'Chỉnh sửa tài khoản' : 'Tạo tài khoản nhân viên'}</Modal.Title>
       </Modal.Header>
-      <Form onSubmit={handleSubmit}>
+      <Form onSubmit={handleSubmit} autoComplete="off">
         <Modal.Body style={{ maxHeight: 'calc(90vh - 200px)', overflowY: 'auto', padding: '1.5rem' }}>
           {errors._general && (
             <Alert variant="danger" className="mb-3">
@@ -229,6 +229,7 @@ const CreateUserModal = ({ show, onHide, onSave, user = null }) => {
               isInvalid={!!errors.email}
               placeholder="user@example.com"
               disabled={!!user}
+              autoComplete="off"
             />
             {errors.email && (
               <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
@@ -258,7 +259,7 @@ const CreateUserModal = ({ show, onHide, onSave, user = null }) => {
 
           <Form.Group className="mb-3">
             <Form.Label>
-              {user ? 'Mật khẩu mới (để trống nếu không đổi)' : 'Mật khẩu'} 
+              {user ? 'Mật khẩu mới (để trống nếu không đổi)' : 'Mật khẩu'}
               {!user && <span className="text-danger">*</span>}
             </Form.Label>
             <div className="position-relative">
@@ -269,6 +270,7 @@ const CreateUserModal = ({ show, onHide, onSave, user = null }) => {
                 onChange={handleChange}
                 isInvalid={!!errors.password}
                 placeholder={user ? 'Nhập mật khẩu mới (tùy chọn)' : 'Nhập mật khẩu'}
+                autoComplete="new-password"
               />
               <Button
                 variant="link"
@@ -318,8 +320,8 @@ const CreateUserModal = ({ show, onHide, onSave, user = null }) => {
               value={formData.active}
               onChange={(e) => setFormData(prev => ({ ...prev, active: e.target.value === 'true' }))}
             >
-              <option value={true}>Active</option>
-              <option value={false}>De-active</option>
+              <option value={true}>Hoạt động</option>
+              <option value={false}>Bị Vô Hiệu Hóa</option>
             </Form.Select>
           </Form.Group>
         </Modal.Body>

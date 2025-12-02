@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Button, Form, Row, Col, Spinner } from 'react-bootstrap';
+import { Modal, Button, Form, Row, Col, Spinner, Alert } from 'react-bootstrap';
 import { productService } from '../../api/productService';
 
 const AddProductToRfqModal = ({ show, onHide, onAddProduct }) => {
   const [products, setProducts] = useState([]);
   const [selectedProductId, setSelectedProductId] = useState('');
-  
+
   const [productDetails, setProductDetails] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
   const [quantity, setQuantity] = useState(1);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (show) {
+      setError('');
       const fetchProducts = async () => {
         try {
           const data = await productService.getAllProducts();
@@ -27,6 +29,7 @@ const AddProductToRfqModal = ({ show, onHide, onAddProduct }) => {
       setSelectedProductId('');
       setProductDetails(null);
       setQuantity(1);
+      setError('');
     }
   }, [show]);
 
@@ -52,13 +55,25 @@ const AddProductToRfqModal = ({ show, onHide, onAddProduct }) => {
   }, [selectedProductId]);
 
   const handleSubmit = () => {
+    setError('');
+    if (!selectedProductId) {
+      setError('Vui lòng chọn sản phẩm.');
+      return;
+    }
+
+    const qty = parseInt(quantity, 10);
+    if (isNaN(qty) || qty <= 0) {
+      setError('Số lượng phải là số dương lớn hơn 0.');
+      return;
+    }
+
     const selectedProduct = products.find(p => p.id === parseInt(selectedProductId, 10));
     if (!selectedProduct) return;
-    
+
     const newProduct = {
       productId: selectedProduct.id,
       productName: selectedProduct.name,
-      quantity: parseInt(quantity, 10),
+      quantity: qty,
       unit: 'pcs',
       // Use the standard dimension from the fetched details for the notes field
       notes: productDetails?.standardDimensions || 'Tiêu chuẩn',
@@ -73,6 +88,7 @@ const AddProductToRfqModal = ({ show, onHide, onAddProduct }) => {
         <Modal.Title>Thêm sản phẩm vào Yêu cầu</Modal.Title>
       </Modal.Header>
       <Modal.Body>
+        {error && <Alert variant="danger">{error}</Alert>}
         <Form>
           <Form.Group as={Row} className="mb-3">
             <Form.Label column sm={4}>Sản phẩm</Form.Label>
@@ -89,22 +105,22 @@ const AddProductToRfqModal = ({ show, onHide, onAddProduct }) => {
           <Form.Group as={Row} className="mb-3">
             <Form.Label column sm={4}>Kích thước</Form.Label>
             <Col sm={8}>
-                <Form.Control 
-                    type="text" 
-                    readOnly
-                    value={loadingDetails ? 'Đang tải...' : (productDetails?.standardDimensions || 'Vui lòng chọn sản phẩm')}
-                    placeholder="Kích thước tiêu chuẩn"
-                />
+              <Form.Control
+                type="text"
+                readOnly
+                value={loadingDetails ? 'Đang tải...' : (productDetails?.standardDimensions || 'Vui lòng chọn sản phẩm')}
+                placeholder="Kích thước tiêu chuẩn"
+              />
             </Col>
           </Form.Group>
 
           <Form.Group as={Row} className="mb-3">
             <Form.Label column sm={4}>Số lượng</Form.Label>
             <Col sm={8}>
-              <Form.Control 
-                type="number" 
-                value={quantity} 
-                onChange={(e) => setQuantity(Math.max(1, e.target.value))} 
+              <Form.Control
+                type="number"
+                value={quantity}
+                onChange={(e) => setQuantity(Math.max(1, e.target.value))}
                 min="1"
               />
             </Col>

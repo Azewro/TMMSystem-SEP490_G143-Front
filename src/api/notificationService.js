@@ -16,7 +16,7 @@ export const notificationService = {
    */
   getNotifications: async (userId) => {
     try {
-      const response = await apiClient.get(`/v1/system/users/${userId}/notifications`);
+      const response = await apiClient.get(`/v1/system/notifications/user/${userId}`);
       return Array.isArray(response.data) ? response.data : [];
     } catch (error) {
       throw new Error(mapApiError(error, 'Lỗi khi tải danh sách thông báo'));
@@ -40,7 +40,7 @@ export const notificationService = {
    */
   markAsRead: async (notificationId) => {
     try {
-      const response = await apiClient.post(`/v1/system/notifications/${notificationId}/read`);
+      const response = await apiClient.put(`/v1/system/notifications/${notificationId}/read`);
       return response.data;
     } catch (error) {
       throw new Error(mapApiError(error, 'Lỗi khi đánh dấu thông báo đã đọc'));
@@ -52,9 +52,7 @@ export const notificationService = {
    */
   markAllAsRead: async (userId) => {
     try {
-      const notifications = await notificationService.getNotifications(userId);
-      const unreadNotifications = notifications.filter(n => !n.read);
-      await Promise.all(unreadNotifications.map(n => notificationService.markAsRead(n.id)));
+      await apiClient.put(`/v1/system/notifications/user/${userId}/read-all`);
       return true;
     } catch (error) {
       throw new Error(mapApiError(error, 'Lỗi khi đánh dấu tất cả thông báo đã đọc'));
@@ -77,8 +75,8 @@ export const notificationService = {
    */
   getUnreadCount: async (userId) => {
     try {
-      const notifications = await notificationService.getNotifications(userId);
-      return notifications.filter(n => !n.read).length;
+      const response = await apiClient.get(`/v1/system/notifications/user/${userId}/unread-count`);
+      return response.data;
     } catch (error) {
       console.error('Error getting unread count:', error);
       return 0;

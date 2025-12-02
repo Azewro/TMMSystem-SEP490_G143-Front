@@ -159,7 +159,7 @@ const OrderTable = ({ orders, handleStart, handleViewDetail, isRework = false })
         <thead className="table-light">
           <tr>
             <th style={{ width: 60 }}>STT</th>
-            <th>Mã đơn hàng</th>
+            <th>Mã lô</th>
             <th>Sản phẩm</th>
             <th>Số lượng</th>
             <th>Ngày bắt đầu</th>
