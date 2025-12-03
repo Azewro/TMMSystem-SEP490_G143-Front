@@ -7,32 +7,7 @@ import InternalSidebar from '../../components/common/InternalSidebar';
 import { quoteService } from '../../api/quoteService';
 import { productService } from '../../api/productService';
 import toast from 'react-hot-toast';
-
-const getStatusBadge = (status) => {
-    switch (status) {
-        case 'DRAFT': return 'secondary';
-        case 'SENT': return 'info';
-        case 'ACCEPTED': return 'success';
-        case 'REJECTED': return 'danger';
-        case 'EXPIRED': return 'light';
-        case 'CANCELED': return 'dark';
-        case 'ORDER_CREATED': return 'primary';
-        default: return 'light';
-    }
-};
-
-const getStatusText = (status) => {
-    switch (status) {
-        case 'DRAFT': return 'Chờ gửi khách hàng';
-        case 'SENT': return 'Đã gửi';
-        case 'ACCEPTED': return 'Đã chấp nhận';
-        case 'REJECTED': return 'Đã từ chối';
-        case 'EXPIRED': return 'Hết hạn';
-        case 'CANCELED': return 'Đã hủy';
-        case 'ORDER_CREATED': return 'Đã tạo đơn hàng';
-        default: return status;
-    }
-};
+import { getSalesQuoteStatus } from '../../utils/statusMapper';
 
 const formatCurrency = (v) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v || 0);
 const formatDate = (iso) => iso ? new Date(iso).toLocaleDateString('vi-VN') : 'N/A';
@@ -166,7 +141,7 @@ const QuoteDetail = () => {
                                                     <p className="mb-1"><strong>Ngày tạo:</strong> {formatDate(quote.createdAt)}</p>
                                                     <p className="mb-1"><strong>Tổng giá trị:</strong> <span className="text-success fw-semibold">{formatCurrency(quote.totalAmount)}</span></p>
                                                     <p className="mb-1"><strong>Trạng thái:</strong>
-                                                        <Badge bg={getStatusBadge(quote.status)} className="ms-2">{getStatusText(quote.status)}</Badge>
+                                                        <Badge bg={getSalesQuoteStatus(quote.status, quote).variant} className="ms-2">{getSalesQuoteStatus(quote.status, quote).label}</Badge>
                                                     </p>
                                                     {quote.capacityCheckNotes && <p className="mb-1"><strong>Ghi chú từ Phòng Kế hoạch:</strong> {quote.capacityCheckNotes}</p>}
                                                 </Col>

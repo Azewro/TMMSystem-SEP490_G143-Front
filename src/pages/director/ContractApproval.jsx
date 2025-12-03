@@ -1,11 +1,10 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Container, Card, Table, Button, Modal, Form, Alert, Spinner, Badge, InputGroup, Row, Col } from 'react-bootstrap';
-import { FaSearch } from 'react-icons/fa';
+import { FaSearch, FaDownload, FaEye, FaFileContract, FaFileInvoiceDollar, FaExclamationTriangle } from 'react-icons/fa';
 import Header from '../../components/common/Header';
-import InternalSidebar from '../../components/common/InternalSidebar'; // Import sidebar
+import InternalSidebar from '../../components/common/InternalSidebar';
 import { contractService } from '../../api/contractService';
-import { quotationService } from '../../api/quotationService'; // Import quotationService
-import { productionPlanService } from '../../api/productionPlanService'; // Import productionPlanService
+import { quotationService } from '../../api/quotationService';
 import { customerService } from '../../api/customerService';
 import { API_BASE_URL } from '../../utils/constants';
 import Pagination from '../../components/Pagination';
@@ -50,14 +49,15 @@ const formatDate = (value) => {
 };
 
 const DirectorContractApproval = () => {
-  const [contracts, setContracts] = useState([]);
+  const [allContracts, setAllContracts] = useState([]);
+  const [filteredContracts, setFilteredContracts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [selectedContract, setSelectedContract] = useState(null);
   const [orderDetails, setOrderDetails] = useState(null);
   const [fileUrl, setFileUrl] = useState('');
-  const [quoteFileUrl, setQuoteFileUrl] = useState(''); // State for quote file URL
+  const [quoteFileUrl, setQuoteFileUrl] = useState('');
   const [decision, setDecision] = useState({ type: null, note: '' });
   const [processing, setProcessing] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -65,13 +65,10 @@ const DirectorContractApproval = () => {
   // Search and Filter state
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [createdDateFilter, setCreatedDateFilter] = useState('');
   const [deliveryDateFilter, setDeliveryDateFilter] = useState('');
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalElements, setTotalElements] = useState(0);
   const ITEMS_PER_PAGE = 10;
 
   // State for file viewer modal
@@ -83,27 +80,15 @@ const DirectorContractApproval = () => {
     setError('');
 
     try {
-      // Convert 1-based page to 0-based for backend
-      const page = currentPage - 1;
-      const response = await contractService.getDirectorPendingContracts(
-        page,
-        ITEMS_PER_PAGE,
-        searchTerm || undefined,
-        statusFilter || undefined,
-        createdDateFilter || undefined,
-        deliveryDateFilter || undefined
-      );
+      // Fetch ALL contracts for frontend filtering (using a large size)
+      const response = await contractService.getAllContracts(0, 1000);
 
       // Handle PageResponse
       let contractsArray = [];
       if (response && response.content) {
         contractsArray = response.content;
-        setTotalPages(response.totalPages || 1);
-        setTotalElements(response.totalElements || 0);
       } else if (Array.isArray(response)) {
         contractsArray = response;
-        setTotalPages(1);
-        setTotalElements(response.length);
       }
 
       // Enrich contracts with customer info
@@ -125,10 +110,11 @@ const DirectorContractApproval = () => {
         })
       );
 
-      setContracts(enrichedContracts);
+      setAllContracts(enrichedContracts);
+      setFilteredContracts(enrichedContracts);
     } catch (err) {
       console.error('Failed to fetch contracts', err);
-      setError(err.message || 'Không thể tải danh sách hợp đồng chờ duyệt.');
+      setError(err.message || 'Không thể tải danh sách hợp đồng.');
     } finally {
       setLoading(false);
     }
@@ -136,12 +122,42 @@ const DirectorContractApproval = () => {
 
   useEffect(() => {
     loadContracts();
-  }, [currentPage, searchTerm, statusFilter, createdDateFilter, deliveryDateFilter]);
+  }, []);
 
+  // Frontend Filtering Logic
   useEffect(() => {
-    // Reset to page 1 when filters change
-    setCurrentPage(1);
-  }, [searchTerm, statusFilter, createdDateFilter, deliveryDateFilter]);
+    let result = [...allContracts];
+
+    if (searchTerm) {
+      const lowerTerm = searchTerm.toLowerCase();
+      result = result.filter(c =>
+        (c.contractNumber && c.contractNumber.toLowerCase().includes(lowerTerm)) ||
+        (c.customerName && c.customerName.toLowerCase().includes(lowerTerm))
+      );
+    }
+
+    if (statusFilter) {
+      result = result.filter(c => c.status === statusFilter);
+    }
+
+    if (deliveryDateFilter) {
+      result = result.filter(c => {
+        if (!c.deliveryDate) return false;
+        const date = new Date(c.deliveryDate).toISOString().split('T')[0];
+        return date === deliveryDateFilter;
+      });
+    }
+
+    setFilteredContracts(result);
+    setCurrentPage(1); // Reset to page 1 when filters change
+  }, [searchTerm, statusFilter, deliveryDateFilter, allContracts]);
+
+  // Pagination Logic
+  const totalPages = Math.ceil(filteredContracts.length / ITEMS_PER_PAGE);
+  const paginatedContracts = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredContracts.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredContracts, currentPage]);
 
   const openContract = async (contract) => {
     setSelectedContract(contract);
@@ -165,7 +181,7 @@ const DirectorContractApproval = () => {
         setFileUrl(relativeUrl);
       }
 
-      // Fetch optional quote file URL separately and handle failure gracefully
+      // Fetch optional quote file URL separately
       if (contract.quotationId) {
         try {
           const quoteUrl = await quotationService.getQuoteFileUrl(contract.quotationId);
@@ -176,7 +192,6 @@ const DirectorContractApproval = () => {
           }
         } catch (quoteUrlError) {
           console.error('Could not fetch quote file URL:', quoteUrlError);
-          // Do not set a blocking error, just let the UI show that the file is missing.
         }
       }
     } catch (err) {
@@ -189,7 +204,7 @@ const DirectorContractApproval = () => {
 
   const closeModal = () => {
     setSelectedContract(null);
-    setOrderDetails(null);
+    // setOrderDetails(null); // Keep details to prevent flash
     setFileUrl('');
     setQuoteFileUrl('');
     setDecision({ type: null, note: '' });
@@ -208,13 +223,8 @@ const DirectorContractApproval = () => {
     setSuccess('');
 
     try {
-      // Step 1: Approve the contract
       await contractService.approveContract(selectedContract.id, directorId, decision.note.trim() || undefined);
-
-      // The backend will now automatically merge the lot and create a plan.
-      // We just need to show a success message.
       setSuccess('Đã phê duyệt hợp đồng. Hệ thống sẽ tự động tạo kế hoạch sản xuất và chuyển cho bộ phận Kế hoạch.');
-
       closeModal();
       loadContracts();
     } catch (err) {
@@ -273,9 +283,7 @@ const DirectorContractApproval = () => {
 
     const toastId = toast.loading('Đang chuẩn bị file để xem...');
     try {
-      // Construct full URL if it's a relative path (similar to customer)
       const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
-      
       const token = sessionStorage.getItem('token') || sessionStorage.getItem('userToken') || localStorage.getItem('userToken');
       const headers = { 'Authorization': `Bearer ${token}` };
       const response = await fetch(fullUrl, { headers });
@@ -285,8 +293,6 @@ const DirectorContractApproval = () => {
       }
 
       let blob = await response.blob();
-
-      // Fix: Force content type based on extension if blob type is missing or generic
       const ext = getFileExtension(url);
       let mimeType = blob.type;
 
@@ -310,8 +316,6 @@ const DirectorContractApproval = () => {
     }
   };
 
-  // Note: Search and filter are now server-side, no client-side filtering needed
-
   const statusOptions = [
     { value: '', label: 'Tất cả trạng thái' },
     { value: 'PENDING_APPROVAL', label: 'Chờ duyệt' },
@@ -328,62 +332,53 @@ const DirectorContractApproval = () => {
           <Container fluid>
             <h2 className="mb-4">Phê duyệt hợp đồng</h2>
 
-            {error && (
-              <Alert variant="danger" onClose={() => setError('')} dismissible>
-                {error}
-              </Alert>
-            )}
-
-            {success && (
-              <Alert variant="success" onClose={() => setSuccess('')} dismissible>
-                {success}
-              </Alert>
-            )}
-
-            {/* Search and Filters */}
+            {/* Search and Filter Section */}
             <Card className="mb-3">
               <Card.Body>
-                <Row className="g-3">
-                  <Col md={3}>
-                    <InputGroup>
-                      <InputGroup.Text><FaSearch /></InputGroup.Text>
-                      <Form.Control
-                        type="text"
-                        placeholder="Tìm theo tên hợp đồng, tên khách hàng..."
-                        value={searchTerm}
-                        onChange={(e) => {
-                          setSearchTerm(e.target.value);
-                        }}
-                      />
-                    </InputGroup>
-                  </Col>
-                  <Col md={2}>
-                    <Form.Select
-                      value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value)}
-                    >
-                      {statusOptions.map(option => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
-                    </Form.Select>
-                  </Col>
-                  <Col md={2}>
+                <Row className="g-3 align-items-end">
+                  <Col md={4}>
                     <Form.Group>
-                      <Form.Label className="mb-1 small">Lọc theo ngày tạo</Form.Label>
-                      <Form.Control
-                        type="date"
-                        value={createdDateFilter}
-                        onChange={(e) => setCreatedDateFilter(e.target.value)}
-                      />
+                      <Form.Label className="mb-1 small">Tìm kiếm</Form.Label>
+                      <InputGroup>
+                        <InputGroup.Text><FaSearch /></InputGroup.Text>
+                        <Form.Control
+                          type="text"
+                          placeholder="Tìm theo tên hợp đồng, tên khách hàng..."
+                          value={searchTerm}
+                          onChange={(e) => {
+                            setSearchTerm(e.target.value);
+                            setCurrentPage(1);
+                          }}
+                        />
+                      </InputGroup>
                     </Form.Group>
                   </Col>
-                  <Col md={2}>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Lọc theo trạng thái</Form.Label>
+                      <Form.Select
+                        value={statusFilter}
+                        onChange={(e) => {
+                          setStatusFilter(e.target.value);
+                          setCurrentPage(1);
+                        }}
+                      >
+                        {statusOptions.map(option => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
                     <Form.Group>
                       <Form.Label className="mb-1 small">Lọc theo ngày giao hàng</Form.Label>
                       <Form.Control
                         type="date"
                         value={deliveryDateFilter}
-                        onChange={(e) => setDeliveryDateFilter(e.target.value)}
+                        onChange={(e) => {
+                          setDeliveryDateFilter(e.target.value);
+                          setCurrentPage(1);
+                        }}
                       />
                     </Form.Group>
                   </Col>
@@ -395,66 +390,68 @@ const DirectorContractApproval = () => {
               <Card.Header>
                 Danh sách hợp đồng đã được nhân viên kinh doanh upload
               </Card.Header>
-              <Card.Body className="p-0">
-                <Table responsive hover className="mb-0 align-middle">
-                  <thead className="table-light">
-                    <tr>
-                      <th style={{ width: 60 }}>#</th>
-                      <th style={{ width: 180 }}>Tên hợp đồng</th>
-                      <th style={{ width: 160 }}>Khách hàng</th>
-                      <th style={{ width: 160 }}>Ngày tạo</th>
-                      <th style={{ width: 160 }}>Ngày giao</th>
-                      <th style={{ width: 160 }}>Trạng thái</th>
-                      <th style={{ width: 160 }}>Tổng tiền</th>
-                      <th style={{ width: 140 }} className="text-center">Hành động</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loading ? (
-                      <tr>
-                        <td colSpan={8} className="text-center py-4">
-                          <Spinner animation="border" size="sm" className="me-2" /> Đang tải hợp đồng...
-                        </td>
-                      </tr>
-                    ) : contracts.length === 0 ? (
-                      <tr>
-                        <td colSpan={8} className="text-center py-4 text-muted">
-                          {totalElements === 0 ? 'Không có hợp đồng nào cần phê duyệt.' : 'Không tìm thấy hợp đồng nào phù hợp.'}
-                        </td>
-                      </tr>
-                    ) : (
-                      contracts.map((contract, index) => {
-                        const statusConfig = STATUS_LABELS[contract.status] || STATUS_LABELS.PENDING_APPROVAL;
-                        return (
-                          <tr key={contract.id}>
-                            <td>{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
-                            <td className="fw-semibold text-primary">{contract.contractNumber}</td>
-                            <td>{contract.customerName || 'N/A'}</td>
-                            <td>{formatDate(contract.createdAt)}</td>
-                            <td>{formatDate(contract.deliveryDate)}</td>
-                            <td>
-                              <Badge bg={statusConfig.variant}>{statusConfig.text}</Badge>
-                            </td>
-                            <td className="text-success fw-semibold">{formatCurrency(contract.totalAmount)}</td>
-                            <td className="text-center">
-                              <Button variant="primary" size="sm" onClick={() => openContract(contract)}>
-                                Xem chi tiết
-                              </Button>
+              <Card.Body>
+                {loading ? (
+                  <div className="text-center py-5"><Spinner animation="border" /></div>
+                ) : error ? (
+                  <Alert variant="danger">{error}</Alert>
+                ) : (
+                  <>
+                    <Table striped bordered hover responsive>
+                      <thead>
+                        <tr>
+                          <th style={{ width: 60 }}>#</th>
+                          <th style={{ width: 180 }}>Tên hợp đồng</th>
+                          <th style={{ width: 160 }}>Khách hàng</th>
+                          <th style={{ width: 160 }}>Ngày tạo</th>
+                          <th style={{ width: 160 }}>Ngày giao</th>
+                          <th style={{ width: 160 }}>Trạng thái</th>
+                          <th style={{ width: 160 }}>Tổng tiền</th>
+                          <th style={{ width: 140 }} className="text-center">Hành động</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paginatedContracts.length === 0 ? (
+                          <tr>
+                            <td colSpan={8} className="text-center py-4 text-muted">
+                              {filteredContracts.length === 0 ? 'Không tìm thấy hợp đồng nào phù hợp.' : 'Danh sách trống.'}
                             </td>
                           </tr>
-                        );
-                      })
+                        ) : (
+                          paginatedContracts.map((contract, index) => {
+                            const statusConfig = STATUS_LABELS[contract.status] || STATUS_LABELS.PENDING_APPROVAL;
+                            return (
+                              <tr key={contract.id}>
+                                <td>{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
+                                <td className="fw-semibold text-primary">{contract.contractNumber}</td>
+                                <td>{contract.customerName || 'N/A'}</td>
+                                <td>{formatDate(contract.createdAt)}</td>
+                                <td>{formatDate(contract.deliveryDate)}</td>
+                                <td>
+                                  <Badge bg={statusConfig.variant}>{statusConfig.text}</Badge>
+                                </td>
+                                <td className="text-success fw-semibold">{formatCurrency(contract.totalAmount)}</td>
+                                <td className="text-center">
+                                  <Button variant="primary" size="sm" onClick={() => openContract(contract)}>
+                                    Xem chi tiết
+                                  </Button>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </Table>
+                    {totalPages > 1 && (
+                      <div className="mt-3">
+                        <Pagination
+                          currentPage={currentPage}
+                          totalPages={totalPages}
+                          onPageChange={setCurrentPage}
+                        />
+                      </div>
                     )}
-                  </tbody>
-                </Table>
-                {totalPages > 1 && (
-                  <div className="p-3">
-                    <Pagination
-                      currentPage={currentPage}
-                      totalPages={totalPages}
-                      onPageChange={setCurrentPage}
-                    />
-                  </div>
+                  </>
                 )}
               </Card.Body>
             </Card>
@@ -462,187 +459,232 @@ const DirectorContractApproval = () => {
         </div>
       </div>
 
-      <Modal show={!!selectedContract} onHide={closeModal} size="lg" centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Chi tiết hợp đồng</Modal.Title>
+      <Modal show={!!selectedContract} onHide={closeModal} size="lg" centered className="contract-detail-modal">
+        <Modal.Header closeButton className="border-bottom-0 pb-0">
+          <Modal.Title className="fw-bold text-primary">
+            {selectedContract?.contractNumber}
+          </Modal.Title>
         </Modal.Header>
-        <Modal.Body>
+        <Modal.Body className="pt-2">
           {detailsLoading ? (
-            <div className="text-center py-4">
-              <Spinner animation="border" size="sm" className="me-2" /> Đang tải chi tiết...
+            <div className="text-center py-5">
+              <Spinner animation="border" variant="primary" />
+              <p className="mt-2 text-muted">Đang tải thông tin chi tiết...</p>
             </div>
           ) : orderDetails ? (
-            <>
-              <div className="mb-3">
-                <strong>Khách hàng:</strong> {orderDetails.customerInfo?.customerName}
-              </div>
-              <div className="mb-3">
-                <strong>Số điện thoại:</strong> {orderDetails.customerInfo?.phoneNumber || '—'}
-              </div>
-              <Table size="sm" bordered>
-                <thead className="table-light">
-                  <tr>
-                    <th>Sản phẩm</th>
-                    <th>Số lượng</th>
-                    <th>Đơn giá</th>
-                    <th>Thành tiền</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {orderDetails.orderItems?.map((item, index) => (
-                    <tr key={item.productId || index}>
-                      <td>{item.productName}</td>
-                      <td>{item.quantity?.toLocaleString('vi-VN')}</td>
-                      <td>{formatCurrency(item.unitPrice)}</td>
-                      <td>{formatCurrency(item.totalPrice)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-              <div className="mt-3 d-flex gap-2 flex-wrap">
-                {/* Contract File Buttons */}
-                {fileUrl ? (
-                  <>
-                    <Button
-                      variant="outline-secondary"
-                      onClick={() => handleViewFile(fileUrl)}
-                      disabled={isDocx(fileUrl)}
-                      title={isDocx(fileUrl) ? 'File DOCX cần được tải về để xem' : 'Xem file hợp đồng'}
-                    >
-                      Xem file hợp đồng
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      href={fileUrl.startsWith('http') ? fileUrl : `${API_BASE_URL}${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`}
-                      download
-                      onClick={(e) => {
-                        // Ensure download works with authentication
-                        const token = sessionStorage.getItem('token') || sessionStorage.getItem('userToken') || localStorage.getItem('userToken');
-                        if (token && !fileUrl.startsWith('http')) {
-                          e.preventDefault();
-                          const fullUrl = `${API_BASE_URL}${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`;
-                          fetch(fullUrl, {
-                            headers: { 'Authorization': `Bearer ${token}` }
-                          })
-                            .then(res => res.blob())
-                            .then(blob => {
-                              const url = window.URL.createObjectURL(blob);
-                              const a = document.createElement('a');
-                              a.href = url;
-                              a.download = fileUrl.split('/').pop() || 'contract.pdf';
-                              document.body.appendChild(a);
-                              a.click();
-                              window.URL.revokeObjectURL(url);
-                              document.body.removeChild(a);
-                            })
-                            .catch(err => {
-                              console.error('Download error:', err);
-                              toast.error('Không thể tải file');
-                            });
-                        }
-                      }}
-                    >
-                      Tải về hợp đồng
-                    </Button>
-                  </>
-                ) : (
-                  <Alert variant="warning" className="py-2 px-3 mb-0">
-                    Chưa có file hợp đồng.
-                  </Alert>
-                )}
+            <div className="d-flex flex-column gap-4">
+              {/* Customer & Order Info */}
+              <Card className="border-0 shadow-sm bg-light">
+                <Card.Body>
+                  <Row className="g-3">
+                    <Col md={6}>
+                      <div className="text-muted small text-uppercase fw-bold mb-1">Khách hàng</div>
+                      <div className="fw-medium fs-5">{orderDetails.customerInfo?.customerName}</div>
+                      <div className="text-muted"><small>SĐT:</small> {orderDetails.customerInfo?.phoneNumber || '—'}</div>
+                    </Col>
+                    <Col md={6}>
+                      <Row>
+                        <Col xs={6}>
+                          <div className="text-muted small text-uppercase fw-bold mb-1">Ngày tạo</div>
+                          <div>{formatDate(selectedContract?.createdAt)}</div>
+                        </Col>
+                        <Col xs={6}>
+                          <div className="text-muted small text-uppercase fw-bold mb-1">Ngày giao</div>
+                          <div>{formatDate(selectedContract?.deliveryDate)}</div>
+                        </Col>
+                        <Col xs={12} className="mt-3">
+                          <div className="text-muted small text-uppercase fw-bold mb-1">Tổng giá trị</div>
+                          <div className="text-success fw-bold fs-4">{formatCurrency(selectedContract?.totalAmount)}</div>
+                        </Col>
+                      </Row>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
 
-                {/* Quote File Buttons */}
-                {quoteFileUrl ? (
-                  <>
-                    <Button
-                      variant="outline-info"
-                      onClick={() => handleViewFile(quoteFileUrl)}
-                      disabled={isDocx(quoteFileUrl)}
-                      title={isDocx(quoteFileUrl) ? 'File DOCX cần được tải về để xem' : 'Xem file báo giá'}
-                    >
-                      Xem file báo giá
-                    </Button>
-                    <Button
-                      variant="info"
-                      href={quoteFileUrl.startsWith('http') ? quoteFileUrl : `${API_BASE_URL}${quoteFileUrl.startsWith('/') ? '' : '/'}${quoteFileUrl}`}
-                      download
-                      onClick={(e) => {
-                        // Ensure download works with authentication
-                        const token = sessionStorage.getItem('token') || sessionStorage.getItem('userToken') || localStorage.getItem('userToken');
-                        if (token && !quoteFileUrl.startsWith('http')) {
-                          e.preventDefault();
-                          const fullUrl = `${API_BASE_URL}${quoteFileUrl.startsWith('/') ? '' : '/'}${quoteFileUrl}`;
-                          fetch(fullUrl, {
-                            headers: { 'Authorization': `Bearer ${token}` }
-                          })
-                            .then(res => res.blob())
-                            .then(blob => {
-                              const url = window.URL.createObjectURL(blob);
-                              const a = document.createElement('a');
-                              a.href = url;
-                              a.download = quoteFileUrl.split('/').pop() || 'quotation.pdf';
-                              document.body.appendChild(a);
-                              a.click();
-                              window.URL.revokeObjectURL(url);
-                              document.body.removeChild(a);
-                            })
-                            .catch(err => {
-                              console.error('Download error:', err);
-                              toast.error('Không thể tải file');
-                            });
-                        }
-                      }}
-                    >
-                      Tải về báo giá
-                    </Button>
-                  </>
-                ) : (
-                  <Alert variant="warning" className="py-2 px-3 mb-0">
-                    Chưa có file báo giá.
-                  </Alert>
-                )}
+              {/* Order Items */}
+              <div>
+                <h6 className="fw-bold mb-3 border-bottom pb-2">Chi tiết đơn hàng</h6>
+                <div className="table-responsive">
+                  <Table hover className="align-middle">
+                    <thead className="table-light">
+                      <tr>
+                        <th className="border-0">Sản phẩm</th>
+                        <th className="border-0 text-center" style={{ width: '100px' }}>Số lượng</th>
+                        <th className="border-0 text-end" style={{ width: '150px' }}>Đơn giá</th>
+                        <th className="border-0 text-end" style={{ width: '150px' }}>Thành tiền</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {orderDetails.orderItems?.map((item, index) => (
+                        <tr key={item.productId || index}>
+                          <td className="fw-medium">{item.productName}</td>
+                          <td className="text-center">{item.quantity?.toLocaleString('vi-VN')}</td>
+                          <td className="text-end text-muted">{formatCurrency(item.unitPrice)}</td>
+                          <td className="text-end fw-medium">{formatCurrency(item.totalPrice)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                </div>
               </div>
-            </>
+
+              {/* Documents */}
+              <div>
+                <h6 className="fw-bold mb-3 border-bottom pb-2">Tài liệu đính kèm</h6>
+                <Row className="g-3">
+                  <Col md={6}>
+                    <Card className={`h-100 ${fileUrl ? 'border-primary' : 'border-warning'}`}>
+                      <Card.Body className="d-flex align-items-center justify-content-between p-3">
+                        <div className="d-flex align-items-center gap-3">
+                          <div className={`bg-${fileUrl ? 'primary' : 'warning'} bg-opacity-10 p-2 rounded`}>
+                            {fileUrl ? <FaFileContract className="text-primary fs-4" /> : <FaExclamationTriangle className="text-warning fs-4" />}
+                          </div>
+                          <div>
+                            <div className="fw-medium">Hợp đồng đã ký</div>
+                            <div className="small text-muted">{fileUrl ? 'Đã upload' : 'Chưa có file'}</div>
+                          </div>
+                        </div>
+                        {fileUrl && (
+                          <div className="d-flex gap-2">
+                            <Button variant="light" size="sm" onClick={() => handleViewFile(fileUrl)} title="Xem">
+                              <FaEye /> Xem
+                            </Button>
+                            <Button
+                              variant="light"
+                              size="sm"
+                              href={fileUrl.startsWith('http') ? fileUrl : `${API_BASE_URL}${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`}
+                              download
+                              onClick={(e) => {
+                                const token = sessionStorage.getItem('token') || sessionStorage.getItem('userToken') || localStorage.getItem('userToken');
+                                if (token && !fileUrl.startsWith('http')) {
+                                  e.preventDefault();
+                                  const fullUrl = `${API_BASE_URL}${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`;
+                                  fetch(fullUrl, { headers: { 'Authorization': `Bearer ${token}` } })
+                                    .then(res => res.blob())
+                                    .then(blob => {
+                                      const url = window.URL.createObjectURL(blob);
+                                      const a = document.createElement('a');
+                                      a.href = url;
+                                      a.download = fileUrl.split('/').pop() || 'contract.pdf';
+                                      document.body.appendChild(a);
+                                      a.click();
+                                      window.URL.revokeObjectURL(url);
+                                      document.body.removeChild(a);
+                                    });
+                                }
+                              }}
+                              title="Tải về"
+                            >
+                              <FaDownload />
+                            </Button>
+                          </div>
+                        )}
+                      </Card.Body>
+                    </Card>
+                  </Col>
+                  <Col md={6}>
+                    <Card className={`h-100 ${quoteFileUrl ? 'border-info' : 'border-warning'}`}>
+                      <Card.Body className="d-flex align-items-center justify-content-between p-3">
+                        <div className="d-flex align-items-center gap-3">
+                          <div className={`bg-${quoteFileUrl ? 'info' : 'warning'} bg-opacity-10 p-2 rounded`}>
+                            {quoteFileUrl ? <FaFileInvoiceDollar className="text-info fs-4" /> : <FaExclamationTriangle className="text-warning fs-4" />}
+                          </div>
+                          <div>
+                            <div className="fw-medium">Báo giá chi tiết</div>
+                            <div className="small text-muted">{quoteFileUrl ? 'Đã upload' : 'Chưa có file'}</div>
+                          </div>
+                        </div>
+                        {quoteFileUrl && (
+                          <div className="d-flex gap-2">
+                            <Button variant="light" size="sm" onClick={() => handleViewFile(quoteFileUrl)} title="Xem">
+                              <FaEye /> Xem
+                            </Button>
+                            <Button
+                              variant="light"
+                              size="sm"
+                              href={quoteFileUrl.startsWith('http') ? quoteFileUrl : `${API_BASE_URL}${quoteFileUrl.startsWith('/') ? '' : '/'}${quoteFileUrl}`}
+                              download
+                              onClick={(e) => {
+                                const token = sessionStorage.getItem('token') || sessionStorage.getItem('userToken') || localStorage.getItem('userToken');
+                                if (token && !quoteFileUrl.startsWith('http')) {
+                                  e.preventDefault();
+                                  const fullUrl = `${API_BASE_URL}${quoteFileUrl.startsWith('/') ? '' : '/'}${quoteFileUrl}`;
+                                  fetch(fullUrl, { headers: { 'Authorization': `Bearer ${token}` } })
+                                    .then(res => res.blob())
+                                    .then(blob => {
+                                      const url = window.URL.createObjectURL(blob);
+                                      const a = document.createElement('a');
+                                      a.href = url;
+                                      a.download = quoteFileUrl.split('/').pop() || 'quotation.pdf';
+                                      document.body.appendChild(a);
+                                      a.click();
+                                      window.URL.revokeObjectURL(url);
+                                      document.body.removeChild(a);
+                                    });
+                                }
+                              }}
+                              title="Tải về"
+                            >
+                              <FaDownload />
+                            </Button>
+                          </div>
+                        )}
+                      </Card.Body>
+                    </Card>
+                  </Col>
+                </Row>
+              </div>
+            </div>
           ) : (
-            <Alert variant="warning">Không thể tải chi tiết hợp đồng.</Alert>
+            selectedContract && <Alert variant="warning">Không tìm thấy thông tin chi tiết.</Alert>
           )}
-
         </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={closeModal} disabled={processing}>
-            Đóng
-          </Button>
-          <Button
-            variant="danger"
-            onClick={() => {
-              const reason = window.prompt('Vui lòng nhập lý do từ chối hợp đồng:');
-              if (reason && reason.trim()) {
-                handleReject(reason.trim());
-              } else if (reason !== null) {
-                // User clicked OK but didn't enter anything
-                setError('Vui lòng nhập lý do từ chối hợp đồng.');
-              }
-            }}
-            disabled={processing}
-          >
-            {processing ? 'Đang xử lý...' : 'Từ chối'}
-          </Button>
-          <Button variant="success" onClick={handleApprove} disabled={processing}>
-            {processing ? 'Đang xử lý...' : 'Phê duyệt'}
-          </Button>
+        <Modal.Footer className="border-top-0 pt-0 pb-4 px-4">
+          <div className="d-flex justify-content-end gap-2 w-100">
+            <Button variant="light" onClick={closeModal} disabled={processing} className="px-4">
+              Đóng
+            </Button>
+            {selectedContract?.status === 'PENDING_APPROVAL' && (
+              <>
+                <Button
+                  variant="outline-danger"
+                  onClick={() => {
+                    const reason = window.prompt('Vui lòng nhập lý do từ chối hợp đồng:');
+                    if (reason && reason.trim()) {
+                      handleReject(reason.trim());
+                    } else if (reason !== null) {
+                      setError('Vui lòng nhập lý do từ chối hợp đồng.');
+                    }
+                  }}
+                  disabled={processing}
+                  className="px-4"
+                >
+                  Từ chối
+                </Button>
+                <Button variant="primary" onClick={handleApprove} disabled={processing} className="px-4">
+                  Phê duyệt
+                </Button>
+              </>
+            )}
+          </div>
         </Modal.Footer>
       </Modal>
 
       {/* File Viewer Modal */}
       <Modal show={showFileViewer} onHide={handleCloseFileViewer} size="xl" centered>
         <Modal.Header closeButton>
-          <Modal.Title>Xem file</Modal.Title>
+          <Modal.Title>Xem tài liệu</Modal.Title>
         </Modal.Header>
-        <Modal.Body style={{ height: '80vh' }}>
-          {viewerUrl ? (
-            <iframe src={viewerUrl} width="100%" height="100%" title="File Viewer" style={{ border: 'none' }}></iframe>
-          ) : (
-            <div className="text-center">Đang tải file...</div>
+        <Modal.Body className="p-0" style={{ height: '80vh' }}>
+          {viewerUrl && (
+            <iframe
+              src={viewerUrl}
+              title="File Viewer"
+              width="100%"
+              height="100%"
+              style={{ border: 'none' }}
+            />
           )}
         </Modal.Body>
       </Modal>

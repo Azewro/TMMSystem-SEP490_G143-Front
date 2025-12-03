@@ -66,7 +66,7 @@ const InternalSidebar = ({ userRole: propUserRole }) => {
     ],
     planning: [
       { icon: FaListAlt, label: 'RFQ cần xử lý', path: '/planning/rfqs' },
-      { icon: FaProjectDiagram, label: 'Lô sản xuất', path: '/planning/lots' },
+      { icon: FaProjectDiagram, label: 'Kế hoạch sản xuất', path: '/planning/lots' },
     ],
     // Production Manager
     production: [
@@ -76,7 +76,7 @@ const InternalSidebar = ({ userRole: propUserRole }) => {
       { icon: FaWarehouse, label: 'Nhập kho nguyên liệu', path: '/production/material-stock' },
     ],
     // Product Process Leader
-    leader: [ 
+    leader: [
       { icon: FaListAlt, label: 'Đơn hàng của tôi', path: '/leader/orders' },
       { icon: FaExclamationTriangle, label: 'Danh sách lỗi', path: '/leader/defects' },
     ],

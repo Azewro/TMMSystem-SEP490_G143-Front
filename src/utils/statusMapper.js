@@ -34,6 +34,8 @@ export const getStatusLabel = (status) => {
   return statusMap[status] || status;
 };
 
+
+
 // Map stage type code to Vietnamese name
 export const getStageTypeName = (stageType) => {
   const stageTypeMap = {
@@ -225,9 +227,9 @@ export const getPlanningRfqStatus = (rfq) => {
 
   if (status === 'DRAFT' || status === 'SENT' || status === 'PRELIMINARY_CHECKED' || status === 'FORWARDED_TO_PLANNING' || status === 'RECEIVED_BY_PLANNING') return { label: 'Chờ tạo', variant: 'warning', value: 'WAITING_CREATE' };
   if (status === 'QUOTED') return { label: 'Chờ xác nhận', variant: 'info', value: 'WAITING_CONFIRMATION' };
-  if (status === 'REJECTED') return { label: 'Từ chối', variant: 'danger', value: 'REJECTED' };
+  // Gộp REJECTED và CANCELED thành "Đã từ chối"
+  if (status === 'REJECTED' || status === 'CANCELED') return { label: 'Đã từ chối', variant: 'danger', value: 'REJECTED' };
   if (status === 'ACCEPTED' || status === 'ORDER_CREATED') return { label: 'Đã xác nhận', variant: 'success', value: 'CONFIRMED' };
-  if (status === 'CANCELED') return { label: 'Đã hủy', variant: 'dark', value: 'CANCELED' };
 
   const label = getStatusLabel(status);
   const variant = getStatusVariant(status);
@@ -239,7 +241,7 @@ export const getPlanningPlanStatus = (status) => {
   if (status === 'DRAFT') return { label: 'Chờ gửi', variant: 'secondary', value: 'DRAFT' };
   if (status === 'PENDING_APPROVAL') return { label: 'Chờ duyệt', variant: 'info', value: 'PENDING_APPROVAL' };
   if (status === 'APPROVED') return { label: 'Đã duyệt', variant: 'success', value: 'APPROVED' };
-  if (status === 'REJECTED') return { label: 'Từ chối', variant: 'danger', value: 'REJECTED' };
+  if (status === 'REJECTED') return { label: 'Đã từ chối', variant: 'danger', value: 'REJECTED' };
 
   const label = getStatusLabel(status);
   const variant = getStatusVariant(status);
@@ -273,9 +275,10 @@ export const getSalesRfqStatus = (status) => {
 
 export const getSalesQuoteStatus = (status, quote) => {
   if (status === 'DRAFT') {
-    // Check if created by Planning (assuming role name or checking specific property)
-    // We can check if creator role is Planning
-    const isPlanning = quote?.creator?.role?.name === 'Planning' || quote?.creator?.role?.name === 'PLANNING';
+    // Check if created by Planning (checking role object or direct roleName)
+    const creatorRole = quote?.creator?.role?.name || quote?.creator?.roleName || '';
+    const roleName = creatorRole.toUpperCase();
+    const isPlanning = roleName.includes('PLANNING') || roleName === 'PLANNER';
     if (isPlanning) {
       return { label: 'Đã nhận', variant: 'warning', value: 'RECEIVED' };
     }
@@ -324,8 +327,8 @@ export const getCustomerRfqStatus = (status) => {
 export const getCustomerQuoteStatus = (status) => {
   if (status === 'DRAFT') return { label: 'Chờ báo giá', variant: 'secondary', value: 'DRAFT' };
   if (status === 'SENT') return { label: 'Chờ phê duyệt', variant: 'warning', value: 'SENT' };
-  if (status === 'ACCEPTED' || status === 'ORDER_CREATED') return { label: 'Phê duyệt', variant: 'success', value: 'ACCEPTED' };
-  if (status === 'REJECTED' || status === 'EXPIRED' || status === 'CANCELED') return { label: 'Từ chối', variant: 'danger', value: 'REJECTED' };
+  if (status === 'ACCEPTED' || status === 'ORDER_CREATED') return { label: 'Đã phê duyệt', variant: 'success', value: 'ACCEPTED' };
+  if (status === 'REJECTED' || status === 'EXPIRED' || status === 'CANCELED') return { label: 'Đã từ chối', variant: 'danger', value: 'REJECTED' };
 
   const label = getStatusLabel(status);
   const variant = getStatusVariant(status);
@@ -336,7 +339,7 @@ export const getCustomerOrderStatus = (status) => {
   if (status === 'DRAFT' || status === 'PENDING_UPLOAD') return { label: 'Chờ ký hợp đồng', variant: 'warning', value: 'WAITING_SIGNATURE' };
   if (status === 'PENDING_APPROVAL' || status === 'APPROVED') return { label: 'Chờ sản xuất', variant: 'primary', value: 'PENDING_PROCESS' };
   if (status === 'WAITING_PRODUCTION' || status === 'IN_PROGRESS') return { label: 'Đang sản xuất', variant: 'info', value: 'IN_PRODUCTION' };
-  if (status === 'COMPLETED') return { label: 'Sản xuất xong', variant: 'success', value: 'COMPLETED' };
+  if (status === 'COMPLETED' || status === 'ORDER_COMPLETED') return { label: 'Sản xuất xong', variant: 'success', value: 'COMPLETED' };
   if (status === 'REJECTED') return { label: 'Đã từ chối', variant: 'danger', value: 'REJECTED' };
 
   const label = getStatusLabel(status);

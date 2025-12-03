@@ -44,9 +44,8 @@ const DirectorRfqList = () => {
         params.search = searchTerm.trim();
       }
 
-      if (statusFilter && statusFilter.trim()) {
-        params.status = statusFilter.trim();
-      }
+      // Don't send statusFilter to backend - we'll filter client-side
+      // because Director status logic is based on assignedSalesId, not backend status field
 
       const response = await rfqService.getRfqs(params);
 
@@ -63,10 +62,19 @@ const DirectorRfqList = () => {
         setTotalElements(response.length);
       }
 
-      // Filter by created date (client-side)
+      // Filter by Director status (client-side based on assignedSalesId)
       let filteredRfqs = rfqs;
+      if (statusFilter === 'WAITING_ASSIGNMENT') {
+        // Chờ phân công: chưa có assignedSalesId
+        filteredRfqs = filteredRfqs.filter(rfq => !rfq.assignedSalesId);
+      } else if (statusFilter === 'ASSIGNED') {
+        // Đã phân công: đã có assignedSalesId
+        filteredRfqs = filteredRfqs.filter(rfq => !!rfq.assignedSalesId);
+      }
+
+      // Filter by created date (client-side)
       if (createdDateFilter) {
-        filteredRfqs = rfqs.filter(rfq => {
+        filteredRfqs = filteredRfqs.filter(rfq => {
           if (!rfq.createdAt) return false;
           try {
             // Convert createdAt to local date string (YYYY-MM-DD) for comparison
@@ -82,11 +90,12 @@ const DirectorRfqList = () => {
             return false;
           }
         });
-        // Update pagination info after filtering (approximate, since we only filter current page)
-        if (filteredRfqs.length !== rfqs.length) {
-          setTotalPages(Math.ceil(filteredRfqs.length / ITEMS_PER_PAGE) || 1);
-          setTotalElements(filteredRfqs.length);
-        }
+      }
+
+      // Update pagination info after filtering
+      if (filteredRfqs.length !== rfqs.length) {
+        setTotalPages(Math.ceil(filteredRfqs.length / ITEMS_PER_PAGE) || 1);
+        setTotalElements(filteredRfqs.length);
       }
 
       const enrichedData = await Promise.all(
@@ -273,9 +282,9 @@ const DirectorRfqList = () => {
                               <Button
                                 variant="primary"
                                 size="sm"
-                                onClick={() => handleOpenAssignModal(rfq.id, rfq.status !== 'DRAFT' || !!rfq.assignedSalesId)}
+                                onClick={() => handleOpenAssignModal(rfq.id, !!rfq.assignedSalesId)}
                               >
-                                {rfq.status === 'DRAFT' && !rfq.assignedSalesId ? 'Phân công' : 'Xem'}
+                                {rfq.assignedSalesId ? 'Xem chi tiết' : 'Phân công'}
                               </Button>
                             </td>
                           </tr>

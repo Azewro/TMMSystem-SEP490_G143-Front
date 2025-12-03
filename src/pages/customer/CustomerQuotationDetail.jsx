@@ -262,7 +262,7 @@ const CustomerQuotationDetail = () => {
                 <h2 className="text-center mb-4 fw-bold">BẢNG BÁO GIÁ</h2>
 
                 <div className="mb-4">
-                  <p className="mb-1">Kính gửi: {quote.customer?.contactPerson || quote.customer?.companyName || 'Quý khách hàng'}</p>
+                  <p className="mb-1">Kính gửi: {quote.contactPersonSnapshot || quote.customer?.contactPerson || quote.customer?.companyName || 'Quý khách hàng'}</p>
                   <p className="mb-1">{quote.customer?.companyName || 'Công Ty TNHH Dệt May Mỹ Đức'}</p>
                   <p className="mb-0">xin trân trọng báo giá các sản phẩm như sau:</p>
                 </div>
