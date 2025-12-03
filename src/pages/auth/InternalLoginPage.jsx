@@ -40,6 +40,12 @@ const InternalLoginPage = () => {
     setError('');
     setLoading(true);
 
+    if (!formData.email.trim() || !formData.password) {
+      setError('Vui lòng nhập đầy đủ email và mật khẩu');
+      setLoading(false);
+      return;
+    }
+
     try {
       // Hardcode userType to 'internal' for this staff-only login page
       const userData = await login(formData.email, formData.password, 'internal');

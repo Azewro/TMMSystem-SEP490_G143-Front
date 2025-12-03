@@ -222,10 +222,7 @@ const PlanningRFQDetail = () => {
   const formatCapacity = (stageType, capacity) => {
     if (capacity === null || capacity === undefined) return 'N/A';
 
-    // Nhuộm vải là outsource
-    if (stageType === 'DYEING') {
-      return 'Khác';
-    }
+
 
     // Mắc cuồng và Dệt vải: Kg
     if (stageType === 'WARPING' || stageType === 'WEAVING') {
@@ -237,7 +234,7 @@ const PlanningRFQDetail = () => {
       return `${capacity.toFixed(2)} khăn`;
     }
 
-    if (stageType === 'PACKAGING') {
+    if (stageType === 'PACKAGING' || stageType === 'DYEING') {
       return `${capacity.toFixed(0)} sản phẩm`;
     }
 

@@ -544,15 +544,28 @@ const ProductionPlanDetail = () => {
             return;
         }
 
-        // Validate required fields for all stages
+        // Validate completeness of stages
         const stages = editablePlan.details[0].stages;
         for (const stage of stages) {
-            if (!stage.inChargeId) {
-                toast.error(`Công đoạn ${getStageTypeName(stage.stageType)} chưa có Người phụ trách.`);
+            const stageName = getStageTypeName(stage.stageType);
+            if (!stage.inChargeId && !stage.inChargeUserId) {
+                toast.error(`Công đoạn ${stageName} chưa có Người phụ trách.`);
                 return;
             }
-            if (!stage.inspectionById) {
-                toast.error(`Công đoạn ${getStageTypeName(stage.stageType)} chưa có Người kiểm tra.`);
+            if (!stage.inspectionById && !stage.qcUserId) {
+                toast.error(`Công đoạn ${stageName} chưa có Người kiểm tra (QC).`);
+                return;
+            }
+            if (!stage.plannedStartTime) {
+                toast.error(`Công đoạn ${stageName} chưa có Thời gian bắt đầu.`);
+                return;
+            }
+            if (!stage.plannedEndTime) {
+                toast.error(`Công đoạn ${stageName} chưa có Thời gian kết thúc.`);
+                return;
+            }
+            if (new Date(stage.plannedEndTime) <= new Date(stage.plannedStartTime)) {
+                toast.error(`Công đoạn ${stageName}: Thời gian kết thúc phải sau thời gian bắt đầu.`);
                 return;
             }
         }
