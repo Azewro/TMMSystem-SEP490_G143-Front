@@ -1,19 +1,19 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { Container, Card, Table, Button, Modal, Alert, Spinner, Form, Badge, Row, Col, InputGroup } from 'react-bootstrap';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Container, Card, Table, Button, Spinner, Alert, Badge, Form, InputGroup, Row, Col, Modal } from 'react-bootstrap';
+import { FaSearch } from 'react-icons/fa';
 import Header from '../../components/common/Header';
+import InternalSidebar from '../../components/common/InternalSidebar';
 import { productionPlanService } from '../../api/productionPlanService';
 import { contractService } from '../../api/contractService';
-import '../../styles/QuoteRequests.css';
-import InternalSidebar from '../../components/common/InternalSidebar';
 import { getDirectorPlanStatus } from '../../utils/statusMapper';
-import { FaSearch } from 'react-icons/fa';
+import Pagination from '../../components/Pagination';
+import toast from 'react-hot-toast';
 
 const formatDate = (value) => {
   if (!value) return '';
   try {
     return new Date(value).toLocaleDateString('vi-VN');
   } catch (error) {
-    console.warn('Cannot parse date', value, error);
     return value;
   }
 };
@@ -27,7 +27,6 @@ const formatDateTime = (value) => {
   }
 };
 
-// Map stage type to Vietnamese name
 const getStageTypeName = (stageType) => {
   const stageTypeMap = {
     'WARPING': 'Cuồng mắc',
@@ -40,7 +39,6 @@ const getStageTypeName = (stageType) => {
   return stageTypeMap[stageType] || stageType;
 };
 
-// Calculate duration in hours from start and end time
 const calculateDuration = (startTime, endTime) => {
   if (!startTime || !endTime) return '—';
   try {
@@ -58,36 +56,42 @@ const ProductionPlanApprovals = () => {
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+
+  // Modal state
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [planDetails, setPlanDetails] = useState(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [decision, setDecision] = useState('');
   const [processing, setProcessing] = useState(false);
 
-  // Filter states
+  // Search and filter state
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('PENDING_APPROVAL');
-  const [dateFilter, setDateFilter] = useState('');
+  const [createdDateFilter, setCreatedDateFilter] = useState('');
 
-  const loadPlans = useCallback(async () => {
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
+  const ITEMS_PER_PAGE = 10;
+
+  const fetchPlans = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
+      // Fetch all plans first (since backend might not support full pagination/filtering combination yet)
+      // We will filter client-side for now to match the previous logic but with new UI
       let fetchedPlans = [];
-      if (statusFilter === 'ALL') {
+      if (statusFilter === 'ALL' || !statusFilter) {
         fetchedPlans = await productionPlanService.getAll();
-      } else if (statusFilter) {
-        fetchedPlans = await productionPlanService.getPlansByStatus(statusFilter);
       } else {
-        // Default fallback if needed, though we set default to PENDING_APPROVAL
-        fetchedPlans = await productionPlanService.getPendingApproval();
+        fetchedPlans = await productionPlanService.getPlansByStatus(statusFilter);
       }
 
-      if (Array.isArray(fetchedPlans) && fetchedPlans.length > 0) {
-        // Client-side filtering for Search and Date
+      if (Array.isArray(fetchedPlans)) {
         let filtered = fetchedPlans;
 
+        // Filter by Search Term
         if (searchTerm) {
           const lowerSearch = searchTerm.toLowerCase();
           filtered = filtered.filter(p =>
@@ -96,40 +100,60 @@ const ProductionPlanApprovals = () => {
           );
         }
 
-        if (dateFilter) {
+        // Filter by Date
+        if (createdDateFilter) {
           filtered = filtered.filter(p => {
             if (!p.createdAt) return false;
             const pDate = new Date(p.createdAt).toISOString().split('T')[0];
-            return pDate === dateFilter;
+            return pDate === createdDateFilter;
           });
         }
 
+        // Calculate pagination
+        const totalFiltered = filtered.length;
+        const newTotalPages = Math.max(1, Math.ceil(totalFiltered / ITEMS_PER_PAGE));
+        setTotalPages(newTotalPages);
+        setTotalElements(totalFiltered);
+
+        // Apply pagination
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        const endIndex = startIndex + ITEMS_PER_PAGE;
+        const paginatedPlans = filtered.slice(startIndex, endIndex);
+
+        // Enrich data
         const enrichedPlans = await Promise.all(
-          filtered.map(async (plan) => {
+          paginatedPlans.map(async (plan) => {
             try {
               const contractDetails = await contractService.getOrderDetails(plan.contractId);
-              return { ...plan, contractDetails }; // Combine plan with its contract details
+              return { ...plan, contractDetails };
             } catch (contractError) {
               console.error(`Failed to fetch contract details for plan ${plan.id}`, contractError);
-              return { ...plan, contractDetails: null }; // Still return the plan even if contract details fail
+              return { ...plan, contractDetails: null };
             }
           })
         );
         setPlans(enrichedPlans);
       } else {
         setPlans([]);
+        setTotalPages(1);
+        setTotalElements(0);
       }
     } catch (err) {
       console.error('Failed to fetch plans', err);
       setError(err.message || 'Không thể tải danh sách kế hoạch.');
+      setPlans([]);
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, searchTerm, dateFilter]);
+  }, [currentPage, searchTerm, statusFilter, createdDateFilter]);
 
   useEffect(() => {
-    loadPlans();
-  }, [loadPlans]);
+    fetchPlans();
+  }, [fetchPlans]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, createdDateFilter]);
 
   const openPlan = async (plan) => {
     setSelectedPlan(plan);
@@ -138,13 +162,11 @@ const ProductionPlanApprovals = () => {
     setDetailsLoading(true);
 
     try {
-      // Fetch plan details and material consumption in parallel
       const [detail, consumptionData] = await Promise.all([
         productionPlanService.getById(plan.id),
         productionPlanService.getMaterialConsumption(plan.id).catch(() => null)
       ]);
 
-      // Format material consumption info
       if (consumptionData && consumptionData.materialSummaries?.length > 0) {
         const materialInfo = consumptionData.materialSummaries
           .map(m => `${m.totalQuantityRequired.toLocaleString()} ${m.unit} ${m.materialName}`)
@@ -154,7 +176,6 @@ const ProductionPlanApprovals = () => {
         detail.materialConsumption = 'Đang tính toán...';
       }
 
-      // Fetch stages if not included in plan details
       if (!detail.details || !detail.details[0]?.stages) {
         try {
           const stages = await productionPlanService.getPlanStages(plan.id);
@@ -169,7 +190,7 @@ const ProductionPlanApprovals = () => {
       setPlanDetails(detail);
     } catch (err) {
       console.error('Failed to fetch plan detail', err);
-      setError(err.message || 'Không thể tải chi tiết kế hoạch.');
+      toast.error(err.message || 'Không thể tải chi tiết kế hoạch.');
     } finally {
       setDetailsLoading(false);
     }
@@ -184,17 +205,13 @@ const ProductionPlanApprovals = () => {
   const handleApprove = async () => {
     if (!selectedPlan) return;
     setProcessing(true);
-    setError('');
-    setSuccess('');
-
     try {
       await productionPlanService.approve(selectedPlan.id, decision.trim() || undefined);
-      setSuccess('Đã phê duyệt kế hoạch sản xuất. Lệnh sản xuất sẽ được tạo tự động.');
+      toast.success('Đã phê duyệt kế hoạch sản xuất. Lệnh sản xuất sẽ được tạo tự động.');
       closeModal();
-      loadPlans();
+      fetchPlans();
     } catch (err) {
-      console.error('Approve plan failed', err);
-      setError(err.message || 'Không thể phê duyệt kế hoạch.');
+      toast.error(err.message || 'Không thể phê duyệt kế hoạch.');
     } finally {
       setProcessing(false);
     }
@@ -203,22 +220,17 @@ const ProductionPlanApprovals = () => {
   const handleReject = async () => {
     if (!selectedPlan) return;
     if (!decision.trim()) {
-      setError('Vui lòng nhập lý do từ chối kế hoạch.');
+      toast.error('Vui lòng nhập lý do từ chối kế hoạch.');
       return;
     }
-
     setProcessing(true);
-    setError('');
-    setSuccess('');
-
     try {
       await productionPlanService.rejectPlan(selectedPlan.id, decision.trim());
-      setSuccess('Đã trả lại kế hoạch cho phòng kế hoạch chỉnh sửa.');
+      toast.success('Đã trả lại kế hoạch cho phòng kế hoạch chỉnh sửa.');
       closeModal();
-      loadPlans();
+      fetchPlans();
     } catch (err) {
-      console.error('Reject plan failed', err);
-      setError(err.message || 'Không thể từ chối kế hoạch.');
+      toast.error(err.message || 'Không thể từ chối kế hoạch.');
     } finally {
       setProcessing(false);
     }
@@ -240,12 +252,9 @@ const ProductionPlanApprovals = () => {
         <InternalSidebar userRole="director" />
         <div className="flex-grow-1 p-4" style={{ backgroundColor: '#f8f9fa' }}>
           <Container fluid>
-            <div className="mb-4">
-              <h2 className="mb-2">Phê Duyệt Kế Hoạch Sản Xuất</h2>
-              <p className="text-muted mb-0">Xem xét và phê duyệt kế hoạch sản xuất từ bộ phận Kế hoạch</p>
-            </div>
+            <h2 className="mb-4">Phê Duyệt Kế Hoạch Sản Xuất</h2>
 
-            {/* Filter Bar */}
+            {/* Search and Filter Section */}
             <Card className="mb-3">
               <Card.Body>
                 <Row className="g-3 align-items-end">
@@ -268,8 +277,8 @@ const ProductionPlanApprovals = () => {
                       <Form.Label className="mb-1 small">Lọc theo ngày tạo</Form.Label>
                       <Form.Control
                         type="date"
-                        value={dateFilter}
-                        onChange={(e) => setDateFilter(e.target.value)}
+                        value={createdDateFilter}
+                        onChange={(e) => setCreatedDateFilter(e.target.value)}
                       />
                     </Form.Group>
                   </Col>
@@ -290,85 +299,77 @@ const ProductionPlanApprovals = () => {
               </Card.Body>
             </Card>
 
-            {error && (
-              <Alert variant="danger" onClose={() => setError('')} dismissible>
-                {error}
-              </Alert>
-            )}
-
-            {success && (
-              <Alert variant="success" onClose={() => setSuccess('')} dismissible>
-                {success}
-              </Alert>
-            )}
-
-            <Card className="shadow-sm">
+            <Card>
               <Card.Header>
-                <strong>Danh sách kế hoạch</strong>
+                Danh sách kế hoạch sản xuất
               </Card.Header>
               <Card.Body>
-                <Table responsive hover className="mb-0 align-middle">
-                  <thead className="table-light">
-                    <tr>
-                      <th>Mã Kế Hoạch</th>
-                      <th>Sản phẩm</th>
-                      <th>Số lượng</th>
-                      <th>Ngày Bắt Đầu (dự kiến)</th>
-                      <th>Ngày Kết Thúc (dự kiến)</th>
-                      <th>Trạng thái</th>
-                      <th className="text-center">Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loading ? (
-                      <tr>
-                        <td colSpan={7} className="text-center py-4">
-                          <Spinner animation="border" size="sm" className="me-2" /> Đang tải kế hoạch...
-                        </td>
-                      </tr>
-                    ) : plans.length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="text-center py-4 text-muted">
-                          Không có kế hoạch nào phù hợp.
-                        </td>
-                      </tr>
-                    ) : (
-                      plans.map((plan) => {
-                        const statusObj = getDirectorPlanStatus(plan.status);
+                {loading ? (
+                  <div className="text-center"><Spinner animation="border" /></div>
+                ) : error ? (
+                  <Alert variant="danger">{error}</Alert>
+                ) : (
+                  <>
+                    <Table striped bordered hover responsive>
+                      <thead>
+                        <tr>
+                          <th>Mã Kế Hoạch</th>
+                          <th>Sản phẩm</th>
+                          <th>Số lượng</th>
+                          <th>Ngày Bắt Đầu (dự kiến)</th>
+                          <th>Ngày Kết Thúc (dự kiến)</th>
+                          <th>Trạng thái</th>
+                          <th>Thao tác</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {plans.length > 0 ? plans.map(plan => {
+                          const statusObj = getDirectorPlanStatus(plan.status);
+                          const productName = plan.contractDetails?.orderItems?.[0]?.productName || 'N/A';
+                          const plannedQuantity = plan.contractDetails?.orderItems?.reduce((sum, item) => sum + item.quantity, 0) || 'N/A';
 
-                        // Extract data from combined plan and contractDetails object
-                        const productName = plan.contractDetails?.orderItems?.[0]?.productName || 'N/A';
-                        const plannedQuantity = plan.contractDetails?.orderItems?.reduce((sum, item) => sum + item.quantity, 0) || 'N/A';
-                        const startDate = plan.proposedStartDate;
-                        const endDate = plan.proposedEndDate;
-
-                        return (
-                          <tr key={plan.id}>
-                            <td className="fw-semibold">{plan.planCode || `PP-${plan.id}`}</td>
-                            <td>{productName}</td>
-                            <td>{plannedQuantity}</td>
-                            <td>{formatDate(startDate)}</td>
-                            <td>{formatDate(endDate)}</td>
-                            <td>
-                              <Badge bg={statusObj.variant}>{statusObj.label}</Badge>
-                            </td>
-                            <td className="text-center">
-                              <Button variant="outline-primary" size="sm" onClick={() => openPlan(plan)}>
-                                👁 Chi tiết
-                              </Button>
+                          return (
+                            <tr key={plan.id}>
+                              <td>{plan.planCode || `PP-${plan.id}`}</td>
+                              <td>{productName}</td>
+                              <td>{plannedQuantity}</td>
+                              <td>{formatDate(plan.proposedStartDate)}</td>
+                              <td>{formatDate(plan.proposedEndDate)}</td>
+                              <td>
+                                <Badge bg={statusObj.variant}>{statusObj.label}</Badge>
+                              </td>
+                              <td>
+                                <Button variant="primary" size="sm" onClick={() => openPlan(plan)}>
+                                  Xem chi tiết
+                                </Button>
+                              </td>
+                            </tr>
+                          );
+                        }) : (
+                          <tr>
+                            <td colSpan="7" className="text-center">
+                              {totalElements === 0
+                                ? 'Không có kế hoạch nào cần xử lý.'
+                                : 'Không tìm thấy kế hoạch phù hợp với bộ lọc.'}
                             </td>
                           </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </Table>
+                        )}
+                      </tbody>
+                    </Table>
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={setCurrentPage}
+                    />
+                  </>
+                )}
               </Card.Body>
             </Card>
           </Container>
         </div>
       </div>
 
+      {/* Detail Modal */}
       <Modal show={!!selectedPlan} onHide={closeModal} size="xl" centered>
         <Modal.Header closeButton>
           <Modal.Title>Chi Tiết Kế Hoạch Sản Xuất - {selectedPlan?.planCode || `PP-${selectedPlan?.id}`}</Modal.Title>
@@ -413,7 +414,6 @@ const ProductionPlanApprovals = () => {
                       <thead className="table-light">
                         <tr>
                           <th style={{ width: 80 }}>Công đoạn</th>
-
                           <th>Người phụ trách</th>
                           <th>Người kiểm tra</th>
                           <th>Bắt đầu</th>
@@ -426,7 +426,6 @@ const ProductionPlanApprovals = () => {
                         {detail.stages?.map((stage) => (
                           <tr key={stage.id}>
                             <td>{getStageTypeName(stage.stageType || stage.stage || stage.stageTypeName)}</td>
-
                             <td>{stage.inChargeUserName || stage.inChargeUser?.name || stage.inChargeUser?.fullName || '—'}</td>
                             <td>{stage.qcUserName || stage.qcUser?.name || stage.qcUser?.fullName || '—'}</td>
                             <td>{formatDateTime(stage.plannedStartTime || stage.startTime)}</td>

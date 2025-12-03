@@ -2,11 +2,36 @@
 
 .production-plan-detail-page {
   background-color: #f8f9fa;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.production-plan-content-area {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  /* Ensure sidebar stretches to match content height */
+}
+
+.production-plan-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Centered Container */
+.production-plan-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  flex: 1;
+  /* Allow it to grow */
 }
 
 .page-title {
   font-size: 1.75rem;
-  font-weight: 600;
+  font-weight: 700;
   color: #2c3e50;
 }
 
@@ -39,10 +64,9 @@
 }
 
 .stage-card .card-title-custom {
-    margin-bottom: 1rem;
-    padding-bottom: 0.75rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
 }
-
 
 .form-group-custom {
   margin-bottom: 1rem;
@@ -55,24 +79,107 @@
   margin-bottom: 0.5rem;
 }
 
-.form-control-plaintext-custom {
-    font-size: 0.95rem;
-    color: #212529;
-    padding-left: 0;
+.form-control:disabled,
+.form-control[readonly] {
+  background-color: #f1f3f5;
+  opacity: 1;
 }
 
-.form-control:disabled, .form-control[readonly] {
-    background-color: #f1f3f5;
-    opacity: 1;
-}
-
-.action-buttons {
+/* Process Stepper Styling */
+.process-stepper {
   display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  padding: 1.5rem;
-  background-color: #ffffff;
-  border-radius: 8px;
-  margin-top: 1.5rem;
-  box-shadow: 0 -4px 8px rgba(0, 0, 0, 0.05);
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  position: relative;
+  padding: 0 1rem;
+}
+
+.process-stepper::before {
+  content: '';
+  position: absolute;
+  top: 20px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: #e9ecef;
+  z-index: 0;
+}
+
+.step-item {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex: 1;
+}
+
+.step-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #fff;
+  border: 2px solid #dee2e6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #6c757d;
+  margin-bottom: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.step-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #6c757d;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+/* Active State */
+.step-item.active .step-circle {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+  color: #fff;
+  box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.2);
+}
+
+.step-item.active .step-label {
+  color: #0d6efd;
+  font-weight: 700;
+}
+
+/* Hover State */
+.step-item:not(.active):hover .step-circle {
+  border-color: #0d6efd;
+  color: #0d6efd;
+}
+
+/* Completed State (Optional, can be used if we track progress) */
+.step-item.completed .step-circle {
+  background-color: #198754;
+  border-color: #198754;
+  color: #fff;
+}
+
+.step-item.completed .step-label {
+  color: #198754;
+}
+
+/* Action Bar (Static) */
+.action-bar {
+  background-color: transparent;
+  padding: 1.5rem 0;
+  margin-top: auto;
+  /* Push to bottom */
+  text-align: right;
+}
+
+/* Ensure no fixed positioning leaks */
+.fixed-bottom {
+  position: static !important;
 }

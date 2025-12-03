@@ -5,8 +5,10 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { rfqService } from '../../api/rfqService';
+import { quotationService } from '../../api/quotationService';
 import { customerService } from '../../api/customerService';
 import Pagination from '../../components/Pagination';
+import QuotationViewModal from '../../components/modals/QuotationViewModal';
 import { getPlanningRfqStatus } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
 
@@ -28,35 +30,78 @@ const PlanningRfqs = () => {
   const [totalElements, setTotalElements] = useState(0);
   const ITEMS_PER_PAGE = 10;
 
+  // Modal state
+  const [showQuotationModal, setShowQuotationModal] = useState(false);
+  const [selectedQuotationId, setSelectedQuotationId] = useState(null);
+
   const fetchPlanningRfqs = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      // Convert 1-based page to 0-based for backend
-      const page = currentPage - 1;
-      const response = await rfqService.getAssignedRfqsForPlanning(
-        page,
-        ITEMS_PER_PAGE,
-        searchTerm || undefined,
-        statusFilter || undefined,
-        createdDateFilter || undefined
-      );
+      // Don't send statusFilter to backend - we'll filter client-side
+      // because Planning status logic is based on mapped values, not backend status field
 
-      // Handle PageResponse
-      let rfqs = [];
-      if (response && response.content) {
-        rfqs = response.content;
-        setTotalPages(response.totalPages || 1);
-        setTotalElements(response.totalElements || 0);
-      } else if (Array.isArray(response)) {
-        // Fallback for backward compatibility
-        rfqs = response;
-        setTotalPages(1);
-        setTotalElements(response.length);
+      // Fetch all RFQs
+      let allRfqsData = [];
+      let page = 0;
+      let hasMore = true;
+
+      while (hasMore) {
+        const response = await rfqService.getAssignedRfqsForPlanning(
+          page,
+          ITEMS_PER_PAGE,
+          searchTerm || undefined,
+          undefined, // Don't send statusFilter to backend
+          undefined  // Don't send createdDateFilter to backend
+        );
+
+        let pageRfqs = [];
+        if (response && response.content) {
+          pageRfqs = response.content;
+        } else if (Array.isArray(response)) {
+          pageRfqs = response;
+        }
+
+        allRfqsData = [...allRfqsData, ...pageRfqs];
+
+        if (pageRfqs.length < ITEMS_PER_PAGE) {
+          hasMore = false;
+        } else {
+          page++;
+        }
       }
 
+      // Filter by Planning status (client-side based on getPlanningRfqStatus)
+      let filteredRfqs = allRfqsData;
+      if (statusFilter) {
+        filteredRfqs = filteredRfqs.filter(rfq => {
+          const statusObj = getPlanningRfqStatus(rfq);
+          return statusObj.value === statusFilter;
+        });
+      }
+
+      // Filter by created date (client-side)
+      if (createdDateFilter) {
+        filteredRfqs = filteredRfqs.filter(rfq => {
+          if (!rfq.createdAt) return false;
+          const rfqDate = new Date(rfq.createdAt).toISOString().split('T')[0];
+          return rfqDate === createdDateFilter;
+        });
+      }
+
+      // Calculate pagination for filtered results
+      const totalFiltered = filteredRfqs.length;
+      const newTotalPages = Math.max(1, Math.ceil(totalFiltered / ITEMS_PER_PAGE));
+      setTotalPages(newTotalPages);
+      setTotalElements(totalFiltered);
+
+      // Apply pagination to filtered results
+      const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+      const endIndex = startIndex + ITEMS_PER_PAGE;
+      const paginatedRfqs = filteredRfqs.slice(startIndex, endIndex);
+
       const enrichedData = await Promise.all(
-        (rfqs || []).map(async (rfq) => {
+        (paginatedRfqs || []).map(async (rfq) => {
           if (rfq.customerId) {
             try {
               const customer = await customerService.getCustomerById(rfq.customerId);
@@ -77,6 +122,9 @@ const PlanningRfqs = () => {
     } catch (err) {
       setError('Lỗi khi tải danh sách RFQ.');
       toast.error('Lỗi khi tải danh sách RFQ.');
+      setAllRfqs([]);
+      setTotalPages(1);
+      setTotalElements(0);
     } finally {
       setLoading(false);
     }
@@ -95,8 +143,23 @@ const PlanningRfqs = () => {
     navigate(`/planning/rfqs/${rfqId}`);
   };
 
-  // All filtering is now done server-side via API
-  const filteredRfqs = allRfqs;
+  const handleViewQuotation = async (rfq) => {
+    try {
+      const quotationsResponse = await quotationService.getAllQuotations(0, 1000);
+      const quotations = quotationsResponse?.content || (Array.isArray(quotationsResponse) ? quotationsResponse : []);
+      const quotation = quotations.find(q => q.rfqId === rfq.id || q.rfq?.id === rfq.id);
+
+      if (quotation) {
+        setSelectedQuotationId(quotation.id);
+        setShowQuotationModal(true);
+      } else {
+        toast.error('Không tìm thấy báo giá cho yêu cầu này');
+      }
+    } catch (error) {
+      console.error('Error fetching quotations:', error);
+      toast.error('Lỗi khi tải thông tin báo giá');
+    }
+  };
 
   return (
     <div>
@@ -153,9 +216,8 @@ const PlanningRfqs = () => {
                         <option value="">Tất cả trạng thái</option>
                         <option value="WAITING_CREATE">Chờ tạo</option>
                         <option value="WAITING_CONFIRMATION">Chờ xác nhận</option>
-                        <option value="REJECTED">Từ chối</option>
+                        <option value="REJECTED">Đã từ chối</option>
                         <option value="CONFIRMED">Đã xác nhận</option>
-                        <option value="CANCELED">Đã hủy</option>
                       </Form.Select>
                     </Form.Group>
                   </Col>
@@ -185,7 +247,7 @@ const PlanningRfqs = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredRfqs.length > 0 ? filteredRfqs.map(rfq => (
+                        {allRfqs.length > 0 ? allRfqs.map(rfq => (
                           <tr key={rfq.id}>
                             <td>{rfq.rfqNumber}</td>
                             <td>{rfq.contactPerson || 'N/A'}</td>
@@ -197,9 +259,17 @@ const PlanningRfqs = () => {
                               })()}
                             </td>
                             <td>
-                              <Button variant="primary" size="sm" onClick={() => handleViewDetails(rfq.id)}>
-                                Xem chi tiết
-                              </Button>
+                              <div className="d-flex gap-2">
+                                {/* Show "Xem báo giá" button if RFQ has quotation (status: QUOTED, REJECTED, ACCEPTED, ORDER_CREATED) */}
+                                {(rfq.status === 'QUOTED' || rfq.status === 'REJECTED' || rfq.status === 'ACCEPTED' || rfq.status === 'ORDER_CREATED') && (
+                                  <Button variant="success" size="sm" onClick={() => handleViewQuotation(rfq)}>
+                                    Xem bảng giá
+                                  </Button>
+                                )}
+                                <Button variant="primary" size="sm" onClick={() => handleViewDetails(rfq.id)}>
+                                  Xem chi tiết
+                                </Button>
+                              </div>
                             </td>
                           </tr>
                         )) : (
@@ -225,6 +295,13 @@ const PlanningRfqs = () => {
           </Container>
         </div>
       </div>
+
+      {/* Quotation View Modal */}
+      <QuotationViewModal
+        show={showQuotationModal}
+        onHide={() => setShowQuotationModal(false)}
+        quotationId={selectedQuotationId}
+      />
     </div>
   );
 };

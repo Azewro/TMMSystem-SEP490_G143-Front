@@ -4,8 +4,10 @@ import { FaArrowLeft, FaCogs, FaFileInvoice, FaInbox, FaCheckCircle, FaTimesCirc
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
+import { rfqService } from '../../api/rfqService';
 import { quoteService } from '../../api/quoteService';
 import { productService } from '../../api/productService';
+import { getPlanningRfqStatus } from '../../utils/statusMapper';
 import InsufficientCapacityModal from '../../components/modals/InsufficientCapacityModal';
 import toast from 'react-hot-toast';
 
@@ -31,31 +33,7 @@ const PlanningRFQDetail = () => {
   const [showCapacityReportModal, setShowCapacityReportModal] = useState(false);
   const [capacityReportData, setCapacityReportData] = useState(null);
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case 'DRAFT': return 'secondary';
-      case 'SENT': return 'info';
-      case 'FORWARDED_TO_PLANNING': return 'warning';
-      case 'PRELIMINARY_CHECKED': return 'primary';
-      case 'RECEIVED_BY_PLANNING': return 'info';
-      case 'QUOTED': return 'success';
-      case 'REJECTED': return 'danger';
-      default: return 'light';
-    }
-  };
 
-  const getStatusText = (status) => {
-    switch (status) {
-      case 'DRAFT': return 'Bản nháp';
-      case 'SENT': return 'Đã gửi Sale';
-      case 'FORWARDED_TO_PLANNING': return 'Chờ xử lý';
-      case 'PRELIMINARY_CHECKED': return 'Sale đã kiểm tra';
-      case 'RECEIVED_BY_PLANNING': return 'Đã tiếp nhận';
-      case 'QUOTED': return 'Đã báo giá';
-      case 'REJECTED': return 'Đã từ chối';
-      default: return status;
-    }
-  };
 
   const loadRFQ = useCallback(async () => {
     if (!id) return;
@@ -312,7 +290,10 @@ const PlanningRFQDetail = () => {
                         <p className="mb-1"><strong>Ngày tạo RFQ:</strong> {formatDate(rfqData?.createdAt)}</p>
                         <p className="mb-1"><strong>Ngày giao mong muốn:</strong> {formatDate(rfqData?.expectedDeliveryDate)}</p>
                         <p className="mb-1"><strong>Trạng thái:</strong>
-                          <Badge bg={getStatusBadge(currentStatus)} className="ms-2">{getStatusText(currentStatus)}</Badge>
+                          {(() => {
+                            const statusObj = getPlanningRfqStatus(rfqData);
+                            return <Badge bg={statusObj.variant} className="ms-2">{statusObj.label}</Badge>;
+                          })()}
                         </p>
                         <p className="mb-1"><strong>Ghi chú:</strong> {rfqData?.notes || '—'}</p>
                       </Col>

@@ -47,92 +47,72 @@ const MyRfqs = () => {
         ? trimmedSearch
         : undefined;
 
-      // Prepare status parameter - only include if it has a value
-      const statusParam = statusFilter && statusFilter.trim()
-        ? statusFilter.trim()
-        : undefined;
+      // Don't send statusFilter to backend - we'll filter client-side
+      // because Sales status logic is based on mapped values, not backend status field
 
-      // If filtering by date, we need to fetch all pages and filter client-side
-      // Otherwise, use pagination normally
+      // Fetch all RFQs (without pagination) to apply client-side filtering
       let allRfqsData = [];
-      let totalPagesFromBackend = 1;
-      let totalElementsFromBackend = 0;
 
-      if (createdDateFilter) {
-        // Fetch all pages when filtering by date (client-side filter)
-        // This ensures pagination works correctly after filtering
-        let page = 0;
-        let hasMore = true;
+      // Fetch all pages
+      let page = 0;
+      let hasMore = true;
 
-        while (hasMore) {
-          const response = await rfqService.getAssignedRfqsForSales(
-            page,
-            ITEMS_PER_PAGE,
-            searchParam,
-            statusParam
-          );
-
-          let pageRfqs = [];
-          if (response && response.content) {
-            pageRfqs = response.content;
-            if (page === 0) {
-              totalPagesFromBackend = response.totalPages || 1;
-              totalElementsFromBackend = response.totalElements || 0;
-            }
-          } else if (Array.isArray(response)) {
-            pageRfqs = response;
-          }
-
-          // Filter by created date
-          const filteredRfqs = pageRfqs.filter(rfq => {
-            if (!rfq.createdAt) return false;
-            const rfqDate = new Date(rfq.createdAt).toISOString().split('T')[0];
-            return rfqDate === createdDateFilter;
-          });
-
-          allRfqsData = [...allRfqsData, ...filteredRfqs];
-
-          // Check if there are more pages
-          if (pageRfqs.length < ITEMS_PER_PAGE || page >= (totalPagesFromBackend - 1)) {
-            hasMore = false;
-          } else {
-            page++;
-          }
-        }
-
-        // Recalculate pagination for filtered results
-        const totalFiltered = allRfqsData.length;
-        const newTotalPages = Math.max(1, Math.ceil(totalFiltered / ITEMS_PER_PAGE));
-        setTotalPages(newTotalPages);
-        setTotalElements(totalFiltered);
-
-        // Apply pagination to filtered results
-        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-        const endIndex = startIndex + ITEMS_PER_PAGE;
-        allRfqsData = allRfqsData.slice(startIndex, endIndex);
-      } else {
-        // Normal pagination without date filter
-        const page = currentPage - 1;
+      while (hasMore) {
         const response = await rfqService.getAssignedRfqsForSales(
           page,
           ITEMS_PER_PAGE,
           searchParam,
-          statusParam
+          undefined // Don't send status filter to backend
         );
 
+        let pageRfqs = [];
         if (response && response.content) {
-          allRfqsData = response.content;
-          setTotalPages(response.totalPages || 1);
-          setTotalElements(response.totalElements || 0);
+          pageRfqs = response.content;
         } else if (Array.isArray(response)) {
-          allRfqsData = response;
-          setTotalPages(1);
-          setTotalElements(response.length);
+          pageRfqs = response;
+        }
+
+        allRfqsData = [...allRfqsData, ...pageRfqs];
+
+        // Check if there are more pages
+        if (pageRfqs.length < ITEMS_PER_PAGE) {
+          hasMore = false;
+        } else {
+          page++;
         }
       }
 
+      // Filter by Sales status (client-side based on getSalesRfqStatus)
+      let filteredRfqs = allRfqsData;
+      if (statusFilter) {
+        filteredRfqs = filteredRfqs.filter(rfq => {
+          const statusObj = getSalesRfqStatus(rfq.status);
+          return statusObj.value === statusFilter;
+        });
+      }
+
+      // Filter by created date (client-side)
+      if (createdDateFilter) {
+        filteredRfqs = filteredRfqs.filter(rfq => {
+          if (!rfq.createdAt) return false;
+          const rfqDate = new Date(rfq.createdAt).toISOString().split('T')[0];
+          return rfqDate === createdDateFilter;
+        });
+      }
+
+      // Calculate pagination for filtered results
+      const totalFiltered = filteredRfqs.length;
+      const newTotalPages = Math.max(1, Math.ceil(totalFiltered / ITEMS_PER_PAGE));
+      setTotalPages(newTotalPages);
+      setTotalElements(totalFiltered);
+
+      // Apply pagination to filtered results
+      const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+      const endIndex = startIndex + ITEMS_PER_PAGE;
+      const paginatedRfqs = filteredRfqs.slice(startIndex, endIndex);
+
       const enrichedData = await Promise.all(
-        (allRfqsData || []).map(async (rfq) => {
+        (paginatedRfqs || []).map(async (rfq) => {
           if (rfq.customerId) {
             try {
               const customer = await customerService.getCustomerById(rfq.customerId);

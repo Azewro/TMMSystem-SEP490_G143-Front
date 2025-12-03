@@ -1,300 +1,278 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { Container, Card, Table, Badge, Button, Alert, Spinner, Form, InputGroup, Row, Col } from 'react-bootstrap';
-import { FaEye, FaSearch } from 'react-icons/fa';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Container, Card, Table, Button, Spinner, Alert, Badge, Form, InputGroup, Row, Col } from 'react-bootstrap';
+import { FaSearch } from 'react-icons/fa';
 import Header from '../../components/common/Header';
 import Sidebar from '../../components/common/Sidebar';
 import { quotationService } from '../../api/quotationService';
-import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import Pagination from '../../components/Pagination';
-import toast from 'react-hot-toast';
 import { getCustomerQuoteStatus } from '../../utils/statusMapper';
-import '../../styles/CustomerQuoteRequests.css';
-
-const formatDate = (iso) => {
-  if (!iso) return 'N/A';
-  try {
-    return new Date(iso).toLocaleDateString('vi-VN');
-  } catch {
-    return iso;
-  }
-};
-
-const formatCurrency = (amount) => {
-  if (!amount) return '0 ₫';
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(amount);
-};
+import toast from 'react-hot-toast';
+import { useAuth } from '../../context/AuthContext';
 
 const CustomerQuotations = () => {
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const customerId = user?.customerId;
+    const { user } = useAuth();
+    const navigate = useNavigate();
+    const [quotations, setQuotations] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
 
-  const [allQuotes, setAllQuotes] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+    // Search and filter state
+    const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('');
+    const [createdDateFilter, setCreatedDateFilter] = useState('');
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [sortBy, setSortBy] = useState('createdAt'); // 'createdAt' or 'validUntil'
-  const [sortOrder, setSortOrder] = useState('desc'); // 'asc' or 'desc'
-  const [selectedDate, setSelectedDate] = useState(''); // For date-based sorting
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalElements, setTotalElements] = useState(0);
-  const ITEMS_PER_PAGE = 10;
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalElements, setTotalElements] = useState(0);
+    const ITEMS_PER_PAGE = 10;
 
-  const fetchCustomerQuotes = useCallback(async () => {
-    if (!customerId) {
-      setError('Không tìm thấy thông tin khách hàng.');
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setError('');
-    try {
-      // Normalize search term: trim and replace multiple spaces with single space
-      const normalizedSearch = debouncedSearchTerm
-        ? debouncedSearchTerm.trim().replace(/\s+/g, ' ')
-        : undefined;
+    const fetchQuotations = useCallback(async () => {
+        if (!user || !user.customerId) {
+            setLoading(false);
+            return;
+        }
 
-      // Convert 1-based page to 0-based for backend
-      const page = currentPage - 1;
+        setLoading(true);
+        setError('');
+        try {
+            // Prepare search parameter
+            const trimmedSearch = debouncedSearchTerm?.trim() || '';
+            const searchParam = trimmedSearch.length > 0 ? trimmedSearch : undefined;
 
-      // Prepare sort parameters
-      let finalSortBy = sortBy;
-      let finalSortOrder = sortOrder;
+            // Fetch all quotations for client-side filtering
+            // Note: Similar to MyRfqs, we fetch all and filter client-side for complex status mapping
+            const response = await quotationService.getCustomerQuotations(
+                user.customerId,
+                0, // Fetch all
+                1000,
+                searchParam,
+                undefined,
+                undefined,
+                undefined,
+                createdDateFilter || undefined
+            );
 
-      // If sorting by date and a specific date is selected, backend will handle it
-      // For now, we just pass sortBy and sortOrder to backend
+            let allQuotes = [];
+            if (response && response.content) {
+                allQuotes = response.content;
+            } else if (Array.isArray(response)) {
+                allQuotes = response;
+            }
 
-      const response = await quotationService.getCustomerQuotations(
-        customerId,
-        page,
-        ITEMS_PER_PAGE,
-        normalizedSearch,
-        statusFilter || undefined,
-        finalSortBy,
-        finalSortOrder,
-        selectedDate || undefined
-      );
+            // Filter by Status (client-side based on getCustomerQuoteStatus)
+            let filteredQuotes = allQuotes;
+            if (statusFilter) {
+                filteredQuotes = filteredQuotes.filter(q => {
+                    const statusObj = getCustomerQuoteStatus(q.status);
+                    return statusObj.value === statusFilter;
+                });
+            }
 
-      // Handle PageResponse
-      let quotes = [];
-      if (response && response.content) {
-        quotes = response.content;
-        setTotalPages(response.totalPages || 1);
-        setTotalElements(response.totalElements || 0);
-      } else if (Array.isArray(response)) {
-        quotes = response;
-        setTotalPages(1);
-        setTotalElements(response.length);
-      }
+            // Calculate pagination for filtered results
+            const totalFiltered = filteredQuotes.length;
+            const newTotalPages = Math.max(1, Math.ceil(totalFiltered / ITEMS_PER_PAGE));
+            setTotalPages(newTotalPages);
+            setTotalElements(totalFiltered);
 
-      // Filter out DRAFT quotes (backend should handle this, but keep as safety)
-      // const filteredData = quotes.filter(quote => quote.status !== 'DRAFT');
+            // Apply pagination to filtered results
+            const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+            const endIndex = startIndex + ITEMS_PER_PAGE;
+            const paginatedQuotes = filteredQuotes.slice(startIndex, endIndex);
 
-      setAllQuotes(quotes);
-    } catch (e) {
-      setError(e.message || 'Không thể tải báo giá của bạn');
-      toast.error(e.message || 'Không thể tải báo giá của bạn');
-    } finally {
-      setLoading(false);
-    }
-  }, [customerId, currentPage, debouncedSearchTerm, statusFilter, sortBy, sortOrder, selectedDate]);
+            setQuotations(paginatedQuotes);
 
-  // Debounce search term
-  useEffect(() => {
-    // If searchTerm is empty, update debouncedSearchTerm immediately
-    // Otherwise, wait 500ms after user stops typing
-    if (!searchTerm || searchTerm.trim() === '') {
-      setDebouncedSearchTerm('');
-      return;
-    }
+        } catch (err) {
+            console.error('Error fetching quotations:', err);
+            const errorMessage = err.message || 'Lỗi khi tải danh sách báo giá.';
+            setError(errorMessage);
+            toast.error(errorMessage);
+            setQuotations([]);
+            setTotalPages(1);
+            setTotalElements(0);
+        } finally {
+            setLoading(false);
+        }
+    }, [currentPage, debouncedSearchTerm, statusFilter, createdDateFilter, user]);
 
-    const timer = setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm);
-    }, 500); // Wait 500ms after user stops typing
+    // Debounce search term
+    useEffect(() => {
+        if (!searchTerm || searchTerm.trim() === '') {
+            setDebouncedSearchTerm('');
+            return;
+        }
 
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
+        const timer = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+        }, 500);
 
-  useEffect(() => {
-    // Reset to page 1 when filters or search change
-    setCurrentPage(1);
-  }, [debouncedSearchTerm, statusFilter, sortBy, sortOrder, selectedDate]);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
 
-  useEffect(() => {
-    fetchCustomerQuotes();
-  }, [fetchCustomerQuotes]);
+    useEffect(() => {
+        fetchQuotations();
+    }, [fetchQuotations]);
 
-  const handleViewDetail = (quoteId) => {
-    navigate(`/customer/quotations/${quoteId}`);
-  };
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [debouncedSearchTerm, statusFilter, createdDateFilter]);
 
-  const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value);
-    setCurrentPage(1);
-  };
+    const handleViewDetails = (id) => {
+        navigate(`/customer/quotations/${id}`);
+    };
 
-  // Note: Search is now server-side, no client-side filtering needed
+    const handleViewOrder = (quotation) => {
+        // Navigate to order list or detail if orderId exists
+        navigate(`/customer/orders`);
+    };
 
-  return (
-    <div className="customer-layout">
-      <Header />
-      <div className="d-flex">
-        <Sidebar />
-        <div className="flex-grow-1 p-4 customer-quote-requests-page" style={{ backgroundColor: '#f8f9fa' }}>
-          <Container fluid>
-            <h2 className="mb-4">Danh sách báo giá của bạn</h2>
+    return (
+        <div>
+            <Header />
+            <div className="d-flex">
+                <Sidebar />
+                <div className="flex-grow-1 p-4" style={{ backgroundColor: '#f8f9fa' }}>
+                    <Container fluid>
+                        <h2 className="mb-4">Danh sách Báo giá</h2>
+                        {/* Search and Filter Section */}
+                        <Card className="mb-3">
+                            <Card.Body>
+                                <Row className="g-3 align-items-end">
+                                    <Col md={4}>
+                                        <Form.Group>
+                                            <Form.Label className="mb-1 small">Tìm kiếm</Form.Label>
+                                            <InputGroup>
+                                                <InputGroup.Text><FaSearch /></InputGroup.Text>
+                                                <Form.Control
+                                                    type="text"
+                                                    placeholder="Tìm theo mã báo giá..."
+                                                    value={searchTerm}
+                                                    onChange={(e) => {
+                                                        setSearchTerm(e.target.value);
+                                                        setCurrentPage(1);
+                                                    }}
+                                                />
+                                            </InputGroup>
+                                        </Form.Group>
+                                    </Col>
+                                    <Col md={3}>
+                                        <Form.Group>
+                                            <Form.Label className="mb-1 small">Lọc theo ngày tạo</Form.Label>
+                                            <Form.Control
+                                                type="date"
+                                                value={createdDateFilter}
+                                                onChange={(e) => {
+                                                    setCreatedDateFilter(e.target.value);
+                                                    setCurrentPage(1);
+                                                }}
+                                            />
+                                        </Form.Group>
+                                    </Col>
+                                    <Col md={3}>
+                                        <Form.Group>
+                                            <Form.Label className="mb-1 small">Lọc theo trạng thái</Form.Label>
+                                            <Form.Select
+                                                value={statusFilter}
+                                                onChange={(e) => {
+                                                    setStatusFilter(e.target.value);
+                                                    setCurrentPage(1);
+                                                }}
+                                            >
+                                                <option value="">Tất cả trạng thái</option>
+                                                <option value="DRAFT">Chờ báo giá</option>
+                                                <option value="SENT">Chờ phê duyệt</option>
+                                                <option value="ACCEPTED">Đã phê duyệt</option>
+                                                <option value="REJECTED">Đã từ chối</option>
+                                            </Form.Select>
+                                        </Form.Group>
+                                    </Col>
+                                </Row>
+                            </Card.Body>
+                        </Card>
 
-            {error && <Alert variant="danger">{error}</Alert>}
+                        <Card>
+                            <Card.Header>
+                                Danh sách các báo giá
+                            </Card.Header>
+                            <Card.Body>
+                                {loading ? (
+                                    <div className="text-center"><Spinner animation="border" /></div>
+                                ) : error ? (
+                                    <Alert variant="danger">{error}</Alert>
+                                ) : (
+                                    <>
+                                        <Table striped bordered hover responsive>
+                                            <thead>
+                                                <tr>
+                                                    <th>Mã Báo Giá</th>
+                                                    <th>Ngày Tạo</th>
+                                                    <th>Trạng Thái</th>
+                                                    <th>Hành Động</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {quotations.length > 0 ? quotations.map(quote => {
+                                                    const statusObj = getCustomerQuoteStatus(quote.status);
+                                                    return (
+                                                        <tr key={quote.id}>
+                                                            <td>{quote.quotationNumber}</td>
+                                                            <td>{new Date(quote.createdAt).toLocaleDateString('vi-VN')}</td>
+                                                            <td>
+                                                                <Badge bg={statusObj.variant}>{statusObj.label}</Badge>
+                                                            </td>
+                                                            <td>
+                                                                <div className="d-flex gap-2">
+                                                                    {statusObj.value === 'DRAFT' && (
+                                                                        <span className="text-muted small">Chờ Sales gửi</span>
+                                                                    )}
 
-            {/* Search and Filter */}
-            <Card className="mb-3">
-              <Card.Body>
-                <Row className="g-3">
-                  <Col md={4}>
-                    <InputGroup>
-                      <InputGroup.Text><FaSearch /></InputGroup.Text>
-                      <Form.Control
-                        type="text"
-                        placeholder="Tìm theo mã báo giá..."
-                        value={searchTerm}
-                        onChange={handleSearchChange}
-                      />
-                    </InputGroup>
-                  </Col>
-                  <Col md={3}>
-                    <Form.Select
-                      value={statusFilter}
-                      onChange={(e) => {
-                        setStatusFilter(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                    >
-                      <option value="">Tất cả trạng thái</option>
-                      <option value="DRAFT">Chờ báo giá</option>
-                      <option value="SENT">Chờ phê duyệt</option>
-                      <option value="REJECTED_ALL">Từ chối</option>
-                      <option value="APPROVED">Phê duyệt</option>
-                    </Form.Select>
-                  </Col>
-                  <Col md={3}>
-                    <Form.Select
-                      value={sortBy}
-                      onChange={(e) => {
-                        setSortBy(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                    >
-                      <option value="createdAt">Sắp xếp theo ngày tạo</option>
-                      <option value="validUntil">Sắp xếp theo ngày giao hàng</option>
-                    </Form.Select>
-                  </Col>
-                  <Col md={2}>
-                    <Form.Select
-                      value={sortOrder}
-                      onChange={(e) => {
-                        setSortOrder(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                    >
-                      <option value="desc">Giảm dần</option>
-                      <option value="asc">Tăng dần</option>
-                    </Form.Select>
-                  </Col>
-                  {sortBy === 'validUntil' && (
-                    <Col md={3}>
-                      <Form.Control
-                        type="date"
-                        value={selectedDate}
-                        onChange={(e) => {
-                          setSelectedDate(e.target.value);
-                          setCurrentPage(1);
-                        }}
-                        placeholder="Chọn ngày"
-                      />
-                    </Col>
-                  )}
-                </Row>
-              </Card.Body>
-            </Card>
+                                                                    {(statusObj.value === 'SENT' || statusObj.value === 'REJECTED') && (
+                                                                        <Button variant="primary" size="sm" onClick={() => handleViewDetails(quote.id)}>
+                                                                            Xem chi tiết
+                                                                        </Button>
+                                                                    )}
 
-            <Card>
-              <Card.Header>
-                Danh sách các báo giá đã nhận
-              </Card.Header>
-              <Card.Body className="p-0">
-                {loading ? (
-                  <div className="text-center p-5"><Spinner animation="border" /></div>
-                ) : (
-                  <>
-                    <Table striped bordered hover responsive className="mb-0">
-                      <thead>
-                        <tr>
-                          <th>Mã báo giá</th>
-                          <th>Ngày giao dự kiến</th>
-                          <th>Tổng tiền</th>
-                          <th>Trạng thái</th>
-                          <th>Thao tác</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {allQuotes.length > 0 ? (
-                          allQuotes.map((quote) => {
-                            const statusObj = getCustomerQuoteStatus(quote.status);
-                            return (
-                              <tr key={quote.id}>
-                                <td className="fw-semibold">{quote.quotationNumber}</td>
-                                <td>{formatDate(quote.validUntil)}</td>
-                                <td className="text-success fw-semibold">{formatCurrency(quote.totalAmount)}</td>
-                                <td>
-                                  <Badge bg={statusObj.variant}>{statusObj.label}</Badge>
-                                </td>
-                                <td>
-                                  <div className="d-flex gap-2 justify-content-center">
-                                    <Button size="sm" variant="outline-primary" onClick={() => handleViewDetail(quote.id)}>
-                                      Chi tiết
-                                    </Button>
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })
-                        ) : (
-                          <tr>
-                            <td colSpan="5" className="text-center py-4 text-muted">
-                              {totalElements === 0 ? 'Không có báo giá nào.' : 'Không tìm thấy báo giá phù hợp với bộ lọc.'}
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </Table>
-                    {totalPages > 1 && (
-                      <div className="p-3">
-                        <Pagination
-                          currentPage={currentPage}
-                          totalPages={totalPages}
-                          onPageChange={setCurrentPage}
-                        />
-                      </div>
-                    )}
-                  </>
-                )}
-              </Card.Body>
-            </Card>
-          </Container>
+                                                                    {statusObj.value === 'ACCEPTED' && (
+                                                                        <>
+                                                                            <Button variant="primary" size="sm" onClick={() => handleViewDetails(quote.id)}>
+                                                                                Xem chi tiết
+                                                                            </Button>
+                                                                            <Button variant="success" size="sm" onClick={() => handleViewOrder(quote)}>
+                                                                                Xem đơn hàng
+                                                                            </Button>
+                                                                        </>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                }) : (
+                                                    <tr>
+                                                        <td colSpan="4" className="text-center">
+                                                            {totalElements === 0
+                                                                ? 'Bạn chưa có báo giá nào.'
+                                                                : 'Không tìm thấy báo giá phù hợp với bộ lọc.'}
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </Table>
+                                        <Pagination
+                                            currentPage={currentPage}
+                                            totalPages={totalPages}
+                                            onPageChange={setCurrentPage}
+                                        />
+                                    </>
+                                )}
+                            </Card.Body>
+                        </Card>
+                    </Container>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default CustomerQuotations;

@@ -4,10 +4,10 @@ import { FaSearch } from 'react-icons/fa';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { contractService } from '../../api/contractService';
-import { quotationService } from '../../api/quotationService'; // Import quotationService
-import { customerService } from '../../api/customerService'; // Import customerService
+import { quotationService } from '../../api/quotationService';
+import { customerService } from '../../api/customerService';
 import { API_BASE_URL } from '../../utils/constants';
-import Pagination from '../../components/Pagination'; // Import Pagination
+import Pagination from '../../components/Pagination';
 import { getSalesOrderStatus } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
 import '../../styles/QuoteRequests.css';
@@ -52,7 +52,7 @@ const ContractUpload = () => {
   const [selectedContract, setSelectedContract] = useState(null);
   const [orderDetails, setOrderDetails] = useState(null);
   const [file, setFile] = useState(null);
-  const [quoteFile, setQuoteFile] = useState(null); // State for quote file
+  const [quoteFile, setQuoteFile] = useState(null);
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -157,7 +157,6 @@ const ContractUpload = () => {
         filtered = filtered.filter(contract => contract.status === statusFilter);
       }
     }
-    // If no statusFilter, show all contracts (no filtering)
 
     // Filter by search term
     if (searchTerm.trim()) {
@@ -263,7 +262,7 @@ const ContractUpload = () => {
   const closeModal = () => {
     setModalOpen(false);
     setSelectedContract(null);
-    setOrderDetails(null);
+    // setOrderDetails(null); // Fix: Don't clear details immediately to prevent flash
     setFile(null);
     setQuoteFile(null);
     setNotes('');
@@ -402,7 +401,7 @@ const ContractUpload = () => {
       default:
         // For other statuses like PENDING_APPROVAL, show a generic view button
         return (
-          <Button variant="secondary" size="sm" className="w-100" onClick={() => openViewDetailsModal(contract)}>
+          <Button variant="outline-primary" size="sm" className="w-100" onClick={() => openViewDetailsModal(contract)}>
             Xem chi tiết
           </Button>
         );
@@ -410,66 +409,58 @@ const ContractUpload = () => {
   };
 
   return (
-    <div className="customer-layout">
+    <div>
       <Header />
       <div className="d-flex">
-        <InternalSidebar />
-        <div className="flex-grow-1" style={{ backgroundColor: '#f8f9fa', minHeight: 'calc(100vh - 70px)' }}>
-          <Container fluid className="p-4">
-            <div className="d-flex justify-content-between align-items-center mb-4">
-              <h1 className="mb-0">Danh sách đơn hàng</h1>
-            </div>
+        <InternalSidebar userRole="sales" />
+        <div className="flex-grow-1 p-4" style={{ backgroundColor: '#f8f9fa' }}>
+          <Container fluid>
+            <h2 className="mb-4">Danh sách đơn hàng</h2>
 
-            {error && (
-              <Alert variant="danger" onClose={() => setError('')} dismissible>
-                {error}
-              </Alert>
-            )}
-
-            {success && (
-              <Alert variant="success" onClose={() => setSuccess('')} dismissible>
-                {success}
-              </Alert>
-            )}
-
-            <Card className="shadow-sm">
+            {/* Search and Filter Section */}
+            <Card className="mb-3">
               <Card.Body>
-                {/* Search and Filter Section */}
-                <Row className="mb-3">
+                <Row className="g-3 align-items-end">
                   <Col md={4}>
-                    <InputGroup>
-                      <InputGroup.Text><FaSearch /></InputGroup.Text>
-                      <Form.Control
-                        type="text"
-                        placeholder="Tìm kiếm theo mã đơn hàng..."
-                        value={searchTerm}
-                        onChange={(e) => {
-                          setSearchTerm(e.target.value);
-                          setCurrentPage(1);
-                        }}
-                      />
-                    </InputGroup>
-                  </Col>
-                  <Col md={3}>
-                    <Form.Select
-                      value={statusFilter}
-                      onChange={(e) => {
-                        setStatusFilter(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                    >
-                      <option value="">Tất cả trạng thái</option>
-                      <option value="WAITING_SIGNATURE">Chờ ký hợp đồng</option>
-                      <option value="PENDING_APPROVAL">Chờ phê duyệt hợp đồng đã ký</option>
-                      <option value="REJECTED">Hợp đồng đã ký bị từ chối</option>
-                      <option value="APPROVED">Hợp đồng đã ký được phê duyệt</option>
-                      <option value="IN_PRODUCTION">Đang sản xuất</option>
-                      <option value="COMPLETED">Sản xuất xong</option>
-                    </Form.Select>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Tìm kiếm</Form.Label>
+                      <InputGroup>
+                        <InputGroup.Text><FaSearch /></InputGroup.Text>
+                        <Form.Control
+                          type="text"
+                          placeholder="Tìm kiếm theo mã đơn hàng..."
+                          value={searchTerm}
+                          onChange={(e) => {
+                            setSearchTerm(e.target.value);
+                            setCurrentPage(1);
+                          }}
+                        />
+                      </InputGroup>
+                    </Form.Group>
                   </Col>
                   <Col md={3}>
                     <Form.Group>
-                      <Form.Label className="mb-1">Lọc theo ngày giao hàng</Form.Label>
+                      <Form.Label className="mb-1 small">Lọc theo trạng thái</Form.Label>
+                      <Form.Select
+                        value={statusFilter}
+                        onChange={(e) => {
+                          setStatusFilter(e.target.value);
+                          setCurrentPage(1);
+                        }}
+                      >
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="WAITING_SIGNATURE">Chờ ký hợp đồng</option>
+                        <option value="PENDING_APPROVAL">Chờ phê duyệt hợp đồng đã ký</option>
+                        <option value="REJECTED">Hợp đồng đã ký bị từ chối</option>
+                        <option value="APPROVED">Hợp đồng đã ký được phê duyệt</option>
+                        <option value="IN_PRODUCTION">Đang sản xuất</option>
+                        <option value="COMPLETED">Sản xuất xong</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Lọc theo ngày giao hàng</Form.Label>
                       <Form.Control
                         type="date"
                         value={deliveryDateFilter}
@@ -482,68 +473,72 @@ const ContractUpload = () => {
                   </Col>
                 </Row>
               </Card.Body>
-              <Card.Body className="p-0">
-                <Table responsive hover className="mb-0 align-middle">
-                  <thead className="table-light">
-                    <tr>
-                      <th style={{ width: 60 }}>#</th>
-                      <th style={{ width: 180 }}>Mã đơn hàng</th>
-                      <th style={{ width: 160 }}>Tên khách hàng</th>
-                      <th style={{ width: 140 }}>Số điện thoại</th>
-                      <th style={{ width: 160 }}>Ngày giao hàng</th>
-                      <th style={{ width: 160 }}>Trạng thái</th>
-                      <th style={{ width: 160 }}>Tổng giá trị</th>
-                      <th style={{ width: 160 }} className="text-center">Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loading ? (
-                      <tr>
-                        <td colSpan={8} className="text-center py-4">
-                          <Spinner animation="border" size="sm" className="me-2" /> Đang tải đơn hàng...
-                        </td>
-                      </tr>
-                    ) : currentContracts.length === 0 ? (
-                      <tr>
-                        <td colSpan={8} className="text-center py-4 text-muted">
-                          {contracts.length === 0
-                            ? 'Không có đơn hàng nào.'
-                            : 'Không tìm thấy đơn hàng phù hợp với bộ lọc.'}
-                        </td>
-                      </tr>
-                    ) : (
-                      currentContracts.map((contract, index) => {
-                        const statusObj = getSalesOrderStatus(contract.status);
-                        return (
-                          <tr key={contract.id}>
-                            <td>{indexOfFirstContract + index + 1}</td>
-                            <td className="fw-semibold text-primary">{contract.contractNumber}</td>
-                            <td>{contract.customer?.contactPerson || contract.customer?.companyName || 'N/A'}</td>
-                            <td>{contract.customer?.phoneNumber || 'N/A'}</td>
-                            <td>{formatDate(contract.deliveryDate)}</td>
-                            <td>
-                              <Badge bg={statusObj.variant}>{statusObj.label}</Badge>
-                            </td>
-                            <td className="text-success fw-semibold">{formatCurrency(contract.totalAmount)}</td>
-                            <td className="text-center">
-                              {renderActionButtons(contract)}
-                            </td>
-                          </tr>
-                        );
-                      })
+            </Card>
+
+            <Card>
+              <Card.Header>
+                Danh sách các đơn hàng
+              </Card.Header>
+              <Card.Body>
+                {loading ? (
+                  <div className="text-center py-5"><Spinner animation="border" /></div>
+                ) : error ? (
+                  <Alert variant="danger">{error}</Alert>
+                ) : (
+                  <>
+                    <Table striped bordered hover responsive>
+                      <thead>
+                        <tr>
+                          <th style={{ width: 60 }}>#</th>
+                          <th style={{ width: 180 }}>Mã đơn hàng</th>
+                          <th style={{ width: 160 }}>Tên khách hàng</th>
+                          <th style={{ width: 140 }}>Số điện thoại</th>
+                          <th style={{ width: 160 }}>Ngày giao hàng</th>
+                          <th style={{ width: 160 }}>Trạng thái</th>
+                          <th style={{ width: 160 }}>Tổng giá trị</th>
+                          <th style={{ width: 160 }} className="text-center">Thao tác</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {currentContracts.length === 0 ? (
+                          <tr><td colSpan={8} className="text-center py-4 text-muted">
+                            {contracts.length === 0 ? 'Chưa có đơn hàng nào' : 'Không tìm thấy đơn hàng phù hợp'}
+                          </td></tr>
+                        ) : (
+                          currentContracts.map((contract, index) => {
+                            const statusObj = getSalesOrderStatus(contract.status);
+                            return (
+                              <tr key={contract.id}>
+                                <td>{indexOfFirstContract + index + 1}</td>
+                                <td className="fw-semibold text-primary">{contract.contractNumber}</td>
+                                <td>{contract.customer?.contactPerson || contract.customer?.companyName || 'N/A'}</td>
+                                <td>{contract.customer?.phoneNumber || 'N/A'}</td>
+                                <td>{formatDate(contract.deliveryDate)}</td>
+                                <td>
+                                  <Badge bg={statusObj.variant}>{statusObj.label}</Badge>
+                                </td>
+                                <td className="text-success fw-semibold">{formatCurrency(contract.totalAmount)}</td>
+                                <td className="text-center">
+                                  {renderActionButtons(contract)}
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </Table>
+                    {totalPages > 1 && (
+                      <div className="mt-3">
+                        <Pagination
+                          currentPage={currentPage}
+                          totalPages={totalPages}
+                          onPageChange={setCurrentPage}
+                        />
+                      </div>
                     )}
-                  </tbody>
-                </Table>
+                  </>
+                )}
               </Card.Body>
-              {totalPages > 1 && (
-                <Card.Footer>
-                  <Pagination
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    onPageChange={setCurrentPage}
-                  />
-                </Card.Footer>
-              )}
             </Card>
           </Container>
         </div>
@@ -597,7 +592,7 @@ const ContractUpload = () => {
               </Table>
             </div>
           ) : (
-            <Alert variant="warning">Không tìm thấy chi tiết đơn hàng.</Alert>
+            modalOpen && <Alert variant="warning">Không tìm thấy chi tiết đơn hàng.</Alert>
           )}
 
           <Form.Group className="mb-3">
@@ -808,7 +803,6 @@ const ContractUpload = () => {
                       href={quoteFileUrl.startsWith('http') ? quoteFileUrl : `${API_BASE_URL}${quoteFileUrl.startsWith('/') ? '' : '/'}${quoteFileUrl}`}
                       download
                       onClick={(e) => {
-                        // Ensure download works with authentication
                         const token = sessionStorage.getItem('token') || sessionStorage.getItem('userToken') || localStorage.getItem('userToken');
                         if (token && !quoteFileUrl.startsWith('http')) {
                           e.preventDefault();
@@ -821,7 +815,7 @@ const ContractUpload = () => {
                               const url = window.URL.createObjectURL(blob);
                               const a = document.createElement('a');
                               a.href = url;
-                              a.download = quoteFileUrl.split('/').pop() || 'quotation.pdf';
+                              a.download = quoteFileUrl.split('/').pop() || 'quote.pdf';
                               document.body.appendChild(a);
                               a.click();
                               window.URL.revokeObjectURL(url);
@@ -837,47 +831,48 @@ const ContractUpload = () => {
                       Tải về báo giá
                     </Button>
                   </>
-                ) : (
-                  <Alert variant="warning" className="py-2 px-3 mb-0">
-                    Chưa có file báo giá.
-                  </Alert>
-                )}
+                ) : null}
               </div>
+
+              {/* File Viewer Modal/Overlay */}
+              {showFileViewer && (
+                <div className="file-viewer-overlay" style={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  backgroundColor: 'rgba(0,0,0,0.8)',
+                  zIndex: 1060,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '20px'
+                }}>
+                  <div className="d-flex justify-content-end w-100 mb-2" style={{ maxWidth: '90%' }}>
+                    <Button variant="light" onClick={handleCloseFileViewer}>Đóng</Button>
+                  </div>
+                  <div style={{ width: '90%', height: '90%', backgroundColor: 'white', borderRadius: '8px', overflow: 'hidden' }}>
+                    <iframe
+                      src={viewerUrl}
+                      style={{ width: '100%', height: '100%', border: 'none' }}
+                      title="File Viewer"
+                    />
+                  </div>
+                </div>
+              )}
+
             </div>
           ) : (
-            <Alert variant="warning">Không tìm thấy chi tiết đơn hàng.</Alert>
+            <Alert variant="warning">Không tìm thấy thông tin chi tiết.</Alert>
           )}
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={closeViewDetailsModal}>
             Đóng
           </Button>
-          {viewDetailsContract && (
-            <Button
-              variant="primary"
-              onClick={() => {
-                // Không đóng modal xem chi tiết, chỉ mở modal upload
-                openUploadModal(viewDetailsContract);
-              }}
-            >
-              {viewDetailsContract.status === 'REJECTED' ? 'Upload lại' : 'Upload hợp đồng'}
-            </Button>
-          )}
         </Modal.Footer>
-      </Modal>
-
-      {/* File Viewer Modal */}
-      <Modal show={showFileViewer} onHide={handleCloseFileViewer} size="xl" centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Xem file</Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ height: '80vh' }}>
-          {viewerUrl ? (
-            <iframe src={viewerUrl} width="100%" height="100%" title="File Viewer" style={{ border: 'none' }}></iframe>
-          ) : (
-            <div className="text-center">Đang tải file...</div>
-          )}
-        </Modal.Body>
       </Modal>
     </div>
   );
