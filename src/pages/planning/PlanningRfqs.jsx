@@ -67,9 +67,17 @@ const PlanningRfqs = () => {
         if (pageRfqs.length < ITEMS_PER_PAGE) {
           hasMore = false;
         } else {
-          page++;
         }
       }
+
+      // Filter out RFQs that are not yet forwarded to Planning
+      // Planning should only see: FORWARDED_TO_PLANNING, RECEIVED_BY_PLANNING, QUOTED, ACCEPTED, ORDER_CREATED, REJECTED, CANCELED
+      // Hide: DRAFT, SENT, PRELIMINARY_CHECKED
+      allRfqsData = allRfqsData.filter(rfq =>
+        rfq.status !== 'DRAFT' &&
+        rfq.status !== 'SENT' &&
+        rfq.status !== 'PRELIMINARY_CHECKED'
+      );
 
       // Filter by Planning status (client-side based on getPlanningRfqStatus)
       let filteredRfqs = allRfqsData;
