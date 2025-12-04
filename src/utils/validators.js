@@ -128,3 +128,39 @@ export const formatDateForBackend = (date) => {
   
   return `${year}-${month}-${day}`;
 };
+
+/**
+ * Validates quantity input using regex
+ * Quantity must be a positive integer (at least 1 digit, no leading zeros except for single digit)
+ * @param {string} quantity - The quantity value to validate
+ * @returns {object} - { isValid: boolean, error: string|null }
+ */
+export const validateQuantity = (quantity) => {
+  if (!quantity || typeof quantity !== 'string') {
+    return { isValid: false, error: 'Số lượng là bắt buộc.' };
+  }
+  
+  const trimmed = quantity.trim();
+  
+  // Check if empty
+  if (!trimmed) {
+    return { isValid: false, error: 'Số lượng là bắt buộc.' };
+  }
+  
+  // Regex: Must be a positive integer (1 or more digits, no leading zeros except single digit 0-9)
+  // Allows: 0-9, 10-99, 100-999, etc. (no leading zeros for multi-digit numbers)
+  const integerRegex = /^(0|[1-9]\d*)$/;
+  
+  if (!integerRegex.test(trimmed)) {
+    return { isValid: false, error: 'Số lượng phải là số nguyên dương hợp lệ.' };
+  }
+  
+  const numValue = parseInt(trimmed, 10);
+  
+  // Check minimum value (100)
+  if (numValue < 100) {
+    return { isValid: false, error: 'Số lượng tối thiểu là 100.' };
+  }
+  
+  return { isValid: true, error: null };
+};

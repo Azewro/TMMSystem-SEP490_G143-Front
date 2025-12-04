@@ -222,20 +222,18 @@ const PlanningRFQDetail = () => {
   const formatCapacity = (stageType, capacity) => {
     if (capacity === null || capacity === undefined) return 'N/A';
 
-
-
     // Mắc cuồng và Dệt vải: Kg
     if (stageType === 'WARPING' || stageType === 'WEAVING') {
-      return `${capacity.toFixed(2)} Kg`;
+      return `${capacity.toFixed(2)} Kg/ngày`;
     }
 
     // Cắt vải và May thành phẩm: khăn
     if (stageType === 'CUTTING' || stageType === 'SEWING') {
-      return `${capacity.toFixed(2)} khăn`;
+      return `${capacity.toFixed(2)} khăn/ngày`;
     }
 
     if (stageType === 'PACKAGING' || stageType === 'DYEING') {
-      return `${capacity.toFixed(0)} sản phẩm`;
+      return `${capacity.toFixed(0)} sản phẩm/ngày`;
     }
 
     return `${capacity.toFixed(2)}`;
