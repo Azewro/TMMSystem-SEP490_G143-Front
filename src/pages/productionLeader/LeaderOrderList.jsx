@@ -6,7 +6,7 @@ import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { productionService } from '../../api/productionService';
 import { orderService } from '../../api/orderService';
-import { getStatusLabel, getStatusVariant, getButtonForStage } from '../../utils/statusMapper';
+import { getLeaderStageStatusLabel } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
 
 const LeaderOrderList = () => {
@@ -51,6 +51,11 @@ const LeaderOrderList = () => {
                 orderDetail.contract?.contractNumber ||
                 'N/A';
 
+              // Use new function for status mapping
+              const stageStatus = leaderStage
+                ? getLeaderStageStatusLabel(leaderStage.executionStatus || leaderStage.status)
+                : null;
+
               return {
                 ...order,
                 productName,
@@ -58,7 +63,9 @@ const LeaderOrderList = () => {
                 leaderStage: leaderStage ? {
                   id: leaderStage.id,
                   status: leaderStage.executionStatus || leaderStage.status,
-                  statusLabel: getStatusLabel(leaderStage.executionStatus || leaderStage.status),
+                  statusLabel: stageStatus?.label || 'N/A',
+                  statusVariant: stageStatus?.variant || 'secondary',
+                  buttons: stageStatus?.buttons || [],
                   progress: leaderStage.progressPercent || 0
                 } : null
               };
@@ -177,13 +184,11 @@ const OrderTable = ({ orders, handleStart, handleViewDetail, isRework = false })
             orders.map((order, index) => {
               const stage = order.leaderStage;
               const orderLocked = order.orderStatus === 'WAITING_PRODUCTION' || order.orderStatus === 'PENDING_APPROVAL';
-              const buttonConfig = stage ? getButtonForStage(stage.status, 'leader') :
-                { text: 'Chi tiết', action: 'detail', variant: 'dark' };
 
-              // Special handling for Rework orders if needed
-              if (isRework && stage?.status === 'WAITING') {
-                // Ensure it says "Bắt đầu sửa" or similar if desired, but "Bắt đầu" is fine
-              }
+              // For orders without stage info, get status from order
+              const displayStatus = stage
+                ? stage
+                : getLeaderStageStatusLabel(order.executionStatus || order.status);
 
               return (
                 <tr key={order.id}>
@@ -197,29 +202,33 @@ const OrderTable = ({ orders, handleStart, handleViewDetail, isRework = false })
                   <td>{order.plannedStartDate}</td>
                   <td>{order.plannedEndDate}</td>
                   <td>
-                    <Badge bg={stage ? getStatusVariant(stage.status) : getStatusVariant(order.executionStatus || order.status)}>
-                      {stage ? stage.statusLabel : getStatusLabel(order.executionStatus || order.status)}
+                    <Badge bg={stage ? stage.statusVariant : displayStatus.variant}>
+                      {stage ? stage.statusLabel : displayStatus.label}
                     </Badge>
                   </td>
                   <td className="text-end">
-                    {buttonConfig.action === 'start' || buttonConfig.action === 'update' ? (
-                      <Button
-                        size="sm"
-                        variant={buttonConfig.variant}
-                        onClick={() => handleStart(order)}
-                        disabled={stage?.status === 'PENDING' || orderLocked}
-                        title={orderLocked ? 'Chưa được phép, PM chưa bắt đầu lệnh làm việc' : (stage?.status === 'PENDING' ? 'Chưa đến lượt' : '')}
-                      >
-                        {buttonConfig.text}
-                      </Button>
+                    {stage && stage.buttons && stage.buttons.length > 0 ? (
+                      stage.buttons.map((btn, idx) => (
+                        <Button
+                          key={idx}
+                          size="sm"
+                          variant={btn.variant}
+                          className="me-1"
+                          onClick={() => {
+                            if (btn.action === 'start' || btn.action === 'update' || btn.action === 'rework') {
+                              handleStart(order);
+                            } else {
+                              handleViewDetail(order);
+                            }
+                          }}
+                          disabled={orderLocked}
+                          title={orderLocked ? 'Chưa được phép, PM chưa bắt đầu lệnh làm việc' : ''}
+                        >
+                          {btn.text}
+                        </Button>
+                      ))
                     ) : (
-                      <Button
-                        size="sm"
-                        variant={buttonConfig.variant}
-                        onClick={() => handleViewDetail(order)}
-                      >
-                        {buttonConfig.text}
-                      </Button>
+                      <span className="text-muted">-</span>
                     )}
                   </td>
                 </tr>

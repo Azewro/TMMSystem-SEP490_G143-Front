@@ -4,7 +4,7 @@ import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { useNavigate } from 'react-router-dom';
 import { productionService } from '../../api/productionService';
-import { getStatusLabel, getStatusVariant } from '../../utils/statusMapper';
+import { getStatusLabel, getStatusVariant, getProductionOrderStatusFromStages } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
 
 // Mock data cho màn danh sách đơn hàng sản xuất (Production Manager)
@@ -82,9 +82,8 @@ const ProductionOrderList = () => {
         const data = await productionService.getManagerOrders();
         // Map backend data to match mock structure
         const mappedData = data.map(order => {
-          const hasPendingReq = !!order.pendingMaterialRequestId;
-          const status = hasPendingReq ? 'WAITING_MATERIAL' : (order.executionStatus || order.status);
-          const statusLabel = hasPendingReq ? 'Chờ phê duyệt cấp sợi' : (order.statusLabel || getStatusLabel(status));
+          // Use new function to get dynamic status label with stage name
+          const statusResult = getProductionOrderStatusFromStages(order);
 
           return {
             id: order.id,
@@ -94,8 +93,9 @@ const ProductionOrderList = () => {
             quantity: order.totalQuantity || 0,
             expectedStartDate: order.expectedStartDate || order.plannedStartDate,
             expectedFinishDate: order.expectedFinishDate || order.plannedEndDate,
-            status: status,
-            statusLabel: statusLabel,
+            status: order.executionStatus || order.status,
+            statusLabel: statusResult.label,
+            statusVariant: statusResult.variant,
             pendingMaterialRequestId: order.pendingMaterialRequestId
           };
         });
@@ -220,7 +220,7 @@ const ProductionOrderList = () => {
                           <td>{order.expectedStartDate}</td>
                           <td>{order.expectedFinishDate}</td>
                           <td>
-                            <Badge bg={getStatusVariant(order.status)}>
+                            <Badge bg={order.statusVariant || getStatusVariant(order.status)}>
                               {order.statusLabel}
                             </Badge>
                           </td>

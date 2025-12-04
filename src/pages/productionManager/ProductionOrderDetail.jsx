@@ -5,7 +5,7 @@ import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { productionService } from '../../api/productionService';
 import { orderService } from '../../api/orderService';
-import { getStatusLabel, getStageTypeName, getButtonForStage, getStatusVariant } from '../../utils/statusMapper';
+import { getStatusLabel, getStageTypeName, getStatusVariant, getProductionOrderStatusFromStages, getPMStageStatusLabel } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
 
 const ProductionOrderDetail = () => {
@@ -24,18 +24,29 @@ const ProductionOrderDetail = () => {
       // Fetch order detail directly (backend enrichProductionOrderDto returns stages)
       const data = await orderService.getOrderById(orderId);
 
-      // Map stages with proper Vietnamese names and status labels
-      const stages = (data.stages || []).map(s => ({
-        id: s.id,
-        code: s.stageType,
-        name: getStageTypeName(s.stageType) || s.stageType,
-        assignee: s.assignedLeader?.fullName ||
-          s.assigneeName ||
-          (s.stageType === 'DYEING' || s.stageType === 'NHUOM' ? 'Production Manager' : 'Chưa phân công'),
-        status: s.executionStatus || s.status,
-        statusLabel: getStatusLabel(s.executionStatus || s.status),
-        progress: s.progressPercent || 0
-      }));
+      // Map stages with proper Vietnamese names and status labels using new function
+      const stages = (data.stages || []).map(s => {
+        const isDyeingStage = s.stageType === 'DYEING' || s.stageType === 'NHUOM';
+        const stageStatus = getPMStageStatusLabel(s.executionStatus || s.status, isDyeingStage);
+
+        return {
+          id: s.id,
+          code: s.stageType,
+          name: getStageTypeName(s.stageType) || s.stageType,
+          assignee: s.assignedLeader?.fullName ||
+            s.assigneeName ||
+            (isDyeingStage ? 'Production Manager' : 'Chưa phân công'),
+          status: s.executionStatus || s.status,
+          statusLabel: stageStatus.label,
+          statusVariant: stageStatus.variant,
+          buttons: stageStatus.buttons,
+          progress: s.progressPercent || 0,
+          isDyeingStage: isDyeingStage
+        };
+      });
+
+      // Use getProductionOrderStatusFromStages for order-level status
+      const orderStatus = getProductionOrderStatusFromStages(data);
 
       const mappedOrder = {
         id: data.id || orderId,
@@ -46,7 +57,8 @@ const ProductionOrderDetail = () => {
         expectedStartDate: data.plannedStartDate || data.expectedStartDate,
         expectedFinishDate: data.plannedEndDate || data.expectedFinishDate,
         status: data.executionStatus || data.status,
-        statusLabel: data.statusLabel || getStatusLabel(data.executionStatus || data.status),
+        statusLabel: orderStatus.label,
+        statusVariant: orderStatus.variant,
         stages: stages,
         qrToken: data.qrToken // Map QR token from backend
       };
@@ -180,7 +192,7 @@ const ProductionOrderDetail = () => {
                       </div>
                       <div className="col-sm-6 d-flex flex-column">
                         <div className="text-muted small mb-1">Trạng thái</div>
-                        <Badge bg={getStatusVariant(order.statusLabel)} className="status-badge align-self-start">
+                        <Badge bg={order.statusVariant} className="status-badge align-self-start">
                           {order.statusLabel}
                         </Badge>
                       </div>
@@ -208,71 +220,40 @@ const ProductionOrderDetail = () => {
                   </thead>
                   <tbody>
                     {order.stages && order.stages.length > 0 ? (
-                      order.stages.map((stage) => {
-                        // For dyeing stage (NHUOM), PM can start/update progress
-                        const isDyeingStage = stage.code === 'DYEING' || stage.code === 'NHUOM';
-
-                        // For dyeing stage, determine button text and action based on status
-                        // Button thứ 2 luôn là "Bắt đầu" hoặc "Cập nhật tiến độ", không bao giờ là "Chi tiết"
-                        let dyeingButtonText = 'Bắt đầu';
-                        let dyeingButtonVariant = 'dark';
-                        const isDyeingPending = isDyeingStage && stage.status === 'PENDING';
-                        const canStartDyeing = isDyeingStage && (stage.status === 'WAITING' || stage.status === 'READY' || stage.status === 'READY_TO_PRODUCE' || stage.status === 'WAITING_REWORK');
-                        const canUpdateDyeing = isDyeingStage && (stage.status === 'IN_PROGRESS' || stage.status === 'REWORK_IN_PROGRESS');
-
-                        if (isDyeingStage) {
-                          if (canUpdateDyeing) {
-                            // Đang làm hoặc đang sửa -> "Cập nhật tiến độ"
-                            dyeingButtonText = 'Cập nhật tiến độ';
-                            dyeingButtonVariant = 'dark';
-                          } else {
-                            // Các trạng thái khác (PENDING, WAITING, READY, WAITING_REWORK, WAITING_QC, etc.) -> "Bắt đầu"
-                            // Button sẽ disabled khi PENDING
-                            dyeingButtonText = 'Bắt đầu';
-                            dyeingButtonVariant = 'dark';
-                          }
-                        }
-
-                        return (
-                          <tr key={stage.id}>
-                            <td>{stage.name}</td>
-                            <td>{stage.assignee}</td>
-                            <td>{stage.progress ?? 0}%</td>
-                            <td>
-                              <Badge bg={getStatusVariant(stage.status)}>
-                                {stage.statusLabel}
-                              </Badge>
-                            </td>
-                            <td className="text-end">
-                              <div className="d-flex justify-content-end gap-2">
-                                {/* Always show "Chi tiết" button */}
-                                <Button
-                                  size="sm"
-                                  variant="outline-secondary"
-                                  className="btn-pill-outline"
-                                  onClick={() => handleViewStage(stage)}
-                                >
-                                  Chi tiết
-                                </Button>
-
-                                {/* For dyeing stage, always show action button ("Bắt đầu" or "Cập nhật tiến độ"), but disabled when PENDING */}
-                                {isDyeingStage && (
+                      order.stages.map((stage) => (
+                        <tr key={stage.id}>
+                          <td>{stage.name}</td>
+                          <td>{stage.assignee}</td>
+                          <td>{stage.progress ?? 0}%</td>
+                          <td>
+                            <Badge bg={stage.statusVariant}>
+                              {stage.statusLabel}
+                            </Badge>
+                          </td>
+                          <td className="text-end">
+                            <div className="d-flex justify-content-end gap-2">
+                              {/* Render buttons dynamically based on getPMStageStatusLabel */}
+                              {stage.buttons && stage.buttons.length > 0 ? (
+                                stage.buttons.map((btn, idx) => (
                                   <Button
+                                    key={idx}
                                     size="sm"
-                                    variant={dyeingButtonVariant}
+                                    variant={btn.variant}
                                     className="btn-pill-outline"
                                     onClick={() => handleViewStage(stage)}
-                                    disabled={isDyeingPending}
-                                    title={isDyeingPending ? 'Chưa đến lượt, chỉ có thể xem' : dyeingButtonText}
+                                    disabled={btn.disabled}
                                   >
-                                    {dyeingButtonText}
+                                    {btn.text}
                                   </Button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })
+                                ))
+                              ) : (
+                                /* No buttons for PENDING status */
+                                <span className="text-muted small">-</span>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
                     ) : (
                       <tr>
                         <td colSpan="5" className="text-center py-4 text-muted">
