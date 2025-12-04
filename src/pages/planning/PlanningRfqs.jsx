@@ -73,6 +73,7 @@ const PlanningRfqs = () => {
         if (pageRfqs.length < ITEMS_PER_PAGE) {
           hasMore = false;
         } else {
+          page++;
         }
       }
 
@@ -82,7 +83,8 @@ const PlanningRfqs = () => {
       allRfqsData = allRfqsData.filter(rfq =>
         rfq.status !== 'DRAFT' &&
         rfq.status !== 'SENT' &&
-        rfq.status !== 'PRELIMINARY_CHECKED'
+        rfq.status !== 'PRELIMINARY_CHECKED' &&
+        rfq.status !== 'CANCELED'
       );
 
       // Filter by Planning status (client-side based on getPlanningRfqStatus)

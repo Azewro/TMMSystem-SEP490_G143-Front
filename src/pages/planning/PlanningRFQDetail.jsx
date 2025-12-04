@@ -428,13 +428,13 @@ const PlanningRFQDetail = () => {
                       {capacityReportData.status === 'SUFFICIENT' ? 'Đủ năng lực' : 'Không đủ năng lực'}
                     </Badge>
                   </p>
-                  <p><strong>Nút thắt cổ chai:</strong> {capacityReportData.bottleneck || 'N/A'}</p>
+                  {/* Bottleneck field removed as requested */}
                   <p><strong>Số ngày cần thiết:</strong> {capacityReportData.requiredDays?.toFixed(2) || 'N/A'} ngày ({daysToHours(capacityReportData.requiredDays)})</p>
                   <p><strong>Số ngày có sẵn:</strong> {capacityReportData.availableDays?.toFixed(2) || 'N/A'} ngày ({daysToHours(capacityReportData.availableDays)})</p>
                 </Col>
                 <Col md={6}>
                   <p><strong>Ngày bắt đầu sản xuất:</strong> {capacityReportData.productionStartDate ? new Date(capacityReportData.productionStartDate).toLocaleDateString('vi-VN') : 'N/A'}</p>
-                  <p><strong>Ngày kết thúc sản xuất:</strong> {capacityReportData.productionEndDate ? new Date(capacityReportData.productionEndDate).toLocaleDateString('vi-VN') : 'N/A'}</p>
+                  <p><strong>Ngày kết thúc sản xuất:</strong> {capacityReportData.packagingStage?.endDate ? new Date(capacityReportData.packagingStage.endDate).toLocaleDateString('vi-VN') : 'N/A'}</p>
                   <p><strong>Tổng thời gian chờ:</strong> {capacityReportData.totalWaitTime?.toFixed(2) || 'N/A'} ngày ({daysToHours(capacityReportData.totalWaitTime)})</p>
                   {capacityReportData.mergeSuggestion && (
                     <p><strong>Gợi ý:</strong> {capacityReportData.mergeSuggestion}</p>

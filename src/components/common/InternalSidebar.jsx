@@ -65,7 +65,7 @@ const InternalSidebar = ({ userRole: propUserRole }) => {
       { icon: FaFileSignature, label: 'Đơn hàng', path: '/sales/contracts' },
     ],
     planning: [
-      { icon: FaListAlt, label: 'RFQ cần xử lý', path: '/planning/rfqs' },
+      { icon: FaListAlt, label: 'Yêu cầu báo giá cần xử lý', path: '/planning/rfqs' },
       { icon: FaProjectDiagram, label: 'Kế hoạch sản xuất', path: '/planning/lots' },
     ],
     // Production Manager
