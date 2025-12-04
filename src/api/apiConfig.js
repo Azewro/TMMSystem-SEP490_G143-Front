@@ -38,14 +38,14 @@ apiClient.interceptors.request.use(
       }
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
+
     // Ensure custom headers (like X-User-Id) are preserved
     // Headers passed in config.headers should not be overwritten
     if (config.headers && typeof config.headers === 'object') {
       // Merge any existing headers - don't overwrite custom headers
       config.headers = { ...config.headers };
     }
-    
+
     return config;
   },
   (error) => {
@@ -57,7 +57,19 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-  if (error.response?.status === 401) {
+    // Normalize error message from backend
+    if (error.response && error.response.data) {
+      // If backend returns { "message": "..." } (new format)
+      if (error.response.data.message) {
+        error.message = error.response.data.message;
+      }
+      // If backend returns plain string (old format fallback)
+      else if (typeof error.response.data === 'string') {
+        error.message = error.response.data;
+      }
+    }
+
+    if (error.response?.status === 401) {
       const requestUrl = error.config?.url || '';
       const isAuthRequest =
         requestUrl.includes('/auth/customer/login') ||
