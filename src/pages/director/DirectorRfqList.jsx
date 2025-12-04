@@ -267,7 +267,7 @@ const DirectorRfqList = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {currentItems.length > 0 ? currentItems.map(rfq => (
+                        {allRfqs.length > 0 ? allRfqs.map(rfq => (
                           <tr key={rfq.id}>
                             <td>{rfq.rfqNumber}</td>
                             <td>{rfq.contactPerson || 'N/A'}</td>
