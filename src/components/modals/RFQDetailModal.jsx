@@ -5,7 +5,7 @@ import { customerService } from '../../api/customerService';
 import { productService } from '../../api/productService';
 import { userService } from '../../api/userService';
 import toast from 'react-hot-toast';
-import { isVietnamesePhoneNumber } from '../../utils/validators';
+import { isVietnamesePhoneNumber, handleIntegerKeyPress, sanitizeNumericInput } from '../../utils/validators';
 import { getSalesRfqStatus } from '../../utils/statusMapper';
 
 const RFQDetailModal = ({ rfqId, show, handleClose }) => {
@@ -160,7 +160,14 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
 
   const handleDetailChange = (index, field, value) => {
     const updatedDetails = [...editedRfq.rfqDetails];
-    updatedDetails[index] = { ...updatedDetails[index], [field]: value };
+    // Sanitize quantity field to only allow integers
+    if (field === 'quantity') {
+      const sanitized = sanitizeNumericInput(value.toString(), false);
+      updatedDetails[index] = { ...updatedDetails[index], [field]: sanitized ? parseInt(sanitized, 10) : 100 };
+    } else {
+      // Trim whitespace for string fields
+      updatedDetails[index] = { ...updatedDetails[index], [field]: typeof value === 'string' ? value.trim() : value };
+    }
     setEditedRfq(prev => ({ ...prev, rfqDetails: updatedDetails }));
   };
 
@@ -491,11 +498,13 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
                 <td>{item.standardDimensions || 'N/A'}</td> {/* Display standardDimensions */}
                 <td>
                   <Form.Control
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     value={item.quantity}
-                    onChange={(e) => handleDetailChange(index, 'quantity', parseInt(e.target.value))}
+                    onChange={(e) => handleDetailChange(index, 'quantity', e.target.value)}
+                    onKeyPress={handleIntegerKeyPress}
                     readOnly={!isEditMode}
-                    min="100"
+                    placeholder="Tối thiểu 100"
                   />
                 </td>
                 {isEditMode ? (

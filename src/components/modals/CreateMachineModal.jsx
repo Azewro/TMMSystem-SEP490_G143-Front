@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Form, Button, Alert, Row, Col } from 'react-bootstrap';
+import { handleIntegerKeyPress, handleDecimalKeyPress, sanitizeNumericInput } from '../../utils/validators';
 
 const CreateMachineModal = ({ show, onHide, onSave, machine = null }) => {
   const [formData, setFormData] = useState({
@@ -80,9 +81,25 @@ const CreateMachineModal = ({ show, onHide, onSave, machine = null }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    // Sanitize numeric fields
+    let sanitizedValue = value;
+    if (name === 'maintenanceIntervalDays') {
+      sanitizedValue = sanitizeNumericInput(value, false); // Integer only
+    } else if (name === 'modelYear') {
+      sanitizedValue = sanitizeNumericInput(value, false); // Integer only, max 4 digits
+      if (sanitizedValue.length > 4) {
+        sanitizedValue = sanitizedValue.slice(0, 4);
+      }
+    } else if (name === 'capacityPerDay') {
+      sanitizedValue = sanitizeNumericInput(value, true); // Allow decimal
+    } else {
+      // For string fields, trim whitespace
+      sanitizedValue = typeof value === 'string' ? value : value;
+    }
+    
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: sanitizedValue
     }));
     // Clear error for this field
     if (errors[name]) {
@@ -95,11 +112,13 @@ const CreateMachineModal = ({ show, onHide, onSave, machine = null }) => {
   };
 
   const handleCapacityPerHourChange = (field, value) => {
+    // Sanitize to allow decimal numbers
+    const sanitizedValue = sanitizeNumericInput(value, true);
     setFormData(prev => ({
       ...prev,
       capacityPerHour: {
         ...prev.capacityPerHour,
-        [field]: value
+        [field]: sanitizedValue
       }
     }));
     // Clear error for this field
@@ -285,7 +304,7 @@ const CreateMachineModal = ({ show, onHide, onSave, machine = null }) => {
         type: formData.type,
         location: formData.location.trim(),
         status: formData.status,
-        maintenanceIntervalDays: parseInt(formData.maintenanceIntervalDays),
+        maintenanceIntervalDays: parseInt(formData.maintenanceIntervalDays.toString().trim()),
         specifications: JSON.stringify(specifications)
       };
 
@@ -452,13 +471,14 @@ const CreateMachineModal = ({ show, onHide, onSave, machine = null }) => {
               <Form.Group className="mb-3">
                 <Form.Label>Chu kỳ bảo trì (ngày)</Form.Label>
                 <Form.Control
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
                   name="maintenanceIntervalDays"
                   value={formData.maintenanceIntervalDays}
                   onChange={handleChange}
+                  onKeyPress={handleIntegerKeyPress}
                   isInvalid={!!errors.maintenanceIntervalDays}
-                  min="1"
-                  max="3650"
+                  placeholder="VD: 90"
                 />
                 {errors.maintenanceIntervalDays && (
                   <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
@@ -521,13 +541,14 @@ const CreateMachineModal = ({ show, onHide, onSave, machine = null }) => {
                 </Form.Label>
                 <Form.Control
                   type="text"
+                  inputMode="numeric"
                   name="modelYear"
                   value={formData.modelYear}
                   onChange={handleChange}
+                  onKeyPress={handleIntegerKeyPress}
                   isInvalid={!!errors.modelYear}
                   placeholder="VD: 2022"
                   maxLength={4}
-                  pattern="[0-9]{4}"
                 />
                 {errors.modelYear && (
                   <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
@@ -544,14 +565,14 @@ const CreateMachineModal = ({ show, onHide, onSave, machine = null }) => {
                 Công suất/ngày ({formData.capacityUnit}) <span className="text-danger">*</span>
               </Form.Label>
               <Form.Control
-                type="number"
+                type="text"
+                inputMode="decimal"
                 name="capacityPerDay"
                 value={formData.capacityPerDay}
                 onChange={handleChange}
+                onKeyPress={handleDecimalKeyPress}
                 isInvalid={!!errors.capacityPerDay}
                 placeholder="VD: 50"
-                min="0"
-                step="0.01"
               />
               {errors.capacityPerDay && (
                 <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
@@ -571,13 +592,13 @@ const CreateMachineModal = ({ show, onHide, onSave, machine = null }) => {
                       Khăn tắm <span className="text-danger">*</span>
                     </Form.Label>
                     <Form.Control
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
                       value={formData.capacityPerHour.bathTowels}
                       onChange={(e) => handleCapacityPerHourChange('bathTowels', e.target.value)}
+                      onKeyPress={handleDecimalKeyPress}
                       isInvalid={!!errors.capacityPerHourBath}
                       placeholder="VD: 70"
-                      min="0"
-                      step="0.01"
                     />
                     {errors.capacityPerHourBath && (
                       <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
@@ -592,13 +613,13 @@ const CreateMachineModal = ({ show, onHide, onSave, machine = null }) => {
                       Khăn mặt <span className="text-danger">*</span>
                     </Form.Label>
                     <Form.Control
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
                       value={formData.capacityPerHour.faceTowels}
                       onChange={(e) => handleCapacityPerHourChange('faceTowels', e.target.value)}
+                      onKeyPress={handleDecimalKeyPress}
                       isInvalid={!!errors.capacityPerHourFace}
                       placeholder="VD: 150"
-                      min="0"
-                      step="0.01"
                     />
                     {errors.capacityPerHourFace && (
                       <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
@@ -613,13 +634,13 @@ const CreateMachineModal = ({ show, onHide, onSave, machine = null }) => {
                       Khăn thể thao <span className="text-danger">*</span>
                     </Form.Label>
                     <Form.Control
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
                       value={formData.capacityPerHour.sportsTowels}
                       onChange={(e) => handleCapacityPerHourChange('sportsTowels', e.target.value)}
+                      onKeyPress={handleDecimalKeyPress}
                       isInvalid={!!errors.capacityPerHourSports}
                       placeholder="VD: 100"
-                      min="0"
-                      step="0.01"
                     />
                     {errors.capacityPerHourSports && (
                       <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>

@@ -7,7 +7,7 @@ export const materialStockService = {
       const params = { page, size };
       if (search && search.trim()) params.search = search.trim();
       if (receivedDate) params.receivedDate = receivedDate;
-      
+
       const response = await apiClient.get('/v1/production/material-stock', { params });
       // Handle PageResponse
       if (response.data && response.data.content) {
@@ -54,15 +54,6 @@ export const materialStockService = {
     }
   },
 
-  // Delete material stock
-  deleteMaterialStock: async (id) => {
-    try {
-      const response = await apiClient.delete(`/v1/production/material-stock/${id}`);
-      return response.data;
-    } catch (error) {
-      console.error("Error deleting material stock:", error.response?.data);
-      throw new Error(error.response?.data?.message || 'Failed to delete material stock');
-    }
-  }
+
 };
 

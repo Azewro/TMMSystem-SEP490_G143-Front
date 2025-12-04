@@ -18,7 +18,7 @@ const RfqDetailView = ({
   }
 
   const handleQuantityChange = (detailId, newQuantity) => {
-    const quantity = Math.max(1, parseInt(newQuantity, 10) || 1);
+    const quantity = Math.max(100, parseInt(newQuantity, 10) || 100);
     onDetailChange(detailId, { quantity });
   };
 
@@ -48,6 +48,7 @@ const RfqDetailView = ({
                     type="number" 
                     value={item.quantity} 
                     onChange={(e) => handleQuantityChange(item.id, e.target.value)} 
+                    min="100"
                     style={{ width: '80px' }}
                   />
                 ) : item.quantity}

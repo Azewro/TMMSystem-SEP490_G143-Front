@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal, Form, Button, Alert, Row, Col } from 'react-bootstrap';
 import { productService } from '../../api/productService';
 import toast from 'react-hot-toast';
+import { handleDecimalKeyPress, sanitizeNumericInput } from '../../utils/validators';
 
 const MaterialStockModal = ({ show, onHide, onSave, materialStock = null }) => {
   const [formData, setFormData] = useState({
@@ -71,9 +72,15 @@ const MaterialStockModal = ({ show, onHide, onSave, materialStock = null }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    // Sanitize numeric fields
+    let sanitizedValue = value;
+    if (name === 'quantity' || name === 'unitPrice') {
+      sanitizedValue = sanitizeNumericInput(value, true);
+    }
+    
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: sanitizedValue
     }));
     // Clear error for this field
     if (errors[name]) {
@@ -91,12 +98,29 @@ const MaterialStockModal = ({ show, onHide, onSave, materialStock = null }) => {
     if (!formData.materialId) {
       newErrors.materialId = 'Vui lòng chọn nguyên liệu';
     }
-    if (!formData.quantity || parseFloat(formData.quantity) <= 0) {
+    
+    // Validate quantity with trim
+    const quantityStr = formData.quantity ? formData.quantity.toString().trim() : '';
+    if (!quantityStr) {
       newErrors.quantity = 'Vui lòng nhập số lượng hợp lệ';
+    } else {
+      const quantityNum = parseFloat(quantityStr);
+      if (isNaN(quantityNum) || quantityNum <= 0) {
+        newErrors.quantity = 'Vui lòng nhập số lượng hợp lệ';
+      }
     }
-    if (!formData.unitPrice || parseFloat(formData.unitPrice) <= 0) {
+    
+    // Validate unitPrice with trim
+    const unitPriceStr = formData.unitPrice ? formData.unitPrice.toString().trim() : '';
+    if (!unitPriceStr) {
       newErrors.unitPrice = 'Vui lòng nhập đơn giá hợp lệ';
+    } else {
+      const unitPriceNum = parseFloat(unitPriceStr);
+      if (isNaN(unitPriceNum) || unitPriceNum <= 0) {
+        newErrors.unitPrice = 'Vui lòng nhập đơn giá hợp lệ';
+      }
     }
+    
     if (!formData.receivedDate) {
       newErrors.receivedDate = 'Vui lòng chọn ngày nhập hàng';
     }
@@ -116,11 +140,11 @@ const MaterialStockModal = ({ show, onHide, onSave, materialStock = null }) => {
     try {
       const submitData = {
         materialId: parseInt(formData.materialId),
-        quantity: parseFloat(formData.quantity),
+        quantity: parseFloat(formData.quantity.toString().trim()),
         unit: formData.unit,
-        unitPrice: parseFloat(formData.unitPrice),
-        location: formData.location || null,
-        batchNumber: formData.batchNumber || null,
+        unitPrice: parseFloat(formData.unitPrice.toString().trim()),
+        location: formData.location ? formData.location.trim() : null,
+        batchNumber: formData.batchNumber ? formData.batchNumber.trim() : null,
         receivedDate: formData.receivedDate || null,
         expiryDate: formData.expiryDate || null
       };
@@ -183,11 +207,12 @@ const MaterialStockModal = ({ show, onHide, onSave, materialStock = null }) => {
                   Số lượng <span style={{ color: 'red' }}>*</span>
                 </Form.Label>
                 <Form.Control
-                  type="number"
-                  step="0.001"
+                  type="text"
+                  inputMode="decimal"
                   name="quantity"
                   value={formData.quantity}
                   onChange={handleChange}
+                  onKeyPress={handleDecimalKeyPress}
                   isInvalid={!!errors.quantity}
                   placeholder="Nhập số lượng"
                 />
@@ -225,11 +250,12 @@ const MaterialStockModal = ({ show, onHide, onSave, materialStock = null }) => {
                   Đơn giá (VNĐ) <span style={{ color: 'red' }}>*</span>
                 </Form.Label>
                 <Form.Control
-                  type="number"
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
                   name="unitPrice"
                   value={formData.unitPrice}
                   onChange={handleChange}
+                  onKeyPress={handleDecimalKeyPress}
                   isInvalid={!!errors.unitPrice}
                   placeholder="Nhập đơn giá"
                 />

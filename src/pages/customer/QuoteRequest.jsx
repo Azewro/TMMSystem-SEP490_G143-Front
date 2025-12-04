@@ -14,7 +14,7 @@ import { customerService } from '../../api/customerService';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { rfqService } from '../../api/rfqService';
-import { isVietnamesePhoneNumber } from '../../utils/validators';
+import { isVietnamesePhoneNumber, handleIntegerKeyPress, sanitizeNumericInput } from '../../utils/validators';
 import addressService from '../../api/addressService';
 import '../../styles/QuoteRequest.css';
 
@@ -198,7 +198,12 @@ const QuoteRequest = () => {
       const selectedProduct = products.find(p => p.id === parseInt(value, 10));
       newItems[index].standardDimensions = selectedProduct?.standardDimensions || '';
     }
-    newItems[index][field] = value;
+    // Sanitize quantity field to only allow integers
+    if (field === 'quantity') {
+      newItems[index][field] = sanitizeNumericInput(value, false);
+    } else {
+      newItems[index][field] = value;
+    }
     setQuoteItems(newItems);
   };
 
@@ -247,7 +252,8 @@ const QuoteRequest = () => {
         itemErrors.product = 'Vui lòng chọn sản phẩm.';
         isValid = false;
       }
-      if (parseInt(item.quantity, 10) < 100) {
+      const quantityStr = item.quantity ? item.quantity.toString().trim() : '';
+      if (!quantityStr || parseInt(quantityStr, 10) < 100) {
         itemErrors.quantity = 'Số lượng tối thiểu là 100.';
         isValid = false;
       }
@@ -326,7 +332,7 @@ const QuoteRequest = () => {
       await rfqService.createRfq(rfqData, isAuthenticated);
       toast.success('Yêu cầu báo giá đã được gửi thành công!');
       if (isFromCart) clearCart();
-      navigate('/');
+      navigate('/customer/rfqs');
     } catch (err) {
       toast.error(err.message || 'Gửi yêu cầu thất bại. Vui lòng kiểm tra lại thông tin.');
     } finally {
@@ -385,7 +391,7 @@ const QuoteRequest = () => {
                       {!isFromCart && quoteItems.length > 1 && <Button variant="link" className="text-danger p-0" onClick={() => handleRemoveProduct(index)}>Xóa</Button>}
                     </div>
                     <Row className="align-items-end mt-2">
-                      <Col xs={6} md={6}><Form.Group><Form.Label>Số lượng <span className="text-danger">*</span></Form.Label><Form.Control type="number" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} min="100" required isInvalid={!!errors.items?.[index]?.quantity} /><Form.Control.Feedback type="invalid">{errors.items?.[index]?.quantity}</Form.Control.Feedback></Form.Group></Col>
+                      <Col xs={6} md={6}><Form.Group><Form.Label>Số lượng <span className="text-danger">*</span></Form.Label><Form.Control type="text" inputMode="numeric" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} onKeyPress={handleIntegerKeyPress} required isInvalid={!!errors.items?.[index]?.quantity} placeholder="Tối thiểu 100" /><Form.Control.Feedback type="invalid">{errors.items?.[index]?.quantity}</Form.Control.Feedback></Form.Group></Col>
                       <Col xs={6} md={6}><Form.Group><Form.Label>Kích thước</Form.Label><div className="form-control-plaintext border rounded px-3 py-2 bg-light" style={{ pointerEvents: 'none', userSelect: 'none' }}>{item.standardDimensions || 'N/A'}</div></Form.Group></Col>
                     </Row>
                   </div>

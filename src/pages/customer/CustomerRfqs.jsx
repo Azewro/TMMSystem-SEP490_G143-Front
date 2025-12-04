@@ -12,6 +12,12 @@ import CustomerRfqDetailModal from '../../components/modals/CustomerRfqDetailMod
 import toast from 'react-hot-toast';
 import '../../styles/CustomerQuoteRequests.css';
 import { getCustomerRfqStatus } from '../../utils/statusMapper';
+import DatePicker, { registerLocale } from 'react-datepicker';
+import { vi } from 'date-fns/locale/vi';
+import 'react-datepicker/dist/react-datepicker.css';
+import { parseDateString, formatDateForBackend } from '../../utils/validators';
+
+registerLocale('vi', vi);
 
 const CustomerRfqs = () => {
   const { user } = useAuth();
@@ -193,7 +199,7 @@ const CustomerRfqs = () => {
         <Sidebar />
         <div className="flex-grow-1 p-4 customer-quote-requests-page" style={{ backgroundColor: '#f8f9fa' }}>
           <Container fluid>
-            <h2 className="mb-4">Yêu cầu báo giá của tôi</h2>
+            <h2 className="mb-4">Yêu cầu báo giá đã gửi</h2>
 
             {/* Search and Filter */}
             <Card className="mb-3">
@@ -204,7 +210,7 @@ const CustomerRfqs = () => {
                       <InputGroup.Text><FaSearch /></InputGroup.Text>
                       <Form.Control
                         type="text"
-                        placeholder="Tìm theo mã RFQ, ngày tạo..."
+                        placeholder="Tìm theo mã RFQ..."
                         value={searchTerm}
                         onChange={(e) => {
                           setSearchTerm(e.target.value);
@@ -227,29 +233,28 @@ const CustomerRfqs = () => {
                     </Form.Select>
                   </Col>
                   <Col md={3}>
-                    <Form.Control
-                      type="date"
-                      placeholder="Lọc theo ngày tạo"
-                      value={createdDateFilter}
-                      onChange={(e) => {
-                        setCreatedDateFilter(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                    />
-                  </Col>
-                  {createdDateFilter && (
-                    <Col md={2}>
-                      <Button
-                        variant="outline-secondary"
-                        onClick={() => {
-                          setCreatedDateFilter('');
+                    <div className="custom-datepicker-wrapper">
+                      <DatePicker
+                        selected={parseDateString(createdDateFilter)}
+                        onChange={(date) => {
+                          if (date) {
+                            // Format to yyyy-MM-dd for backend/state compatibility
+                            setCreatedDateFilter(formatDateForBackend(date));
+                          } else {
+                            setCreatedDateFilter('');
+                          }
                           setCurrentPage(1);
                         }}
-                      >
-                        Xóa lọc ngày
-                      </Button>
-                    </Col>
-                  )}
+                        dateFormat="dd/MM/yyyy"
+                        locale="vi"
+                        className="form-control"
+                        placeholderText="dd/mm/yyyy"
+                        isClearable
+                        todayButton="Hôm nay"
+                      />
+                    </div>
+                  </Col>
+
                 </Row>
               </Card.Body>
             </Card>
@@ -295,7 +300,7 @@ const CustomerRfqs = () => {
                                   )}
                                   {rfq.status === 'DRAFT' && (
                                     <Button variant="danger" size="sm" onClick={() => handleCancelRfq(rfq.id)}>
-                                      Hủy RFQ
+                                      Hủy
                                     </Button>
                                   )}
                                 </div>

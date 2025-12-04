@@ -345,6 +345,7 @@ const AdminUserManagement = () => {
         onHide={() => setShowCreateModal(false)}
         onSave={handleSave}
         user={selectedUser}
+        roles={allRoles}
       />
     </div>
   );

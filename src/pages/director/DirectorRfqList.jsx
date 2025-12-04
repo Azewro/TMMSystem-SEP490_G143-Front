@@ -8,6 +8,12 @@ import AssignRfqModal from '../../components/modals/AssignRfqModal';
 import Pagination from '../../components/Pagination'; // Import Pagination component
 import { getDirectorRfqStatus } from '../../utils/statusMapper';
 import { FaSearch } from 'react-icons/fa';
+import DatePicker, { registerLocale } from 'react-datepicker';
+import { vi } from 'date-fns/locale/vi';
+import 'react-datepicker/dist/react-datepicker.css';
+import { parseDateString, formatDateForBackend } from '../../utils/validators';
+
+registerLocale('vi', vi);
 
 const DirectorRfqList = () => {
   const [allRfqs, setAllRfqs] = useState([]); // Holds all RFQs
@@ -63,7 +69,8 @@ const DirectorRfqList = () => {
       }
 
       // Filter by Director status (client-side based on assignedSalesId)
-      let filteredRfqs = rfqs;
+      // Also filter out CANCELED RFQs as requested
+      let filteredRfqs = rfqs.filter(rfq => rfq.status !== 'CANCELED');
       if (statusFilter === 'WAITING_ASSIGNMENT') {
         // Chờ phân công: chưa có assignedSalesId
         filteredRfqs = filteredRfqs.filter(rfq => !rfq.assignedSalesId);
@@ -215,14 +222,26 @@ const DirectorRfqList = () => {
                   <Col md={3}>
                     <Form.Group>
                       <Form.Label className="mb-1 small">Lọc theo ngày tạo</Form.Label>
-                      <Form.Control
-                        type="date"
-                        value={createdDateFilter}
-                        onChange={(e) => {
-                          setCreatedDateFilter(e.target.value);
-                          setCurrentPage(1);
-                        }}
-                      />
+                      <div className="custom-datepicker-wrapper">
+                        <DatePicker
+                          selected={parseDateString(createdDateFilter)}
+                          onChange={(date) => {
+                            if (date) {
+                              // Format to yyyy-MM-dd for backend/state compatibility
+                              setCreatedDateFilter(formatDateForBackend(date));
+                            } else {
+                              setCreatedDateFilter('');
+                            }
+                            setCurrentPage(1);
+                          }}
+                          dateFormat="dd/MM/yyyy"
+                          locale="vi"
+                          className="form-control"
+                          placeholderText="dd/mm/yyyy"
+                          isClearable
+                          todayButton="Hôm nay"
+                        />
+                      </div>
                     </Form.Group>
                   </Col>
                   <Col md={3}>

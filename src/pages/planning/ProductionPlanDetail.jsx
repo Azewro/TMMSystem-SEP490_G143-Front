@@ -264,7 +264,7 @@ const ProductionPlanDetail = () => {
                 productService.getAllProducts(),
                 contractService.getOrderDetails(planData.contractId),
                 productionPlanService.getMaterialConsumption(id),
-                userService.getAllUsers(0, USER_FETCH_SIZE),
+                userService.getAllUsers(0, USER_FETCH_SIZE, null, null, true),
                 machineService.getAllMachines()
             ]);
 

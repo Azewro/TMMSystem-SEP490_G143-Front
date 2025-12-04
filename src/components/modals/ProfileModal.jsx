@@ -113,27 +113,27 @@ const ProfileModal = ({ show, onHide, onSave }) => {
     const newErrors = {};
     
     if (isCustomer) {
-      if (!formData.companyName) {
+      if (!formData.companyName || !formData.companyName.trim()) {
         newErrors.companyName = 'Tên công ty là bắt buộc';
       }
-      if (!formData.contactPerson) {
+      if (!formData.contactPerson || !formData.contactPerson.trim()) {
         newErrors.contactPerson = 'Người liên hệ là bắt buộc';
       }
     } else {
-      if (!formData.name) {
+      if (!formData.name || !formData.name.trim()) {
         newErrors.name = 'Họ và tên là bắt buộc';
       }
     }
 
-    if (!formData.email) {
+    if (!formData.email || !formData.email.trim()) {
       newErrors.email = 'Email là bắt buộc';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+    } else if (!/\S+@\S+\.\S+/.test(formData.email.trim())) {
       newErrors.email = 'Email không hợp lệ';
     }
 
-    if (!formData.phoneNumber) {
+    if (!formData.phoneNumber || !formData.phoneNumber.trim()) {
       newErrors.phoneNumber = 'Số điện thoại là bắt buộc';
-    } else if (!isVietnamesePhoneNumber(formData.phoneNumber)) {
+    } else if (!isVietnamesePhoneNumber(formData.phoneNumber.trim())) {
       newErrors.phoneNumber = 'Số điện thoại không hợp lệ.';
     }
 

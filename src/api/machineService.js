@@ -45,15 +45,7 @@ export const machineService = {
     }
   },
 
-  // Delete machine
-  deleteMachine: async (id) => {
-    try {
-      await apiClient.delete(`/v1/machines/${id}`);
-    } catch (error) {
-      console.error("Error deleting machine:", error.response?.data);
-      throw new Error(error.response?.data?.message || 'Failed to delete machine');
-    }
-  },
+
 
   // Reset machine status
   resetStatus: async () => {

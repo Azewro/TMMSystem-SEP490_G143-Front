@@ -8,6 +8,12 @@ import { contractService } from '../../api/contractService';
 import { getDirectorPlanStatus } from '../../utils/statusMapper';
 import Pagination from '../../components/Pagination';
 import toast from 'react-hot-toast';
+import DatePicker, { registerLocale } from 'react-datepicker';
+import { vi } from 'date-fns/locale/vi';
+import 'react-datepicker/dist/react-datepicker.css';
+import { parseDateString, formatDateForBackend } from '../../utils/validators';
+
+registerLocale('vi', vi);
 
 const formatDate = (value) => {
   if (!value) return '';
@@ -284,11 +290,25 @@ const ProductionPlanApprovals = () => {
                   <Col md={3}>
                     <Form.Group>
                       <Form.Label className="mb-1 small">Lọc theo ngày tạo</Form.Label>
-                      <Form.Control
-                        type="date"
-                        value={createdDateFilter}
-                        onChange={(e) => setCreatedDateFilter(e.target.value)}
-                      />
+                      <div className="custom-datepicker-wrapper">
+                        <DatePicker
+                          selected={parseDateString(createdDateFilter)}
+                          onChange={(date) => {
+                            if (date) {
+                              // Format to yyyy-MM-dd for backend/state compatibility
+                              setCreatedDateFilter(formatDateForBackend(date));
+                            } else {
+                              setCreatedDateFilter('');
+                            }
+                          }}
+                          dateFormat="dd/MM/yyyy"
+                          locale="vi"
+                          className="form-control"
+                          placeholderText="dd/mm/yyyy"
+                          isClearable
+                          todayButton="Hôm nay"
+                        />
+                      </div>
                     </Form.Group>
                   </Col>
                   <Col md={3}>

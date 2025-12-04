@@ -61,7 +61,7 @@ const CustomerOrderDetail = () => {
   const [contractFileUrl, setContractFileUrl] = useState('');
   const [quotationFileUrl, setQuotationFileUrl] = useState('');
   const [loadingFiles, setLoadingFiles] = useState(false);
-  
+
   // File viewer modal state
   const [showFileViewer, setShowFileViewer] = useState(false);
   const [viewerUrl, setViewerUrl] = useState('');
@@ -80,7 +80,7 @@ const CustomerOrderDetail = () => {
       try {
         // Fetch contract details
         const contractId = parseInt(id, 10);
-        
+
         // Fetch contract object to get quotationId (similar to director)
         let contract = null;
         try {
@@ -97,7 +97,7 @@ const CustomerOrderDetail = () => {
         ]);
 
         setOrderDetails(details);
-        
+
         // Process contract file URL
         if (contractUrl) {
           const apiPathIndex = contractUrl.indexOf('/api/');
@@ -108,7 +108,7 @@ const CustomerOrderDetail = () => {
         // Fetch quotation file URL if available
         // Try multiple sources: contract.quotationId (like director), details.quotationId, or details.quotation?.id
         const quotationId = contract?.quotationId || details?.quotationId || details?.quotation?.id;
-        
+
         if (quotationId) {
           try {
             const quoteUrl = await quotationService.getQuoteFileUrl(quotationId);
@@ -126,20 +126,19 @@ const CustomerOrderDetail = () => {
         // Set order data from contract
         setOrder({
           id: details.contractNumber || `HD-${contractId}`,
-          orderDate: formatDate(details.createdAt),
+          orderDate: formatDate(details.contractDate),
           expectedDeliveryDate: formatDate(details.deliveryDate),
           status: details.status,
           customerInfo: {
-            name: details.customer?.companyName || '',
-            contactPerson: details.customer?.contactPerson || '',
-            phone: details.customer?.phone || '',
-            shippingAddress: details.customer?.address || '',
+            name: details.customerInfo?.companyName || '',
+            contactPerson: details.customerInfo?.customerName || '',
+            phone: details.customerInfo?.phoneNumber || '',
+            shippingAddress: details.customerInfo?.address || '',
           },
-          items: details.orderItems || details.items || [],
+          items: details.orderItems || [],
           summary: {
             subtotal: details.totalAmount || 0,
-            shipping: details.shippingFee || 0,
-            total: (details.totalAmount || 0) + (details.shippingFee || 0),
+            total: details.totalAmount || 0,
           },
         });
 
@@ -166,7 +165,7 @@ const CustomerOrderDetail = () => {
     try {
       // Construct full URL if it's a relative path (similar to director)
       const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
-      
+
       const token = sessionStorage.getItem('token') || sessionStorage.getItem('userToken') || localStorage.getItem('userToken');
       const headers = { 'Authorization': `Bearer ${token}` };
       const response = await fetch(fullUrl, { headers });
@@ -255,9 +254,9 @@ const CustomerOrderDetail = () => {
       <div className="d-flex">
         <Sidebar />
         <Container fluid className="p-4">
-          <Button 
-            variant="outline-secondary" 
-            className="mb-3" 
+          <Button
+            variant="outline-secondary"
+            className="mb-3"
             onClick={() => navigate('/customer/orders')}
           >
             &larr; Quay lại danh sách
@@ -317,10 +316,6 @@ const CustomerOrderDetail = () => {
                   <tr>
                     <td colSpan="4" className="text-end fw-bold">Tổng tiền hàng</td>
                     <td className="text-end fw-bold">{formatCurrency(order.summary.subtotal)}</td>
-                  </tr>
-                  <tr>
-                    <td colSpan="4" className="text-end">Phí vận chuyển</td>
-                    <td className="text-end">{formatCurrency(order.summary.shipping)}</td>
                   </tr>
                   <tr>
                     <td colSpan="4" className="text-end fw-bold fs-5">Tổng cộng</td>
@@ -487,11 +482,11 @@ const CustomerOrderDetail = () => {
         </Modal.Header>
         <Modal.Body style={{ height: '80vh' }}>
           {viewerUrl ? (
-            <iframe 
-              src={viewerUrl} 
-              width="100%" 
-              height="100%" 
-              title="File Viewer" 
+            <iframe
+              src={viewerUrl}
+              width="100%"
+              height="100%"
+              title="File Viewer"
               style={{ border: 'none' }}
             />
           ) : (

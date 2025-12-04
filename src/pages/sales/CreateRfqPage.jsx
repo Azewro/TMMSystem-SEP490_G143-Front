@@ -12,7 +12,7 @@ import InternalSidebar from '../../components/common/InternalSidebar';
 import { productService } from '../../api/productService';
 import { useAuth } from '../../context/AuthContext';
 import { rfqService } from '../../api/rfqService';
-import { isVietnamesePhoneNumber } from '../../utils/validators';
+import { isVietnamesePhoneNumber, handleIntegerKeyPress, sanitizeNumericInput } from '../../utils/validators';
 import addressService from '../../api/addressService';
 import { userService } from '../../api/userService';
 import '../../styles/QuoteRequest.css';
@@ -121,7 +121,12 @@ const CreateRfqForCustomer = () => {
       const selectedProduct = products.find(p => p.id === parseInt(value, 10));
       newItems[index].standardDimensions = selectedProduct?.standardDimensions || '';
     }
-    newItems[index][field] = value;
+    // Sanitize quantity field to only allow integers
+    if (field === 'quantity') {
+      newItems[index][field] = sanitizeNumericInput(value, false);
+    } else {
+      newItems[index][field] = value;
+    }
     setQuoteItems(newItems);
   };
 
@@ -163,7 +168,8 @@ const CreateRfqForCustomer = () => {
         isValid = false;
         return { product: 'Vui lòng chọn sản phẩm.' };
       }
-      if (!item.quantity || parseInt(item.quantity, 10) < 100) {
+      const quantityStr = item.quantity ? item.quantity.toString().trim() : '';
+      if (!quantityStr || parseInt(quantityStr, 10) < 100) {
         isValid = false;
         return { quantity: 'Số lượng tối thiểu là 100.' };
       }
@@ -306,7 +312,7 @@ const CreateRfqForCustomer = () => {
                     {quoteItems.length > 1 && <Button variant="link" className="text-danger p-0" onClick={() => handleRemoveProduct(index)}>Xóa</Button>}
                   </div>
                   <Row className="align-items-end mt-2">
-                    <Col md={6}><Form.Group><Form.Label>Số lượng <span className="text-danger">*</span></Form.Label><Form.Control type="number" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} min="100" isInvalid={errors.items?.[index]?.quantity} /><Form.Control.Feedback type="invalid">{errors.items?.[index]?.quantity}</Form.Control.Feedback></Form.Group></Col>
+                    <Col md={6}><Form.Group><Form.Label>Số lượng <span className="text-danger">*</span></Form.Label><Form.Control type="text" inputMode="numeric" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} onKeyPress={handleIntegerKeyPress} isInvalid={errors.items?.[index]?.quantity} placeholder="Tối thiểu 100" /><Form.Control.Feedback type="invalid">{errors.items?.[index]?.quantity}</Form.Control.Feedback></Form.Group></Col>
                     <Col md={6}><Form.Group><Form.Label>Kích thước</Form.Label><div className="form-control-plaintext border rounded px-3 py-2 bg-light" style={{ pointerEvents: 'none', userSelect: 'none' }}>{item.standardDimensions || 'N/A'}</div></Form.Group></Col>
                   </Row>
                 </div>

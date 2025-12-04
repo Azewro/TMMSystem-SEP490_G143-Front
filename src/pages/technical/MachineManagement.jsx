@@ -106,17 +106,7 @@ const MachineManagement = () => {
     }
   };
 
-  const handleDelete = async (machine) => {
-    if (window.confirm(`Bạn có chắc chắn muốn xóa máy "${machine.name}" (${machine.code})?`)) {
-      try {
-        await machineService.deleteMachine(machine.id);
-        toast.success('Xóa máy thành công');
-        await loadMachines();
-      } catch (err) {
-        toast.error(err.message || 'Không thể xóa máy');
-      }
-    }
-  };
+
 
   const getStatusBadge = (status) => {
     const statusMap = {
@@ -272,14 +262,7 @@ const MachineManagement = () => {
                             >
                               <FaEye />
                             </Button>
-                            <Button
-                              size="sm"
-                              variant="danger"
-                              onClick={() => handleDelete(machine)}
-                              title="Xóa"
-                            >
-                              <FaTrash />
-                            </Button>
+
                           </div>
                         </td>
                       </tr>

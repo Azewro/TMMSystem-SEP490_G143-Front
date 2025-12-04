@@ -5,9 +5,14 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import Pagination from '../../components/Pagination';
-
 import { quoteService } from '../../api/quoteService'; // To get customer data
 import { getSalesOrderStatus } from '../../utils/statusMapper';
+import DatePicker, { registerLocale } from 'react-datepicker';
+import { vi } from 'date-fns/locale/vi';
+import 'react-datepicker/dist/react-datepicker.css';
+import { parseDateString, formatDateForBackend } from '../../utils/validators';
+
+registerLocale('vi', vi);
 
 const statusOptions = [
   { value: '', label: 'Tất cả trạng thái' },
@@ -160,11 +165,25 @@ const OrderList = () => {
                   <Col md={3}>
                     <Form.Group>
                       <Form.Label className="mb-1 small">Lọc theo ngày tạo</Form.Label>
-                      <Form.Control
-                        type="date"
-                        value={createdDateFilter}
-                        onChange={(e) => setCreatedDateFilter(e.target.value)}
-                      />
+                      <div className="custom-datepicker-wrapper">
+                        <DatePicker
+                          selected={parseDateString(createdDateFilter)}
+                          onChange={(date) => {
+                            if (date) {
+                              // Format to yyyy-MM-dd for backend/state compatibility
+                              setCreatedDateFilter(formatDateForBackend(date));
+                            } else {
+                              setCreatedDateFilter('');
+                            }
+                          }}
+                          dateFormat="dd/MM/yyyy"
+                          locale="vi"
+                          className="form-control"
+                          placeholderText="dd/mm/yyyy"
+                          isClearable
+                          todayButton="Hôm nay"
+                        />
+                      </div>
                     </Form.Group>
                   </Col>
                   <Col md={3}>

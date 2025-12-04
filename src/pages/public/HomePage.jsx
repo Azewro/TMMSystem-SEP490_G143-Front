@@ -10,11 +10,36 @@ import Sidebar from '../../components/common/Sidebar';
 import { useAuth } from '../../context/AuthContext';
 import { useIsMobile, useIsTablet } from '../../utils/useMediaQuery';
 
-const PartnerLogo = ({ name }) => (
-    <div className="partner-logo">
-        <p>{name}</p>
+const PartnerLogo = ({ name, logo }) => (
+    <div className="partner-logo text-center p-3 h-100 bg-white rounded shadow-sm hover-effect">
+        <div style={{ height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '15px' }}>
+            <img
+                src={logo}
+                alt={name}
+                style={{
+                    maxWidth: '100%',
+                    maxHeight: '100%',
+                    objectFit: 'contain',
+                    filter: 'grayscale(0%)',
+                    transition: 'all 0.3s ease'
+                }}
+            />
+        </div>
+        <p className="fw-bold mb-0 text-dark">{name}</p>
     </div>
 );
+
+const PRODUCT_IMAGES = [
+    '/khan_bong_img/13.jpg',
+    '/khan_bong_img/15.jpg',
+    '/khan_bong_img/16.jpg',
+    '/khan_bong_img/18.jpg',
+    '/khan_bong_img/19.jpg',
+    '/khan_bong_img/20.jpg',
+    '/khan_bong_img/21.jpg',
+    '/khan_bong_img/23.jpg',
+    '/khan_bong_img/7-1.jpg'
+];
 
 const HomePage = () => {
     const [products, setProducts] = useState([]);
@@ -37,7 +62,17 @@ const HomePage = () => {
             setError('');
             try {
                 const productData = await productService.getAllProducts();
-                setProducts(productData || []);
+                // Assign random images deterministically based on product ID
+                const productsWithImages = (productData || []).map(product => {
+                    // Use product ID to select an image index (fallback to 0 if no ID)
+                    const imageIndex = (product.id || 0) % PRODUCT_IMAGES.length;
+                    return {
+                        ...product,
+                        // Only assign random image if product doesn't have one
+                        imageUrl: product.imageUrl || PRODUCT_IMAGES[imageIndex]
+                    };
+                });
+                setProducts(productsWithImages);
             } catch (err) {
                 setError(err.message || 'Lỗi khi tải dữ liệu sản phẩm.');
             } finally {
@@ -47,7 +82,13 @@ const HomePage = () => {
         fetchProducts();
     }, []);
 
-    const partners = ["Vinaphone", "California Fitness", "Foxconn", "Everon", "Hải Tiến Resort"];
+    const partners = [
+        { name: "Vinaphone", logo: "/logo_doi_tac/vinaphone-logo.jpg" },
+        { name: "California Fitness", logo: "/logo_doi_tac/california_fitness.png" },
+        { name: "Foxconn", logo: "/logo_doi_tac/foxconn.jpg" },
+        { name: "Everon", logo: "/logo_doi_tac/everon.png" },
+        { name: "Hải Tiến Resort", logo: "/logo_doi_tac/hai_tien_resort.png" }
+    ];
 
     // Filter products by search term (search by key words in product name)
     const filteredProducts = useMemo(() => {
@@ -115,6 +156,9 @@ const HomePage = () => {
                                         <p>
                                             Trải qua hơn 15 năm phát triển, chúng tôi tự hào đã được các khách hàng lớn tín nhiệm, khẳng định vị thế và chất lượng sản phẩm vượt trội.
                                         </p>
+                                        <p>
+                                            Gọi điện cho chúng tôi ngay hôm nay theo số 0904 862 166 để được tư vấn sâu hơn về sản phẩm.
+                                        </p>
                                     </Col>
                                 </Row>
                             </Container>
@@ -173,8 +217,8 @@ const HomePage = () => {
                                 <h2 className="section-title mb-5">Đối Tác Tin Cậy Của Chúng Tôi</h2>
                                 <Row className="justify-content-center align-items-center">
                                     {partners.map(partner => (
-                                        <Col key={partner} xs={6} md={4} lg={2} className="mb-4">
-                                            <PartnerLogo name={partner} />
+                                        <Col key={partner.name} xs={6} md={4} lg={2} className="mb-4">
+                                            <PartnerLogo name={partner.name} logo={partner.logo} />
                                         </Col>
                                     ))}
                                 </Row>
@@ -183,7 +227,7 @@ const HomePage = () => {
                     </div>
                     <Footer />
                 </div>
-            </div>
+            </div >
         </>
     );
 };

@@ -11,6 +11,12 @@ import Pagination from '../../components/Pagination';
 import { getSalesOrderStatus } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
 import '../../styles/QuoteRequests.css';
+import DatePicker, { registerLocale } from 'react-datepicker';
+import { vi } from 'date-fns/locale/vi';
+import 'react-datepicker/dist/react-datepicker.css';
+import { parseDateString, formatDateForBackend } from '../../utils/validators';
+
+registerLocale('vi', vi);
 
 const getFileExtension = (url) => {
   if (!url) return '';
@@ -461,14 +467,26 @@ const ContractUpload = () => {
                   <Col md={3}>
                     <Form.Group>
                       <Form.Label className="mb-1 small">Lọc theo ngày giao hàng</Form.Label>
-                      <Form.Control
-                        type="date"
-                        value={deliveryDateFilter}
-                        onChange={(e) => {
-                          setDeliveryDateFilter(e.target.value);
-                          setCurrentPage(1);
-                        }}
-                      />
+                      <div className="custom-datepicker-wrapper">
+                        <DatePicker
+                          selected={parseDateString(deliveryDateFilter)}
+                          onChange={(date) => {
+                            if (date) {
+                              // Format to yyyy-MM-dd for backend/state compatibility
+                              setDeliveryDateFilter(formatDateForBackend(date));
+                            } else {
+                              setDeliveryDateFilter('');
+                            }
+                            setCurrentPage(1);
+                          }}
+                          dateFormat="dd/MM/yyyy"
+                          locale="vi"
+                          className="form-control"
+                          placeholderText="dd/mm/yyyy"
+                          isClearable
+                          todayButton="Hôm nay"
+                        />
+                      </div>
                     </Form.Group>
                   </Col>
                 </Row>

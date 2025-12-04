@@ -16,7 +16,7 @@ const Sidebar = () => {
     },
     {
       icon: FaFileInvoice, // Reusing FaFileInvoice for "Yêu cầu đã gửi"
-      label: 'Yêu cầu đã gửi',
+      label: 'Yêu cầu báo giá đã gửi',
       path: '/customer/rfqs',
     },
     {

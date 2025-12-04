@@ -106,18 +106,7 @@ const MaterialStockManagement = () => {
     }
   };
 
-  const handleDelete = async (stock) => {
-    const materialInfo = stock.materialName || stock.materialCode || `ID: ${stock.id}`;
-    if (window.confirm(`Bạn có chắc chắn muốn xóa nhập kho nguyên liệu "${materialInfo}"?`)) {
-      try {
-        await materialStockService.deleteMaterialStock(stock.id);
-        toast.success('Xóa nhập kho nguyên liệu thành công');
-        await fetchMaterialStocks();
-      } catch (err) {
-        toast.error(err.message || 'Không thể xóa nhập kho nguyên liệu');
-      }
-    }
-  };
+
 
   const formatDate = (dateString) => {
     if (!dateString) return '—';
@@ -193,11 +182,25 @@ const MaterialStockManagement = () => {
                   </div>
                   <div className="col-md-6">
                     <Form.Label>Lọc theo ngày nhập hàng</Form.Label>
-                    <Form.Control
-                      type="date"
-                      value={receivedDateFilter}
-                      onChange={(e) => setReceivedDateFilter(e.target.value)}
-                    />
+                    <div className="custom-datepicker-wrapper">
+                      <DatePicker
+                        selected={parseDateString(receivedDateFilter)}
+                        onChange={(date) => {
+                          if (date) {
+                            // Format to yyyy-MM-dd for backend/state compatibility
+                            setReceivedDateFilter(formatDateForBackend(date));
+                          } else {
+                            setReceivedDateFilter('');
+                          }
+                        }}
+                        dateFormat="dd/MM/yyyy"
+                        locale="vi"
+                        className="form-control"
+                        placeholderText="dd/mm/yyyy"
+                        isClearable
+                        todayButton="Hôm nay"
+                      />
+                    </div>
                   </div>
                 </div>
               </Card.Body>
@@ -273,14 +276,7 @@ const MaterialStockManagement = () => {
                               >
                                 <FaEdit />
                               </Button>
-                              <Button
-                                size="sm"
-                                variant="danger"
-                                onClick={() => handleDelete(stock)}
-                                title="Xóa"
-                              >
-                                <FaTrash />
-                              </Button>
+
                             </div>
                           </td>
                         </tr>

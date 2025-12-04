@@ -33,7 +33,7 @@ const AssignRfqModal = ({ show, onHide, rfqId, onAssignmentSuccess, isViewMode =
         setError('');
         try {
           const [allUsersResponse, rfqData] = await Promise.all([
-            userService.getAllUsers(0, 1000),
+            userService.getAllUsers(0, 1000, null, null, true),
             rfqService.getRfqById(rfqId)
           ]);
 

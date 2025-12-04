@@ -10,7 +10,7 @@ import toast from 'react-hot-toast';
 
 const AdminCustomerManagement = () => {
   const { user: currentUser } = useAuth();
-  
+
   // Map role from backend to sidebar role format
   const getSidebarRole = () => {
     if (!currentUser?.role) return 'admin';
@@ -18,7 +18,7 @@ const AdminCustomerManagement = () => {
     if (role === 'ADMIN') return 'admin';
     return 'admin'; // Default to admin for admin pages
   };
-  
+
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -48,7 +48,7 @@ const AdminCustomerManagement = () => {
       // Convert 1-based page to 0-based for backend
       const page = currentPage - 1;
       const response = await customerService.getAllCustomers(page, itemsPerPage, searchQuery || undefined, statusFilter !== '' ? statusFilter === 'true' : undefined);
-      
+
       // Handle PageResponse
       let customersData = [];
       if (response && response.content) {
@@ -60,7 +60,7 @@ const AdminCustomerManagement = () => {
         setTotalPages(1);
         setTotalElements(response.length);
       }
-      
+
       setCustomers(customersData);
     } catch (err) {
       console.error('Failed to load customers:', err);
@@ -72,10 +72,7 @@ const AdminCustomerManagement = () => {
 
   // Note: Search and filter are now server-side, no client-side filtering needed
 
-  const handleCreate = () => {
-    setSelectedCustomer(null);
-    setShowCreateModal(true);
-  };
+
 
   const handleView = (customer) => {
     setSelectedCustomer(customer);
@@ -122,10 +119,7 @@ const AdminCustomerManagement = () => {
           <Container fluid className="p-4">
             <div className="d-flex justify-content-between align-items-center mb-3">
               <h4 className="mb-0">Danh sách khách hàng</h4>
-              <Button variant="primary" onClick={handleCreate}>
-                <FaPlus className="me-2" />
-                Tạo khách hàng
-              </Button>
+
             </div>
 
             {/* Search and Filters */}
@@ -246,12 +240,12 @@ const AdminCustomerManagement = () => {
             {!loading && totalPages > 1 && (
               <div className="d-flex justify-content-center mt-3">
                 <Pagination>
-                  <Pagination.First 
-                    onClick={() => setCurrentPage(1)} 
+                  <Pagination.First
+                    onClick={() => setCurrentPage(1)}
                     disabled={currentPage === 1}
                   />
-                  <Pagination.Prev 
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} 
+                  <Pagination.Prev
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
                   />
                   {[...Array(totalPages)].map((_, idx) => {
@@ -275,12 +269,12 @@ const AdminCustomerManagement = () => {
                     }
                     return null;
                   })}
-                  <Pagination.Next 
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} 
+                  <Pagination.Next
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                     disabled={currentPage === totalPages}
                   />
-                  <Pagination.Last 
-                    onClick={() => setCurrentPage(totalPages)} 
+                  <Pagination.Last
+                    onClick={() => setCurrentPage(totalPages)}
                     disabled={currentPage === totalPages}
                   />
                 </Pagination>

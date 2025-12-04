@@ -88,26 +88,26 @@ const CreateCustomerModal = ({ show, onHide, onSave, customer = null, mode = 'cr
 
   const validate = () => {
     const newErrors = {};
-    
-    if (!formData.companyName) {
+
+    if (!formData.companyName || !formData.companyName.trim()) {
       newErrors.companyName = 'Tên công ty là bắt buộc';
     }
 
-    if (!formData.contactPerson) {
+    if (!formData.contactPerson || !formData.contactPerson.trim()) {
       newErrors.contactPerson = 'Người liên hệ là bắt buộc';
-    } else if (!validateContactPerson(formData.contactPerson)) {
+    } else if (!validateContactPerson(formData.contactPerson.trim())) {
       newErrors.contactPerson = 'Tên người liên hệ không hợp lệ.';
     }
 
-    if (!formData.email) {
+    if (!formData.email || !formData.email.trim()) {
       newErrors.email = 'Email là bắt buộc';
-    } else if (!validateEmail(formData.email)) {
+    } else if (!validateEmail(formData.email.trim())) {
       newErrors.email = 'Email không hợp lệ.';
     }
 
-    if (!formData.phoneNumber) {
+    if (!formData.phoneNumber || !formData.phoneNumber.trim()) {
       newErrors.phoneNumber = 'Số điện thoại là bắt buộc';
-    } else if (!isVietnamesePhoneNumber(formData.phoneNumber)) {
+    } else if (!isVietnamesePhoneNumber(formData.phoneNumber.trim())) {
       newErrors.phoneNumber = 'Số điện thoại không hợp lệ.';
     }
 
@@ -121,7 +121,7 @@ const CreateCustomerModal = ({ show, onHide, onSave, customer = null, mode = 'cr
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validate()) {
       return;
     }
@@ -155,12 +155,12 @@ const CreateCustomerModal = ({ show, onHide, onSave, customer = null, mode = 'cr
       const errorMessage = error.message || 'Có lỗi xảy ra';
       // Check for specific error messages
       if (errorMessage.toLowerCase().includes('email đã được sử dụng') ||
-          errorMessage.toLowerCase().includes('email already') ||
-          errorMessage.toLowerCase().includes('email đã được sử dụng bởi khách hàng khác')) {
+        errorMessage.toLowerCase().includes('email already') ||
+        errorMessage.toLowerCase().includes('email đã được sử dụng bởi khách hàng khác')) {
         setErrors(prev => ({ ...prev, email: 'Email này đã được sử dụng.' }));
       } else if (errorMessage.toLowerCase().includes('số điện thoại đã được sử dụng') ||
-                 errorMessage.toLowerCase().includes('phone number already') ||
-                 errorMessage.toLowerCase().includes('số điện thoại đã được sử dụng bởi khách hàng khác')) {
+        errorMessage.toLowerCase().includes('phone number already') ||
+        errorMessage.toLowerCase().includes('số điện thoại đã được sử dụng bởi khách hàng khác')) {
         setErrors(prev => ({ ...prev, phoneNumber: 'Số điện thoại đã tồn tại trong hệ thống.' }));
       } else {
         setErrors(prev => ({ ...prev, _general: errorMessage }));
@@ -196,9 +196,9 @@ const CreateCustomerModal = ({ show, onHide, onSave, customer = null, mode = 'cr
   const isReadOnly = forceReadOnly || (customer && !isEditMode);
 
   return (
-    <Modal 
-      show={show} 
-      onHide={handleClose} 
+    <Modal
+      show={show}
+      onHide={handleClose}
       size="lg"
       centered
       style={{ maxHeight: '90vh' }}
@@ -344,18 +344,7 @@ const CreateCustomerModal = ({ show, onHide, onSave, customer = null, mode = 'cr
             )}
           </Form.Group>
 
-          <Form.Group className="mb-3">
-            <Form.Label>Trạng thái</Form.Label>
-            <Form.Select
-              name="isActive"
-              value={formData.isActive}
-              onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.value === 'true' }))}
-              disabled={isReadOnly}
-            >
-              <option value={true}>Active</option>
-              <option value={false}>De-active</option>
-            </Form.Select>
-          </Form.Group>
+
         </Modal.Body>
         <Modal.Footer style={{ borderTop: '1px solid #dee2e6' }}>
           {isReadOnly ? (

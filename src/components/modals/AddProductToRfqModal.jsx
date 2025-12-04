@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Form, Row, Col, Spinner, Alert } from 'react-bootstrap';
 import { productService } from '../../api/productService';
+import { handleIntegerKeyPress, sanitizeNumericInput } from '../../utils/validators';
 
 const AddProductToRfqModal = ({ show, onHide, onAddProduct }) => {
   const [products, setProducts] = useState([]);
@@ -9,7 +10,7 @@ const AddProductToRfqModal = ({ show, onHide, onAddProduct }) => {
   const [productDetails, setProductDetails] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState(100);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -28,7 +29,7 @@ const AddProductToRfqModal = ({ show, onHide, onAddProduct }) => {
       // Reset form on hide
       setSelectedProductId('');
       setProductDetails(null);
-      setQuantity(1);
+      setQuantity(100);
       setError('');
     }
   }, [show]);
@@ -62,8 +63,8 @@ const AddProductToRfqModal = ({ show, onHide, onAddProduct }) => {
     }
 
     const qty = parseInt(quantity, 10);
-    if (isNaN(qty) || qty <= 0) {
-      setError('Số lượng phải là số dương lớn hơn 0.');
+    if (isNaN(qty) || qty < 100) {
+      setError('Số lượng phải từ 100 trở lên.');
       return;
     }
 
@@ -118,10 +119,20 @@ const AddProductToRfqModal = ({ show, onHide, onAddProduct }) => {
             <Form.Label column sm={4}>Số lượng</Form.Label>
             <Col sm={8}>
               <Form.Control
-                type="number"
+                type="text"
+                inputMode="numeric"
                 value={quantity}
-                onChange={(e) => setQuantity(Math.max(1, e.target.value))}
-                min="1"
+                onChange={(e) => {
+                  const sanitized = sanitizeNumericInput(e.target.value, false);
+                  if (sanitized) {
+                    const num = parseInt(sanitized, 10);
+                    setQuantity(isNaN(num) || num < 100 ? 100 : num);
+                  } else {
+                    setQuantity(100);
+                  }
+                }}
+                onKeyPress={handleIntegerKeyPress}
+                placeholder="Tối thiểu 100"
               />
             </Col>
           </Form.Group>

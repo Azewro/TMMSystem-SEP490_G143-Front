@@ -19,8 +19,8 @@ const CartItemRow = ({ item, isSelected, onToggleSelect }) => {
 
   const handleQuantityBlur = () => {
     let newQuantity = parseInt(localQuantity, 10);
-    if (isNaN(newQuantity) || newQuantity < 1) {
-      newQuantity = 1; // Default to 1 if invalid
+    if (isNaN(newQuantity) || newQuantity < 100) {
+      newQuantity = 100; // Default to 100 if invalid (minimum for RFQ)
     }
     setLocalQuantity(newQuantity); // Update local state to clean value
     updateQuantity(item.id, newQuantity); // Update global state
@@ -54,7 +54,7 @@ const CartItemRow = ({ item, isSelected, onToggleSelect }) => {
               value={localQuantity}
               onChange={handleQuantityChange}
               onBlur={handleQuantityBlur}
-              min="1"
+              min="100"
               style={{ width: '80px' }}
             />
           </Col>

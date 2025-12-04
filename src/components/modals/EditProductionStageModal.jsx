@@ -3,6 +3,7 @@ import { Modal, Button, Form, Alert, Spinner } from 'react-bootstrap';
 import { productionPlanService } from '../../api/productionPlanService';
 import { userService } from '../../api/userService';
 import { FaSave, FaTimes } from 'react-icons/fa';
+import { handleDecimalKeyPress, sanitizeNumericInput } from '../../utils/validators';
 
 const EditProductionStageModal = ({ show, onHide, stage, onSuccess }) => {
   const [formData, setFormData] = useState(stage || {});
@@ -48,7 +49,15 @@ const EditProductionStageModal = ({ show, onHide, stage, onSuccess }) => {
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    // Sanitize numeric fields
+    let sanitizedValue = value;
+    if (name === 'durationInHours') {
+      sanitizedValue = sanitizeNumericInput(value, true); // Allow decimal
+    } else if (name === 'notes') {
+      // Trim whitespace for notes
+      sanitizedValue = typeof value === 'string' ? value : value;
+    }
+    setFormData(prev => ({ ...prev, [name]: sanitizedValue }));
   };
 
   const handleSubmit = async (e) => {
@@ -90,9 +99,9 @@ const EditProductionStageModal = ({ show, onHide, stage, onSuccess }) => {
         inspectionById: formData.inspectionById,
         plannedStartTime: formData.plannedStartTime ? new Date(formData.plannedStartTime).toISOString() : null,
         plannedEndTime: formData.plannedEndTime ? new Date(formData.plannedEndTime).toISOString() : null,
-        durationInHours: parseFloat(formData.durationInHours) || null,
+        durationInHours: formData.durationInHours ? parseFloat(formData.durationInHours.toString().trim()) : null,
         status: formData.status,
-        notes: formData.notes,
+        notes: formData.notes ? formData.notes.trim() : null,
       });
       onSuccess();
       onHide();
@@ -162,7 +171,7 @@ const EditProductionStageModal = ({ show, onHide, stage, onSuccess }) => {
 
             <Form.Group className="mb-3">
               <Form.Label>Thời lượng (giờ)</Form.Label>
-              <Form.Control type="number" name="durationInHours" value={formData.durationInHours || ''} onChange={handleFormChange} step="0.5" min="0" />
+              <Form.Control type="text" inputMode="decimal" name="durationInHours" value={formData.durationInHours || ''} onChange={handleFormChange} onKeyPress={handleDecimalKeyPress} placeholder="VD: 8.5" />
             </Form.Group>
 
             <Form.Group className="mb-3">

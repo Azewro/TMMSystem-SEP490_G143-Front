@@ -4,7 +4,7 @@ import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import { roleService } from '../../api/roleService';
 import { isVietnamesePhoneNumber } from '../../utils/validators';
 
-const CreateUserModal = ({ show, onHide, onSave, user = null }) => {
+const CreateUserModal = ({ show, onHide, onSave, user = null, roles: propRoles = [] }) => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -21,14 +21,31 @@ const CreateUserModal = ({ show, onHide, onSave, user = null }) => {
 
   useEffect(() => {
     if (show) {
-      loadRoles();
+      // Use prop roles if available, otherwise load them
+      if (propRoles && propRoles.length > 0) {
+        setRoles(propRoles);
+      } else {
+        loadRoles();
+      }
+    }
+  }, [show, propRoles]);
+
+  useEffect(() => {
+    if (show) {
       if (user) {
+        // Find role ID based on role name if roleId is missing
+        let initialRoleId = '';
+        if (user.roleName && roles.length > 0) {
+          const foundRole = roles.find(r => r.name === user.roleName);
+          if (foundRole) initialRoleId = foundRole.id;
+        }
+
         setFormData({
           email: user.email || '',
           password: '',
           name: user.name || '',
           phoneNumber: user.phoneNumber || '',
-          roleId: '',
+          roleId: initialRoleId,
           active: user.isActive !== undefined ? user.isActive : true,
           verified: user.isVerified !== undefined ? user.isVerified : false
         });
@@ -45,7 +62,7 @@ const CreateUserModal = ({ show, onHide, onSave, user = null }) => {
       }
       setErrors({});
     }
-  }, [show, user]);
+  }, [show, user, roles]);
 
   const loadRoles = async () => {
     try {
@@ -86,9 +103,9 @@ const CreateUserModal = ({ show, onHide, onSave, user = null }) => {
   const validate = () => {
     const newErrors = {};
 
-    if (!formData.email) {
+    if (!formData.email || !formData.email.trim()) {
       newErrors.email = 'Email là bắt buộc';
-    } else if (!validateEmail(formData.email)) {
+    } else if (!validateEmail(formData.email.trim())) {
       newErrors.email = 'Email không hợp lệ.';
     }
 
@@ -98,15 +115,15 @@ const CreateUserModal = ({ show, onHide, onSave, user = null }) => {
       newErrors.password = 'Mật khẩu phải có ít nhất 8 ký tự.';
     }
 
-    if (!formData.name) {
+    if (!formData.name || !formData.name.trim()) {
       newErrors.name = 'Họ và tên là bắt buộc';
-    } else if (!validateName(formData.name)) {
+    } else if (!validateName(formData.name.trim())) {
       newErrors.name = 'Tên người liên hệ không hợp lệ.';
     }
 
-    if (!formData.phoneNumber) {
+    if (!formData.phoneNumber || !formData.phoneNumber.trim()) {
       newErrors.phoneNumber = 'Số điện thoại là bắt buộc';
-    } else if (!isVietnamesePhoneNumber(formData.phoneNumber)) {
+    } else if (!isVietnamesePhoneNumber(formData.phoneNumber.trim())) {
       newErrors.phoneNumber = 'Số điện thoại không hợp lệ.';
     }
 
@@ -128,9 +145,9 @@ const CreateUserModal = ({ show, onHide, onSave, user = null }) => {
     setLoading(true);
     try {
       const submitData = {
-        email: formData.email,
-        name: formData.name,
-        phoneNumber: formData.phoneNumber,
+        email: formData.email.trim(),
+        name: formData.name.trim(),
+        phoneNumber: formData.phoneNumber.trim(),
         roleId: parseInt(formData.roleId),
         active: formData.active,
         verified: formData.verified
@@ -257,37 +274,38 @@ const CreateUserModal = ({ show, onHide, onSave, user = null }) => {
             )}
           </Form.Group>
 
-          <Form.Group className="mb-3">
-            <Form.Label>
-              {user ? 'Mật khẩu mới (để trống nếu không đổi)' : 'Mật khẩu'}
-              {!user && <span className="text-danger">*</span>}
-            </Form.Label>
-            <div className="position-relative">
-              <Form.Control
-                type={showPassword ? 'text' : 'password'}
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                isInvalid={!!errors.password}
-                placeholder={user ? 'Nhập mật khẩu mới (tùy chọn)' : 'Nhập mật khẩu'}
-                autoComplete="new-password"
-              />
-              <Button
-                variant="link"
-                className="position-absolute end-0 top-50 translate-middle-y"
-                style={{ right: '10px', padding: '0', zIndex: 10 }}
-                onClick={() => setShowPassword(!showPassword)}
-                type="button"
-              >
-                {showPassword ? <FaEyeSlash /> : <FaEye />}
-              </Button>
-            </div>
-            {errors.password && (
-              <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
-                {errors.password}
-              </Form.Control.Feedback>
-            )}
-          </Form.Group>
+          {!user && (
+            <Form.Group className="mb-3">
+              <Form.Label>
+                Mật khẩu <span className="text-danger">*</span>
+              </Form.Label>
+              <div className="position-relative">
+                <Form.Control
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  isInvalid={!!errors.password}
+                  placeholder="Nhập mật khẩu"
+                  autoComplete="new-password"
+                />
+                <Button
+                  variant="link"
+                  className="position-absolute end-0 top-50 translate-middle-y"
+                  style={{ right: '10px', padding: '0', zIndex: 10 }}
+                  onClick={() => setShowPassword(!showPassword)}
+                  type="button"
+                >
+                  {showPassword ? <FaEyeSlash /> : <FaEye />}
+                </Button>
+              </div>
+              {errors.password && (
+                <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
+                  {errors.password}
+                </Form.Control.Feedback>
+              )}
+            </Form.Group>
+          )}
 
           <Form.Group className="mb-3">
             <Form.Label>
@@ -313,17 +331,7 @@ const CreateUserModal = ({ show, onHide, onSave, user = null }) => {
             )}
           </Form.Group>
 
-          <Form.Group className="mb-3">
-            <Form.Label>Trạng thái</Form.Label>
-            <Form.Select
-              name="active"
-              value={formData.active}
-              onChange={(e) => setFormData(prev => ({ ...prev, active: e.target.value === 'true' }))}
-            >
-              <option value={true}>Hoạt động</option>
-              <option value={false}>Bị Vô Hiệu Hóa</option>
-            </Form.Select>
-          </Form.Group>
+
         </Modal.Body>
         <Modal.Footer style={{ borderTop: '1px solid #dee2e6' }}>
           <Button variant="secondary" onClick={handleClose} disabled={loading}>

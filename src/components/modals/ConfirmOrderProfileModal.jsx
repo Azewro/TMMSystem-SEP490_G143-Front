@@ -69,18 +69,18 @@ const ConfirmOrderProfileModal = ({ show, onHide, onConfirm }) => {
 
   const validate = () => {
     const newErrors = {};
-    if (!formData.companyName) newErrors.companyName = 'Tên công ty là bắt buộc';
-    if (!formData.contactPerson) newErrors.contactPerson = 'Người liên hệ là bắt buộc';
-    if (!formData.address) newErrors.address = 'Địa chỉ là bắt buộc';
-    if (!formData.taxCode) newErrors.taxCode = 'Mã số thuế là bắt buộc';
-    if (!formData.email) {
+    if (!formData.companyName || !formData.companyName.trim()) newErrors.companyName = 'Tên công ty là bắt buộc';
+    if (!formData.contactPerson || !formData.contactPerson.trim()) newErrors.contactPerson = 'Người liên hệ là bắt buộc';
+    if (!formData.address || !formData.address.trim()) newErrors.address = 'Địa chỉ là bắt buộc';
+    if (!formData.taxCode || !formData.taxCode.trim()) newErrors.taxCode = 'Mã số thuế là bắt buộc';
+    if (!formData.email || !formData.email.trim()) {
       newErrors.email = 'Email là bắt buộc';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) { // Fixed regex
+    } else if (!/\S+@\S+\.\S+/.test(formData.email.trim())) { // Fixed regex
       newErrors.email = 'Email không hợp lệ';
     }
-    if (!formData.phoneNumber) {
+    if (!formData.phoneNumber || !formData.phoneNumber.trim()) {
       newErrors.phoneNumber = 'Số điện thoại là bắt buộc';
-    } else if (!isVietnamesePhoneNumber(formData.phoneNumber)) {
+    } else if (!isVietnamesePhoneNumber(formData.phoneNumber.trim())) {
       newErrors.phoneNumber = 'Số điện thoại không hợp lệ.';
     }
 
