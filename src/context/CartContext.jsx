@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { productService } from '../api/productService';
 
 const CartContext = createContext();
 
@@ -24,6 +25,32 @@ export const CartProvider = ({ children }) => {
   useEffect(() => {
     localStorage.setItem('cartItems', JSON.stringify(cartItems));
   }, [cartItems]);
+
+  // Validate cart items on mount
+  useEffect(() => {
+    const validateCart = async () => {
+      try {
+        const products = await productService.getAllProducts();
+        if (products && Array.isArray(products)) {
+          const validProductIds = new Set(products.map(p => p.id));
+
+          setCartItems(prevItems => {
+            const validItems = prevItems.filter(item => validProductIds.has(item.id));
+            // Only update if items were removed to avoid unnecessary re-renders
+            if (validItems.length !== prevItems.length) {
+              console.log(`Removed ${prevItems.length - validItems.length} stale items from cart.`);
+              return validItems;
+            }
+            return prevItems;
+          });
+        }
+      } catch (error) {
+        console.error("Failed to validate cart items:", error);
+      }
+    };
+
+    validateCart();
+  }, []);
 
   const addToCart = (product) => {
     setCartItems(prevItems => {
