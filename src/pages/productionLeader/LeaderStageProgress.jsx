@@ -6,7 +6,7 @@ import InternalSidebar from '../../components/common/InternalSidebar';
 import { productionService } from '../../api/productionService';
 import { executionService } from '../../api/executionService';
 import toast from 'react-hot-toast';
-import { getStatusLabel } from '../../utils/statusMapper';
+import { getStatusLabel, getStageTypeName, getLeaderStageStatusLabel } from '../../utils/statusMapper';
 
 const LeaderStageProgress = () => {
   const navigate = useNavigate();
@@ -210,22 +210,11 @@ const LeaderStageProgress = () => {
 
   const statusConfig = useMemo(() => {
     if (!stage) return { label: '...', variant: 'secondary' };
-    // Check for PAUSED status specifically
-    if (stage.status === 'PAUSED') return { label: 'Tạm dừng', variant: 'danger' };
 
     const status = stage.executionStatus || stage.status;
-    switch (status) {
-      case 'PENDING': return { label: 'Đợi', variant: 'secondary' };
-      case 'WAITING': return { label: 'Chờ làm', variant: 'primary' };
-      case 'READY': return { label: 'Sẵn sàng', variant: 'primary' };
-      case 'READY_TO_PRODUCE': return { label: 'Sẵn sàng', variant: 'success' };
-      case 'IN_PROGRESS': return { label: 'Đang làm', variant: 'info' };
-      case 'WAITING_QC': return { label: 'Chờ kiểm tra', variant: 'warning' };
-      case 'QC_PASSED': return { label: 'Đạt QC', variant: 'success' };
-      case 'QC_FAILED': return { label: 'Lỗi QC', variant: 'danger' };
-      case 'COMPLETED': return { label: 'Hoàn thành', variant: 'success' };
-      default: return { label: status, variant: 'secondary' };
-    }
+    // Use the new getLeaderStageStatusLabel function for consistent mapping
+    const result = getLeaderStageStatusLabel(status);
+    return { label: result.label, variant: result.variant };
   }, [stage]);
 
   // Check if stage is pending (chưa đến lượt)
@@ -436,7 +425,7 @@ const LeaderStageProgress = () => {
                 <div className="row g-3">
                   <div className="col-12 col-md-6 col-lg-4">
                     <div className="text-muted small mb-1">Công đoạn</div>
-                    <Form.Control readOnly value={stage.stageType} className="fw-semibold" style={{ backgroundColor: '#f8f9fb' }} />
+                    <Form.Control readOnly value={getStageTypeName(stage.stageType)} className="fw-semibold" style={{ backgroundColor: '#f8f9fb' }} />
                   </div>
                   <div className="col-12 col-md-6 col-lg-4">
                     <div className="text-muted small mb-1">Bắt đầu thực tế</div>

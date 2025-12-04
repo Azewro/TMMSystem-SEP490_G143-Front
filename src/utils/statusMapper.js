@@ -55,6 +55,311 @@ export const getStageTypeName = (stageType) => {
   return stageTypeMap[stageType] || stageType;
 };
 
+/**
+ * Build dynamic status label for Production Order based on active stage
+ * Format: "Prefix StageName" (e.g., "Đang Dệt", "Chờ kiểm tra Nhuộm")
+ * @param {Object} order - ProductionOrderDto with stages array
+ * @returns {{ label: string, variant: string }} Status label and Bootstrap variant
+ */
+export const getProductionOrderStatusFromStages = (order) => {
+  // Handle special status: Chờ phê duyệt cấp sợi
+  if (order.pendingMaterialRequestId) {
+    return { label: 'Chờ phê duyệt cấp sợi', variant: 'warning' };
+  }
+
+  // Handle order-level execution status
+  if (order.executionStatus === 'WAITING_PRODUCTION') {
+    return { label: 'Chờ sản xuất', variant: 'secondary' };
+  }
+  if (order.executionStatus === 'COMPLETED' || order.executionStatus === 'ORDER_COMPLETED') {
+    return { label: 'Hoàn thành', variant: 'success' };
+  }
+
+  // Find active stage (not PENDING and not COMPLETED)
+  const stages = order.stages || [];
+  const activeStage = stages.find(s =>
+    s.executionStatus &&
+    s.executionStatus !== 'PENDING' &&
+    s.executionStatus !== 'COMPLETED' &&
+    s.executionStatus !== 'QC_PASSED'
+  );
+
+  if (!activeStage) {
+    // Fallback: use order status or first non-completed stage
+    const firstPendingStage = stages.find(s => s.executionStatus === 'WAITING' || s.executionStatus === 'READY');
+    if (firstPendingStage) {
+      const stageName = getStageTypeName(firstPendingStage.stageType);
+      return { label: `Chờ ${stageName}`, variant: 'secondary' };
+    }
+    return { label: getStatusLabel(order.executionStatus || order.status), variant: getStatusVariant(order.executionStatus || order.status) };
+  }
+
+  const stageName = getStageTypeName(activeStage.stageType);
+  const status = activeStage.executionStatus;
+
+  // Map execution status to Vietnamese prefix with stage name
+  const statusPrefixMap = {
+    'WAITING': { prefix: 'Chờ', variant: 'secondary' },
+    'READY': { prefix: 'Chờ', variant: 'secondary' },
+    'READY_TO_PRODUCE': { prefix: 'Chờ', variant: 'primary' },
+    'IN_PROGRESS': { prefix: 'Đang', variant: 'info' },
+    'WAITING_QC': { prefix: 'Chờ kiểm tra', variant: 'warning' },
+    'QC_IN_PROGRESS': { prefix: 'Đang kiểm tra', variant: 'warning' },
+    'WAITING_REWORK': { prefix: 'Chờ sửa', variant: 'warning' },
+    'REWORK_IN_PROGRESS': { prefix: 'Đang sửa', variant: 'info' },
+    'PAUSED': { prefix: 'Tạm dừng', variant: 'danger' },
+  };
+
+  const mapping = statusPrefixMap[status];
+  if (mapping) {
+    return { label: `${mapping.prefix} ${stageName}`, variant: mapping.variant };
+  }
+
+  // Fallback
+  return { label: getStatusLabel(status), variant: getStatusVariant(status) };
+};
+
+/**
+ * Get stage status label and buttons for Production Manager view
+ * Maps backend executionStatus to Vietnamese labels and determines button configuration
+ * 
+ * BUSINESS LOGIC:
+ * - Đang đợi (PENDING): Công đoạn trước chưa hoàn thành → Không có button
+ * - Chờ làm (WAITING/READY): PM bấm bắt đầu lệnh || công đoạn trước đạt → Button: Bắt đầu (Nhuộm)
+ * - Đang làm (IN_PROGRESS): Leader bấm bắt đầu → Chi tiết, Cập nhật công đoạn (Nhuộm)
+ * - Chờ kiểm tra (WAITING_QC): Progress = 100% → Chi tiết
+ * - Đang kiểm tra (QC_IN_PROGRESS): KCS bấm kiểm tra → Chi tiết
+ * - Đạt (QC_PASSED): Kết quả kiểm tra đạt → Chi tiết
+ * - Không đạt (QC_FAILED): Kết quả kiểm tra không đạt → Chi tiết
+ * - Chờ sửa (WAITING_REWORK): Kỹ thuật gửi yêu cầu làm lại → Chi tiết, Tạm dừng và Sửa lỗi (Nhuộm)
+ * - Đang sửa (REWORK_IN_PROGRESS): Leader bấm tạm dừng và sửa lỗi → Chi tiết
+ * - Tạm dừng (PAUSED): Đơn hàng khác đang sửa lỗi → Chi tiết
+ * 
+ * @param {string} status - Backend executionStatus
+ * @param {boolean} isDyeingStage - True if this is DYEING/NHUOM stage (managed by PM)
+ * @returns {{ label: string, variant: string, buttons: Array<{text: string, action: string, variant: string, disabled?: boolean}> }}
+ */
+export const getPMStageStatusLabel = (status, isDyeingStage = false) => {
+  const statusMap = {
+    // Đang đợi - công đoạn trước chưa hoàn thành
+    'PENDING': {
+      label: 'Đang đợi',
+      variant: 'secondary',
+      buttons: [] // Không có button
+    },
+    // Chờ làm - PM bấm bắt đầu lệnh || công đoạn trước đạt
+    'WAITING': {
+      label: 'Chờ làm',
+      variant: 'primary',
+      buttons: isDyeingStage
+        ? [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' },
+        { text: 'Bắt đầu', action: 'start', variant: 'dark' }]
+        : [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
+    },
+    'READY': {
+      label: 'Chờ làm',
+      variant: 'primary',
+      buttons: isDyeingStage
+        ? [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' },
+        { text: 'Bắt đầu', action: 'start', variant: 'dark' }]
+        : [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
+    },
+    'READY_TO_PRODUCE': {
+      label: 'Chờ làm',
+      variant: 'primary',
+      buttons: isDyeingStage
+        ? [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' },
+        { text: 'Bắt đầu', action: 'start', variant: 'dark' }]
+        : [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
+    },
+    // Đang làm - leader bấm bắt đầu
+    'IN_PROGRESS': {
+      label: 'Đang làm',
+      variant: 'info',
+      buttons: isDyeingStage
+        ? [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' },
+        { text: 'Cập nhật tiến độ', action: 'update', variant: 'dark' }]
+        : [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
+    },
+    // Chờ kiểm tra - progress = 100%
+    'WAITING_QC': {
+      label: 'Chờ kiểm tra',
+      variant: 'warning',
+      buttons: [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
+    },
+    // Đang kiểm tra - KCS bấm kiểm tra
+    'QC_IN_PROGRESS': {
+      label: 'Đang kiểm tra',
+      variant: 'warning',
+      buttons: [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
+    },
+    // Đạt - kết quả kiểm tra đạt
+    'QC_PASSED': {
+      label: 'Đạt',
+      variant: 'success',
+      buttons: [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
+    },
+    // Không đạt - kết quả kiểm tra không đạt
+    'QC_FAILED': {
+      label: 'Không đạt',
+      variant: 'danger',
+      buttons: [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
+    },
+    // Chờ sửa - kỹ thuật gửi yêu cầu làm lại || PM phê duyệt yêu cầu cấp sợi
+    'WAITING_REWORK': {
+      label: 'Chờ sửa',
+      variant: 'warning',
+      buttons: isDyeingStage
+        ? [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' },
+        { text: 'Tạm dừng và Sửa lỗi', action: 'rework', variant: 'dark' }]
+        : [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
+    },
+    // Đang sửa - leader bấm "tạm dừng và sửa lỗi"
+    'REWORK_IN_PROGRESS': {
+      label: 'Đang sửa',
+      variant: 'info',
+      buttons: [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
+    },
+    // Tạm dừng - đơn hàng khác đang sửa lỗi
+    'PAUSED': {
+      label: 'Tạm dừng',
+      variant: 'danger',
+      buttons: [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
+    },
+    // Hoàn thành
+    'COMPLETED': {
+      label: 'Hoàn thành',
+      variant: 'success',
+      buttons: [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
+    }
+  };
+
+  const result = statusMap[status];
+  if (result) {
+    return result;
+  }
+
+  // Fallback
+  return {
+    label: getStatusLabel(status) || status,
+    variant: getStatusVariant(status) || 'secondary',
+    buttons: [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
+  };
+};
+
+
+/**
+ * Get stage status label and buttons for Leader Order List view
+ * Maps backend executionStatus to Vietnamese labels and determines button configuration
+ * 
+ * BUSINESS LOGIC (from requirements):
+ * - Đợi (PENDING): Đơn hàng phía trước chưa xong công đoạn → Không có button
+ * - Sẵn sàng sản xuất (WAITING/READY): Công đoạn trước 100% và đạt → Bắt đầu (auto navigate to progress page)
+ * - Đang làm (IN_PROGRESS): Leader bấm bắt đầu → Cập nhật tiến độ
+ * - Chờ kiểm tra (WAITING_QC): Progress = 100% → Xem chi tiết
+ * - Đang kiểm tra (QC_IN_PROGRESS): KCS bấm kiểm tra → Xem chi tiết
+ * - Đạt (QC_PASSED): Kết quả kiểm tra đạt → Xem chi tiết
+ * - Không đạt (QC_FAILED): Kết quả kiểm tra không đạt → Xem chi tiết
+ * - Chờ sửa (WAITING_REWORK): Kỹ thuật gửi yêu cầu làm lại → Tạm dừng và Sửa lỗi
+ * - Đang sửa (REWORK_IN_PROGRESS): Leader bấm tạm dừng và sửa lỗi → Cập nhật tiến độ
+ * - Tạm dừng (PAUSED): Đơn hàng khác đang sửa lỗi → Không có button
+ * 
+ * @param {string} status - Backend executionStatus
+ * @returns {{ label: string, variant: string, buttons: Array<{text: string, action: string, variant: string, disabled?: boolean}> }}
+ */
+export const getLeaderStageStatusLabel = (status) => {
+  const statusMap = {
+    // Đợi - đơn hàng phía trước chưa xong công đoạn
+    'PENDING': {
+      label: 'Đợi',
+      variant: 'secondary',
+      buttons: [] // Không có button
+    },
+    // Sẵn sàng sản xuất - công đoạn trước 100% và đạt
+    'WAITING': {
+      label: 'Sẵn sàng sản xuất',
+      variant: 'primary',
+      buttons: [{ text: 'Bắt đầu', action: 'start', variant: 'success' }]
+    },
+    'READY': {
+      label: 'Sẵn sàng sản xuất',
+      variant: 'primary',
+      buttons: [{ text: 'Bắt đầu', action: 'start', variant: 'success' }]
+    },
+    'READY_TO_PRODUCE': {
+      label: 'Sẵn sàng sản xuất',
+      variant: 'primary',
+      buttons: [{ text: 'Bắt đầu', action: 'start', variant: 'success' }]
+    },
+    // Đang làm - leader bấm bắt đầu
+    'IN_PROGRESS': {
+      label: 'Đang làm',
+      variant: 'info',
+      buttons: [{ text: 'Cập nhật tiến độ', action: 'update', variant: 'primary' }]
+    },
+    // Chờ kiểm tra - progress = 100%
+    'WAITING_QC': {
+      label: 'Chờ kiểm tra',
+      variant: 'warning',
+      buttons: [{ text: 'Xem chi tiết', action: 'detail', variant: 'outline-secondary' }]
+    },
+    // Đang kiểm tra - KCS bấm kiểm tra
+    'QC_IN_PROGRESS': {
+      label: 'Đang kiểm tra',
+      variant: 'warning',
+      buttons: [{ text: 'Xem chi tiết', action: 'detail', variant: 'outline-secondary' }]
+    },
+    // Đạt - kết quả kiểm tra đạt
+    'QC_PASSED': {
+      label: 'Đạt',
+      variant: 'success',
+      buttons: [{ text: 'Xem chi tiết', action: 'detail', variant: 'outline-secondary' }]
+    },
+    // Không đạt - kết quả kiểm tra không đạt
+    'QC_FAILED': {
+      label: 'Không đạt',
+      variant: 'danger',
+      buttons: [{ text: 'Xem chi tiết', action: 'detail', variant: 'outline-secondary' }]
+    },
+    // Chờ sửa - kỹ thuật gửi yêu cầu làm lại
+    'WAITING_REWORK': {
+      label: 'Chờ sửa',
+      variant: 'warning',
+      buttons: [{ text: 'Tạm dừng và Sửa lỗi', action: 'rework', variant: 'warning' }]
+    },
+    // Đang sửa - leader bấm tạm dừng và sửa lỗi
+    'REWORK_IN_PROGRESS': {
+      label: 'Đang sửa',
+      variant: 'info',
+      buttons: [{ text: 'Cập nhật tiến độ', action: 'update', variant: 'primary' }]
+    },
+    // Tạm dừng - đơn hàng khác đang sửa lỗi
+    'PAUSED': {
+      label: 'Tạm dừng',
+      variant: 'danger',
+      buttons: [] // Không có button
+    },
+    // Hoàn thành
+    'COMPLETED': {
+      label: 'Hoàn thành',
+      variant: 'success',
+      buttons: [{ text: 'Xem chi tiết', action: 'detail', variant: 'outline-secondary' }]
+    }
+  };
+
+  const result = statusMap[status];
+  if (result) {
+    return result;
+  }
+
+  // Fallback
+  return {
+    label: getStatusLabel(status) || status,
+    variant: getStatusVariant(status) || 'secondary',
+    buttons: [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
+  };
+};
+
 // Get button configuration based on stage status and user role
 export const getButtonForStage = (status, userRole) => {
   if (userRole === 'leader') {
