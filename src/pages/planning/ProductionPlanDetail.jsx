@@ -169,11 +169,7 @@ const ProductionPlanDetail = () => {
     const [inChargeUsers, setInChargeUsers] = useState([]);
     const [qcUsers, setQcUsers] = useState([]);
     const [pmUsers, setPmUsers] = useState([]);
-    const [stageSuggestions, setStageSuggestions] = useState({});
-    const [stageSuggestionsLoading, setStageSuggestionsLoading] = useState({});
-    const [stageConflicts, setStageConflicts] = useState({});
-    const [stageConflictsLoading, setStageConflictsLoading] = useState({});
-    const [stageActionLoading, setStageActionLoading] = useState({});
+    // Removed suggestion states
 
     // State for active stage in stepper
     const [activeStageIndex, setActiveStageIndex] = useState(0);
@@ -368,11 +364,6 @@ const ProductionPlanDetail = () => {
             setInChargeUsers(processLeaders.length ? processLeaders : usersArray);
             setPmUsers(productionManagers.length ? productionManagers : processLeaders);
             setQcUsers(usersArray.filter(u => normalizeRole(u.roleName) === 'quality assurance department'));
-            setStageSuggestions({});
-            setStageSuggestionsLoading({});
-            setStageConflicts({});
-            setStageConflictsLoading({});
-            setStageActionLoading({});
 
         } catch (err) {
             console.error('Failed to load initial data', err);
@@ -389,75 +380,7 @@ const ProductionPlanDetail = () => {
         }
     }, [id, loadInitialData]);
 
-    const handleFetchMachineSuggestions = async (stageId) => {
-        setStageSuggestionsLoading(prev => ({ ...prev, [stageId]: true }));
-        try {
-            const suggestions = await productionPlanService.getMachineSuggestions(stageId);
-            setStageSuggestions(prev => ({ ...prev, [stageId]: suggestions || [] }));
-            if (suggestions && suggestions.length > 0) {
-                toast.success('Đã tải gợi ý máy cho công đoạn.');
-            } else {
-                toast('Không có gợi ý phù hợp cho công đoạn này.');
-            }
-        } catch (err) {
-            console.error('Failed to fetch machine suggestions', err);
-            toast.error(err.message || 'Không thể lấy gợi ý máy.');
-        } finally {
-            setStageSuggestionsLoading(prev => ({ ...prev, [stageId]: false }));
-        }
-    };
-
-    const handleApplySuggestion = async (stageId, suggestion) => {
-        if (!suggestion) return;
-        setStageActionLoading(prev => ({ ...prev, [stageId]: true }));
-        try {
-            const stagePayload = {};
-            if (suggestion.machineId) {
-                stagePayload.assignedMachineId = suggestion.machineId;
-            }
-            if (suggestion.suggestedStartTime) {
-                stagePayload.plannedStartTime = suggestion.suggestedStartTime;
-            }
-            if (suggestion.suggestedEndTime) {
-                stagePayload.plannedEndTime = suggestion.suggestedEndTime;
-            }
-            if (suggestion.capacityPerHour) {
-                stagePayload.capacityPerHour = suggestion.capacityPerHour;
-            }
-            if (suggestion.estimatedDurationHours) {
-                const estimated = Number(suggestion.estimatedDurationHours);
-                if (!Number.isNaN(estimated)) {
-                    stagePayload.minRequiredDurationMinutes = Math.round(estimated * 60);
-                }
-            }
-            const updatedStage = await productionPlanService.updateStage(stageId, stagePayload);
-            replaceStageInEditablePlan(updatedStage);
-            toast.success('Đã áp dụng gợi ý máy.');
-        } catch (err) {
-            console.error('Failed to apply suggestion', err);
-            toast.error(err.message || 'Không thể áp dụng gợi ý máy.');
-        } finally {
-            setStageActionLoading(prev => ({ ...prev, [stageId]: false }));
-        }
-    };
-
-    const handleCheckConflicts = async (stageId) => {
-        setStageConflictsLoading(prev => ({ ...prev, [stageId]: true }));
-        try {
-            const conflicts = await productionPlanService.checkConflicts(stageId);
-            setStageConflicts(prev => ({ ...prev, [stageId]: conflicts || [] }));
-            if (conflicts && conflicts.length > 0) {
-                toast.error('Phát hiện xung đột lịch cho công đoạn.');
-            } else {
-                toast.success('Không có xung đột cho công đoạn này.');
-            }
-        } catch (err) {
-            console.error('Failed to check conflicts', err);
-            toast.error(err.message || 'Không thể kiểm tra xung đột.');
-        } finally {
-            setStageConflictsLoading(prev => ({ ...prev, [stageId]: false }));
-        }
-    };
+    // Removed machine suggestion handlers
 
     const handleStageChange = async (stageId, field, value) => {
         setEditablePlan(prev => {
@@ -707,25 +630,6 @@ const ProductionPlanDetail = () => {
                                         {activeStageIndex + 1}. {getStageTypeName(activeStage.stageType)}
                                     </h3>
 
-                                    <div className="d-flex flex-wrap gap-2 mb-3">
-                                        <Button
-                                            variant="outline-primary"
-                                            size="sm"
-                                            onClick={() => handleFetchMachineSuggestions(activeStage.id)}
-                                            disabled={isReadOnly || stageSuggestionsLoading[activeStage.id]}
-                                        >
-                                            {stageSuggestionsLoading[activeStage.id] ? <Spinner size="sm" animation="border" /> : 'Gợi ý máy'}
-                                        </Button>
-                                        <Button
-                                            variant="outline-warning"
-                                            size="sm"
-                                            onClick={() => handleCheckConflicts(activeStage.id)}
-                                            disabled={isReadOnly || stageConflictsLoading[activeStage.id]}
-                                        >
-                                            {stageConflictsLoading[activeStage.id] ? <Spinner size="sm" animation="border" /> : 'Kiểm tra xung đột'}
-                                        </Button>
-                                    </div>
-
                                     <Row>
                                         <Col md={4} className="form-group-custom">
                                             <Form.Label className="form-label-custom">Người phụ trách</Form.Label>
@@ -759,8 +663,8 @@ const ProductionPlanDetail = () => {
                                             <Form.Control type="datetime-local" value={formatDateTimeForInput(activeStage.plannedEndTime)} onChange={(e) => handleStageChange(activeStage.id, 'plannedEndTime', e.target.value)} disabled={isReadOnly} />
                                         </Col>
                                         <Col md={4} className="form-group-custom">
-                                            <Form.Label className="form-label-custom">Thời lượng (giờ)</Form.Label>
-                                            <Form.Control type="number" value={activeStage.durationInHours || ''} onChange={(e) => handleStageChange(activeStage.id, 'durationInHours', e.target.value)} disabled={isReadOnly} />
+                                            <Form.Label className="form-label-custom">Thời lượng (giờ) (8h/ngày)</Form.Label>
+                                            <Form.Control type="number" readOnly value={activeStage.durationInHours || calculateDuration(activeStage.plannedStartTime, activeStage.plannedEndTime)} disabled />
                                         </Col>
                                         <Col md={12} className="form-group-custom">
                                             <Form.Label className="form-label-custom">Ghi chú</Form.Label>
@@ -768,86 +672,8 @@ const ProductionPlanDetail = () => {
                                         </Col>
                                     </Row>
 
-                                    {/* Suggestions Table */}
-                                    {stageSuggestions[activeStage.id] && stageSuggestions[activeStage.id].length > 0 && (
-                                        <div className="mt-3">
-                                            <h6 className="mb-2">Gợi ý máy móc</h6>
-                                            <Table responsive bordered size="sm">
-                                                <thead className="table-light">
-                                                    <tr>
-                                                        <th>Máy / Vendor</th>
-                                                        <th>Năng suất</th>
-                                                        <th>Ưu tiên</th>
-                                                        <th>Thời gian gợi ý</th>
-                                                        <th>Thao tác</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {stageSuggestions[activeStage.id].map((suggestion) => (
-                                                        <tr key={`${activeStage.id}-${suggestion.machineId || suggestion.machineCode}`}>
-                                                            <td>
-                                                                <div className="fw-semibold">{suggestion.machineName || 'N/A'}</div>
-                                                                <div className="text-muted small">{suggestion.machineCode || '—'}</div>
-                                                            </td>
-                                                            <td>
-                                                                {formatNumberValue(suggestion.capacityPerHour)} /h
-                                                                <div className="small text-muted">
-                                                                    Ước tính: {formatNumberValue(suggestion.estimatedDurationHours)} giờ
-                                                                </div>
-                                                            </td>
-                                                            <td>
-                                                                <Badge bg={suggestion.available ? 'success' : 'secondary'}>
-                                                                    {suggestion.priorityScore ? suggestion.priorityScore.toFixed(0) : '—'}
-                                                                </Badge>
-                                                                <div className="small text-muted">
-                                                                    {suggestion.available ? 'Sẵn sàng' : 'Bận'}
-                                                                </div>
-                                                            </td>
-                                                            <td>
-                                                                <div className="small">
-                                                                    <div>BĐ: {formatDateTimeDisplay(suggestion.suggestedStartTime)}</div>
-                                                                    <div>KT: {formatDateTimeDisplay(suggestion.suggestedEndTime)}</div>
-                                                                </div>
-                                                                {suggestion.conflicts && suggestion.conflicts.length > 0 && (
-                                                                    <div className="text-danger small mt-1">
-                                                                        {suggestion.conflicts[0]}
-                                                                    </div>
-                                                                )}
-                                                            </td>
-                                                            <td>
-                                                                <Button
-                                                                    variant="outline-primary"
-                                                                    size="sm"
-                                                                    onClick={() => handleApplySuggestion(activeStage.id, suggestion)}
-                                                                    disabled={isReadOnly || stageActionLoading[activeStage.id]}
-                                                                >
-                                                                    {stageActionLoading[activeStage.id] ? <Spinner size="sm" animation="border" /> : 'Áp dụng'}
-                                                                </Button>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </Table>
-                                        </div>
-                                    )}
-
-                                    {/* Conflicts Alert */}
-                                    {stageConflicts[activeStage.id] && (
-                                        <Alert variant={stageConflicts[activeStage.id].length ? 'warning' : 'success'} className="mt-3">
-                                            {stageConflicts[activeStage.id].length ? (
-                                                <>
-                                                    <strong>Phát hiện xung đột:</strong>
-                                                    <ul className="mb-0">
-                                                        {stageConflicts[activeStage.id].map((conflict, idx) => (
-                                                            <li key={`${activeStage.id}-conflict-${idx}`}>{conflict}</li>
-                                                        ))}
-                                                    </ul>
-                                                </>
-                                            ) : (
-                                                'Không có xung đột nào được phát hiện.'
-                                            )}
-                                        </Alert>
-                                    )}
+                                    {/* Suggestions Table Removed */}
+                                    {/* Conflicts Alert Removed */}
                                 </Card.Body>
                             </Card>
                         )}

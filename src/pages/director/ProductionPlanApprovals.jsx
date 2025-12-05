@@ -50,9 +50,48 @@ const calculateDuration = (startTime, endTime) => {
   try {
     const start = new Date(startTime);
     const end = new Date(endTime);
-    const diffMs = end - start;
-    const diffHours = Math.round(diffMs / (1000 * 60 * 60));
-    return diffHours;
+    if (start >= end) return 0;
+
+    let totalMinutes = 0;
+    const current = new Date(start);
+
+    // Helper to check if time is within working hours (08:00-12:00, 13:00-17:00)
+    // We will iterate minute by minute or simplified approach?
+    // Minute iteration is safe but slow if long duration.
+    // Better: iterate by days.
+
+    // Let's implement a robust calculation function:
+    // Working hours: 08:00-12:00, 13:00-17:00.
+
+    while (current < end) {
+      // Check if current day is working day? user didn't specify weekends. Assuming 7 days as per previous tasks?
+      // "Adjust Production Schedule Logic... 7-day work week". So work everyday.
+
+      // Define working intervals for current day
+      const dayStart = new Date(current); dayStart.setHours(8, 0, 0, 0);
+      const lunchStart = new Date(current); lunchStart.setHours(12, 0, 0, 0);
+      const lunchEnd = new Date(current); lunchEnd.setHours(13, 0, 0, 0);
+      const dayEnd = new Date(current); dayEnd.setHours(17, 0, 0, 0);
+
+      // Interval 1: 08:00 - 12:00
+      // Interval 2: 13:00 - 17:00
+
+      [[dayStart, lunchStart], [lunchEnd, dayEnd]].forEach(([s, e]) => {
+        // Intersect [current, end] with [s, e]
+        const overlapStart = new Date(Math.max(start, s));
+        const overlapEnd = new Date(Math.min(end, e));
+        if (overlapStart < overlapEnd) {
+          totalMinutes += (overlapEnd - overlapStart) / (1000 * 60);
+        }
+      });
+
+      // Move to next day
+      current.setDate(current.getDate() + 1);
+      current.setHours(0, 0, 0, 0);
+    }
+
+    const hours = totalMinutes / 60;
+    return hours.toFixed(1);
   } catch (error) {
     return '—';
   }
@@ -355,7 +394,7 @@ const ProductionPlanApprovals = () => {
                         {plans.length > 0 ? plans.map(plan => {
                           const statusObj = getDirectorPlanStatus(plan.status);
                           const productName = plan.contractDetails?.orderItems?.[0]?.productName || 'N/A';
-                          const plannedQuantity = plan.contractDetails?.orderItems?.reduce((sum, item) => sum + item.quantity, 0) || 'N/A';
+                          const plannedQuantity = plan.lot?.totalQuantity || plan.details?.[0]?.plannedQuantity || plan.contractDetails?.orderItems?.reduce((sum, item) => sum + item.quantity, 0) || 'N/A';
 
                           return (
                             <tr key={plan.id}>

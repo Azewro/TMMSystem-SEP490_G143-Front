@@ -22,8 +22,12 @@ export const productionPlanService = {
   },
 
   async submitForApproval(planId, notes) {
-    const response = await apiClient.put(`/v1/production-plans/${planId}/submit`, { notes });
-    return response.data;
+    try {
+      const response = await apiClient.put(`/v1/production-plans/${planId}/submit`, { notes });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi gửi kế hoạch đi phê duyệt.');
+    }
   },
 
   async calculateSchedule(planId) {
@@ -32,13 +36,21 @@ export const productionPlanService = {
   },
 
   async approve(planId, notes) {
-    const response = await apiClient.put(`/v1/production-plans/${planId}/approve`, { approvalNotes: notes });
-    return response.data;
+    try {
+      const response = await apiClient.put(`/v1/production-plans/${planId}/approve`, { approvalNotes: notes });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi phê duyệt kế hoạch.');
+    }
   },
 
   rejectPlan: async (planId, rejectionReason) => {
-    const response = await apiClient.put(`/v1/production-plans/${planId}/reject`, { rejectionReason });
-    return response.data;
+    try {
+      const response = await apiClient.put(`/v1/production-plans/${planId}/reject`, { rejectionReason });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi từ chối kế hoạch.');
+    }
   },
 
   createPlanFromContract: async (contractId) => {
@@ -108,55 +120,7 @@ export const productionPlanService = {
     }
   },
 
-  // Get machine suggestions for a stage - according to Production Planning Guide
-  getMachineSuggestions: async (stageId) => {
-    try {
-      const response = await apiClient.get(`/v1/production-plans/stages/${stageId}/machine-suggestions`);
-      return response.data;
-    } catch (error) {
-      throw new Error(error.response?.data?.message || 'Lỗi khi tải gợi ý máy móc.');
-    }
-  },
-
-  // Auto-assign machine to a stage - according to Production Planning Guide
-  autoAssignMachine: async (stageId) => {
-    try {
-      const response = await apiClient.post(`/v1/production-plans/stages/${stageId}/auto-assign-machine`);
-      return response.data;
-    } catch (error) {
-      throw new Error(error.response?.data?.message || 'Lỗi khi tự động gán máy móc.');
-    }
-  },
-
-  // Assign in-charge user to a stage - according to Production Planning Guide
-  assignInCharge: async (stageId, userId) => {
-    try {
-      const response = await apiClient.put(`/v1/production-plans/stages/${stageId}/assign-incharge?userId=${userId}`, null);
-      return response.data;
-    } catch (error) {
-      throw new Error(error.response?.data?.message || 'Lỗi khi gán người phụ trách.');
-    }
-  },
-
-  // Assign QC user to a stage - according to Production Planning Guide
-  assignQC: async (stageId, userId) => {
-    try {
-      const response = await apiClient.put(`/v1/production-plans/stages/${stageId}/assign-qc?userId=${userId}`, null);
-      return response.data;
-    } catch (error) {
-      throw new Error(error.response?.data?.message || 'Lỗi khi gán người kiểm tra chất lượng.');
-    }
-  },
-
-  // Check conflicts for a stage - according to Production Planning Guide
-  checkConflicts: async (stageId) => {
-    try {
-      const response = await apiClient.get(`/v1/production-plans/stages/${stageId}/check-conflicts`);
-      return response.data;
-    } catch (error) {
-      throw new Error(error.response?.data?.message || 'Lỗi khi kiểm tra xung đột.');
-    }
-  },
+  // Removed machine suggestion and conflict check APIs
 
   getMaterialConsumption: async (planId) => {
     try {
