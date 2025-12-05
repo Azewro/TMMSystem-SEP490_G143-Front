@@ -408,7 +408,7 @@ const TechnicalDefectDetail = () => {
                       <strong>Đã yêu cầu làm lại.</strong>
                       <div className="mt-1">
                         <small className="text-muted">Ghi chú đã gửi:</small>
-                        <div>{defect.issueDescription}</div>
+                        <div>{defect.technicalNotes}</div>
                       </div>
                     </div>
                   ) : (
