@@ -201,9 +201,9 @@ const QaStageCheckResult = () => {
           productName: orderData.productName || orderData.contract?.contractNumber || 'N/A',
           criteria,
           overall: stage.executionStatus === 'QC_PASSED' ? 'PASS' :
-            (stage.executionStatus === 'QC_FAILED' ? 'FAIL' : 'PENDING'),
+            (['QC_FAILED', 'WAITING_REWORK', 'REWORK_IN_PROGRESS'].includes(stage.executionStatus) ? 'FAIL' : 'PENDING'),
           summary: stage.executionStatus === 'QC_PASSED' ? 'Tất cả tiêu chí đều Đạt.' :
-            (stage.executionStatus === 'QC_FAILED' ? 'Có tiêu chí Không đạt. Vui lòng xử lý lỗi theo quy định.' : 'Chưa có kết quả kiểm tra'),
+            (['QC_FAILED', 'WAITING_REWORK', 'REWORK_IN_PROGRESS'].includes(stage.executionStatus) ? 'Có tiêu chí Không đạt. Vui lòng xử lý lỗi theo quy định.' : 'Chưa có kết quả kiểm tra'),
           defectLevel: stage.defectLevel || stage.defectSeverity,
           defectDescription: stage.defectDescription,
           stageType: stage.stageType || stageCode
@@ -328,7 +328,16 @@ const QaStageCheckResult = () => {
                   <div className="d-flex flex-column gap-1">
                     <div>
                       <span className="text-muted small me-1">Mức độ lỗi:</span>
-                      <strong>{qaResult.defectLevel || 'Chưa xác định'}</strong>
+                      {(() => {
+                        const level = qaResult.defectLevel;
+                        const config = {
+                          'MINOR': { label: 'Lỗi nhẹ', variant: 'warning' },
+                          'MAJOR': { label: 'Lỗi nặng', variant: 'danger' },
+                          'CRITICAL': { label: 'Lỗi nghiêm trọng', variant: 'danger' }
+                        };
+                        const info = config[level] || { label: level || 'Chưa xác định', variant: 'secondary' };
+                        return <Badge bg={info.variant}>{info.label}</Badge>;
+                      })()}
                     </div>
                     <div>
                       <span className="text-muted small me-1">Mô tả lỗi:</span>

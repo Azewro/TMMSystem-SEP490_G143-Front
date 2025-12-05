@@ -82,7 +82,7 @@ const TechnicalDefectList = () => {
                           const status = statusConfig[defect.status] || { label: defect.status, variant: 'secondary' };
                           return (
                             <tr key={defect.id}>
-                              <td>{defect.poNumber}</td>
+                              <td>{defect.batchNumber || defect.poNumber}</td>
                               <td>{defect.productName || 'N/A'}</td>
                               <td>{defect.size || 'N/A'}</td>
                               <td>{getStageTypeName(defect.stageType)}</td>
