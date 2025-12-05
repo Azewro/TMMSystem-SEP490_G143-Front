@@ -157,12 +157,12 @@ const QuotesList = () => {
         return;
       }
 
-      // If not, try to find order by quotation ID
-      const allOrders = await orderService.getAllOrders();
-      const order = allOrders.find(o => o.quotationId === quote.id || (o.quotation && o.quotation.id === quote.id));
+      // If not, try to find order by quotation ID using the new optimized endpoint
+      const orders = await orderService.getOrdersByQuotationId(quote.id);
 
-      if (order) {
-        navigate(`/internal/orders/${order.id}`);
+      if (orders && orders.length > 0) {
+        // Navigate to the first order found (usually 1-1 mapping)
+        navigate(`/internal/orders/${orders[0].id}`);
       } else {
         toast.error('Không tìm thấy đơn hàng cho báo giá này');
       }

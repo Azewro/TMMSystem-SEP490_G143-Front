@@ -571,6 +571,7 @@ export const getSalesRfqStatus = (status) => {
   if (status === 'DRAFT' || status === 'SENT') return { label: 'Chờ xác nhận', variant: 'info', value: 'WAITING_CONFIRMATION' };
   if (status === 'PRELIMINARY_CHECKED' || status === 'FORWARDED_TO_PLANNING' || status === 'RECEIVED_BY_PLANNING') return { label: 'Đã xác nhận', variant: 'primary', value: 'CONFIRMED' };
   if (status === 'QUOTED') return { label: 'Đã báo giá', variant: 'success', value: 'QUOTED' };
+  if (status === 'REJECTED') return { label: 'Đã từ chối', variant: 'danger', value: 'REJECTED' };
   if (status === 'CANCELED') return { label: 'Đã hủy', variant: 'dark', value: 'CANCELED' };
 
   const label = getStatusLabel(status);
