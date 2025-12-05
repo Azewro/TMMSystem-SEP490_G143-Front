@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { productionService } from '../../api/productionService';
+import { getStageTypeName } from '../../utils/statusMapper';
 
 const severityConfig = {
   MINOR: { label: 'Lỗi nhẹ', variant: 'warning' },
@@ -69,7 +70,7 @@ const LeaderDefectList = () => {
                       <tr>
                         <th>Mã đơn</th>
                         <th>Công đoạn</th>
-                        <th>Hình ảnh</th>
+                        {/* <th>Hình ảnh</th> REMOVED */}
                         <th>Mức độ</th>
                         <th>Mô tả</th>
                         <th>Trạng thái</th>
@@ -80,16 +81,9 @@ const LeaderDefectList = () => {
                       {defects.map((defect) => (
                         <tr key={defect.id}>
                           <td>{defect.poNumber || 'N/A'}</td>
-                          <td>{defect.stageType || 'N/A'}</td>
-                          <td>
-                            {defect.evidencePhoto ? (
-                              <span className="text-primary" title="Có hình ảnh">
-                                <i className="bi bi-image"></i> 📷
-                              </span>
-                            ) : (
-                              <span className="text-muted">-</span>
-                            )}
-                          </td>
+                          <td>{getStageTypeName(defect.stageType)}</td>
+                          {/* Removed Image Column */}
+
                           <td>
                             <Badge bg={severityConfig[defect.severity]?.variant || 'secondary'}>
                               {severityConfig[defect.severity]?.label || defect.severity}

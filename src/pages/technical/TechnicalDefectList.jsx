@@ -5,6 +5,7 @@ import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import api from '../../api/apiConfig';
 import { toast } from 'react-hot-toast';
+import { getStageTypeName } from '../../utils/statusMapper';
 
 const severityConfig = {
   MINOR: { label: 'Lỗi nhẹ', variant: 'warning' },
@@ -15,6 +16,9 @@ const statusConfig = {
   PENDING: { label: 'Chờ xử lý', variant: 'warning' },
   PROCESSED: { label: 'Đã xử lý', variant: 'success' },
   IN_PROGRESS: { label: 'Đang xử lý', variant: 'primary' },
+  WAITING_REWORK: { label: 'Chờ sửa', variant: 'info' },
+  REWORK_IN_PROGRESS: { label: 'Đang sửa', variant: 'primary' },
+  WAITING_MATERIAL: { label: 'Chờ vật tư', variant: 'danger' }
 };
 
 const TechnicalDefectList = () => {
@@ -63,7 +67,6 @@ const TechnicalDefectList = () => {
                         <th>Sản phẩm</th>
                         <th>Kích thước</th>
                         <th>Công đoạn lỗi</th>
-                        <th>Hình ảnh</th>
                         <th>Mức độ</th>
                         <th>Trạng thái</th>
                         <th>Ngày gửi</th>
@@ -72,7 +75,7 @@ const TechnicalDefectList = () => {
                     </thead>
                     <tbody>
                       {defects.length === 0 ? (
-                        <tr><td colSpan="9" className="text-center">Không có lỗi nào</td></tr>
+                        <tr><td colSpan="8" className="text-center">Không có lỗi nào</td></tr>
                       ) : (
                         defects.map((defect) => {
                           const severity = severityConfig[defect.severity] || { label: defect.severity, variant: 'secondary' };
@@ -82,16 +85,7 @@ const TechnicalDefectList = () => {
                               <td>{defect.poNumber}</td>
                               <td>{defect.productName || 'N/A'}</td>
                               <td>{defect.size || 'N/A'}</td>
-                              <td>{defect.stageType}</td>
-                              <td>
-                                {defect.evidencePhoto ? (
-                                  <span className="text-primary" title="Có hình ảnh">
-                                    <i className="bi bi-image"></i> 📷
-                                  </span>
-                                ) : (
-                                  <span className="text-muted">-</span>
-                                )}
-                              </td>
+                              <td>{getStageTypeName(defect.stageType)}</td>
                               <td>
                                 <Badge bg={severity.variant}>{severity.label}</Badge>
                               </td>
@@ -125,4 +119,3 @@ const TechnicalDefectList = () => {
 };
 
 export default TechnicalDefectList;
-

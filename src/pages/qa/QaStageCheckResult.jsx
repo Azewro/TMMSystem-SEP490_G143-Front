@@ -8,6 +8,7 @@ import { orderService } from '../../api/orderService';
 import { qcService } from '../../api/qcService';
 import toast from 'react-hot-toast';
 import { API_BASE_URL } from '../../utils/constants';
+import { getStageTypeName } from '../../utils/statusMapper';
 
 // Mapping checkpoint names from English to Vietnamese
 const CHECKPOINT_NAME_MAP = {
@@ -261,7 +262,7 @@ const QaStageCheckResult = () => {
                       {qaResult.lotCode} • {qaResult.productName}
                     </div>
                     <div className="text-muted small">
-                      Công đoạn: <strong>{qaResult.stageType || 'N/A'}</strong>
+                      Công đoạn: <strong>{getStageTypeName(qaResult.stageType) || qaResult.stageType || 'N/A'}</strong>
                     </div>
                   </div>
                   <Badge bg={qaResult.overall === 'PASS' ? 'success' : 'danger'}>
@@ -345,4 +346,3 @@ const QaStageCheckResult = () => {
 };
 
 export default QaStageCheckResult;
-

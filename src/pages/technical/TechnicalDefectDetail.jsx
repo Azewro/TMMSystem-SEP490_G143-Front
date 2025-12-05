@@ -6,6 +6,7 @@ import InternalSidebar from '../../components/common/InternalSidebar';
 import api from '../../api/apiConfig';
 import { toast } from 'react-hot-toast';
 import { API_BASE_URL } from '../../utils/constants';
+import { getStageTypeName } from '../../utils/statusMapper';
 
 const severityStyles = {
   minor: { label: 'Lỗi nhẹ', variant: 'warning' },
@@ -267,7 +268,7 @@ const TechnicalDefectDetail = () => {
                 <Row className="g-3">
                   <Col md={4}>
                     <div className="text-muted small mb-1">Công đoạn</div>
-                    <div className="fw-semibold">{defect.stageName}</div>
+                    <div className="fw-semibold">{getStageTypeName(defect.stageType || defect.stageName) || defect.stageName}</div>
                   </Col>
                   <Col md={4}>
                     <div className="text-muted small mb-1">Mã lô</div>
