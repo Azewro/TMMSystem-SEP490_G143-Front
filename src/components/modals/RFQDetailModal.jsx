@@ -353,6 +353,7 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
 
         if (dateStr && dateStr !== '') {
           // Validate date format (YYYY-MM-DD)
+          payload.expectedDeliveryDate = dateStr;
         } else {
           console.log('expectedDeliveryDate is empty string, not including in payload');
         }

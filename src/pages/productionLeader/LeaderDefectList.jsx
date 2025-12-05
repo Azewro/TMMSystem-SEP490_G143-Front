@@ -68,7 +68,7 @@ const LeaderDefectList = () => {
                   <Table hover responsive className="mt-3 mb-0 align-middle">
                     <thead className="table-light">
                       <tr>
-                        <th>Mã đơn</th>
+                        <th>Mã lô</th>
                         <th>Công đoạn</th>
                         {/* <th>Hình ảnh</th> REMOVED */}
                         <th>Mức độ</th>
@@ -80,7 +80,7 @@ const LeaderDefectList = () => {
                     <tbody>
                       {defects.map((defect) => (
                         <tr key={defect.id}>
-                          <td>{defect.poNumber || 'N/A'}</td>
+                          <td>{defect.lotCode || defect.poNumber || 'N/A'}</td>
                           <td>{getStageTypeName(defect.stageType)}</td>
                           {/* Removed Image Column */}
 

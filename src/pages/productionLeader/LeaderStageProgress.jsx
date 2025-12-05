@@ -7,6 +7,13 @@ import { productionService } from '../../api/productionService';
 import { executionService } from '../../api/executionService';
 import toast from 'react-hot-toast';
 import { getStatusLabel, getStageTypeName, getLeaderStageStatusLabel } from '../../utils/statusMapper';
+import { API_BASE_URL } from '../../utils/constants';
+
+const severityConfig = {
+  MINOR: 'Nhẹ',
+  MAJOR: 'Nặng',
+  CRITICAL: 'Nghiêm trọng'
+};
 
 const LeaderStageProgress = () => {
   const navigate = useNavigate();
@@ -467,19 +474,36 @@ const LeaderStageProgress = () => {
                     <div className="col-md-8">
                       <p><strong>Mô tả lỗi:</strong> {defect.issueDescription || defect.description}</p>
                       <p><strong>Người báo cáo:</strong> {defect.reportedBy || 'QC'}</p>
-                      <p><strong>Mức độ:</strong> {defect.severity}</p>
+                      <p><strong>Mức độ:</strong> {severityConfig[defect.severity] || defect.severity}</p>
                     </div>
                     <div className="col-md-4">
-                      {defect.evidencePhoto ? (
+                      {defect.evidencePhoto && defect.evidencePhoto !== 'null' ? (
                         <div>
                           <strong>Hình ảnh lỗi:</strong>
                           <div className="mt-2">
-                            <img
-                              src={defect.evidencePhoto}
-                              alt="Defect Evidence"
-                              className="img-fluid rounded border"
-                              style={{ maxHeight: '200px' }}
-                            />
+                            {(() => {
+                              const getFullPhotoUrl = (url) => {
+                                if (!url) return null;
+                                const domain = API_BASE_URL.replace(/^https?:\/\//, '');
+                                if (url.includes(domain)) {
+                                  return url.startsWith('http') ? url : `https://${url}`;
+                                }
+                                return `${API_BASE_URL}/api/files/${url}`;
+                              };
+
+                              return (
+                                <img
+                                  src={getFullPhotoUrl(defect.evidencePhoto)}
+                                  alt="Defect Evidence"
+                                  className="img-fluid rounded border"
+                                  style={{ maxHeight: '200px', minHeight: '100px', backgroundColor: '#f0f0f0' }}
+                                  onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.src = 'https://via.placeholder.com/200?text=No+Image';
+                                  }}
+                                />
+                              );
+                            })()}
                           </div>
                         </div>
                       ) : (

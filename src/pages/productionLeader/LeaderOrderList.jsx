@@ -127,7 +127,7 @@ const LeaderOrderList = () => {
           style={{ backgroundColor: '#f8f9fa', minHeight: 'calc(100vh - 70px)' }}
         >
           <Container fluid className="p-4">
-            <h4 className="mb-3">Danh sách đơn hàng</h4>
+            <h4 className="mb-3">Danh sách lô sản xuất</h4>
 
             <Card className="shadow-sm mb-3">
               <Card.Body>
@@ -145,10 +145,10 @@ const LeaderOrderList = () => {
             </Card>
 
             <Tabs defaultActiveKey="main" className="mb-3">
-              <Tab eventKey="main" title="Đơn hàng chính">
+              <Tab eventKey="main" title="Lô sản xuất chính">
                 <OrderTable orders={filteredOrders.filter(o => !o.poNumber.includes('-REWORK'))} handleStart={handleStart} handleViewDetail={handleViewDetail} />
               </Tab>
-              <Tab eventKey="rework" title="Đơn hàng bổ sung (Sửa lỗi)">
+              <Tab eventKey="rework" title="Lô bổ sung (Sửa lỗi)">
                 <OrderTable orders={filteredOrders.filter(o => o.poNumber.includes('-REWORK'))} handleStart={handleStart} handleViewDetail={handleViewDetail} isRework={true} />
               </Tab>
             </Tabs>
@@ -178,7 +178,7 @@ const OrderTable = ({ orders, handleStart, handleViewDetail, isRework = false })
         <tbody>
           {orders.length === 0 ? (
             <tr>
-              <td colSpan="8" className="text-center py-4">Không có đơn hàng nào</td>
+              <td colSpan="8" className="text-center py-4">Không có lô sản xuất nào</td>
             </tr>
           ) : (
             orders.map((order, index) => {
@@ -194,7 +194,7 @@ const OrderTable = ({ orders, handleStart, handleViewDetail, isRework = false })
                 <tr key={order.id}>
                   <td>{index + 1}</td>
                   <td>
-                    <strong>{order.poNumber}</strong>
+                    <strong>{order.lotCode || order.poNumber}</strong>
                     {isRework && <Badge bg="danger" className="ms-2">Rework</Badge>}
                   </td>
                   <td>{order.productName || order.contract?.contractNumber || 'N/A'}</td>

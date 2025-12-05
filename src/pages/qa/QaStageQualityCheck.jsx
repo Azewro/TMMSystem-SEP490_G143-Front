@@ -335,23 +335,26 @@ const QaStageQualityCheck = () => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Create local preview using FileReader (Base64)
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setCriteria((prev) =>
-        prev.map((item) =>
-          item.id === criterionId ? { ...item, photo: e.target.result } : item,
-        ),
-      );
-    };
-    reader.readAsDataURL(file);
+    // Create local preview immediately using URL.createObjectURL
+    const objectUrl = URL.createObjectURL(file);
+    setCriteria((prev) =>
+      prev.map((item) =>
+        item.id === criterionId ? { ...item, photo: objectUrl } : item,
+      ),
+    );
 
     try {
       setPhotoUploadingId(criterionId);
       const uploadResult = await executionService.uploadQcPhoto(file, stage?.id, userId);
-      const photoUrl = uploadResult?.url || (uploadResult?.fileName
-        ? `${API_BASE_URL}/api/files/${uploadResult.fileName}`
-        : null);
+
+      let photoUrl = uploadResult?.url;
+      if (photoUrl && !photoUrl.startsWith('http') && !photoUrl.startsWith('data:')) {
+        photoUrl = `${API_BASE_URL}${photoUrl.startsWith('/') ? '' : '/'}${photoUrl}`;
+      }
+
+      if (!photoUrl && uploadResult?.fileName) {
+        photoUrl = `${API_BASE_URL}/api/files/${uploadResult.fileName}`;
+      }
 
       if (!photoUrl) {
         throw new Error('Không thể lấy URL ảnh');
@@ -388,23 +391,26 @@ const QaStageQualityCheck = () => {
   const handleCameraCapture = async (file) => {
     if (!activeCameraCriterionId || !file) return;
 
-    // Create local preview using FileReader (Base64)
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setCriteria((prev) =>
-        prev.map((item) =>
-          item.id === activeCameraCriterionId ? { ...item, photo: e.target.result } : item,
-        ),
-      );
-    };
-    reader.readAsDataURL(file);
+    // Create local preview immediately
+    const objectUrl = URL.createObjectURL(file);
+    setCriteria((prev) =>
+      prev.map((item) =>
+        item.id === activeCameraCriterionId ? { ...item, photo: objectUrl } : item,
+      ),
+    );
 
     try {
       setPhotoUploadingId(activeCameraCriterionId);
       const uploadResult = await executionService.uploadQcPhoto(file, stage?.id, userId);
-      const photoUrl = uploadResult?.url || (uploadResult?.fileName
-        ? `${API_BASE_URL}/api/files/${uploadResult.fileName}`
-        : null);
+
+      let photoUrl = uploadResult?.url;
+      if (photoUrl && !photoUrl.startsWith('http') && !photoUrl.startsWith('data:')) {
+        photoUrl = `${API_BASE_URL}${photoUrl.startsWith('/') ? '' : '/'}${photoUrl}`;
+      }
+
+      if (!photoUrl && uploadResult?.fileName) {
+        photoUrl = `${API_BASE_URL}/api/files/${uploadResult.fileName}`;
+      }
 
       if (!photoUrl) {
         throw new Error('Không thể lấy URL ảnh');

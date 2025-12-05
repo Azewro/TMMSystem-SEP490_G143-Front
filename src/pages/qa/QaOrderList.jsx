@@ -41,8 +41,14 @@ const QaOrderList = () => {
 
           // Determine status label - use QA's stage status if available, otherwise use order status
           const status = qaStage?.executionStatus || order.executionStatus || order.status;
-          const statusLabel = qaStage ? getStatusLabel(qaStage.executionStatus) :
-            (order.statusLabel || getStatusLabel(order.executionStatus || order.status));
+          // Determine status label - use QA's stage status if available
+          let statusLabel;
+          if (qaStage && qaStage.executionStatus === 'QC_PASSED') {
+            statusLabel = 'Hoàn thành';
+          } else {
+            statusLabel = qaStage ? getStatusLabel(qaStage.executionStatus) :
+              (order.statusLabel || getStatusLabel(order.executionStatus || order.status));
+          }
 
           return {
             id: order.id,
