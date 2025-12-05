@@ -204,7 +204,7 @@ const QaStageCheckResult = () => {
             (stage.executionStatus === 'QC_FAILED' ? 'FAIL' : 'PENDING'),
           summary: stage.executionStatus === 'QC_PASSED' ? 'Tất cả tiêu chí đều Đạt.' :
             (stage.executionStatus === 'QC_FAILED' ? 'Có tiêu chí Không đạt. Vui lòng xử lý lỗi theo quy định.' : 'Chưa có kết quả kiểm tra'),
-          defectLevel: stage.defectSeverity,
+          defectLevel: stage.defectLevel || stage.defectSeverity,
           defectDescription: stage.defectDescription,
           stageType: stage.stageType || stageCode
         };

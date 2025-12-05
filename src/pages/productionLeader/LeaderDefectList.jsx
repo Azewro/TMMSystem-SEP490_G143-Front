@@ -80,7 +80,7 @@ const LeaderDefectList = () => {
                     <tbody>
                       {defects.map((defect) => (
                         <tr key={defect.id}>
-                          <td>{defect.lotCode || defect.poNumber || 'N/A'}</td>
+                          <td>{defect.batchNumber || defect.poNumber || 'N/A'}</td>
                           <td>{getStageTypeName(defect.stageType)}</td>
                           {/* Removed Image Column */}
 
