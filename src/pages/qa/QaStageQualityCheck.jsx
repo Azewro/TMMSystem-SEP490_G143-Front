@@ -450,6 +450,10 @@ const QaStageQualityCheck = () => {
         toast.error('Vui lòng bổ sung hình ảnh lỗi cho các tiêu chí Không đạt yêu cầu.');
         return;
       }
+      if (!defectLevel) {
+        toast.error('Vui lòng chọn mức độ lỗi.');
+        return;
+      }
       if (!defectDescription.trim()) {
         toast.error('Vui lòng nhập mô tả lỗi.');
         return;
