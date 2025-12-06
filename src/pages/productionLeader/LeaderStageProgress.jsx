@@ -9,6 +9,33 @@ import toast from 'react-hot-toast';
 import { getStatusLabel, getStageTypeName, getLeaderStageStatusLabel } from '../../utils/statusMapper';
 import { API_BASE_URL } from '../../utils/constants';
 
+const getCleanImageUrl = (url) => {
+  if (!url || url === 'null') return null;
+  if (url.startsWith('http')) return url;
+
+  // Remove potential double slash or domain duplication
+  const cleanBase = API_BASE_URL.replace(/\/$/, '');
+
+  // If url contains the domain but no protocol
+  const domain = cleanBase.replace(/^https?:\/\//, '');
+  if (url.includes(domain) && !url.startsWith('http')) {
+    return `https://${url}`;
+  }
+
+  // If it's a relative path starting with /
+  if (url.startsWith('/')) {
+    return `${cleanBase}${url}`;
+  }
+
+  // If it already seems to have a path structure (like api/files/)
+  if (url.includes('/') && !url.startsWith('/')) {
+    return `${cleanBase}/${url}`;
+  }
+
+  // Default to files endpoint
+  return `${cleanBase}/api/files/${url}`;
+};
+
 const severityConfig = {
   MINOR: 'Nhẹ',
   MAJOR: 'Nặng',
@@ -51,7 +78,11 @@ const LeaderStageProgress = () => {
 
   useEffect(() => {
     const loadInspections = async () => {
-      if (stage?.id && (stage.executionStatus === 'QC_FAILED' || stage.executionStatus === 'WAITING_REWORK' || stage.executionStatus === 'REWORK_IN_PROGRESS')) {
+      const isFailedStatus = stage?.executionStatus === 'QC_FAILED' ||
+        stage?.executionStatus === 'WAITING_REWORK' ||
+        stage?.executionStatus === 'REWORK_IN_PROGRESS';
+
+      if (stage?.id && (isFailedStatus || defect)) {
         try {
           const data = await executionService.getStageInspections(stage.id);
           // Filter only failed inspections
@@ -65,7 +96,7 @@ const LeaderStageProgress = () => {
       }
     };
     loadInspections();
-  }, [stage]);
+  }, [stage, defect]);
 
   // ... (existing code)
 
@@ -492,26 +523,10 @@ const LeaderStageProgress = () => {
                 <Card.Body>
                   {defect && (
                     <div className="row mb-3">
-                      <div className="col-md-8">
+                      <div className="col-12">
                         <p><strong>Mô tả lỗi chung:</strong> {defect.issueDescription || defect.description}</p>
                         <p><strong>Người báo cáo:</strong> {defect.reportedBy || 'QC'}</p>
                         <p><strong>Mức độ:</strong> {severityConfig[defect.severity] || defect.severity}</p>
-                      </div>
-                      <div className="col-md-4">
-                        {defect.evidencePhoto && defect.evidencePhoto !== 'null' && (
-                          <div>
-                            <strong>Hình ảnh tổng quan:</strong>
-                            <div className="mt-2">
-                              <img
-                                src={defect.evidencePhoto.startsWith('http') ? defect.evidencePhoto : `${API_BASE_URL}/api/files/${defect.evidencePhoto}`}
-                                alt="Defect Evidence"
-                                className="img-fluid rounded border"
-                                style={{ maxHeight: '150px' }}
-                                onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/150?text=No+Image'; }}
-                              />
-                            </div>
-                          </div>
-                        )}
                       </div>
                     </div>
                   )}
@@ -530,23 +545,28 @@ const LeaderStageProgress = () => {
                             </tr>
                           </thead>
                           <tbody>
-                            {inspections.map((insp, idx) => (
-                              <tr key={idx}>
-                                <td className="align-middle fw-medium">{insp.checkpointName || 'Tiêu chí #' + insp.qcCheckpointId}</td>
-                                <td className="align-middle">{insp.notes || '-'}</td>
-                                <td className="align-middle">
-                                  {insp.photoUrl ? (
-                                    <img
-                                      src={insp.photoUrl.startsWith('http') ? insp.photoUrl : `${API_BASE_URL}/api/files/${insp.photoUrl}`}
-                                      alt="Inspection Evidence"
-                                      className="img-thumbnail"
-                                      style={{ height: '80px', cursor: 'pointer' }}
-                                      onClick={() => window.open(insp.photoUrl.startsWith('http') ? insp.photoUrl : `${API_BASE_URL}/api/files/${insp.photoUrl}`, '_blank')}
-                                    />
-                                  ) : <span className="text-muted small">Không có ảnh</span>}
-                                </td>
-                              </tr>
-                            ))}
+                            {inspections.map((insp, idx) => {
+                              const imageUrl = getCleanImageUrl(insp.photoUrl);
+
+                              return (
+                                <tr key={idx}>
+                                  <td className="align-middle fw-medium">{insp.checkpointName || 'Tiêu chí #' + insp.qcCheckpointId}</td>
+                                  <td className="align-middle">{insp.notes || '-'}</td>
+                                  <td className="align-middle">
+                                    {imageUrl ? (
+                                      <img
+                                        src={imageUrl}
+                                        alt="Inspection Evidence"
+                                        className="img-thumbnail"
+                                        style={{ height: '150px', cursor: 'pointer', objectFit: 'cover' }}
+                                        onClick={() => window.open(imageUrl, '_blank')}
+                                        onError={(e) => { e.target.style.display = 'none'; }}
+                                      />
+                                    ) : <span className="text-muted small">Không có ảnh</span>}
+                                  </td>
+                                </tr>
+                              )
+                            })}
                           </tbody>
                         </Table>
                       </div>
