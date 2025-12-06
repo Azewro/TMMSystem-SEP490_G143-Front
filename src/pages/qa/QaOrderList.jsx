@@ -85,8 +85,8 @@ const QaOrderList = () => {
     const term = searchTerm.toLowerCase();
     return orders.filter(
       (o) =>
-        o.id.toLowerCase().includes(term) ||
-        o.productName.toLowerCase().includes(term),
+        (o.lotCode && o.lotCode.toLowerCase().includes(term)) ||
+        (o.productName && o.productName.toLowerCase().includes(term))
     );
   }, [searchTerm, orders]);
 

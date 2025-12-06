@@ -293,6 +293,8 @@ const StageProgressDetail = () => {
             (stage.workedHours ? Number(stage.workedHours) : 0),
           stageStartTime: stage.startAt || stage.startTimeFormatted || null,
           stageEndTime: stage.completeAt || stage.endTimeFormatted || null,
+          defectLevel: stage.defectLevel,
+          defectSeverity: stage.defectSeverity,
           history: [] // Backend chưa có history API
         };
         console.log('Mapped stage data:', mapped);
@@ -775,10 +777,10 @@ const StageProgressDetail = () => {
                       {qaCriteria.length > 0 && qaCriteria.some(item => item.result) ? (
                         <Badge
                           bg={
-                            qaCriteria.some((item) => item.result === 'FAIL') ? 'danger' : 'success'
+                            (stageData?.defectLevel === 'MINOR' || stageData?.defectSeverity === 'MINOR') ? 'warning' : 'danger'
                           }
                         >
-                          {qaCriteria.some((item) => item.result === 'FAIL') ? 'Lỗi nặng' : 'Đạt'}
+                          {(stageData?.defectLevel === 'MINOR' || stageData?.defectSeverity === 'MINOR') ? 'Lỗi nhẹ' : 'Lỗi nặng'}
                         </Badge>
                       ) : (
                         <Badge bg="secondary">Chưa kiểm tra</Badge>
