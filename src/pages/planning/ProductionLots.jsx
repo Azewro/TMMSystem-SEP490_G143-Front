@@ -281,6 +281,8 @@ const ProductionLots = () => {
                               <td>
                                 {planStatus ? (
                                   <Badge bg={planStatus.variant}>{planStatus.label}</Badge>
+                                ) : isReady ? (
+                                  <Badge style={{ backgroundColor: '#6f42c1' }}>Chờ tạo</Badge>
                                 ) : (
                                   <span className="text-muted small">Chưa có</span>
                                 )}
