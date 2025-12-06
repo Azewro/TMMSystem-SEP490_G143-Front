@@ -255,7 +255,7 @@ const ProductionPlanApprovals = () => {
     setProcessing(true);
     setError('');
     setModalError(''); // Reset modal error
-    setSuccess('');
+
 
     try {
       await productionPlanService.approve(selectedPlan.id, decision.trim() || undefined);
