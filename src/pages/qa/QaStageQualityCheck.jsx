@@ -6,6 +6,7 @@ import InternalSidebar from '../../components/common/InternalSidebar';
 import { orderService } from '../../api/orderService';
 import { executionService } from '../../api/executionService';
 import toast from 'react-hot-toast';
+import { getStageTypeName, getStatusLabel } from '../../utils/statusMapper';
 import { API_BASE_URL } from '../../utils/constants';
 import CameraCapture from '../../components/common/CameraCapture';
 
@@ -347,22 +348,22 @@ const QaStageQualityCheck = () => {
       setPhotoUploadingId(criterionId);
       const uploadResult = await executionService.uploadQcPhoto(file, stage?.id, userId);
 
-      let photoUrl = uploadResult?.url;
-      if (photoUrl && !photoUrl.startsWith('http') && !photoUrl.startsWith('data:')) {
-        photoUrl = `${API_BASE_URL}${photoUrl.startsWith('/') ? '' : '/'}${photoUrl}`;
+      let finalPhotoUrl = null;
+      if (uploadResult?.fileName) {
+        finalPhotoUrl = `${API_BASE_URL}/api/files/${uploadResult.fileName}`;
+      } else if (uploadResult?.url) {
+        finalPhotoUrl = uploadResult.url.startsWith('http')
+          ? uploadResult.url
+          : `${API_BASE_URL}${uploadResult.url.startsWith('/') ? '' : '/'}${uploadResult.url}`;
       }
 
-      if (!photoUrl && uploadResult?.fileName) {
-        photoUrl = `${API_BASE_URL}/api/files/${uploadResult.fileName}`;
-      }
-
-      if (!photoUrl) {
-        throw new Error('Không thể lấy URL ảnh');
+      if (!finalPhotoUrl) {
+        throw new Error('Không thể lấy URL ảnh từ server');
       }
 
       setCriteria((prev) =>
         prev.map((item) =>
-          item.id === criterionId ? { ...item, photo: photoUrl } : item,
+          item.id === criterionId ? { ...item, photo: finalPhotoUrl } : item,
         ),
       );
       toast.success('Đã tải ảnh lỗi');
@@ -403,22 +404,22 @@ const QaStageQualityCheck = () => {
       setPhotoUploadingId(activeCameraCriterionId);
       const uploadResult = await executionService.uploadQcPhoto(file, stage?.id, userId);
 
-      let photoUrl = uploadResult?.url;
-      if (photoUrl && !photoUrl.startsWith('http') && !photoUrl.startsWith('data:')) {
-        photoUrl = `${API_BASE_URL}${photoUrl.startsWith('/') ? '' : '/'}${photoUrl}`;
+      let finalPhotoUrl = null;
+      if (uploadResult?.fileName) {
+        finalPhotoUrl = `${API_BASE_URL}/api/files/${uploadResult.fileName}`;
+      } else if (uploadResult?.url) {
+        finalPhotoUrl = uploadResult.url.startsWith('http')
+          ? uploadResult.url
+          : `${API_BASE_URL}${uploadResult.url.startsWith('/') ? '' : '/'}${uploadResult.url}`;
       }
 
-      if (!photoUrl && uploadResult?.fileName) {
-        photoUrl = `${API_BASE_URL}/api/files/${uploadResult.fileName}`;
-      }
-
-      if (!photoUrl) {
-        throw new Error('Không thể lấy URL ảnh');
+      if (!finalPhotoUrl) {
+        throw new Error('Không thể lấy URL ảnh từ server');
       }
 
       setCriteria((prev) =>
         prev.map((item) =>
-          item.id === activeCameraCriterionId ? { ...item, photo: photoUrl } : item,
+          item.id === activeCameraCriterionId ? { ...item, photo: finalPhotoUrl } : item,
         ),
       );
       toast.success('Đã tải ảnh chụp lên');
@@ -533,12 +534,12 @@ const QaStageQualityCheck = () => {
                   </div>
                   <div className="mt-2">
                     <span className="text-muted small">Công đoạn:&nbsp;</span>
-                    <strong>{stage.stageType}</strong>
+                    <strong>{getStageTypeName(stage.stageType)}</strong>
                   </div>
                 </div>
                 <div className="text-end">
                   <Badge bg="info" className="p-2">
-                    {stage.executionStatus}
+                    {getStatusLabel(stage.executionStatus)}
                   </Badge>
                 </div>
               </Card.Body>

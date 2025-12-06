@@ -33,6 +33,8 @@ const LeaderStageProgress = () => {
   const [history, setHistory] = useState([]);
   const [defect, setDefect] = useState(null);
 
+  const [inspections, setInspections] = useState([]);
+
   useEffect(() => {
     const fetchDefectInfo = async () => {
       if (location.state?.defectId) {
@@ -46,6 +48,24 @@ const LeaderStageProgress = () => {
     };
     fetchDefectInfo();
   }, [location.state?.defectId]);
+
+  useEffect(() => {
+    const loadInspections = async () => {
+      if (stage?.id && (stage.executionStatus === 'QC_FAILED' || stage.executionStatus === 'WAITING_REWORK' || stage.executionStatus === 'REWORK_IN_PROGRESS')) {
+        try {
+          const data = await executionService.getStageInspections(stage.id);
+          // Filter only failed inspections
+          const failed = data.filter(i => i.result === 'FAIL');
+          setInspections(failed);
+        } catch (error) {
+          console.error("Error loading inspections:", error);
+        }
+      } else {
+        setInspections([]);
+      }
+    };
+    loadInspections();
+  }, [stage]);
 
   // ... (existing code)
 
@@ -464,53 +484,74 @@ const LeaderStageProgress = () => {
             </Card>
 
             {/* Defect Details for Rework */}
-            {defect && (
+            {(defect || (stage && (stage.executionStatus === 'QC_FAILED' || stage.executionStatus === 'WAITING_REWORK' || stage.executionStatus === 'REWORK_IN_PROGRESS'))) && (
               <Card className="shadow-sm mb-3 border-danger">
                 <Card.Header className="bg-danger text-white">
                   <strong>Thông tin lỗi cần sửa</strong>
                 </Card.Header>
                 <Card.Body>
-                  <div className="row">
-                    <div className="col-md-8">
-                      <p><strong>Mô tả lỗi:</strong> {defect.issueDescription || defect.description}</p>
-                      <p><strong>Người báo cáo:</strong> {defect.reportedBy || 'QC'}</p>
-                      <p><strong>Mức độ:</strong> {severityConfig[defect.severity] || defect.severity}</p>
-                    </div>
-                    <div className="col-md-4">
-                      {defect.evidencePhoto && defect.evidencePhoto !== 'null' ? (
-                        <div>
-                          <strong>Hình ảnh lỗi:</strong>
-                          <div className="mt-2">
-                            {(() => {
-                              const getFullPhotoUrl = (url) => {
-                                if (!url) return null;
-                                const domain = API_BASE_URL.replace(/^https?:\/\//, '');
-                                if (url.includes(domain)) {
-                                  return url.startsWith('http') ? url : `https://${url}`;
-                                }
-                                return `${API_BASE_URL}/api/files/${url}`;
-                              };
-
-                              return (
-                                <img
-                                  src={getFullPhotoUrl(defect.evidencePhoto)}
-                                  alt="Defect Evidence"
-                                  className="img-fluid rounded border"
-                                  style={{ maxHeight: '200px', minHeight: '100px', backgroundColor: '#f0f0f0' }}
-                                  onError={(e) => {
-                                    e.target.onerror = null;
-                                    e.target.src = 'https://via.placeholder.com/200?text=No+Image';
-                                  }}
-                                />
-                              );
-                            })()}
+                  {defect && (
+                    <div className="row mb-3">
+                      <div className="col-md-8">
+                        <p><strong>Mô tả lỗi chung:</strong> {defect.issueDescription || defect.description}</p>
+                        <p><strong>Người báo cáo:</strong> {defect.reportedBy || 'QC'}</p>
+                        <p><strong>Mức độ:</strong> {severityConfig[defect.severity] || defect.severity}</p>
+                      </div>
+                      <div className="col-md-4">
+                        {defect.evidencePhoto && defect.evidencePhoto !== 'null' && (
+                          <div>
+                            <strong>Hình ảnh tổng quan:</strong>
+                            <div className="mt-2">
+                              <img
+                                src={defect.evidencePhoto.startsWith('http') ? defect.evidencePhoto : `${API_BASE_URL}/api/files/${defect.evidencePhoto}`}
+                                alt="Defect Evidence"
+                                className="img-fluid rounded border"
+                                style={{ maxHeight: '150px' }}
+                                onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/150?text=No+Image'; }}
+                              />
+                            </div>
                           </div>
-                        </div>
-                      ) : (
-                        <div className="text-muted fst-italic">Không có hình ảnh</div>
-                      )}
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  )}
+
+                  {/* Detailed Inspections List */}
+                  {inspections && inspections.length > 0 && (
+                    <div className="mt-3 pt-3 border-top">
+                      <h6 className="fw-bold text-danger">Chi tiết lỗi theo tiêu chí:</h6>
+                      <div className="table-responsive">
+                        <Table size="sm" bordered hover className="mt-2">
+                          <thead className="table-light">
+                            <tr>
+                              <th style={{ width: '40%' }}>Tiêu chí lỗi</th>
+                              <th style={{ width: '30%' }}>Ghi chú</th>
+                              <th style={{ width: '30%' }}>Hình ảnh</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {inspections.map((insp, idx) => (
+                              <tr key={idx}>
+                                <td className="align-middle fw-medium">{insp.checkpointName || 'Tiêu chí #' + insp.qcCheckpointId}</td>
+                                <td className="align-middle">{insp.notes || '-'}</td>
+                                <td className="align-middle">
+                                  {insp.photoUrl ? (
+                                    <img
+                                      src={insp.photoUrl.startsWith('http') ? insp.photoUrl : `${API_BASE_URL}/api/files/${insp.photoUrl}`}
+                                      alt="Inspection Evidence"
+                                      className="img-thumbnail"
+                                      style={{ height: '80px', cursor: 'pointer' }}
+                                      onClick={() => window.open(insp.photoUrl.startsWith('http') ? insp.photoUrl : `${API_BASE_URL}/api/files/${insp.photoUrl}`, '_blank')}
+                                    />
+                                  ) : <span className="text-muted small">Không có ảnh</span>}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </Table>
+                      </div>
+                    </div>
+                  )}
                 </Card.Body>
               </Card>
             )}
