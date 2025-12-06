@@ -185,10 +185,16 @@ const OrderTable = ({ orders, handleStart, handleViewDetail, isRework = false })
               const stage = order.leaderStage;
               const orderLocked = order.orderStatus === 'WAITING_PRODUCTION' || order.orderStatus === 'PENDING_APPROVAL';
 
-              // For orders without stage info, get status from order
-              const displayStatus = stage
+              // Override logic: If order is locked (PM hasn't started), status should be "Đợi" and buttons hidden
+              let displayStage = stage;
+              let displayStatus = stage
                 ? stage
                 : getLeaderStageStatusLabel(order.executionStatus || order.status);
+
+              if (orderLocked) {
+                displayStage = stage ? { ...stage, statusLabel: 'Đợi', statusVariant: 'secondary', buttons: [] } : null;
+                displayStatus = { label: 'Đợi', variant: 'secondary', buttons: [] };
+              }
 
               return (
                 <tr key={order.id}>
@@ -202,13 +208,13 @@ const OrderTable = ({ orders, handleStart, handleViewDetail, isRework = false })
                   <td>{order.plannedStartDate}</td>
                   <td>{order.plannedEndDate}</td>
                   <td>
-                    <Badge bg={stage ? stage.statusVariant : displayStatus.variant}>
-                      {stage ? stage.statusLabel : displayStatus.label}
+                    <Badge bg={displayStage ? displayStage.statusVariant : displayStatus.variant}>
+                      {displayStage ? displayStage.statusLabel : displayStatus.label}
                     </Badge>
                   </td>
                   <td className="text-end">
-                    {stage && stage.buttons && stage.buttons.length > 0 ? (
-                      stage.buttons.map((btn, idx) => (
+                    {((displayStage || displayStatus).buttons || []).length > 0 ? (
+                      (displayStage || displayStatus).buttons.map((btn, idx) => (
                         <Button
                           key={idx}
                           size="sm"
@@ -221,7 +227,7 @@ const OrderTable = ({ orders, handleStart, handleViewDetail, isRework = false })
                               handleViewDetail(order);
                             }
                           }}
-                          disabled={orderLocked}
+                          disabled={orderLocked && !btn.action === 'detail'}
                           title={orderLocked ? 'Chưa được phép, PM chưa bắt đầu lệnh làm việc' : ''}
                         >
                           {btn.text}
@@ -242,5 +248,3 @@ const OrderTable = ({ orders, handleStart, handleViewDetail, isRework = false })
 );
 
 export default LeaderOrderList;
-
-

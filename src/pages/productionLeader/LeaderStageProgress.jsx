@@ -101,6 +101,7 @@ const LeaderStageProgress = () => {
   // ... (existing code)
 
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const formatTimestamp = (value) => {
     if (!value) return '-';
@@ -235,12 +236,15 @@ const LeaderStageProgress = () => {
     }
 
     try {
+      setIsUpdating(true);
       await executionService.updateProgress(stage.id, userId, target);
       toast.success('Cập nhật tiến độ thành công');
       setInputProgress('');
       setRefreshKey(prev => prev + 1);
     } catch (error) {
       toast.error(error.message || 'Lỗi khi cập nhật tiến độ');
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -305,7 +309,7 @@ const LeaderStageProgress = () => {
   const isQcFailed = stage && (stage.executionStatus === 'QC_FAILED' || stage.status === 'QC_FAILED');
 
   // canUpdate: IN_PROGRESS (đang làm) hoặc REWORK_IN_PROGRESS (đang sửa)
-  const canUpdate = stage && !orderLocked && !isPaused && !isQcFailed && (
+  const canUpdate = stage && !orderLocked && !isPaused && !isQcFailed && currentProgress < 100 && (
     stage.executionStatus === 'IN_PROGRESS' ||
     stage.executionStatus === 'REWORK_IN_PROGRESS' ||
     stage.status === 'IN_PROGRESS' ||
@@ -363,8 +367,8 @@ const LeaderStageProgress = () => {
                 style={{ maxWidth: 200 }}
                 disabled={isPending || isPaused}
               />
-              <Button variant="dark" onClick={handleUpdateProgress} disabled={isPending || isPaused}>
-                Cập nhật
+              <Button variant="dark" onClick={handleUpdateProgress} disabled={isPending || isPaused || isUpdating}>
+                {isUpdating ? <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" /> : 'Cập nhật'}
               </Button>
               {/* <Button variant="outline-danger" onClick={handlePause} disabled={isPending || isPaused}>
                 Tạm dừng
