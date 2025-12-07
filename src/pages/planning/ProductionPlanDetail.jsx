@@ -10,32 +10,14 @@ import { contractService } from '../../api/contractService';
 import { machineService } from '../../api/machineService';
 import { FaPaperPlane, FaTimes } from 'react-icons/fa';
 import toast from 'react-hot-toast';
+import DatePicker, { registerLocale } from 'react-datepicker';
+import { vi } from 'date-fns/locale/vi';
+import 'react-datepicker/dist/react-datepicker.css';
 import '../../styles/ProductionPlanDetail.css';
 
-const formatDateForInput = (isoDate) => {
-    if (!isoDate) return '';
-    try {
-        return new Date(isoDate).toISOString().split('T')[0];
-    } catch (e) {
-        return '';
-    }
-};
+registerLocale('vi', vi);
 
-const formatDateTimeForInput = (isoDate) => {
-    if (!isoDate) return '';
-    try {
-        const date = new Date(isoDate);
-        const ten = (i) => (i < 10 ? '0' : '') + i;
-        const YYYY = date.getFullYear();
-        const MM = ten(date.getMonth() + 1);
-        const DD = ten(date.getDate());
-        const HH = ten(date.getHours());
-        const mm = ten(date.getMinutes());
-        return `${YYYY}-${MM}-${DD}T${HH}:${mm}`;
-    } catch (e) {
-        return '';
-    }
-};
+
 
 const getStageTypeName = (stageType) => {
     const stageTypeMap = {
@@ -598,11 +580,29 @@ const ProductionPlanDetail = () => {
                                     </Col>
                                     <Col md={6} className="form-group-custom">
                                         <Form.Label className="form-label-custom">Ngày bắt đầu (dự kiến)</Form.Label>
-                                        <Form.Control type="date" name="proposedStartDate" value={formatDateForInput(editablePlan.proposedStartDate)} readOnly disabled />
+                                        <div className="custom-datepicker-wrapper">
+                                            <DatePicker
+                                                selected={editablePlan.proposedStartDate ? new Date(editablePlan.proposedStartDate) : null}
+                                                dateFormat="dd/MM/yyyy"
+                                                locale="vi"
+                                                className="form-control"
+                                                readOnly
+                                                disabled
+                                            />
+                                        </div>
                                     </Col>
                                     <Col md={6} className="form-group-custom">
                                         <Form.Label className="form-label-custom">Ngày kết thúc (dự kiến)</Form.Label>
-                                        <Form.Control type="date" name="proposedEndDate" value={formatDateForInput(editablePlan.proposedEndDate)} readOnly disabled />
+                                        <div className="custom-datepicker-wrapper">
+                                            <DatePicker
+                                                selected={editablePlan.proposedEndDate ? new Date(editablePlan.proposedEndDate) : null}
+                                                dateFormat="dd/MM/yyyy"
+                                                locale="vi"
+                                                className="form-control"
+                                                readOnly
+                                                disabled
+                                            />
+                                        </div>
                                     </Col>
                                 </Row>
                             </Card.Body>
@@ -656,11 +656,35 @@ const ProductionPlanDetail = () => {
                                         </Col>
                                         <Col md={4} className="form-group-custom">
                                             <Form.Label className="form-label-custom">TG bắt đầu</Form.Label>
-                                            <Form.Control type="datetime-local" value={formatDateTimeForInput(activeStage.plannedStartTime)} onChange={(e) => handleStageChange(activeStage.id, 'plannedStartTime', e.target.value)} disabled={isReadOnly} />
+                                            <div className="custom-datepicker-wrapper">
+                                                <DatePicker
+                                                    selected={activeStage.plannedStartTime ? new Date(activeStage.plannedStartTime) : null}
+                                                    onChange={(date) => handleStageChange(activeStage.id, 'plannedStartTime', date ? date.toISOString() : null)}
+                                                    showTimeSelect
+                                                    dateFormat="dd/MM/yyyy HH:mm"
+                                                    timeFormat="HH:mm"
+                                                    locale="vi"
+                                                    className="form-control"
+                                                    placeholderText="dd/mm/yyyy HH:mm"
+                                                    disabled={isReadOnly}
+                                                />
+                                            </div>
                                         </Col>
                                         <Col md={4} className="form-group-custom">
                                             <Form.Label className="form-label-custom">TG kết thúc</Form.Label>
-                                            <Form.Control type="datetime-local" value={formatDateTimeForInput(activeStage.plannedEndTime)} onChange={(e) => handleStageChange(activeStage.id, 'plannedEndTime', e.target.value)} disabled={isReadOnly} />
+                                            <div className="custom-datepicker-wrapper">
+                                                <DatePicker
+                                                    selected={activeStage.plannedEndTime ? new Date(activeStage.plannedEndTime) : null}
+                                                    onChange={(date) => handleStageChange(activeStage.id, 'plannedEndTime', date ? date.toISOString() : null)}
+                                                    showTimeSelect
+                                                    dateFormat="dd/MM/yyyy HH:mm"
+                                                    timeFormat="HH:mm"
+                                                    locale="vi"
+                                                    className="form-control"
+                                                    placeholderText="dd/mm/yyyy HH:mm"
+                                                    disabled={isReadOnly}
+                                                />
+                                            </div>
                                         </Col>
                                         <Col md={4} className="form-group-custom">
                                             <Form.Label className="form-label-custom">Thời lượng (giờ) (8h/ngày)</Form.Label>

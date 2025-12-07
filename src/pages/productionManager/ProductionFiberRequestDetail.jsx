@@ -124,7 +124,8 @@ const ProductionFiberRequestDetail = () => {
     );
   }
 
-  const severity = request.sourceIssue ? severityConfig[request.sourceIssue.severity] || severityConfig.minor : severityConfig.minor;
+  const severityKey = request.sourceIssue?.severity?.toLowerCase() || 'minor';
+  const severity = severityConfig[severityKey] || severityConfig.minor;
   const isPending = request.status === 'PENDING';
 
   return (
@@ -157,18 +158,18 @@ const ProductionFiberRequestDetail = () => {
                 <Row className="g-3">
                   <Col md={6}>
                     <div className="text-muted small mb-1">Công đoạn</div>
-                    <div className="fw-semibold">{request.productionStage?.stageType}</div>
+                    <div className="fw-semibold">{request.stageName || request.productionStage?.stageType}</div>
                   </Col>
                   <Col md={6}>
                     <div className="text-muted small mb-1">Người yêu cầu</div>
-                    <div className="fw-semibold">{request.requestedBy?.name || 'N/A'}</div>
+                    <div className="fw-semibold">{request.requesterName || request.requestedBy?.name || 'N/A'}</div>
                   </Col>
                   <Col md={6}>
                     <div className="text-muted small mb-1">Ngày yêu cầu</div>
                     <div className="fw-semibold">{request.requestedAt ? new Date(request.requestedAt).toLocaleString('vi-VN') : '-'}</div>
                   </Col>
                   <Col md={6}>
-                    <div className="text-muted small mb-1">Số lượng yêu cầu</div>
+                    <div className="text-muted small mb-1">Tổng Số lượng yêu cầu</div>
                     <div className="fw-semibold">{request.quantityRequested?.toLocaleString('vi-VN')} kg</div>
                   </Col>
                   <Col md={12}>
@@ -176,6 +177,45 @@ const ProductionFiberRequestDetail = () => {
                     <div className="fw-semibold">{request.notes || '-'}</div>
                   </Col>
                 </Row>
+              </Card.Body>
+            </Card>
+
+            {/* Material Details Table */}
+            <Card className="shadow-sm mb-4">
+              <Card.Header className="bg-white">
+                <strong>Chi tiết vật tư yêu cầu</strong>
+              </Card.Header>
+              <Card.Body>
+                <table className="table table-bordered table-hover">
+                  <thead>
+                    <tr>
+                      <th>Vật tư</th>
+                      <th>Mã vật tư</th>
+                      <th>SL Yêu cầu</th>
+                      <th>SL Duyệt</th>
+                      <th>Đơn vị</th>
+                      <th>Ghi chú</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {request.details && request.details.length > 0 ? (
+                      request.details.map((detail, index) => (
+                        <tr key={index}>
+                          <td>{detail.materialName || '-'}</td>
+                          <td>{detail.materialCode || '-'}</td>
+                          <td className="text-end">{detail.quantityRequested?.toLocaleString('vi-VN')}</td>
+                          <td className="text-end">{detail.quantityApproved?.toLocaleString('vi-VN') || '-'}</td>
+                          <td>{detail.unit}</td>
+                          <td>{detail.notes || '-'}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="6" className="text-center text-muted">Chưa có chi tiết vật tư</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </Card.Body>
             </Card>
 
