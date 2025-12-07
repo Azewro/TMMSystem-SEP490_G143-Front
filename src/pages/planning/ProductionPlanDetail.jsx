@@ -632,27 +632,22 @@ const ProductionPlanDetail = () => {
 
                                     <Row>
                                         <Col md={4} className="form-group-custom">
-                                            <Form.Label className="form-label-custom">Người phụ trách</Form.Label>
-                                            <Form.Select
-                                                value={activeStage.inChargeId || ''}
-                                                onChange={(e) => handleStageChange(activeStage.id, 'inChargeId', e.target.value)}
-                                                disabled={isReadOnly}
-                                            >
-                                                <option value="">
-                                                    {isDyeingStageType(activeStage.stageType) ? 'Chọn PM' : 'Chọn NV'}
-                                                </option>
-                                                {(isDyeingStageType(activeStage.stageType) ? (pmUsers.length ? pmUsers : inChargeUsers) : inChargeUsers)
-                                                    .map(u => (
-                                                        <option key={u.id} value={u.id}>{u.name}</option>
-                                                    ))}
-                                            </Form.Select>
+                                            <Form.Label className="form-label-custom">Người phụ trách (Tự động phân bổ)</Form.Label>
+                                            <Form.Control
+                                                type="text"
+                                                readOnly
+                                                disabled
+                                                value={inChargeUsers.find(u => u.id === (activeStage.inChargeId || activeStage.inChargeUserId))?.name || 'Đang phân bổ...'}
+                                            />
                                         </Col>
                                         <Col md={4} className="form-group-custom">
-                                            <Form.Label className="form-label-custom">Người kiểm tra</Form.Label>
-                                            <Form.Select value={activeStage.inspectionById || ''} onChange={(e) => handleStageChange(activeStage.id, 'inspectionById', e.target.value)} disabled={isReadOnly}>
-                                                <option value="">Chọn QC</option>
-                                                {qcUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-                                            </Form.Select>
+                                            <Form.Label className="form-label-custom">Người kiểm tra (Tự động phân bổ)</Form.Label>
+                                            <Form.Control
+                                                type="text"
+                                                readOnly
+                                                disabled
+                                                value={qcUsers.find(u => u.id === (activeStage.inspectionById || activeStage.qcUserId))?.name || 'Đang phân bổ...'}
+                                            />
                                         </Col>
                                         <Col md={4} className="form-group-custom">
                                             <Form.Label className="form-label-custom">TG bắt đầu</Form.Label>
@@ -709,10 +704,7 @@ const ProductionPlanDetail = () => {
                                     <Button variant="outline-secondary" onClick={() => navigate('/planning/lots')}>
                                         Hủy bỏ
                                     </Button>
-                                    <Button variant="primary" onClick={handleCalculateSchedule} disabled={calculating}>
-                                        {calculating ? <Spinner size="sm" animation="border" className="me-2" /> : null}
-                                        Tính toán & Lập lịch
-                                    </Button>
+                                    {/* Calculate Button Removed as per Auto-Assign Requirement */}
                                     <Button variant="success" onClick={handleSubmit} disabled={submitting}>
                                         {submitting ? <Spinner size="sm" animation="border" className="me-2" /> : <FaPaperPlane className="me-2" />}
                                         Gửi phê duyệt

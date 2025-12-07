@@ -214,6 +214,7 @@ const CustomerRfqs = () => {
     // But let's focus on the user request: "Cập nhật luôn filter liên quan".
     // I will add `{ value: 'QUOTED,REJECTED', label: 'Đã báo giá' }`.
 
+    { value: 'WAITING_CONFIRMATION', label: 'Chờ xác nhận' },
     { value: 'CONFIRMED', label: 'Đã xác nhận' },
     { value: 'QUOTED,REJECTED', label: 'Đã báo giá' },
     { value: 'CANCELED', label: 'Đã hủy' },
