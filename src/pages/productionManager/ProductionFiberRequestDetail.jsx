@@ -222,7 +222,7 @@ const ProductionFiberRequestDetail = () => {
             {request.sourceIssue && (
               <Card className="shadow-sm mb-4">
                 <Card.Header className="bg-white">
-                  <strong>Thông tin lỗi (QC)</strong>
+                  <strong>Thông tin lỗi QC tổng hợp</strong>
                 </Card.Header>
                 <Card.Body>
                   <Row className="g-3">
@@ -237,6 +237,50 @@ const ProductionFiberRequestDetail = () => {
                       </Col>
                     )}
                   </Row>
+                </Card.Body>
+              </Card>
+            )}
+
+            {/* Detailed Defect List */}
+            {request.defectDetails && request.defectDetails.length > 0 && (
+              <Card className="shadow-sm mb-4">
+                <Card.Header className="bg-white">
+                  <strong>Chi tiết tiêu chí lỗi</strong>
+                </Card.Header>
+                <Card.Body>
+                  <div className="table-responsive">
+                    <table className="table table-bordered table-hover">
+                      <thead>
+                        <tr>
+                          <th style={{ width: '25%' }}>Tiêu chí kiểm tra</th>
+                          <th style={{ width: '35%' }}>Mô tả lỗi</th>
+                          <th style={{ width: '40%' }}>Ảnh minh họa</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {request.defectDetails.map((defect, idx) => (
+                          <tr key={idx}>
+                            <td>{defect.criteriaName || 'Kiểm tra chung'}</td>
+                            <td>{defect.description || '-'}</td>
+                            <td>
+                              {defect.photoUrl ? (
+                                <img
+                                  src={defect.photoUrl}
+                                  alt="Defect"
+                                  style={{ maxWidth: '150px', maxHeight: '100px', objectFit: 'cover' }}
+                                  className="rounded border"
+                                  onClick={() => window.open(defect.photoUrl, '_blank')}
+                                  title="Click để xem ảnh lớn"
+                                />
+                              ) : (
+                                <span className="text-muted small">Không có ảnh</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </Card.Body>
               </Card>
             )}
