@@ -301,9 +301,9 @@ const DirectorRfqList = () => {
                               <Button
                                 variant="primary"
                                 size="sm"
-                                onClick={() => handleOpenAssignModal(rfq.id, !!rfq.assignedSalesId)}
+                                onClick={() => handleOpenAssignModal(rfq.id, true)}
                               >
-                                {rfq.assignedSalesId ? 'Xem chi tiết' : 'Phân công'}
+                                Xem chi tiết
                               </Button>
                             </td>
                           </tr>

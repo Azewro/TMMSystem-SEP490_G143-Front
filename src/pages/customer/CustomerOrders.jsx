@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Container, Card, Table, Badge, Button, Spinner, Alert, Form, InputGroup, Row, Col } from 'react-bootstrap';
-import { FaSearch, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
+import { FaSearch, FaSort, FaSortUp, FaSortDown, FaRedo } from 'react-icons/fa';
+import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import Sidebar from '../../components/common/Sidebar';
@@ -20,8 +21,11 @@ const statusOptions = [
   { value: 'WAITING_SIGNATURE', label: 'Chờ ký hợp đồng' },
   { value: 'PENDING_PROCESS', label: 'Chờ sản xuất' },
   { value: 'IN_PRODUCTION', label: 'Đang sản xuất' },
+  { value: 'IN_PRODUCTION', label: 'Đang sản xuất' },
   { value: 'COMPLETED', label: 'Sản xuất xong' },
 ];
+
+const REORDER_STATUSES = ['COMPLETED', 'SHIPPED', 'CANCELLED']; // Example statuses allowed for reorder, or maybe all? User didn't specify, assume all for now or COMPLETED. User said "Reorder", usually for completed orders. But let's allow for any order that has details.
 
 const formatDate = (iso) => {
   if (!iso) return 'N/A';
@@ -169,6 +173,33 @@ const CustomerOrders = () => {
       setSortDirection('desc');
     }
     setCurrentPage(1);
+    setCurrentPage(1);
+  };
+
+  const handleReorder = async (orderId) => {
+    try {
+      const toastId = toast.loading('Đang chuẩn bị thông tin mua lại...');
+      const details = await contractService.getOrderDetails(orderId);
+
+      const reorderData = {
+        contactPerson: details.customerInfo?.contactPerson || '',
+        contactPhone: details.customerInfo?.phone || '',
+        contactAddress: details.customerInfo?.shippingAddress || '',
+        items: details.orderItems.map(item => ({
+          productId: item.productId?.toString(),
+          quantity: item.quantity,
+          unit: 'cai', // Default or fetch if available
+          productName: item.productName, // For display if needed
+          standardDimensions: item.standardDimensions || ''
+        }))
+      };
+
+      toast.dismiss(toastId);
+      navigate('/customer/quote-request', { state: { reorderData } });
+    } catch (error) {
+      toast.error('Không thể lấy thông tin đơn hàng để mua lại.');
+      console.error(error);
+    }
   };
 
   const getSortIcon = (field) => {
@@ -296,8 +327,11 @@ const CustomerOrders = () => {
                               <td><Badge bg={statusObj.variant}>{statusObj.label}</Badge></td>
                               <td>{formatCurrency(order.totalAmount)}</td>
                               <td className="text-center">
-                                <Button size="sm" variant="primary" onClick={() => navigate(`/customer/orders/${order.id}`)}>
+                                <Button size="sm" variant="primary" onClick={() => navigate(`/customer/orders/${order.id}`)} className="me-2 mb-1">
                                   Xem chi tiết
+                                </Button>
+                                <Button size="sm" variant="outline-success" onClick={() => handleReorder(order.id)} title="Mua lại đơn hàng này" className="mb-1">
+                                  <FaRedo className="me-1" /> Mua lại
                                 </Button>
                               </td>
                             </tr>

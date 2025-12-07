@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Container, Row, Col, Card, Table, Badge, Button, Alert, Modal, Spinner } from 'react-bootstrap';
-import { FaArrowLeft, FaPaperPlane, FaSignInAlt } from 'react-icons/fa';
+import { Container, Row, Col, Card, Table, Badge, Button, Alert, Spinner } from 'react-bootstrap';
+import { FaArrowLeft, FaSignInAlt } from 'react-icons/fa';
 import { useNavigate, useParams } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
@@ -19,10 +19,7 @@ const QuoteDetail = () => {
     const [products, setProducts] = useState(new Map());
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [sending, setSending] = useState(false);
-    const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-    const canSend = quote?.status === 'DRAFT' || quote?.status === 'QUOTED';
 
     const loadQuoteData = useCallback(async () => {
         if (!id) return;
@@ -73,20 +70,7 @@ const QuoteDetail = () => {
         loadQuoteData();
     }, [loadQuoteData]);
 
-    const onSendToCustomer = async () => {
-        if (!quote?.id || !canSend) return;
-        setSending(true);
-        try {
-            await quoteService.sendQuoteToCustomer(quote.id);
-            toast.success('Đã gửi báo giá cho khách hàng thành công!');
-            setQuote(prev => ({ ...prev, status: 'SENT' }));
-        } catch (e) {
-            toast.error(e.message || 'Gửi báo giá thất bại');
-        } finally {
-            setSending(false);
-            setShowConfirmModal(false);
-        }
-    };
+
 
     const handleRetryLogin = () => {
         sessionStorage.setItem('returnTo', `/sales/quotations/${id}`);
@@ -189,21 +173,6 @@ const QuoteDetail = () => {
                                                 </tfoot>
                                             </Table>
 
-                                            {/* Action */}
-                                            <h5 className="mb-3">3. Hành động</h5>
-                                            <Card border="light">
-                                                <Card.Body>
-                                                    <div className="d-flex justify-content-between align-items-center">
-                                                        <div>
-                                                            <h6 className="mb-1">Gửi báo giá cho khách hàng</h6>
-                                                        </div>
-                                                        <Button variant="success" disabled={!canSend || sending} onClick={() => setShowConfirmModal(true)}>
-                                                            <FaPaperPlane className="me-2" />
-                                                            {sending ? 'Đang gửi...' : (canSend ? 'Gửi khách hàng' : 'Đã gửi')}
-                                                        </Button>
-                                                    </div>
-                                                </Card.Body>
-                                            </Card>
                                         </Card.Body>
                                     </Card>
                                 )}
@@ -213,26 +182,7 @@ const QuoteDetail = () => {
                 </div>
             </div>
 
-            {/* Confirmation Modal */}
-            <Modal show={showConfirmModal} onHide={() => setShowConfirmModal(false)} centered>
-                <Modal.Header closeButton>
-                    <Modal.Title>Xác nhận gửi báo giá</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    <p>Bạn có chắc chắn muốn gửi báo giá này cho khách hàng?</p>
-                    <div className="bg-light p-3 rounded">
-                        <div><strong>Mã báo giá:</strong> {quote?.quotationNumber}</div>
-                        <div><strong>Khách hàng:</strong> {quote?.contactPersonSnapshot}</div>
-                        <div><strong>Tổng giá trị:</strong> <span className="text-success fw-semibold">{formatCurrency(quote?.totalAmount)}</span></div>
-                    </div>
-                </Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={() => setShowConfirmModal(false)}>Hủy</Button>
-                    <Button variant="success" onClick={onSendToCustomer} disabled={sending}>
-                        {sending ? <><Spinner as="span" size="sm" className="me-2" /> Đang gửi...</> : 'Xác nhận gửi'}
-                    </Button>
-                </Modal.Footer>
-            </Modal>
+
         </div>
     );
 };

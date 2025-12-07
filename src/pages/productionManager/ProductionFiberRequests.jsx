@@ -4,15 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import api from '../../api/apiConfig';
-import MaterialRequestApprovalModal from '../../components/production/MaterialRequestApprovalModal';
+
 import { toast } from 'react-hot-toast';
 
 const ProductionFiberRequests = () => {
   const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedRequest, setSelectedRequest] = useState(null);
-  const [showModal, setShowModal] = useState(false);
+
 
   const fetchData = async () => {
     setLoading(true);
@@ -85,12 +84,7 @@ const ProductionFiberRequests = () => {
               </Card.Body>
             </Card>
 
-            <MaterialRequestApprovalModal
-              show={showModal}
-              onHide={() => setShowModal(false)}
-              request={selectedRequest}
-              onSuccess={fetchData}
-            />
+
           </Container>
         </div>
       </div>

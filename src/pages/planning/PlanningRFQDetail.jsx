@@ -33,7 +33,9 @@ const PlanningRFQDetail = () => {
   const [showCapacityReportModal, setShowCapacityReportModal] = useState(false);
   const [capacityReportData, setCapacityReportData] = useState(null);
 
-
+  // Automation States
+  const [autoCheckRun, setAutoCheckRun] = useState(false);
+  const [autoReceiveRun, setAutoReceiveRun] = useState(false);
 
   const loadRFQ = useCallback(async () => {
     if (!id) return;
@@ -118,6 +120,26 @@ const PlanningRFQDetail = () => {
     }
   };
 
+  // Automation Effect
+  useEffect(() => {
+    if (!rfqData || loading || working || error) return;
+
+    const status = rfqData.status || 'FORWARDED_TO_PLANNING';
+
+    // Step 1: Auto Receive
+    if (status === 'FORWARDED_TO_PLANNING' && !autoReceiveRun) {
+      setAutoReceiveRun(true);
+      handleReceive();
+      return;
+    }
+
+    // Step 2: Auto Check Capacity
+    if (status === 'RECEIVED_BY_PLANNING' && !autoCheckRun) {
+      setAutoCheckRun(true);
+      handleCapacityCheck();
+    }
+  }, [rfqData, loading, working, error, autoCheckRun, autoReceiveRun]);
+
   const handleInsufficientCapacitySubmit = async ({ reason, proposedNewDate }) => {
     setEvaluationLoading(true);
     try {
@@ -189,8 +211,27 @@ const PlanningRFQDetail = () => {
 
     setWorking(true);
     try {
-      // We can recalculate one last time or trust the latest pricingData if onBlur always fires.
-      // To be safe, let's just send the correct multiplier.
+      // Re-check capacity before creating quote to avoid race conditions
+      const checkResult = await quoteService.checkMachineCapacity(id);
+      const isSufficient = checkResult?.machineCapacity?.sufficient;
+
+      if (!isSufficient) {
+        toast.error('Cảnh báo: Năng lực máy móc không còn đủ (có thể do đơn hàng khác vừa được tạo). Vui lòng kiểm tra lại báo cáo.');
+
+        // Update data to show failure
+        setCapacityReportData(checkResult?.machineCapacity);
+        setRFQData(prevRfqData => ({
+          ...prevRfqData,
+          machineCapacitySufficient: false,
+        }));
+
+        // Close quote modal and show capacity report
+        closeQuoteModal();
+        setShowCapacityReportModal(true);
+        return;
+      }
+
+      // If sufficient, proceed to create quote
       await quoteService.createQuote({
         rfqId: id,
         profitMargin: finalMarginMultiplier,
@@ -328,19 +369,27 @@ const PlanningRFQDetail = () => {
                             <div className="d-flex justify-content-between align-items-center">
                               <div>
                                 <h6 className="mb-1"><FaInbox className="me-2" />Bước 1: Tiếp nhận RFQ</h6>
-                                <p className="text-muted mb-0 small">Xác nhận đã nhận RFQ để bắt đầu xử lý.</p>
+                                <p className="text-muted mb-0 small">
+                                  {canReceive
+                                    ? (autoReceiveRun ? 'Tiếp nhận thất bại. Vui lòng thử lại.' : 'Đang tự động tiếp nhận...')
+                                    : 'Đã tiếp nhận RFQ.'}
+                                </p>
                               </div>
-                              <Button variant="primary" disabled={!canReceive || working} onClick={handleReceive}>
-                                {working && canReceive ? <Spinner as="span" animation="border" size="sm" /> : <FaCheckCircle />}
-                                <span className="ms-2">Xác nhận đã nhận</span>
-                              </Button>
+                              {/* Show Spinner if auto-receiving, or Retry button if failed */}
+                              {canReceive && !autoReceiveRun && <Spinner animation="border" size="sm" variant="primary" />}
+                              {canReceive && autoReceiveRun && (
+                                <Button variant="primary" size="sm" onClick={handleReceive} disabled={working}>
+                                  Thử lại
+                                </Button>
+                              )}
+                              {!canReceive && <FaCheckCircle className="text-success" size={24} />}
                             </div>
                           </Card.Body>
                         </Card>
                       </Col>
                       {/* Step 2: Check Capacity */}
                       <Col md={12}>
-                        <Card border={canCheckCapacity ? 'primary' : 'light'}>
+                        <Card border={canCheckCapacity || hasCheckedCapacity ? 'primary' : 'light'}>
                           <Card.Body>
                             <div className="d-flex justify-content-between align-items-center">
                               <div>
@@ -348,7 +397,7 @@ const PlanningRFQDetail = () => {
                                 <p className="text-muted mb-0 small">
                                   {hasCheckedCapacity
                                     ? `Trạng thái: ${rfqData?.machineCapacitySufficient ? 'Đủ năng lực' : 'Không đủ năng lực'}`
-                                    : 'Chạy kiểm tra để xác định năng lực sản xuất.'
+                                    : (autoCheckRun ? 'Kiểm tra thất bại hoặc chưa chạy. Vui lòng thử lại.' : 'Đang tự động kiểm tra năng lực...')
                                   }
                                 </p>
                               </div>
@@ -358,10 +407,16 @@ const PlanningRFQDetail = () => {
                                     Báo cáo chi tiết
                                   </Button>
                                 )}
-                                <Button variant="primary" onClick={handleCapacityCheck} disabled={!canCheckCapacity || working || rfqData?.machineCapacitySufficient === true}>
-                                  {working ? <Spinner as="span" animation="border" size="sm" /> : <FaCogs />}
-                                  <span className="ms-2">{working ? 'Đang chạy...' : 'Chạy kiểm tra'}</span>
-                                </Button>
+                                {/* Check button logic: Automated or Retry */}
+                                {(!hasCheckedCapacity && canCheckCapacity) && (
+                                  !autoCheckRun ? (
+                                    <Spinner animation="border" size="sm" variant="primary" />
+                                  ) : (
+                                    <Button variant="primary" size="sm" onClick={handleCapacityCheck} disabled={working}>
+                                      Chạy kiểm tra lại
+                                    </Button>
+                                  )
+                                )}
                               </div>
                             </div>
                           </Card.Body>

@@ -118,6 +118,16 @@ const QuoteRequest = () => {
     const initialize = async () => {
       setLoading(true);
 
+      // 1. Fetch Products First
+      let productData = [];
+      try {
+        productData = await productService.getAllProducts();
+        setProducts(productData || []);
+      } catch (err) {
+        toast.error('Lỗi khi tải danh sách sản phẩm.');
+      }
+
+      // 2. Fetch Customer Data
       if (isAuthenticated && user?.customerId) {
         try {
           const customerData = await customerService.getCustomerById(user.customerId);
@@ -132,6 +142,7 @@ const QuoteRequest = () => {
         }
       }
 
+      // 3. Handle Navigation State
       if (location.state?.cartProducts?.length > 0) {
         const itemsFromCart = location.state.cartProducts.map(p => ({
           productId: p.id.toString(),
@@ -154,19 +165,44 @@ const QuoteRequest = () => {
           name
         }]);
         setIsFromCart(false);
+      } else if (location.state?.reorderData) {
+        // Handle Reorder
+        const { reorderData } = location.state;
+        const newDate = new Date();
+        newDate.setDate(newDate.getDate() + 31);
+
+        const items = reorderData.items.map(item => {
+          const product = productData.find(p => p.id == item.productId);
+          return {
+            productId: item.productId,
+            quantity: item.quantity.toString(),
+            unit: item.unit || 'cai',
+            notes: '',
+            standardDimensions: item.standardDimensions || product?.standardDimensions || '',
+            name: product?.name || item.productName
+          };
+        });
+        setQuoteItems(items);
+        setIsFromCart(false);
+
+        formRef.current = {
+          ...formRef.current,
+          contactPerson: reorderData.contactPerson || formRef.current.contactPerson,
+          contactPhone: reorderData.contactPhone || formRef.current.contactPhone,
+        };
+
+        if (reorderData.contactAddress) {
+          setDetailedAddress(reorderData.contactAddress);
+        }
+
+        setSelectedDate(newDate);
+        formRef.current.expectedDeliveryDate = newDate;
+        setStep(1);
+
       } else if (!isAuthenticated) {
-        // This is safe now because authLoading is false.
-        // Redirect if user is not authenticated and did not arrive via a specific flow.
         navigate('/');
         setLoading(false);
         return;
-      }
-
-      try {
-        const productData = await productService.getAllProducts();
-        setProducts(productData || []);
-      } catch (err) {
-        toast.error('Lỗi khi tải danh sách sản phẩm.');
       }
 
       setLoading(false);
@@ -201,7 +237,7 @@ const QuoteRequest = () => {
     // Allow free input for quantity - validation will be done with regex
     newItems[index][field] = value;
     setQuoteItems(newItems);
-    
+
     // Clear error for this field when user starts typing
     if (errors.items?.[index]?.[field]) {
       const newErrors = { ...errors };
@@ -222,7 +258,7 @@ const QuoteRequest = () => {
     const item = quoteItems[index];
     const quantityStr = item.quantity ? item.quantity.toString() : '';
     const quantityValidation = validateQuantity(quantityStr);
-    
+
     if (!quantityValidation.isValid) {
       const newErrors = { ...errors };
       if (!newErrors.items) {
@@ -265,8 +301,12 @@ const QuoteRequest = () => {
     } else if (!/\S+@\S+\.\S+/.test(currentData.contactEmail)) {
       newErrors.contactEmail = 'Email không hợp lệ.';
     }
-    if (!selectedProvince || !selectedCommune || !detailedAddress.trim()) {
-      newErrors.address = 'Vui lòng điền đầy đủ địa chỉ nhận hàng.';
+    if (!detailedAddress.trim()) {
+      newErrors.address = 'Vui lòng điền địa chỉ nhận hàng.';
+    } else if ((!selectedProvince || !selectedCommune) && !location.state?.reorderData) {
+      // Only enforce strict 3-level address for new requests. 
+      // For reorders, we accept the full address string in "detailedAddress".
+      newErrors.address = 'Vui lòng chọn Tỉnh/Thành phố và Xã/Phường.';
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -322,7 +362,10 @@ const QuoteRequest = () => {
 
     const provinceName = provinces.find(p => p.code == selectedProvince)?.name || '';
     const communeName = communes.find(c => c.code == selectedCommune)?.name || '';
-    const fullAddress = `${detailedAddress}, ${communeName}, ${provinceName}`;
+    // If reorder (no province selected but detailedAddress has content), assumes detailedAddress is full address
+    const fullAddress = (selectedProvince && selectedCommune)
+      ? `${detailedAddress}, ${communeName}, ${provinceName}`
+      : detailedAddress;
 
     const details = quoteItems.map(item => ({
       productId: parseInt(item.productId),
@@ -402,9 +445,9 @@ const QuoteRequest = () => {
               </Col>
               <Col md={12} className="mb-3">
                 <Form.Label>Số nhà, tên đường <span className="text-danger">*</span></Form.Label>
-                <Form.Control type="text" defaultValue={detailedAddress} onChange={e => setDetailedAddress(e.target.value)} placeholder="Ví dụ: 123 Nguyễn Văn Cừ" />
+                <Form.Control type="text" value={detailedAddress} onChange={e => setDetailedAddress(e.target.value)} placeholder="Ví dụ: 123 Nguyễn Văn Cừ" />
               </Col>
-            </Row>
+            </Row >
           </>
         );
       case 2:
@@ -446,7 +489,12 @@ const QuoteRequest = () => {
                 <Col xs={6} md={6}><p className="mb-1"><strong>Họ tên:</strong> {formRef.current.contactPerson}</p></Col>
                 <Col xs={6} md={6}><p className="mb-1"><strong>SĐT:</strong> {formRef.current.contactPhone}</p></Col>
                 <Col xs={12} md={6}><p className="mb-1"><strong>Email:</strong> {formRef.current.contactEmail}</p></Col>
-                <Col xs={12} md={6}><p className="mb-1"><strong>Địa chỉ:</strong> {`${detailedAddress}, ${communes.find(c => c.code == selectedCommune)?.name || ''}, ${provinces.find(p => p.code == selectedProvince)?.name || ''}`}</p></Col>
+                <Col xs={12} md={6}><p className="mb-1"><strong>Địa chỉ:</strong> {
+                  // Logic to display address: If province/commune selected, build string. Else if detailedAddress has full string (reorder case), use it.
+                  (selectedProvince && selectedCommune)
+                    ? `${detailedAddress}, ${communes.find(c => c.code == selectedCommune)?.name || ''}, ${provinces.find(p => p.code == selectedProvince)?.name || ''}`
+                    : detailedAddress
+                }</p></Col>
               </Row>
               <hr />
               <h6>Chi tiết sản phẩm</h6>

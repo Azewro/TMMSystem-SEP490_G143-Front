@@ -172,17 +172,23 @@ const AssignRfqModal = ({ show, onHide, rfqId, onAssignmentSuccess, isViewMode =
             <Form>
               <Form.Group className="mb-3">
                 <Form.Label>Nhân viên Sales</Form.Label>
-                <Form.Select
-                  value={selectedSalesId}
-                  onChange={(e) => setSelectedSalesId(e.target.value)}
-                  required
-                  disabled={isViewMode}
-                >
-                  <option value="">-- Chọn Sales --</option>
-                  {salesUsers.map(user => (
-                    <option key={user.id} value={user.id}>{user.name} ({user.email})</option>
-                  ))}
-                </Form.Select>
+                {isViewMode ? (
+                  <div className="p-2 border rounded bg-light">
+                    {salesUsers.find(u => u.id === selectedSalesId)?.name || 'Chưa phân công'}
+                    {salesUsers.find(u => u.id === selectedSalesId)?.email && ` (${salesUsers.find(u => u.id === selectedSalesId)?.email})`}
+                  </div>
+                ) : (
+                  <Form.Select
+                    value={selectedSalesId}
+                    onChange={(e) => setSelectedSalesId(e.target.value)}
+                    required
+                  >
+                    <option value="">-- Chọn Sales --</option>
+                    {salesUsers.map(user => (
+                      <option key={user.id} value={user.id}>{user.name} ({user.email})</option>
+                    ))}
+                  </Form.Select>
+                )}
               </Form.Group>
             </Form>
           </>
