@@ -32,10 +32,7 @@ const ProductionFiberRequests = () => {
     fetchData();
   }, []);
 
-  const handleApproveClick = (req) => {
-    setSelectedRequest(req);
-    setShowModal(true);
-  };
+
 
   return (
     <div className="customer-layout">
@@ -75,7 +72,7 @@ const ProductionFiberRequests = () => {
                             <td>{req.notes}</td>
                             <td><Badge bg="warning">Chờ duyệt</Badge></td>
                             <td>
-                              <Button size="sm" variant="primary" onClick={() => handleApproveClick(req)}>
+                              <Button size="sm" variant="primary" onClick={() => navigate(`/production/fiber-requests/${req.id}`)}>
                                 Xem & Duyệt
                               </Button>
                             </td>
