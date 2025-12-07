@@ -69,6 +69,46 @@ const numberToWords = (num) => {
   return finalWords.charAt(0).toUpperCase() + finalWords.slice(1) + " đồng";
 };
 
+const CountdownTimer = ({ sentAt }) => {
+  const [timeLeft, setTimeLeft] = useState(null);
+
+  useEffect(() => {
+    if (!sentAt) return;
+
+    const calculateTimeLeft = () => {
+      const sentTime = new Date(sentAt).getTime();
+      const expirationTime = sentTime + 12 * 60 * 60 * 1000; // + 12 hours
+      const now = new Date().getTime();
+      const difference = expirationTime - now;
+
+      if (difference > 0) {
+        setTimeLeft({
+          hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+          minutes: Math.floor((difference / 1000 / 60) % 60),
+          seconds: Math.floor((difference / 1000) % 60)
+        });
+      } else {
+        setTimeLeft(null); // Expired
+      }
+    };
+
+    calculateTimeLeft();
+    const timer = setInterval(calculateTimeLeft, 1000);
+
+    return () => clearInterval(timer);
+  }, [sentAt]);
+
+  if (!timeLeft) {
+    return <Badge bg="danger" className="p-2 fs-6">Đã hết hạn</Badge>;
+  }
+
+  return (
+    <Badge bg="warning" text="dark" className="p-2 fs-6">
+      {timeLeft.hours.toString().padStart(2, '0')}:{timeLeft.minutes.toString().padStart(2, '0')}:{timeLeft.seconds.toString().padStart(2, '0')}
+    </Badge>
+  );
+};
+
 
 const CustomerQuotationDetail = () => {
   const { id } = useParams();
@@ -330,25 +370,35 @@ const CustomerQuotationDetail = () => {
               <div className="text-center py-5 text-muted">Không tìm thấy báo giá</div>
             )}
 
+
+
             {quote && quote.status === 'SENT' && (
-              <div className="d-flex justify-content-end gap-2 mt-4">
-                <Button
-                  variant="danger"
-                  size="lg"
-                  onClick={() => setConfirm({ type: 'REJECTED', open: true })}
-                  disabled={working}
-                >
-                  <FaTimesCircle className="me-2" /> Từ Chối
-                </Button>
-                <Button
-                  variant="success"
-                  size="lg"
-                  onClick={handleAcceptClick}
-                  disabled={working}
-                >
-                  <FaCheckCircle className="me-2" /> Chấp Nhận Báo Giá
-                </Button>
-              </div>
+              <>
+                <div className="d-flex flex-column align-items-end mt-4">
+                  <div className="mb-2">
+                    <span className="text-muted me-2">Thời gian còn lại để phản hồi:</span>
+                    <CountdownTimer sentAt={quote.sentAt} />
+                  </div>
+                </div>
+                <div className="d-flex justify-content-end gap-2">
+                  <Button
+                    variant="danger"
+                    size="lg"
+                    onClick={() => setConfirm({ type: 'REJECTED', open: true })}
+                    disabled={working}
+                  >
+                    <FaTimesCircle className="me-2" /> Từ Chối
+                  </Button>
+                  <Button
+                    variant="success"
+                    size="lg"
+                    onClick={handleAcceptClick}
+                    disabled={working}
+                  >
+                    <FaCheckCircle className="me-2" /> Chấp Nhận Báo Giá
+                  </Button>
+                </div>
+              </>
             )}
 
             <ConfirmOrderProfileModal

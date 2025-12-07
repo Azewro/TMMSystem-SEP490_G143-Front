@@ -89,7 +89,9 @@ const PlanningRFQDetail = () => {
       setCapacityReportData(result?.machineCapacity);
 
       if (isSufficient) {
+        // Show toast success
         toast.success('Kiểm tra máy móc: Đủ năng lực.');
+
         // Call the evaluation endpoint but don't use its response, as it's missing the required flags.
         await quoteService.evaluateCapacity(id, { status: 'SUFFICIENT', checkType: 'machine' });
 
@@ -99,8 +101,8 @@ const PlanningRFQDetail = () => {
           machineCapacitySufficient: true,
         }));
 
-        // Tự động mở modal báo cáo chi tiết
-        setShowCapacityReportModal(true);
+        // Do NOT open report modal automatically if sufficient
+        // setShowCapacityReportModal(true);
       } else {
         // Không đủ năng lực - chỉ mở modal báo cáo, không tự động mở modal insufficient
         toast.error('Kiểm tra máy móc: Không đủ năng lực.');
