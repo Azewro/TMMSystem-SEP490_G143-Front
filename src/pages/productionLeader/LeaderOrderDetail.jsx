@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { productionService } from '../../api/productionService';
+import { executionService } from '../../api/executionService';
 import { getStatusLabel, getStageTypeName, getButtonForStage, getStatusVariant } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
 
@@ -249,28 +250,38 @@ const LeaderOrderDetail = () => {
                               // BUT, we should probably only enable "Start/Update" if it's assigned to *this* leader.
                               // The user request says "Leader... ấn bắt đầu thì sẽ hiện thêm danh sách các công đoạn...".
                               // It implies they want visibility. Maybe they can only ACT on their own stages.
-
-                              // Check if stage is assigned to current user (need to ensure mappedOrder.stages includes assigneeId)
-                              // For safety, let's just enable buttons based on status for now, or check typical logic.
-                              // Ideally we check stage.isAssignedToCurrentUser if backend provides it.
-
                               const isDisabled = isPending || orderLocked || isQcFailed;
+
+                              // HIDE BUTTON if disabled (User Request)
+                              if (isDisabled) {
+                                return <span className="text-muted small">Chưa đến lượt</span>;
+                              }
 
                               const handleAction = async () => {
                                 if (buttonConfig.action === 'start') {
                                   try {
                                     setLoading(true);
-                                    // Use stage.id
+                                    // NEW: Check if stage is blocked before starting
+                                    const blockCheck = await executionService.checkCanStart(stage.id);
+                                    if (blockCheck && blockCheck.canStart === false) {
+                                      toast.error(blockCheck.message || 'Công đoạn đang bị chiếm bởi lô khác');
+                                      setLoading(false);
+                                      return;
+                                    }
                                     await productionService.startStageRolling(stage.id, userId);
-                                    toast.success('Đã bắt đầu công đoạn');
+                                    toast.success('Đã b\u1eaft \u0111\u1ea7u công đo\u1ea1n');
                                     window.location.reload();
                                   } catch (error) {
                                     console.error('Error starting stage:', error);
-                                    toast.error(error.response?.data?.message || 'Không thể bắt đầu công đoạn');
+                                    const msg = error.response?.data?.message || error.message || 'Không th\u1ec3 b\u1eaft \u0111\u1ea7u công đo\u1ea1n';
+                                    if (msg.includes('BLOCKING')) {
+                                      toast.error(msg.replace('java.lang.RuntimeException: BLOCKING: ', ''));
+                                    } else {
+                                      toast.error(msg);
+                                    }
                                     setLoading(false);
                                   }
                                 } else {
-                                  // Navigate to specific stage progress
                                   navigate(`/leader/orders/${orderId}/progress`);
                                 }
                               };
@@ -281,13 +292,6 @@ const LeaderOrderDetail = () => {
                                     size="sm"
                                     variant={buttonConfig.variant}
                                     onClick={handleAction}
-                                    disabled={isDisabled}
-                                    title={
-                                      orderLocked
-                                        ? 'PM chưa bắt đầu lệnh làm việc'
-                                        : (isPending ? 'Chưa đến lượt' :
-                                          (isQcFailed ? 'Đang chờ kỹ thuật xử lý lỗi' : ''))
-                                    }
                                   >
                                     {buttonConfig.text}
                                   </Button>
@@ -297,7 +301,7 @@ const LeaderOrderDetail = () => {
                                 <Button
                                   size="sm"
                                   variant={buttonConfig.variant}
-                                  onClick={() => navigate(`/leader/orders/${orderId}/progress`)} // Redirect to progress page which will load this stage as current (or default)
+                                  onClick={() => navigate(`/leader/orders/${orderId}/progress`)}
                                 >
                                   {buttonConfig.text}
                                 </Button>

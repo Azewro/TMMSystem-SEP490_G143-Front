@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import { Container, Card, Table, Button, Form, InputGroup, Alert } from 'react-bootstrap';
 import { FaSearch, FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
@@ -32,6 +34,18 @@ const MaterialStockManagement = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
   const ITEMS_PER_PAGE = 10;
+
+  const parseDateString = (value) => {
+    if (!value) return null;
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? null : d;
+  };
+
+  const formatDateForBackend = (date) => {
+    if (!date) return '';
+    const iso = date.toISOString();
+    return iso.split('T')[0]; // yyyy-MM-dd
+  };
 
   const fetchMaterialStocks = useCallback(async () => {
     setLoading(true);

@@ -13,7 +13,28 @@ const createRfq = async (rfqData, isAuthenticated) => {
     return response.data;
   } catch (error) {
     console.error("Error creating RFQ:", error.response?.data);
-    throw new Error(error.response?.data?.message || 'Failed to create RFQ');
+    // Extract error message from various possible response formats
+    const responseData = error.response?.data;
+    let errorMessage = 'Gửi yêu cầu thất bại. Vui lòng kiểm tra lại thông tin.';
+
+    if (responseData) {
+      if (typeof responseData === 'string') {
+        errorMessage = responseData;
+      } else if (responseData.message) {
+        errorMessage = responseData.message;
+      } else if (responseData.error) {
+        errorMessage = responseData.error;
+      } else if (responseData.errors && Array.isArray(responseData.errors)) {
+        errorMessage = responseData.errors.join(', ');
+      } else if (responseData.errors && typeof responseData.errors === 'object') {
+        // Handle field validation errors like { "name": ["error1"], "phone": ["error2"] }
+        errorMessage = Object.entries(responseData.errors)
+          .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
+          .join('; ');
+      }
+    }
+
+    throw new Error(errorMessage);
   }
 };
 
@@ -32,7 +53,7 @@ export const rfqService = {
       if (params.status && params.status.trim()) paginationParams.status = params.status.trim();
       if (params.customerId) paginationParams.customerId = params.customerId;
       if (params.createdDate && params.createdDate.trim()) paginationParams.createdDate = params.createdDate.trim();
-      
+
       const response = await apiClient.get('/v1/rfqs', { params: paginationParams });
       return response.data;
     } catch (error) {
@@ -87,45 +108,45 @@ export const rfqService = {
       if (!userIdStr) {
         throw new Error('User ID not found. Please log in.');
       }
-      
+
       const userId = parseInt(userIdStr, 10);
       if (isNaN(userId) || userId <= 0) {
         throw new Error('Invalid User ID format. Please log in again.');
       }
-      
-      const params = { 
-        page: page || 0, 
-        size: size || 10 
+
+      const params = {
+        page: page || 0,
+        size: size || 10
       };
-      
+
       if (search && typeof search === 'string') {
         const trimmedSearch = search.trim();
         if (trimmedSearch.length > 0) {
           params.search = trimmedSearch;
         }
       }
-      
+
       if (status && typeof status === 'string') {
         const trimmedStatus = status.trim();
         if (trimmedStatus.length > 0) {
           params.status = trimmedStatus;
         }
       }
-      
+
       const config = {
         params: params,
         headers: {
           'X-User-Id': userId.toString()
         }
       };
-      
+
       const response = await apiClient.get('/v1/rfqs/for-sales', config);
       return response.data;
     } catch (error) {
-      const errorMessage = error.response?.data?.message 
-        || error.response?.data?.error 
+      const errorMessage = error.response?.data?.message
+        || error.response?.data?.error
         || error.response?.data?.detail
-        || error.message 
+        || error.message
         || 'Failed to fetch assigned RFQs for sales';
       throw new Error(errorMessage);
     }
@@ -139,7 +160,7 @@ export const rfqService = {
       if (search) params.search = search;
       if (status) params.status = status;
       if (createdDate) params.createdDate = createdDate;
-      
+
       const response = await apiClient.get('/v1/rfqs', { params });
       return response.data;
     } catch (error) {
@@ -202,7 +223,7 @@ export const rfqService = {
       }
 
       console.log(`PATCH /v1/rfqs/${rfqId}/sales-edit with payload:`, editData);
-      
+
       const response = await apiClient.patch(`/v1/rfqs/${rfqId}/sales-edit`, editData, {
         headers: {
           'X-User-Id': userId
@@ -211,10 +232,10 @@ export const rfqService = {
       return response.data;
     } catch (error) {
       console.error(`Error editing RFQ ${rfqId}:`, error.response?.data || error.message);
-      const errorMessage = error.response?.data?.message || 
-                           error.response?.data?.error || 
-                           error.message || 
-                           'Failed to edit RFQ';
+      const errorMessage = error.response?.data?.message ||
+        error.response?.data?.error ||
+        error.message ||
+        'Failed to edit RFQ';
       throw new Error(errorMessage);
     }
   },

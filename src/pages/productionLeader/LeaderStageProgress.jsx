@@ -59,6 +59,7 @@ const LeaderStageProgress = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [history, setHistory] = useState([]);
   const [defect, setDefect] = useState(null);
+  const [blockingInfo, setBlockingInfo] = useState(null); // NEW: Blocking check info
 
   const [inspections, setInspections] = useState([]);
 
@@ -199,6 +200,27 @@ const LeaderStageProgress = () => {
       loadStageHistory(stage.id);
     }
   }, [stage?.id]);
+
+  // NEW: Check if stage is blocked by another lot
+  useEffect(() => {
+    const checkBlocking = async () => {
+      if (!stage?.id) return;
+      // Only check for stages that can potentially start
+      const canPotentiallyStart = ['READY', 'WAITING', 'READY_TO_PRODUCE', 'WAITING_REWORK'].includes(stage?.executionStatus);
+      if (!canPotentiallyStart) {
+        setBlockingInfo(null);
+        return;
+      }
+      try {
+        const result = await executionService.checkCanStart(stage.id);
+        setBlockingInfo(result);
+      } catch (error) {
+        console.error('Error checking stage availability:', error);
+        setBlockingInfo(null);
+      }
+    };
+    checkBlocking();
+  }, [stage?.id, stage?.executionStatus, refreshKey]);
 
   const handleBack = () => {
     navigate('/leader/orders');
@@ -344,6 +366,19 @@ const LeaderStageProgress = () => {
     }
 
     if (canStart && !isPending && !orderLocked) {
+      // NEW: Check if blocked by another lot
+      if (blockingInfo && blockingInfo.canStart === false) {
+        return (
+          <Alert variant="warning" className="mb-3">
+            <Alert.Heading>Công đoạn đang bị chiếm</Alert.Heading>
+            <p>{blockingInfo.message || `Công đoạn này đang được sử dụng bởi lô khác.`}</p>
+            {blockingInfo.blockedBy && (
+              <p className="mb-0"><strong>Lô đang sử dụng:</strong> {blockingInfo.blockedBy}</p>
+            )}
+          </Alert>
+        );
+      }
+
       return (
         <Card className="shadow-sm mb-3" style={{ borderColor: '#e7f1ff', backgroundColor: '#f5f9ff' }}>
           <Card.Body className="d-flex justify-content-center">
