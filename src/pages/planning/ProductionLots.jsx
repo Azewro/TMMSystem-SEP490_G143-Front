@@ -5,7 +5,7 @@ import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import Pagination from '../../components/Pagination';
 import { productionPlanService } from '../../api/productionPlanService';
-import { FaSync, FaSearch } from 'react-icons/fa';
+import { FaSync, FaSearch, FaSortUp, FaSortDown, FaSort } from 'react-icons/fa';
 import '../../styles/QuoteRequests.css';
 import { getPlanningPlanStatus } from '../../utils/statusMapper';
 import DatePicker, { registerLocale } from 'react-datepicker';
@@ -45,8 +45,32 @@ const ProductionLots = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [deliveryDateFilter, setDeliveryDateFilter] = useState('');
 
+  // Sort state
+  const [sortColumn, setSortColumn] = useState('');
+  const [sortDirection, setSortDirection] = useState('asc');
+
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
+
+  // Handle sort click
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  // Get sort icon for column
+  const getSortIcon = (column) => {
+    if (sortColumn !== column) {
+      return <FaSort className="ms-1 text-muted" style={{ opacity: 0.5 }} />;
+    }
+    return sortDirection === 'asc'
+      ? <FaSortUp className="ms-1 text-primary" />
+      : <FaSortDown className="ms-1 text-primary" />;
+  };
 
   const loadProductionLots = useCallback(async () => {
     setLoading(true);
@@ -112,6 +136,35 @@ const ProductionLots = () => {
   const currentLots = filteredLots.slice(indexOfFirstLot, indexOfLastLot);
   const totalPages = Math.ceil(filteredLots.length / ITEMS_PER_PAGE);
 
+  // Sort currentLots based on sortColumn and sortDirection
+  const sortedLots = useMemo(() => {
+    if (!sortColumn) return currentLots;
+
+    return [...currentLots].sort((a, b) => {
+      let aValue, bValue;
+
+      switch (sortColumn) {
+        case 'lotCode':
+          aValue = a.lotCode || '';
+          bValue = b.lotCode || '';
+          break;
+        case 'productName':
+          aValue = a.productName || '';
+          bValue = b.productName || '';
+          break;
+        case 'deliveryDate':
+          aValue = a.deliveryDateTarget || a.contractDateMin || '';
+          bValue = b.deliveryDateTarget || b.contractDateMin || '';
+          break;
+        default:
+          return 0;
+      }
+
+      const comparison = String(aValue).localeCompare(String(bValue), 'vi');
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [currentLots, sortColumn, sortDirection]);
+
   const handleEditPlan = async (lot) => {
     try {
       let planId = lot.currentPlanId;
@@ -173,9 +226,13 @@ const ProductionLots = () => {
                           selected={parseDateString(deliveryDateFilter)}
                           onChange={(date) => {
                             if (date) {
-                              // Format to yyyy-MM-dd for backend/state compatibility
                               setDeliveryDateFilter(formatDateForBackend(date));
                             } else {
+                              setDeliveryDateFilter('');
+                            }
+                          }}
+                          onChangeRaw={(e) => {
+                            if (e.target.value === '' || e.target.value === null) {
                               setDeliveryDateFilter('');
                             }
                           }}
@@ -230,18 +287,33 @@ const ProductionLots = () => {
                     <Table striped bordered hover responsive>
                       <thead>
                         <tr>
-                          <th>Mã lô</th>
-                          <th>Tên sản phẩm</th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('lotCode')}
+                          >
+                            Mã lô {getSortIcon('lotCode')}
+                          </th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('productName')}
+                          >
+                            Tên sản phẩm {getSortIcon('productName')}
+                          </th>
                           <th>Kích thước</th>
                           <th>Tổng SL</th>
                           <th>Đơn hàng</th>
-                          <th>Ngày giao</th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('deliveryDate')}
+                          >
+                            Ngày giao {getSortIcon('deliveryDate')}
+                          </th>
                           <th>Trạng thái kế hoạch</th>
                           <th className="text-center">Thao tác</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {currentLots.map((lot) => {
+                        {sortedLots.map((lot) => {
                           const planStatus = lot.currentPlanStatus
                             ? getPlanningPlanStatus(lot.currentPlanStatus)
                             : null;

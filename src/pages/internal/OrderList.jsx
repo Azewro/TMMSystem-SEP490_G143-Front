@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Container, Card, Table, Badge, Button, Form, InputGroup, Alert, Row, Col, Spinner } from 'react-bootstrap';
-import { FaSearch } from 'react-icons/fa';
+import { FaSearch, FaSortUp, FaSortDown, FaSort } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import Pagination from '../../components/Pagination';
-import { quoteService } from '../../api/quoteService'; // To get customer data
+import { quoteService } from '../../api/quoteService';
 import { getSalesOrderStatus } from '../../utils/statusMapper';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import { vi } from 'date-fns/locale/vi';
@@ -44,9 +44,33 @@ const OrderList = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [createdDateFilter, setCreatedDateFilter] = useState('');
 
+  // Sort state
+  const [sortColumn, setSortColumn] = useState('');
+  const [sortDirection, setSortDirection] = useState('asc');
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
+
+  // Handle sort click
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  // Get sort icon for column
+  const getSortIcon = (column) => {
+    if (sortColumn !== column) {
+      return <FaSort className="ms-1 text-muted" style={{ opacity: 0.5 }} />;
+    }
+    return sortDirection === 'asc'
+      ? <FaSortUp className="ms-1 text-primary" />
+      : <FaSortDown className="ms-1 text-primary" />;
+  };
 
   useEffect(() => {
     const fetchAndEnrichOrders = async () => {
@@ -131,6 +155,35 @@ const OrderList = () => {
     return filteredOrders.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   }, [filteredOrders, currentPage]);
 
+  // Sort paginatedOrders
+  const sortedOrders = useMemo(() => {
+    if (!sortColumn) return paginatedOrders;
+
+    return [...paginatedOrders].sort((a, b) => {
+      let aValue, bValue;
+
+      switch (sortColumn) {
+        case 'quotationNumber':
+          aValue = a.quotationNumber || '';
+          bValue = b.quotationNumber || '';
+          break;
+        case 'contactPerson':
+          aValue = a.customer?.contactPerson || '';
+          bValue = b.customer?.contactPerson || '';
+          break;
+        case 'createdDate':
+          aValue = a.createdAt || '';
+          bValue = b.createdAt || '';
+          break;
+        default:
+          return 0;
+      }
+
+      const comparison = String(aValue).localeCompare(String(bValue), 'vi');
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [paginatedOrders, sortColumn, sortDirection]);
+
   const handleViewDetail = (order) => {
     navigate(`/internal/orders/${order.id}`);
   };
@@ -170,9 +223,13 @@ const OrderList = () => {
                           selected={parseDateString(createdDateFilter)}
                           onChange={(date) => {
                             if (date) {
-                              // Format to yyyy-MM-dd for backend/state compatibility
                               setCreatedDateFilter(formatDateForBackend(date));
                             } else {
+                              setCreatedDateFilter('');
+                            }
+                          }}
+                          onChangeRaw={(e) => {
+                            if (e.target.value === '' || e.target.value === null) {
                               setCreatedDateFilter('');
                             }
                           }}
@@ -218,20 +275,35 @@ const OrderList = () => {
                       <thead>
                         <tr>
                           <th style={{ width: 60 }}>STT</th>
-                          <th>Mã đơn hàng</th>
-                          <th>Người đại diện</th>
-                          <th>Ngày tạo đơn</th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('quotationNumber')}
+                          >
+                            Mã đơn hàng {getSortIcon('quotationNumber')}
+                          </th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('contactPerson')}
+                          >
+                            Người đại diện {getSortIcon('contactPerson')}
+                          </th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('createdDate')}
+                          >
+                            Ngày tạo đơn {getSortIcon('createdDate')}
+                          </th>
                           <th>Trạng thái</th>
                           <th style={{ width: 140 }} className="text-center">Hành động</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {paginatedOrders.length === 0 ? (
+                        {sortedOrders.length === 0 ? (
                           <tr><td colSpan={6} className="text-center py-4 text-muted">
                             {orders.length === 0 ? 'Chưa có đơn hàng nào' : 'Không tìm thấy đơn hàng phù hợp'}
                           </td></tr>
                         ) : (
-                          paginatedOrders.map((order, idx) => {
+                          sortedOrders.map((order, idx) => {
                             const statusObj = getSalesOrderStatus(order.status);
                             return (
                               <tr key={order.id || idx}>

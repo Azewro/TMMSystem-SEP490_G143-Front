@@ -40,11 +40,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-backend/
-LUONG_LOI.pdf
-LUONG_DAT_HANG.md
-LUONG_SAN_XUAT.txt
-"api docs.json"
 .github/
 
 .gemini/

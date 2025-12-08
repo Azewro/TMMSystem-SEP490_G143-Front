@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Container, Card, Table, Button, Spinner, Alert, Badge, Form, InputGroup, Row, Col } from 'react-bootstrap';
-import { FaSearch } from 'react-icons/fa';
+import { FaSearch, FaSortUp, FaSortDown, FaSort } from 'react-icons/fa';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { rfqService } from '../../api/rfqService';
@@ -17,6 +17,32 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { parseDateString, formatDateForBackend } from '../../utils/validators';
 
 registerLocale('vi', vi);
+
+// Helper function to extract date from rfqNumber (format: RFQ-YYYYMMDD-XXX)
+const getDateFromRfqNumber = (rfqNumber) => {
+  if (!rfqNumber) return null;
+  const match = rfqNumber.match(/RFQ-(\d{4})(\d{2})(\d{2})-/);
+  if (match) {
+    const [, year, month, day] = match;
+    return `${year}-${month}-${day}`; // Returns YYYY-MM-DD format
+  }
+  return null;
+};
+
+// Helper function to format date for display (from rfqNumber or fallback to createdAt)
+const formatRfqDate = (rfq) => {
+  const dateFromNumber = getDateFromRfqNumber(rfq.rfqNumber);
+  if (dateFromNumber) {
+    // Parse YYYY-MM-DD and format to dd/MM/yyyy
+    const [year, month, day] = dateFromNumber.split('-');
+    return `${day}/${month}/${year}`;
+  }
+  // Fallback to createdAt if rfqNumber doesn't have date
+  if (rfq.createdAt) {
+    return new Date(rfq.createdAt).toLocaleDateString('vi-VN');
+  }
+  return 'N/A';
+};
 
 const MyRfqs = () => {
   const navigate = useNavigate();
@@ -39,6 +65,32 @@ const MyRfqs = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
   const ITEMS_PER_PAGE = 10;
+
+  // Sort state
+  const [sortColumn, setSortColumn] = useState('');
+  const [sortDirection, setSortDirection] = useState('asc'); // 'asc' or 'desc'
+
+  // Handle sort click
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      // Toggle direction
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // New column, default to asc
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  // Get sort icon for column
+  const getSortIcon = (column) => {
+    if (sortColumn !== column) {
+      return <FaSort className="ms-1 text-muted" style={{ opacity: 0.5 }} />;
+    }
+    return sortDirection === 'asc'
+      ? <FaSortUp className="ms-1 text-primary" />
+      : <FaSortDown className="ms-1 text-primary" />;
+  };
 
 
 
@@ -97,11 +149,16 @@ const MyRfqs = () => {
         });
       }
 
-      // Filter by created date (client-side)
+      // Filter by created date (client-side) - use date from rfqNumber for accuracy
       if (createdDateFilter) {
         filteredRfqs = filteredRfqs.filter(rfq => {
-          if (!rfq.createdAt) return false;
-          const rfqDate = new Date(rfq.createdAt).toISOString().split('T')[0];
+          const rfqDate = getDateFromRfqNumber(rfq.rfqNumber);
+          if (!rfqDate) {
+            // Fallback to createdAt if rfqNumber doesn't have date
+            if (!rfq.createdAt) return false;
+            const fallbackDate = new Date(rfq.createdAt).toISOString().split('T')[0];
+            return fallbackDate === createdDateFilter;
+          }
           return rfqDate === createdDateFilter;
         });
       }
@@ -174,6 +231,37 @@ const MyRfqs = () => {
     // Reset to page 1 when filters change
     setCurrentPage(1);
   }, [debouncedSearchTerm, statusFilter, createdDateFilter]);
+
+  // Sort the RFQs based on sortColumn and sortDirection
+  const sortedRfqs = useMemo(() => {
+    if (!sortColumn) return allRfqs;
+
+    return [...allRfqs].sort((a, b) => {
+      let aValue, bValue;
+
+      switch (sortColumn) {
+        case 'rfqNumber':
+          aValue = a.rfqNumber || '';
+          bValue = b.rfqNumber || '';
+          break;
+        case 'contactPerson':
+          aValue = a.contactPerson || '';
+          bValue = b.contactPerson || '';
+          break;
+        case 'createdDate':
+          // Use date from rfqNumber for accurate sorting
+          aValue = getDateFromRfqNumber(a.rfqNumber) || '';
+          bValue = getDateFromRfqNumber(b.rfqNumber) || '';
+          break;
+        default:
+          return 0;
+      }
+
+      // String comparison
+      const comparison = aValue.localeCompare(bValue, 'vi');
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [allRfqs, sortColumn, sortDirection]);
 
   const handleViewQuotation = async (rfq) => {
     try {
@@ -254,6 +342,13 @@ const MyRfqs = () => {
                             }
                             setCurrentPage(1);
                           }}
+                          onChangeRaw={(e) => {
+                            // Handle manual clear - when input is empty, reset filter
+                            if (e.target.value === '' || e.target.value === null) {
+                              setCreatedDateFilter('');
+                              setCurrentPage(1);
+                            }
+                          }}
                           dateFormat="dd/MM/yyyy"
                           locale="vi"
                           className="form-control"
@@ -300,19 +395,34 @@ const MyRfqs = () => {
                     <Table striped bordered hover responsive>
                       <thead>
                         <tr>
-                          <th>Mã yêu cầu báo giá</th>
-                          <th>Tên Khách Hàng</th>
-                          <th>Ngày tạo</th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('rfqNumber')}
+                          >
+                            Mã yêu cầu báo giá {getSortIcon('rfqNumber')}
+                          </th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('contactPerson')}
+                          >
+                            Tên Khách Hàng {getSortIcon('contactPerson')}
+                          </th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('createdDate')}
+                          >
+                            Ngày tạo {getSortIcon('createdDate')}
+                          </th>
                           <th>Trạng Thái</th>
                           <th>Hành Động</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {allRfqs.length > 0 ? allRfqs.map(rfq => (
+                        {sortedRfqs.length > 0 ? sortedRfqs.map(rfq => (
                           <tr key={rfq.id}>
                             <td>{rfq.rfqNumber}</td>
                             <td>{rfq.contactPerson || 'N/A'}</td>
-                            <td>{new Date(rfq.createdAt).toLocaleDateString('vi-VN')}</td>
+                            <td>{formatRfqDate(rfq)}</td>
                             <td>
                               {(() => {
                                 const statusObj = getSalesRfqStatus(rfq.status);
@@ -328,14 +438,14 @@ const MyRfqs = () => {
                             </td>
                             <td>
                               <div className="d-flex gap-2">
+                                <Button variant="primary" size="sm" onClick={() => handleViewDetails(rfq.id)}>
+                                  Xem chi tiết
+                                </Button>
                                 {rfq.status === 'QUOTED' && (
                                   <Button variant="success" size="sm" onClick={() => handleViewQuotation(rfq)}>
                                     Xem báo giá
                                   </Button>
                                 )}
-                                <Button variant="primary" size="sm" onClick={() => handleViewDetails(rfq.id)}>
-                                  Xem chi tiết
-                                </Button>
                               </div>
                             </td>
                           </tr>

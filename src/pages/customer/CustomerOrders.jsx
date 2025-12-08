@@ -245,12 +245,17 @@ const CustomerOrders = () => {
                           selected={parseDateString(createdDateFilter)}
                           onChange={(date) => {
                             if (date) {
-                              // Format to yyyy-MM-dd for backend/state compatibility
                               setCreatedDateFilter(formatDateForBackend(date));
                             } else {
                               setCreatedDateFilter('');
                             }
                             setCurrentPage(1);
+                          }}
+                          onChangeRaw={(e) => {
+                            if (e.target.value === '' || e.target.value === null) {
+                              setCreatedDateFilter('');
+                              setCurrentPage(1);
+                            }
                           }}
                           dateFormat="dd/MM/yyyy"
                           locale="vi"

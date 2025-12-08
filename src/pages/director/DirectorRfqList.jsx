@@ -1,19 +1,43 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Container, Card, Table, Button, Spinner, Alert, Badge, Form, InputGroup, Row, Col } from 'react-bootstrap';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { rfqService } from '../../api/rfqService';
 import { customerService } from '../../api/customerService';
 import AssignRfqModal from '../../components/modals/AssignRfqModal';
-import Pagination from '../../components/Pagination'; // Import Pagination component
+import Pagination from '../../components/Pagination';
 import { getDirectorRfqStatus } from '../../utils/statusMapper';
-import { FaSearch } from 'react-icons/fa';
+import { FaSearch, FaSortUp, FaSortDown, FaSort } from 'react-icons/fa';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import { vi } from 'date-fns/locale/vi';
 import 'react-datepicker/dist/react-datepicker.css';
 import { parseDateString, formatDateForBackend } from '../../utils/validators';
 
 registerLocale('vi', vi);
+
+// Helper function to extract date from rfqNumber (format: RFQ-YYYYMMDD-XXX)
+const getDateFromRfqNumber = (rfqNumber) => {
+  if (!rfqNumber) return null;
+  const match = rfqNumber.match(/RFQ-(\d{4})(\d{2})(\d{2})-/);
+  if (match) {
+    const [, year, month, day] = match;
+    return `${year}-${month}-${day}`;
+  }
+  return null;
+};
+
+// Helper function to format date for display
+const formatRfqDate = (rfq) => {
+  const dateFromNumber = getDateFromRfqNumber(rfq.rfqNumber);
+  if (dateFromNumber) {
+    const [year, month, day] = dateFromNumber.split('-');
+    return `${day}/${month}/${year}`;
+  }
+  if (rfq.createdAt) {
+    return new Date(rfq.createdAt).toLocaleDateString('vi-VN');
+  }
+  return 'N/A';
+};
 
 const DirectorRfqList = () => {
   const [allRfqs, setAllRfqs] = useState([]); // Holds all RFQs
@@ -26,12 +50,37 @@ const DirectorRfqList = () => {
 
   // Search, Filter and Pagination state
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [createdDateFilter, setCreatedDateFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
   const ITEMS_PER_PAGE = 10;
+
+  // Sort state
+  const [sortColumn, setSortColumn] = useState('');
+  const [sortDirection, setSortDirection] = useState('asc');
+
+  // Handle sort click
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  // Get sort icon for column
+  const getSortIcon = (column) => {
+    if (sortColumn !== column) {
+      return <FaSort className="ms-1 text-muted" style={{ opacity: 0.5 }} />;
+    }
+    return sortDirection === 'asc'
+      ? <FaSortUp className="ms-1 text-primary" />
+      : <FaSortDown className="ms-1 text-primary" />;
+  };
 
   const fetchRfqs = async () => {
     setLoading(true);
@@ -145,6 +194,35 @@ const DirectorRfqList = () => {
     setCurrentPage(1);
   }, [searchTerm, statusFilter, createdDateFilter]);
 
+  // Sort the RFQs based on sortColumn and sortDirection
+  const sortedRfqs = useMemo(() => {
+    if (!sortColumn) return allRfqs;
+
+    return [...allRfqs].sort((a, b) => {
+      let aValue, bValue;
+
+      switch (sortColumn) {
+        case 'rfqNumber':
+          aValue = a.rfqNumber || '';
+          bValue = b.rfqNumber || '';
+          break;
+        case 'contactPerson':
+          aValue = a.contactPerson || '';
+          bValue = b.contactPerson || '';
+          break;
+        case 'createdDate':
+          aValue = getDateFromRfqNumber(a.rfqNumber) || '';
+          bValue = getDateFromRfqNumber(b.rfqNumber) || '';
+          break;
+        default:
+          return 0;
+      }
+
+      const comparison = aValue.localeCompare(bValue, 'vi');
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [allRfqs, sortColumn, sortDirection]);
+
   const handleOpenAssignModal = (rfqId, viewMode = false) => {
     setSelectedRfqId(rfqId);
     setIsViewMode(viewMode);
@@ -227,12 +305,17 @@ const DirectorRfqList = () => {
                           selected={parseDateString(createdDateFilter)}
                           onChange={(date) => {
                             if (date) {
-                              // Format to yyyy-MM-dd for backend/state compatibility
                               setCreatedDateFilter(formatDateForBackend(date));
                             } else {
                               setCreatedDateFilter('');
                             }
                             setCurrentPage(1);
+                          }}
+                          onChangeRaw={(e) => {
+                            if (e.target.value === '' || e.target.value === null) {
+                              setCreatedDateFilter('');
+                              setCurrentPage(1);
+                            }
                           }}
                           dateFormat="dd/MM/yyyy"
                           locale="vi"
@@ -278,19 +361,34 @@ const DirectorRfqList = () => {
                     <Table striped bordered hover responsive>
                       <thead>
                         <tr>
-                          <th>Mã RFQ</th>
-                          <th>Tên Khách Hàng</th>
-                          <th>Ngày Tạo</th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('rfqNumber')}
+                          >
+                            Mã RFQ {getSortIcon('rfqNumber')}
+                          </th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('contactPerson')}
+                          >
+                            Tên Khách Hàng {getSortIcon('contactPerson')}
+                          </th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('createdDate')}
+                          >
+                            Ngày Tạo {getSortIcon('createdDate')}
+                          </th>
                           <th>Trạng Thái</th>
                           <th>Hành Động</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {allRfqs.length > 0 ? allRfqs.map(rfq => (
+                        {sortedRfqs.length > 0 ? sortedRfqs.map(rfq => (
                           <tr key={rfq.id}>
                             <td>{rfq.rfqNumber}</td>
                             <td>{rfq.contactPerson || 'N/A'}</td>
-                            <td>{new Date(rfq.createdAt).toLocaleDateString('vi-VN')}</td>
+                            <td>{formatRfqDate(rfq)}</td>
                             <td>
                               {(() => {
                                 const statusObj = getDirectorRfqStatus(rfq);

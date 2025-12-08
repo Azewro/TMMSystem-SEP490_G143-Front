@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Container, Card, Table, Button, Spinner, Alert, Badge, Form, InputGroup, Row, Col } from 'react-bootstrap';
-import { FaSearch } from 'react-icons/fa';
+import { FaSearch, FaSortUp, FaSortDown, FaSort } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import Sidebar from '../../components/common/Sidebar';
@@ -9,9 +9,8 @@ import { useAuth } from '../../context/AuthContext';
 import { rfqService } from '../../api/rfqService';
 import { quotationService } from '../../api/quotationService';
 import CustomerRfqDetailModal from '../../components/modals/CustomerRfqDetailModal';
-import toast from 'react-hot-toast';
-import '../../styles/CustomerQuoteRequests.css';
 import { getCustomerRfqStatus } from '../../utils/statusMapper';
+import toast from 'react-hot-toast';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import { vi } from 'date-fns/locale/vi';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -19,97 +18,231 @@ import { parseDateString, formatDateForBackend } from '../../utils/validators';
 
 registerLocale('vi', vi);
 
+// Helper function to extract date from rfqNumber (format: RFQ-YYYYMMDD-XXX)
+const getDateFromRfqNumber = (rfqNumber) => {
+  if (!rfqNumber) return null;
+  const match = rfqNumber.match(/RFQ-(\d{4})(\d{2})(\d{2})-/);
+  if (match) {
+    const [, year, month, day] = match;
+    return `${year}-${month}-${day}`; // Returns YYYY-MM-DD format
+  }
+  return null;
+};
+
+// Helper function to format date for display (from rfqNumber or fallback to createdAt)
+const formatRfqDate = (rfq) => {
+  const dateFromNumber = getDateFromRfqNumber(rfq.rfqNumber);
+  if (dateFromNumber) {
+    const [year, month, day] = dateFromNumber.split('-');
+    return `${day}/${month}/${year}`;
+  }
+  if (rfq.createdAt) {
+    return new Date(rfq.createdAt).toLocaleDateString('vi-VN');
+  }
+  return 'N/A';
+};
+
 const CustomerRfqs = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [rfqs, setRfqs] = useState([]);
+  const [allRfqs, setAllRfqs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [createdDateFilter, setCreatedDateFilter] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalElements, setTotalElements] = useState(0);
-  const ITEMS_PER_PAGE = 10;
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
   const [selectedRfqId, setSelectedRfqId] = useState(null);
 
-  const fetchCustomerRfqs = async () => {
+  // Search and filter state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [createdDateFilter, setCreatedDateFilter] = useState('');
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
+  const ITEMS_PER_PAGE = 10;
+
+  // Sort state
+  const [sortColumn, setSortColumn] = useState('');
+  const [sortDirection, setSortDirection] = useState('asc');
+
+  // Handle sort click
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  // Get sort icon for column
+  const getSortIcon = (column) => {
+    if (sortColumn !== column) {
+      return <FaSort className="ms-1 text-muted" style={{ opacity: 0.5 }} />;
+    }
+    return sortDirection === 'asc'
+      ? <FaSortUp className="ms-1 text-primary" />
+      : <FaSortDown className="ms-1 text-primary" />;
+  };
+
+  const fetchCustomerRfqs = useCallback(async () => {
+    if (!user || !user.customerId) {
+      setLoading(false);
+      setError('Bạn cần đăng nhập để xem các yêu cầu báo giá.');
+      return;
+    }
+
     setLoading(true);
     setError('');
     try {
-      // Convert 1-based page to 0-based for backend
-      const page = currentPage - 1;
-      const response = await rfqService.getRfqs({
-        customerId: user.customerId,
-        page,
-        size: ITEMS_PER_PAGE,
-        search: searchTerm || undefined,
-        status: statusFilter || undefined,
-        createdDate: createdDateFilter || undefined
-      });
+      const trimmedSearch = debouncedSearchTerm?.trim() || '';
+      const searchParam = trimmedSearch.length > 0 ? trimmedSearch : undefined;
 
-      // Handle PageResponse
-      let rfqs = [];
-      if (response && response.content) {
-        rfqs = response.content;
-        setTotalPages(response.totalPages || 1);
-        setTotalElements(response.totalElements || 0);
-      } else if (Array.isArray(response)) {
-        rfqs = response;
-        setTotalPages(1);
-        setTotalElements(response.length);
+      // Fetch all RFQs (without pagination) to apply client-side filtering
+      let allRfqsData = [];
+      let page = 0;
+      let hasMore = true;
+
+      while (hasMore) {
+        const response = await rfqService.getRfqs({
+          customerId: user.customerId,
+          page,
+          size: ITEMS_PER_PAGE,
+          search: searchParam,
+          status: undefined // Don't send status filter to backend - filter client-side
+        });
+
+        let pageRfqs = [];
+        if (response && response.content) {
+          pageRfqs = response.content;
+        } else if (Array.isArray(response)) {
+          pageRfqs = response;
+        }
+
+        allRfqsData = [...allRfqsData, ...pageRfqs];
+
+        if (pageRfqs.length < ITEMS_PER_PAGE) {
+          hasMore = false;
+        } else {
+          page++;
+        }
       }
 
-      // Backend already sorts by createdAt DESC, no need to sort again
-      setRfqs(rfqs);
+      // Filter by status (client-side)
+      let filteredRfqs = allRfqsData;
+      if (statusFilter) {
+        filteredRfqs = filteredRfqs.filter(rfq => {
+          const rawStatus = rfq.status;
+          switch (statusFilter) {
+            case 'WAITING_CONFIRMATION':
+              return rawStatus === 'DRAFT' || rawStatus === 'SENT';
+            case 'CONFIRMED':
+              return rawStatus === 'PRELIMINARY_CHECKED' || rawStatus === 'FORWARDED_TO_PLANNING' || rawStatus === 'RECEIVED_BY_PLANNING';
+            case 'QUOTED':
+              return rawStatus === 'QUOTED' || rawStatus === 'REJECTED';
+            case 'CANCELED':
+              return rawStatus === 'CANCELED';
+            default:
+              return true;
+          }
+        });
+      }
+
+      // Filter by created date (client-side) - use date from rfqNumber for accuracy
+      if (createdDateFilter) {
+        filteredRfqs = filteredRfqs.filter(rfq => {
+          const rfqDate = getDateFromRfqNumber(rfq.rfqNumber);
+          if (!rfqDate) {
+            if (!rfq.createdAt) return false;
+            const fallbackDate = new Date(rfq.createdAt).toISOString().split('T')[0];
+            return fallbackDate === createdDateFilter;
+          }
+          return rfqDate === createdDateFilter;
+        });
+      }
+
+      // Calculate pagination for filtered results
+      const totalFiltered = filteredRfqs.length;
+      const newTotalPages = Math.max(1, Math.ceil(totalFiltered / ITEMS_PER_PAGE));
+      setTotalPages(newTotalPages);
+      setTotalElements(totalFiltered);
+
+      // Apply pagination to filtered results
+      const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+      const endIndex = startIndex + ITEMS_PER_PAGE;
+      const paginatedRfqs = filteredRfqs.slice(startIndex, endIndex);
+
+      setAllRfqs(paginatedRfqs);
     } catch (err) {
-      setError('Lỗi khi tải danh sách yêu cầu báo giá.');
+      console.error('Error fetching RFQs:', err);
+      const errorMessage = err.message || 'Lỗi khi tải danh sách yêu cầu báo giá.';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      setAllRfqs([]);
+      setTotalPages(1);
+      setTotalElements(0);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, currentPage, debouncedSearchTerm, statusFilter, createdDateFilter]);
 
-  // Format RFQ code: RFQ-{id}
-  const formatRfqCode = (rfq) => {
-    if (rfq.rfqNumber) {
-      // If rfqNumber already has RFQ- prefix, return as is
-      if (rfq.rfqNumber.startsWith('RFQ-')) {
-        return rfq.rfqNumber;
-      }
-      // Otherwise add prefix
-      return `RFQ-${rfq.rfqNumber}`;
-    }
-    return `RFQ-${rfq.id}`;
-  };
-
-  // Note: Search and filter are now server-side, no client-side filtering needed
-
-  // Handle cancel RFQ
-  const handleCancelRfq = async (rfqId) => {
-    if (!window.confirm('Bạn có chắc chắn muốn hủy yêu cầu báo giá này không?')) {
+  // Debounce search term
+  useEffect(() => {
+    if (!searchTerm || searchTerm.trim() === '') {
+      setDebouncedSearchTerm('');
       return;
     }
-    try {
-      await rfqService.cancelRfq(rfqId);
-      toast.success('Đã hủy yêu cầu báo giá thành công');
-      fetchCustomerRfqs();
-    } catch (error) {
-      toast.error(error.message || 'Lỗi khi hủy yêu cầu báo giá');
-    }
-  };
 
-  // Handle view quotation - find quotation by RFQ ID and navigate to detail page
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    fetchCustomerRfqs();
+  }, [fetchCustomerRfqs]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm, statusFilter, createdDateFilter]);
+
+  // Sort the RFQs based on sortColumn and sortDirection
+  const sortedRfqs = useMemo(() => {
+    if (!sortColumn) return allRfqs;
+
+    return [...allRfqs].sort((a, b) => {
+      let aValue, bValue;
+
+      switch (sortColumn) {
+        case 'rfqNumber':
+          aValue = a.rfqNumber || '';
+          bValue = b.rfqNumber || '';
+          break;
+        case 'createdDate':
+          aValue = getDateFromRfqNumber(a.rfqNumber) || '';
+          bValue = getDateFromRfqNumber(b.rfqNumber) || '';
+          break;
+        default:
+          return 0;
+      }
+
+      const comparison = aValue.localeCompare(bValue, 'vi');
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [allRfqs, sortColumn, sortDirection]);
+
   const handleViewQuotation = async (rfq) => {
     try {
       setLoading(true);
-      // Fetch all customer quotations to find the one matching this RFQ
       let quotationFound = null;
       let page = 0;
-      const pageSize = 50; // Fetch larger pages to find the quotation faster
+      const pageSize = 50;
       let hasMore = true;
 
       while (hasMore && !quotationFound) {
@@ -128,7 +261,6 @@ const CustomerRfqs = () => {
           hasMore = false;
         }
 
-        // Find quotation matching this RFQ
         quotationFound = quotations.find(q =>
           q.rfqId === rfq.id ||
           q.rfq?.id === rfq.id ||
@@ -153,21 +285,18 @@ const CustomerRfqs = () => {
     }
   };
 
-  useEffect(() => {
-    if (user && user.customerId) {
+  const handleCancelRfq = async (rfqId) => {
+    if (!window.confirm('Bạn có chắc chắn muốn hủy yêu cầu báo giá này không?')) {
+      return;
+    }
+    try {
+      await rfqService.cancelRfq(rfqId);
+      toast.success('Đã hủy yêu cầu báo giá thành công');
       fetchCustomerRfqs();
-    } else if (!user) {
-      setLoading(false);
-      setError('Bạn cần đăng nhập để xem các yêu cầu báo giá.');
+    } catch (error) {
+      toast.error(error.message || 'Lỗi khi hủy yêu cầu báo giá');
     }
-  }, [user, currentPage, searchTerm, statusFilter, createdDateFilter]);
-
-  useEffect(() => {
-    // Reset to page 1 when filters change
-    if (user && user.customerId) {
-      setCurrentPage(1);
-    }
-  }, [searchTerm, statusFilter, createdDateFilter]);
+  };
 
   const handleViewDetails = (rfqId) => {
     setSelectedRfqId(rfqId);
@@ -182,107 +311,83 @@ const CustomerRfqs = () => {
     }
   };
 
-
-
-  const statusOptions = [
-    { value: '', label: 'Tất cả trạng thái' },
-    { value: 'WAITING_CONFIRMATION', label: 'Chờ xác nhận' }, // Maps to DRAFT, SENT via backend logic or mapper? Frontend mapper logic: DRAFT/SENT -> Chờ xác nhận. Backend filter logic?
-    // Backend filter "WAITING_ASSIGNMENT" -> SENT + no sales.
-    // We need to check what WAITING_CONFIRMATION maps to in backend or if it's handled. 
-    // This file `CustomerRfqs.jsx` line 51 calls api `status: statusFilter`.
-    // If statusFilter is 'WAITING_CONFIRMATION', does backend handle it?
-    // Checking RfqService.java... lines 99-109. It handles "WAITING_ASSIGNMENT" and "ASSIGNED".
-    // It DOES NOT handle "WAITING_CONFIRMATION".
-    // Wait, let's check `CustomerRfqs.jsx` options again.
-    // Original: 
-    // { value: 'WAITING_CONFIRMATION', label: 'Chờ xác nhận' },
-    // { value: 'CONFIRMED', label: 'Đã xác nhận' },
-    // { value: 'QUOTED', label: 'Chờ phê duyệt báo giá' },
-    // { value: 'CANCELED', label: 'Đã hủy' },
-    //
-    // If I send "WAITING_CONFIRMATION", backend `findAll` (line 107) does: `predicates.add(cb.equal(root.get("status"), finalStatus));`.
-    // So it looks for status="WAITING_CONFIRMATION". But RFQ status is DRAFT/SENT.
-    // Use `getRfqs` API.
-    // The previous implementation likely relied on exact status match or `statusMapper` filtering on client side?
-    // Line 90 says "Search and filter are now server-side".
-    // If so, "WAITING_CONFIRMATION" looks wrong unless database has that status?
-    // Database statuses: DRAFT, SENT, PRELIMINARY_CHECKED, FORWARDED..., QUOTED, REJECTED, CANCELED.
-    // "WAITING_CONFIRMATION" is not a DB status.
-    // However, for this task, I am only asked to ADD "Đã báo giá". I should not break existing filters if they work (maybe by magic or mapped elsewhere).
-    // Wait, if I look at `RfqService.java` again... I don't see mapping for WAITING_CONFIRMATION.
-    // Maybe I should fix that too?
-    // But let's focus on the user request: "Cập nhật luôn filter liên quan".
-    // I will add `{ value: 'QUOTED,REJECTED', label: 'Đã báo giá' }`.
-
-    { value: 'WAITING_CONFIRMATION', label: 'Chờ xác nhận' },
-    { value: 'CONFIRMED', label: 'Đã xác nhận' },
-    { value: 'QUOTED,REJECTED', label: 'Đã báo giá' },
-    { value: 'CANCELED', label: 'Đã hủy' },
-  ];
-
   return (
     <div>
       <Header />
       <div className="d-flex">
         <Sidebar />
-        <div className="flex-grow-1 p-4 customer-quote-requests-page" style={{ backgroundColor: '#f8f9fa' }}>
+        <div className="flex-grow-1 p-4" style={{ backgroundColor: '#f8f9fa' }}>
           <Container fluid>
             <h2 className="mb-4">Yêu cầu báo giá đã gửi</h2>
-
-            {/* Search and Filter */}
+            {/* Search and Filter Section */}
             <Card className="mb-3">
               <Card.Body>
-                <Row className="g-3">
+                <Row className="g-3 align-items-end">
                   <Col md={4}>
-                    <InputGroup>
-                      <InputGroup.Text><FaSearch /></InputGroup.Text>
-                      <Form.Control
-                        type="text"
-                        placeholder="Tìm theo mã RFQ..."
-                        value={searchTerm}
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Tìm kiếm</Form.Label>
+                      <InputGroup>
+                        <InputGroup.Text><FaSearch /></InputGroup.Text>
+                        <Form.Control
+                          type="text"
+                          placeholder="Tìm kiếm theo mã yêu cầu báo giá..."
+                          value={searchTerm}
+                          onChange={(e) => {
+                            setSearchTerm(e.target.value);
+                            setCurrentPage(1);
+                          }}
+                        />
+                      </InputGroup>
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Lọc theo ngày tạo</Form.Label>
+                      <div className="custom-datepicker-wrapper">
+                        <DatePicker
+                          selected={parseDateString(createdDateFilter)}
+                          onChange={(date) => {
+                            if (date) {
+                              setCreatedDateFilter(formatDateForBackend(date));
+                            } else {
+                              setCreatedDateFilter('');
+                            }
+                            setCurrentPage(1);
+                          }}
+                          onChangeRaw={(e) => {
+                            if (e.target.value === '' || e.target.value === null) {
+                              setCreatedDateFilter('');
+                              setCurrentPage(1);
+                            }
+                          }}
+                          dateFormat="dd/MM/yyyy"
+                          locale="vi"
+                          className="form-control"
+                          placeholderText="dd/mm/yyyy"
+                          isClearable
+                          todayButton="Hôm nay"
+                        />
+                      </div>
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Lọc theo trạng thái</Form.Label>
+                      <Form.Select
+                        value={statusFilter}
                         onChange={(e) => {
-                          setSearchTerm(e.target.value);
+                          setStatusFilter(e.target.value);
                           setCurrentPage(1);
                         }}
-                      />
-                    </InputGroup>
+                      >
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="WAITING_CONFIRMATION">Chờ xác nhận</option>
+                        <option value="CONFIRMED">Đã xác nhận</option>
+                        <option value="QUOTED">Đã có báo giá</option>
+                        <option value="CANCELED">Đã hủy</option>
+                      </Form.Select>
+                    </Form.Group>
                   </Col>
-                  <Col md={3}>
-                    <Form.Select
-                      value={statusFilter}
-                      onChange={(e) => {
-                        setStatusFilter(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                    >
-                      {statusOptions.map(option => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
-                    </Form.Select>
-                  </Col>
-                  <Col md={3}>
-                    <div className="custom-datepicker-wrapper">
-                      <DatePicker
-                        selected={parseDateString(createdDateFilter)}
-                        onChange={(date) => {
-                          if (date) {
-                            // Format to yyyy-MM-dd for backend/state compatibility
-                            setCreatedDateFilter(formatDateForBackend(date));
-                          } else {
-                            setCreatedDateFilter('');
-                          }
-                          setCurrentPage(1);
-                        }}
-                        dateFormat="dd/MM/yyyy"
-                        locale="vi"
-                        className="form-control"
-                        placeholderText="dd/mm/yyyy"
-                        isClearable
-                        todayButton="Hôm nay"
-                      />
-                    </div>
-                  </Col>
-
                 </Row>
               </Card.Body>
             </Card>
@@ -291,36 +396,45 @@ const CustomerRfqs = () => {
               <Card.Header>
                 Danh sách các yêu cầu báo giá đã tạo
               </Card.Header>
-              <Card.Body className="p-0">
-                {loading ? (
-                  <div className="text-center p-5"><Spinner animation="border" /></div>
+              <Card.Body>
+                {loading && !showModal ? (
+                  <div className="text-center"><Spinner animation="border" /></div>
                 ) : error ? (
-                  <Alert variant="danger" className="m-3">{error}</Alert>
+                  <Alert variant="danger">{error}</Alert>
                 ) : (
                   <>
-                    <Table striped bordered hover responsive className="mb-0">
+                    <Table striped bordered hover responsive>
                       <thead>
                         <tr>
-                          <th>Mã RFQ</th>
-                          <th>Ngày Tạo</th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('rfqNumber')}
+                          >
+                            Mã yêu cầu báo giá {getSortIcon('rfqNumber')}
+                          </th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('createdDate')}
+                          >
+                            Ngày tạo {getSortIcon('createdDate')}
+                          </th>
                           <th>Trạng Thái</th>
                           <th>Hành Động</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {rfqs.length > 0 ? rfqs.map(rfq => {
+                        {sortedRfqs.length > 0 ? sortedRfqs.map(rfq => {
                           const statusObj = getCustomerRfqStatus(rfq.status);
                           return (
                             <tr key={rfq.id}>
-                              <td className="fw-semibold">{formatRfqCode(rfq)}</td>
-                              <td>{new Date(rfq.createdAt).toLocaleDateString('vi-VN')}</td>
+                              <td>{rfq.rfqNumber}</td>
+                              <td>{formatRfqDate(rfq)}</td>
                               <td><Badge bg={statusObj.variant}>{statusObj.label}</Badge></td>
                               <td>
-                                <div className="d-flex gap-2 justify-content-center">
-                                  <Button variant="outline-primary" size="sm" onClick={() => handleViewDetails(rfq.id)}>
-                                    Chi tiết
+                                <div className="d-flex gap-2">
+                                  <Button variant="primary" size="sm" onClick={() => handleViewDetails(rfq.id)}>
+                                    Xem chi tiết
                                   </Button>
-                                  {/* Button điều kiện */}
                                   {rfq.status === 'QUOTED' && (
                                     <Button variant="success" size="sm" onClick={() => handleViewQuotation(rfq)}>
                                       Xem báo giá
@@ -337,22 +451,20 @@ const CustomerRfqs = () => {
                           );
                         }) : (
                           <tr>
-                            <td colSpan="4" className="text-center py-4 text-muted">
-                              {totalElements === 0 ? 'Bạn chưa có yêu cầu báo giá nào.' : 'Không tìm thấy yêu cầu báo giá nào.'}
+                            <td colSpan="4" className="text-center">
+                              {totalElements === 0
+                                ? 'Bạn chưa có yêu cầu báo giá nào.'
+                                : 'Không tìm thấy yêu cầu báo giá phù hợp với bộ lọc.'}
                             </td>
                           </tr>
                         )}
                       </tbody>
                     </Table>
-                    {totalPages > 1 && (
-                      <div className="p-3">
-                        <Pagination
-                          currentPage={currentPage}
-                          totalPages={totalPages}
-                          onPageChange={setCurrentPage}
-                        />
-                      </div>
-                    )}
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={setCurrentPage}
+                    />
                   </>
                 )}
               </Card.Body>
@@ -361,7 +473,7 @@ const CustomerRfqs = () => {
         </div>
       </div>
 
-      {showModal && (
+      {selectedRfqId && (
         <CustomerRfqDetailModal
           rfqId={selectedRfqId}
           show={showModal}

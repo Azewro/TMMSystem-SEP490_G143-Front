@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Container, Card, Table, Badge, Button, Alert, Spinner, Form, InputGroup, Row, Col } from 'react-bootstrap';
-import { FaSearch } from 'react-icons/fa';
+import { FaSearch, FaSortUp, FaSortDown, FaSort } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
@@ -17,6 +17,17 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { parseDateString, formatDateForBackend } from '../../utils/validators';
 
 registerLocale('vi', vi);
+
+// Helper function to extract date from quotationNumber (format: QUO-YYYYMMDD-XXX)
+const getDateFromQuotationNumber = (quotationNumber) => {
+  if (!quotationNumber) return null;
+  const match = quotationNumber.match(/QUO-(\d{4})(\d{2})(\d{2})-/);
+  if (match) {
+    const [, year, month, day] = match;
+    return `${year}-${month}-${day}`;
+  }
+  return null;
+};
 
 const formatCurrency = (amount) => {
   if (!amount) return '0 ₫';
@@ -42,6 +53,30 @@ const QuotesList = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
   const ITEMS_PER_PAGE = 10;
+
+  // Sort state
+  const [sortColumn, setSortColumn] = useState('');
+  const [sortDirection, setSortDirection] = useState('asc');
+
+  // Handle sort click
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  // Get sort icon for column
+  const getSortIcon = (column) => {
+    if (sortColumn !== column) {
+      return <FaSort className="ms-1 text-muted" style={{ opacity: 0.5 }} />;
+    }
+    return sortDirection === 'asc'
+      ? <FaSortUp className="ms-1 text-primary" />
+      : <FaSortDown className="ms-1 text-primary" />;
+  };
 
   const fetchAndEnrichQuotes = useCallback(async () => {
     setLoading(true);
@@ -141,6 +176,31 @@ const QuotesList = () => {
     setCurrentPage(1);
   }, [searchTerm, statusFilter, createdDateFilter]);
 
+  // Sort quotes based on sortColumn and sortDirection
+  const sortedQuotes = useMemo(() => {
+    if (!sortColumn) return allQuotes;
+
+    return [...allQuotes].sort((a, b) => {
+      let aValue, bValue;
+
+      switch (sortColumn) {
+        case 'quotationNumber':
+          aValue = a.quotationNumber || '';
+          bValue = b.quotationNumber || '';
+          break;
+        case 'customer':
+          aValue = a.customer?.contactPerson || a.customer?.companyName || '';
+          bValue = b.customer?.contactPerson || b.customer?.companyName || '';
+          break;
+        default:
+          return 0;
+      }
+
+      const comparison = aValue.localeCompare(bValue, 'vi');
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [allQuotes, sortColumn, sortDirection]);
+
   useEffect(() => {
     fetchAndEnrichQuotes();
   }, [fetchAndEnrichQuotes, currentPage]);
@@ -217,6 +277,12 @@ const QuotesList = () => {
                             }
                             setCurrentPage(1);
                           }}
+                          onChangeRaw={(e) => {
+                            if (e.target.value === '' || e.target.value === null) {
+                              setCreatedDateFilter('');
+                              setCurrentPage(1);
+                            }
+                          }}
                           dateFormat="dd/MM/yyyy"
                           locale="vi"
                           className="form-control"
@@ -265,8 +331,18 @@ const QuotesList = () => {
                     <Table striped bordered hover responsive>
                       <thead>
                         <tr>
-                          <th>Mã báo giá</th>
-                          <th>Khách hàng</th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('quotationNumber')}
+                          >
+                            Mã báo giá {getSortIcon('quotationNumber')}
+                          </th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('customer')}
+                          >
+                            Khách hàng {getSortIcon('customer')}
+                          </th>
                           <th>Người tạo</th>
                           <th>Tổng tiền</th>
                           <th>Trạng thái</th>
@@ -274,7 +350,7 @@ const QuotesList = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {allQuotes.length > 0 ? allQuotes.map(quote => {
+                        {sortedQuotes.length > 0 ? sortedQuotes.map(quote => {
                           const statusObj = getSalesQuoteStatus(quote.status, quote);
                           return (
                             <tr key={quote.id}>
