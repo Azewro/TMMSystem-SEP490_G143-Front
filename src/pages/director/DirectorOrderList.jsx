@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Container, Card, Table, Button, Modal, Form, Alert, Badge, Spinner, InputGroup, Row, Col } from 'react-bootstrap';
-import { FaSearch } from 'react-icons/fa';
+import { FaSearch, FaSortUp, FaSortDown, FaSort } from 'react-icons/fa';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { contractService } from '../../api/contractService';
@@ -56,6 +56,30 @@ const DirectorOrderList = () => {
     const [totalPages, setTotalPages] = useState(1);
     const [totalElements, setTotalElements] = useState(0);
     const ITEMS_PER_PAGE = 10;
+
+    // Sort state
+    const [sortColumn, setSortColumn] = useState('');
+    const [sortDirection, setSortDirection] = useState('asc');
+
+    // Handle sort click
+    const handleSort = (column) => {
+        if (sortColumn === column) {
+            setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortColumn(column);
+            setSortDirection('asc');
+        }
+    };
+
+    // Get sort icon for column
+    const getSortIcon = (column) => {
+        if (sortColumn !== column) {
+            return <FaSort className="ms-1 text-muted" style={{ opacity: 0.5 }} />;
+        }
+        return sortDirection === 'asc'
+            ? <FaSortUp className="ms-1 text-primary" />
+            : <FaSortDown className="ms-1 text-primary" />;
+    };
 
     const loadContracts = async () => {
         setLoading(true);
@@ -114,6 +138,35 @@ const DirectorOrderList = () => {
     useEffect(() => {
         loadContracts();
     }, [currentPage, searchTerm, statusFilter, deliveryDateFilter]);
+
+    // Sort contracts based on sortColumn and sortDirection
+    const sortedContracts = useMemo(() => {
+        if (!sortColumn) return contracts;
+
+        return [...contracts].sort((a, b) => {
+            let aValue, bValue;
+
+            switch (sortColumn) {
+                case 'contractNumber':
+                    aValue = a.contractNumber || '';
+                    bValue = b.contractNumber || '';
+                    break;
+                case 'customerName':
+                    aValue = a.customer?.contactPerson || a.customer?.companyName || '';
+                    bValue = b.customer?.contactPerson || b.customer?.companyName || '';
+                    break;
+                case 'deliveryDate':
+                    aValue = a.deliveryDate || '';
+                    bValue = b.deliveryDate || '';
+                    break;
+                default:
+                    return 0;
+            }
+
+            const comparison = String(aValue).localeCompare(String(bValue), 'vi');
+            return sortDirection === 'asc' ? comparison : -comparison;
+        });
+    }, [contracts, sortColumn, sortDirection]);
 
     const openViewDetailsModal = async (contract) => {
         setViewDetailsContract(contract);
@@ -174,18 +227,21 @@ const DirectorOrderList = () => {
                                         </InputGroup>
                                     </Col>
                                     <Col md={3}>
-                                        <Form.Select
-                                            value={statusFilter}
-                                            onChange={(e) => {
-                                                setStatusFilter(e.target.value);
-                                                setCurrentPage(1);
-                                            }}
-                                        >
-                                            <option value="">Tất cả trạng thái</option>
-                                            <option value="PENDING_APPROVAL">Chờ duyệt</option>
-                                            <option value="APPROVED">Đã duyệt</option>
-                                            <option value="REJECTED">Đã từ chối</option>
-                                        </Form.Select>
+                                        <Form.Group>
+                                            <Form.Label className="mb-1 small">Lọc theo trạng thái</Form.Label>
+                                            <Form.Select
+                                                value={statusFilter}
+                                                onChange={(e) => {
+                                                    setStatusFilter(e.target.value);
+                                                    setCurrentPage(1);
+                                                }}
+                                            >
+                                                <option value="">Tất cả trạng thái</option>
+                                                <option value="PENDING_APPROVAL">Chờ duyệt</option>
+                                                <option value="APPROVED">Đã duyệt</option>
+                                                <option value="REJECTED">Đã từ chối</option>
+                                            </Form.Select>
+                                        </Form.Group>
                                     </Col>
                                     <Col md={3}>
                                         <Form.Group>
@@ -195,12 +251,17 @@ const DirectorOrderList = () => {
                                                     selected={parseDateString(deliveryDateFilter)}
                                                     onChange={(date) => {
                                                         if (date) {
-                                                            // Format to yyyy-MM-dd for backend/state compatibility
                                                             setDeliveryDateFilter(formatDateForBackend(date));
                                                         } else {
                                                             setDeliveryDateFilter('');
                                                         }
                                                         setCurrentPage(1);
+                                                    }}
+                                                    onChangeRaw={(e) => {
+                                                        if (e.target.value === '' || e.target.value === null) {
+                                                            setDeliveryDateFilter('');
+                                                            setCurrentPage(1);
+                                                        }
                                                     }}
                                                     dateFormat="dd/MM/yyyy"
                                                     locale="vi"
@@ -219,10 +280,25 @@ const DirectorOrderList = () => {
                                     <thead className="table-light">
                                         <tr>
                                             <th style={{ width: 60 }}>#</th>
-                                            <th style={{ width: 180 }}>Mã đơn hàng</th>
-                                            <th style={{ width: 160 }}>Tên khách hàng</th>
+                                            <th
+                                                style={{ width: 180, cursor: 'pointer', userSelect: 'none' }}
+                                                onClick={() => handleSort('contractNumber')}
+                                            >
+                                                Mã đơn hàng {getSortIcon('contractNumber')}
+                                            </th>
+                                            <th
+                                                style={{ width: 160, cursor: 'pointer', userSelect: 'none' }}
+                                                onClick={() => handleSort('customerName')}
+                                            >
+                                                Tên khách hàng {getSortIcon('customerName')}
+                                            </th>
                                             <th style={{ width: 140 }}>Số điện thoại</th>
-                                            <th style={{ width: 160 }}>Ngày giao hàng</th>
+                                            <th
+                                                style={{ width: 160, cursor: 'pointer', userSelect: 'none' }}
+                                                onClick={() => handleSort('deliveryDate')}
+                                            >
+                                                Ngày giao hàng {getSortIcon('deliveryDate')}
+                                            </th>
                                             <th style={{ width: 160 }}>Trạng thái</th>
                                             <th style={{ width: 160 }}>Tổng giá trị</th>
                                             <th style={{ width: 160 }} className="text-center">Thao tác</th>
@@ -235,7 +311,7 @@ const DirectorOrderList = () => {
                                                     <Spinner animation="border" size="sm" className="me-2" /> Đang tải đơn hàng...
                                                 </td>
                                             </tr>
-                                        ) : contracts.length === 0 ? (
+                                        ) : sortedContracts.length === 0 ? (
                                             <tr>
                                                 <td colSpan={8} className="text-center py-4 text-muted">
                                                     {totalElements === 0
@@ -244,7 +320,7 @@ const DirectorOrderList = () => {
                                                 </td>
                                             </tr>
                                         ) : (
-                                            contracts.map((contract, index) => {
+                                            sortedContracts.map((contract, index) => {
                                                 const statusObj = getDirectorContractStatus(contract.status);
                                                 return (
                                                     <tr key={contract.id}>

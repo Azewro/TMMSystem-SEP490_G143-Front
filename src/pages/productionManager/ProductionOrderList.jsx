@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Container, Card, Table, Button, Badge, Form, InputGroup, Spinner } from 'react-bootstrap';
+import { Container, Card, Table, Button, Badge, Form, InputGroup, Spinner, Row, Col } from 'react-bootstrap';
+import { FaSearch, FaSortUp, FaSortDown, FaSort } from 'react-icons/fa';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { useNavigate } from 'react-router-dom';
@@ -75,6 +76,30 @@ const ProductionOrderList = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Sort state
+  const [sortColumn, setSortColumn] = useState('');
+  const [sortDirection, setSortDirection] = useState('asc');
+
+  // Handle sort click
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  // Get sort icon for column
+  const getSortIcon = (column) => {
+    if (sortColumn !== column) {
+      return <FaSort className="ms-1 text-muted" style={{ opacity: 0.5 }} />;
+    }
+    return sortDirection === 'asc'
+      ? <FaSortUp className="ms-1 text-primary" />
+      : <FaSortDown className="ms-1 text-primary" />;
+  };
+
   useEffect(() => {
     const fetchOrders = async () => {
       try {
@@ -133,6 +158,35 @@ const ProductionOrderList = () => {
     });
   }, [orders, searchTerm, statusFilter]);
 
+  // Sort filteredOrders
+  const sortedOrders = useMemo(() => {
+    if (!sortColumn) return filteredOrders;
+
+    return [...filteredOrders].sort((a, b) => {
+      let aValue, bValue;
+
+      switch (sortColumn) {
+        case 'lotCode':
+          aValue = a.lotCode || '';
+          bValue = b.lotCode || '';
+          break;
+        case 'productName':
+          aValue = a.productName || '';
+          bValue = b.productName || '';
+          break;
+        case 'startDate':
+          aValue = a.expectedStartDate || '';
+          bValue = b.expectedStartDate || '';
+          break;
+        default:
+          return 0;
+      }
+
+      const comparison = String(aValue).localeCompare(String(bValue), 'vi');
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [filteredOrders, sortColumn, sortDirection]);
+
   if (loading) {
     return (
       <div className="d-flex justify-content-center align-items-center vh-100">
@@ -157,58 +211,80 @@ const ProductionOrderList = () => {
 
             <Card className="shadow-sm mb-3">
               <Card.Body>
-                <div className="d-flex flex-column flex-lg-row align-items-lg-center gap-3">
-                  <div className="flex-grow-1">
-                    <InputGroup>
-                      <InputGroup.Text className="bg-white text-muted">
-                        🔍
-                      </InputGroup.Text>
-                      <Form.Control
-                        placeholder="Tìm kiếm theo mã đơn hàng hoặc mã lô..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                      />
-                    </InputGroup>
-                  </div>
-                  <div style={{ minWidth: 220 }}>
-                    <Form.Select
-                      value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value)}
-                    >
-                      {STATUS_FILTERS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </Form.Select>
-                  </div>
-                </div>
+                <Row className="g-3 align-items-end">
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Tìm kiếm</Form.Label>
+                      <InputGroup>
+                        <InputGroup.Text><FaSearch /></InputGroup.Text>
+                        <Form.Control
+                          placeholder="Tìm kiếm theo mã đơn hàng hoặc mã lô..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                      </InputGroup>
+                    </Form.Group>
+                  </Col>
+                  <Col md={4}>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Lọc theo trạng thái</Form.Label>
+                      <Form.Select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                      >
+                        {STATUS_FILTERS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                </Row>
               </Card.Body>
             </Card>
 
             <Card className="shadow-sm">
-              <Card.Body className="p-0">
+              <Card.Header>
+                Danh sách lệnh sản xuất
+              </Card.Header>
+              <Card.Body>
                 <Table responsive className="mb-0 align-middle">
                   <thead className="table-light">
                     <tr>
                       <th style={{ width: 60 }}>STT</th>
-                      <th>Mã lô</th>
-                      <th>Tên sản phẩm</th>
+                      <th
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                        onClick={() => handleSort('lotCode')}
+                      >
+                        Mã lô {getSortIcon('lotCode')}
+                      </th>
+                      <th
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                        onClick={() => handleSort('productName')}
+                      >
+                        Tên sản phẩm {getSortIcon('productName')}
+                      </th>
                       <th>Kích thước</th>
                       <th>Số lượng</th>
-                      <th>Ngày bắt đầu dự kiến</th>
+                      <th
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                        onClick={() => handleSort('startDate')}
+                      >
+                        Ngày bắt đầu dự kiến {getSortIcon('startDate')}
+                      </th>
                       <th>Ngày kết thúc dự kiến</th>
                       <th>Trạng thái</th>
                       <th>Hành động</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredOrders.length === 0 ? (
+                    {sortedOrders.length === 0 ? (
                       <tr>
                         <td colSpan="9" className="text-center py-4">Không có đơn hàng nào</td>
                       </tr>
                     ) : (
-                      filteredOrders.map((order, index) => (
+                      sortedOrders.map((order, index) => (
                         <tr key={order.id}>
                           <td>{index + 1}</td>
                           <td>

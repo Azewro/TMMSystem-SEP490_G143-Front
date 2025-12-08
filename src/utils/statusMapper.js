@@ -622,20 +622,9 @@ export const getCustomerRfqStatus = (status) => {
   if (status === 'FORWARDED_TO_PLANNING') return { label: 'Đã xác nhận', variant: 'primary', value: 'FORWARDED_TO_PLANNING' };
   if (status === 'RECEIVED_BY_PLANNING') return { label: 'Đã xác nhận', variant: 'primary', value: 'RECEIVED_BY_PLANNING' };
 
-  if (status === 'QUOTED') return { label: 'Đã báo giá', variant: 'warning', value: 'QUOTED' };
-  if (status === 'REJECTED') return { label: 'Đã báo giá (Từ chối)', variant: 'danger', value: 'REJECTED' }; // Or just "Đã báo giá" depending on strict requirement. User said "thêm 1 trạng thái nữa là "đã báo giá"... tức là rfq ở "quoted" hoặc "rejected"". I will keep distinction distinct but grouping logical. Actually user said "quoted" OR "rejected" -> "Đã báo giá". Let's unify label but keep variant distinct or unified? "Cập nhật luôn filter liên quan". Let's try to make them look similar or just use same label.
-  // Re-reading: "Yêu cầu báo giá đã gửi của khách hàng cần thêm 1 trạng thái nữa là "đã báo giá", khi mà báo giá đã được tạo hoặc là khi báo giá bị khách từ chối, tức là rfq ở "quoted" hoặc "rejected"".
-  // It implies the RFQ status itself (from customer perspective) is "Đã báo giá".
-  // Note: if status is REJECTED, it means the QUOTE was rejected? Or the RFQ was rejected?
-  // Backend RfqService: REJECTED means RFQ canceled/rejected.
-  // Wait, user said "khi báo giá bị khách từ chối, tức là rfq ở "quoted" hoặc "rejected"".
-  // If customer rejects quote, RFQ might go to REJECTED (we implemented this sync earlier: rejectQuotation sets RFQ to REJECTED).
-  // So for Customer, REJECTED RFQ should probably still show as "Đã báo giá" (meaning "Processed/Quoted") or "Đã từ chối"?
-  // "cần thêm 1 trạng thái nữa là "đã báo giá"... tức là rfq ở "quoted" hoặc "rejected"".
-  // I will Label both as "Đã báo giá".
-
-  if (status === 'QUOTED') return { label: 'Đã báo giá', variant: 'primary', value: 'QUOTED' };
-  if (status === 'REJECTED') return { label: 'Đã báo giá', variant: 'danger', value: 'REJECTED' }; // Variant danger to differentiate? Or primary? Let's use differnt variants but same text prefix if needed, or just same text. User wants "Đã báo giá". I will use that label.
+  if (status === 'QUOTED') return { label: 'Đã có báo giá', variant: 'success', value: 'QUOTED' };
+  if (status === 'REJECTED') return { label: 'Đã có báo giá', variant: 'warning', value: 'REJECTED' };
+  if (status === 'CANCELED') return { label: 'Đã hủy', variant: 'danger', value: 'CANCELED' };
 
   const label = getStatusLabel(status);
   const variant = getStatusVariant(status);

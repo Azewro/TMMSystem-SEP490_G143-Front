@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Container, Card, Table, Button, Spinner, Alert, Badge, Form, InputGroup, Row, Col, Modal } from 'react-bootstrap';
-import { FaSearch } from 'react-icons/fa';
+import { FaSearch, FaSortUp, FaSortDown, FaSort } from 'react-icons/fa';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { productionPlanService } from '../../api/productionPlanService';
@@ -121,6 +121,30 @@ const ProductionPlanApprovals = () => {
   const [totalElements, setTotalElements] = useState(0);
   const ITEMS_PER_PAGE = 10;
 
+  // Sort state
+  const [sortColumn, setSortColumn] = useState('');
+  const [sortDirection, setSortDirection] = useState('asc');
+
+  // Handle sort click
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  // Get sort icon for column
+  const getSortIcon = (column) => {
+    if (sortColumn !== column) {
+      return <FaSort className="ms-1 text-muted" style={{ opacity: 0.5 }} />;
+    }
+    return sortDirection === 'asc'
+      ? <FaSortUp className="ms-1 text-primary" />
+      : <FaSortDown className="ms-1 text-primary" />;
+  };
+
   const fetchPlans = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -200,6 +224,35 @@ const ProductionPlanApprovals = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, statusFilter, createdDateFilter]);
+
+  // Sort plans based on sortColumn and sortDirection
+  const sortedPlans = useMemo(() => {
+    if (!sortColumn) return plans;
+
+    return [...plans].sort((a, b) => {
+      let aValue, bValue;
+
+      switch (sortColumn) {
+        case 'planCode':
+          aValue = a.planCode || '';
+          bValue = b.planCode || '';
+          break;
+        case 'productName':
+          aValue = a.contractDetails?.orderItems?.[0]?.productName || '';
+          bValue = b.contractDetails?.orderItems?.[0]?.productName || '';
+          break;
+        case 'startDate':
+          aValue = a.proposedStartDate || '';
+          bValue = b.proposedStartDate || '';
+          break;
+        default:
+          return 0;
+      }
+
+      const comparison = String(aValue).localeCompare(String(bValue), 'vi');
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [plans, sortColumn, sortDirection]);
 
   const openPlan = async (plan) => {
     setSelectedPlan(plan);
@@ -334,9 +387,13 @@ const ProductionPlanApprovals = () => {
                           selected={parseDateString(createdDateFilter)}
                           onChange={(date) => {
                             if (date) {
-                              // Format to yyyy-MM-dd for backend/state compatibility
                               setCreatedDateFilter(formatDateForBackend(date));
                             } else {
+                              setCreatedDateFilter('');
+                            }
+                          }}
+                          onChangeRaw={(e) => {
+                            if (e.target.value === '' || e.target.value === null) {
                               setCreatedDateFilter('');
                             }
                           }}
@@ -381,17 +438,32 @@ const ProductionPlanApprovals = () => {
                     <Table striped bordered hover responsive>
                       <thead>
                         <tr>
-                          <th>Mã Kế Hoạch</th>
-                          <th>Sản phẩm</th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('planCode')}
+                          >
+                            Mã Kế Hoạch {getSortIcon('planCode')}
+                          </th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('productName')}
+                          >
+                            Sản phẩm {getSortIcon('productName')}
+                          </th>
                           <th>Số lượng</th>
-                          <th>Ngày Bắt Đầu (dự kiến)</th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('startDate')}
+                          >
+                            Ngày Bắt Đầu (dự kiến) {getSortIcon('startDate')}
+                          </th>
                           <th>Ngày Kết Thúc (dự kiến)</th>
                           <th>Trạng thái</th>
                           <th>Thao tác</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {plans.length > 0 ? plans.map(plan => {
+                        {sortedPlans.length > 0 ? sortedPlans.map(plan => {
                           const statusObj = getDirectorPlanStatus(plan.status);
                           const productName = plan.contractDetails?.orderItems?.[0]?.productName || 'N/A';
                           const plannedQuantity = plan.lot?.totalQuantity || plan.details?.[0]?.plannedQuantity || plan.contractDetails?.orderItems?.reduce((sum, item) => sum + item.quantity, 0) || 'N/A';

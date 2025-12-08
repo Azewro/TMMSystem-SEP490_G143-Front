@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Container, Card, Table, Button, Spinner, Alert, Badge, Form, InputGroup, Row, Col } from 'react-bootstrap';
-import { FaSearch } from 'react-icons/fa';
+import { FaSearch, FaSortUp, FaSortDown, FaSort } from 'react-icons/fa';
 import Header from '../../components/common/Header';
 import Sidebar from '../../components/common/Sidebar';
 import { quotationService } from '../../api/quotationService';
@@ -15,6 +15,30 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { parseDateString, formatDateForBackend } from '../../utils/validators';
 
 registerLocale('vi', vi);
+
+// Helper function to extract date from quotationNumber (format: QUO-YYYYMMDD-XXX)
+const getDateFromQuotationNumber = (quotationNumber) => {
+    if (!quotationNumber) return null;
+    const match = quotationNumber.match(/QUO-(\d{4})(\d{2})(\d{2})-/);
+    if (match) {
+        const [, year, month, day] = match;
+        return `${year}-${month}-${day}`;
+    }
+    return null;
+};
+
+// Helper function to format date for display
+const formatQuoteDate = (quote) => {
+    const dateFromNumber = getDateFromQuotationNumber(quote.quotationNumber);
+    if (dateFromNumber) {
+        const [year, month, day] = dateFromNumber.split('-');
+        return `${day}/${month}/${year}`;
+    }
+    if (quote.createdAt) {
+        return new Date(quote.createdAt).toLocaleDateString('vi-VN');
+    }
+    return 'N/A';
+};
 
 const CustomerQuotations = () => {
     const { user } = useAuth();
@@ -34,6 +58,30 @@ const CustomerQuotations = () => {
     const [totalPages, setTotalPages] = useState(1);
     const [totalElements, setTotalElements] = useState(0);
     const ITEMS_PER_PAGE = 10;
+
+    // Sort state
+    const [sortColumn, setSortColumn] = useState('');
+    const [sortDirection, setSortDirection] = useState('asc');
+
+    // Handle sort click
+    const handleSort = (column) => {
+        if (sortColumn === column) {
+            setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortColumn(column);
+            setSortDirection('asc');
+        }
+    };
+
+    // Get sort icon for column
+    const getSortIcon = (column) => {
+        if (sortColumn !== column) {
+            return <FaSort className="ms-1 text-muted" style={{ opacity: 0.5 }} />;
+        }
+        return sortDirection === 'asc'
+            ? <FaSortUp className="ms-1 text-primary" />
+            : <FaSortDown className="ms-1 text-primary" />;
+    };
 
     const fetchQuotations = useCallback(async () => {
         if (!user || !user.customerId) {
@@ -125,6 +173,31 @@ const CustomerQuotations = () => {
         setCurrentPage(1);
     }, [debouncedSearchTerm, statusFilter, createdDateFilter]);
 
+    // Sort quotations based on sortColumn and sortDirection
+    const sortedQuotations = useMemo(() => {
+        if (!sortColumn) return quotations;
+
+        return [...quotations].sort((a, b) => {
+            let aValue, bValue;
+
+            switch (sortColumn) {
+                case 'quotationNumber':
+                    aValue = a.quotationNumber || '';
+                    bValue = b.quotationNumber || '';
+                    break;
+                case 'createdDate':
+                    aValue = getDateFromQuotationNumber(a.quotationNumber) || '';
+                    bValue = getDateFromQuotationNumber(b.quotationNumber) || '';
+                    break;
+                default:
+                    return 0;
+            }
+
+            const comparison = aValue.localeCompare(bValue, 'vi');
+            return sortDirection === 'asc' ? comparison : -comparison;
+        });
+    }, [quotations, sortColumn, sortDirection]);
+
     const handleViewDetails = (id) => {
         navigate(`/customer/quotations/${id}`);
     };
@@ -171,12 +244,17 @@ const CustomerQuotations = () => {
                                                     selected={parseDateString(createdDateFilter)}
                                                     onChange={(date) => {
                                                         if (date) {
-                                                            // Format to yyyy-MM-dd for backend/state compatibility
                                                             setCreatedDateFilter(formatDateForBackend(date));
                                                         } else {
                                                             setCreatedDateFilter('');
                                                         }
                                                         setCurrentPage(1);
+                                                    }}
+                                                    onChangeRaw={(e) => {
+                                                        if (e.target.value === '' || e.target.value === null) {
+                                                            setCreatedDateFilter('');
+                                                            setCurrentPage(1);
+                                                        }
                                                     }}
                                                     dateFormat="dd/MM/yyyy"
                                                     locale="vi"
@@ -224,19 +302,29 @@ const CustomerQuotations = () => {
                                         <Table striped bordered hover responsive>
                                             <thead>
                                                 <tr>
-                                                    <th>Mã Báo Giá</th>
-                                                    <th>Ngày Tạo</th>
+                                                    <th
+                                                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                                                        onClick={() => handleSort('quotationNumber')}
+                                                    >
+                                                        Mã Báo Giá {getSortIcon('quotationNumber')}
+                                                    </th>
+                                                    <th
+                                                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                                                        onClick={() => handleSort('createdDate')}
+                                                    >
+                                                        Ngày Tạo {getSortIcon('createdDate')}
+                                                    </th>
                                                     <th>Trạng Thái</th>
                                                     <th>Hành Động</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {quotations.length > 0 ? quotations.map(quote => {
+                                                {sortedQuotations.length > 0 ? sortedQuotations.map(quote => {
                                                     const statusObj = getCustomerQuoteStatus(quote.status);
                                                     return (
                                                         <tr key={quote.id}>
                                                             <td>{quote.quotationNumber}</td>
-                                                            <td>{new Date(quote.createdAt).toLocaleDateString('vi-VN')}</td>
+                                                            <td>{formatQuoteDate(quote)}</td>
                                                             <td>
                                                                 <Badge bg={statusObj.variant}>{statusObj.label}</Badge>
                                                             </td>
