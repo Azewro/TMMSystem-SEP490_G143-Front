@@ -52,7 +52,18 @@ const LeaderOrderDetail = () => {
             defectDescription: leaderStage.defectDescription,
             defectSeverity: leaderStage.defectSeverity
           } : null,
-          qrToken: data.qrToken // Map QR token from backend
+          qrToken: data.qrToken, // Map QR token from backend
+          stages: data.stages ? data.stages.map(s => ({
+            id: s.id,
+            name: s.stageName || getStageTypeName(s.stageType) || s.stageType, // Use stageName from backend if available
+            stageType: s.stageType,
+            assignee: s.assigneeName || s.assignedLeader?.fullName || 'Chưa phân công',
+            status: s.status || s.executionStatus, // Use simple status or specific execution status
+            statusLabel: s.statusLabel || getStatusLabel(s.status || s.executionStatus),
+            progress: s.progressPercent || 0,
+            isRework: s.isRework,
+            executionStatus: s.executionStatus
+          })) : []
         };
         setOrder(mappedOrder);
       } catch (error) {

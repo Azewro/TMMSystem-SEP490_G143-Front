@@ -102,7 +102,7 @@ const LeaderOrderList = () => {
   }, [searchTerm, orders]);
 
   const handleStart = (order) => {
-    navigate(`/leader/orders/${order.id}/progress`);
+    navigate(`/leader/orders/${order.id}`); // Redirect to Detail page (Stage List) instead of direct progress
   };
 
   const handleViewDetail = (order) => {
