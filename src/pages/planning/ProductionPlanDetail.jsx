@@ -392,14 +392,14 @@ const ProductionPlanDetail = () => {
                 await productionPlanService.updateStage(stageId, { inChargeUserId: value ? parseInt(value, 10) : null });
                 toast.success('Đã cập nhật người phụ trách.');
             } catch (err) {
-                toast.error('Lỗi khi gán người phụ trách.');
+                toast.error(err.message || 'Lỗi khi gán người phụ trách.');
             }
         } else if (field === 'inspectionById') {
             try {
                 await productionPlanService.updateStage(stageId, { qcUserId: value ? parseInt(value, 10) : null });
                 toast.success('Đã cập nhật người kiểm tra.');
             } catch (err) {
-                toast.error('Lỗi khi gán người kiểm tra.');
+                toast.error(err.message || 'Lỗi khi gán người kiểm tra.');
             }
         }
     };

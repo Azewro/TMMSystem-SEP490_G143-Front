@@ -8,6 +8,12 @@ export const executionService = {
         return response.data;
     },
 
+    // NEW: Check if a stage can be started (for frontend validation)
+    checkCanStart: async (stageId) => {
+        const response = await apiClient.get(`/v1/execution/stages/${stageId}/can-start`);
+        return response.data;
+    },
+
     startRework: async (stageId, userId) => {
         const response = await apiClient.post(`/v1/production/stages/${stageId}/start-rework`, null, {
             params: { leaderUserId: userId }
