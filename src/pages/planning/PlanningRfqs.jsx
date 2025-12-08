@@ -243,7 +243,7 @@ const PlanningRfqs = () => {
                       >
                         <option value="">Tất cả trạng thái</option>
                         <option value="WAITING_CREATE">Chờ tạo</option>
-                        <option value="WAITING_CONFIRMATION">Chờ xác nhận</option>
+                        <option value="QUOTED">Đã báo giá</option>
                         <option value="REJECTED">Đã từ chối</option>
                         <option value="CONFIRMED">Đã xác nhận</option>
                       </Form.Select>

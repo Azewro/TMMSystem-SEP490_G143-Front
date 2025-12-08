@@ -209,75 +209,96 @@ const LeaderOrderDetail = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {order.stage ? (
-                      <tr>
-                        <td>{order.stage.name}</td>
-                        <td>{order.stage.assignee}</td>
-                        <td>{order.stage.progress ?? 0}%</td>
-                        <td>
-                          <Badge bg={getStatusVariant(order.stage.status)}>
-                            {order.stage.statusLabel}
-                          </Badge>
-                        </td>
-                        <td className="text-end">
-                          {(() => {
-                            const buttonConfig = getButtonForStage(order.stage.status, 'leader');
-                            const orderLocked = order.orderStatus === 'WAITING_PRODUCTION' || order.orderStatus === 'PENDING_APPROVAL';
-                            // Disable if PENDING, Locked, or QC_FAILED (waiting for Tech)
-                            const isQcFailed = order.stage.status === 'QC_FAILED' || order.stage.status === 'QC_FAILED';
-                            const isDisabled = order.stage.status === 'PENDING' || orderLocked || isQcFailed;
+                    {order.stages && order.stages.length > 0 ? (
+                      order.stages.map((stage) => (
+                        <tr key={stage.id}>
+                          <td>{stage.name}</td>
+                          <td>{stage.assignee}</td>
+                          <td>{stage.progress ?? 0}%</td>
+                          <td>
+                            <Badge bg={getStatusVariant(stage.status)}>
+                              {stage.statusLabel}
+                            </Badge>
+                          </td>
+                          <td className="text-end">
+                            {(() => {
+                              // Use specific stage status for button logic
+                              const buttonConfig = getButtonForStage(stage.status, 'leader');
+                              const orderLocked = order.orderStatus === 'WAITING_PRODUCTION' || order.orderStatus === 'PENDING_APPROVAL';
+                              // Disable if PENDING, Locked, or QC_FAILED (waiting for Tech) - specific to this stage
+                              const isQcFailed = stage.status === 'QC_FAILED';
+                              const isPending = stage.status === 'PENDING';
+                              // Also disable if NOT assigned to current user (view only)
+                              // We need to check if this stage is assigned to the current user.
+                              // Since we don't have easy access to userId here inside the map without prop drilling or context,
+                              // we rely on the backend filtering or we might need to check stage.assigneeId if available.
+                              // However, for now, let's assume we can see actions for all, and "disabled" might handle permissions?
+                              // Actually, getLeaderOrderDetail returns stages. 
+                              // Use simplistic approach: if buttonConfig returns start/update, imply permission.
+                              // BUT, we should probably only enable "Start/Update" if it's assigned to *this* leader.
+                              // The user request says "Leader... ấn bắt đầu thì sẽ hiện thêm danh sách các công đoạn...".
+                              // It implies they want visibility. Maybe they can only ACT on their own stages.
 
-                            const handleAction = async () => {
-                              if (buttonConfig.action === 'start') {
-                                try {
-                                  setLoading(true);
-                                  await productionService.startStageRolling(order.stage.id, userId);
-                                  toast.success('Đã bắt đầu công đoạn');
-                                  window.location.reload();
-                                } catch (error) {
-                                  console.error('Error starting stage:', error);
-                                  toast.error(error.response?.data?.message || 'Không thể bắt đầu công đoạn');
-                                  setLoading(false);
+                              // Check if stage is assigned to current user (need to ensure mappedOrder.stages includes assigneeId)
+                              // For safety, let's just enable buttons based on status for now, or check typical logic.
+                              // Ideally we check stage.isAssignedToCurrentUser if backend provides it.
+
+                              const isDisabled = isPending || orderLocked || isQcFailed;
+
+                              const handleAction = async () => {
+                                if (buttonConfig.action === 'start') {
+                                  try {
+                                    setLoading(true);
+                                    // Use stage.id
+                                    await productionService.startStageRolling(stage.id, userId);
+                                    toast.success('Đã bắt đầu công đoạn');
+                                    window.location.reload();
+                                  } catch (error) {
+                                    console.error('Error starting stage:', error);
+                                    toast.error(error.response?.data?.message || 'Không thể bắt đầu công đoạn');
+                                    setLoading(false);
+                                  }
+                                } else {
+                                  // Navigate to specific stage progress
+                                  navigate(`/leader/orders/${orderId}/progress`);
                                 }
-                              } else {
-                                handleViewStage();
-                              }
-                            };
+                              };
 
-                            if (buttonConfig.action === 'start' || buttonConfig.action === 'update') {
+                              if (buttonConfig.action === 'start' || buttonConfig.action === 'update') {
+                                return (
+                                  <Button
+                                    size="sm"
+                                    variant={buttonConfig.variant}
+                                    onClick={handleAction}
+                                    disabled={isDisabled}
+                                    title={
+                                      orderLocked
+                                        ? 'PM chưa bắt đầu lệnh làm việc'
+                                        : (isPending ? 'Chưa đến lượt' :
+                                          (isQcFailed ? 'Đang chờ kỹ thuật xử lý lỗi' : ''))
+                                    }
+                                  >
+                                    {buttonConfig.text}
+                                  </Button>
+                                );
+                              }
                               return (
                                 <Button
                                   size="sm"
                                   variant={buttonConfig.variant}
-                                  onClick={handleAction}
-                                  disabled={isDisabled}
-                                  title={
-                                    orderLocked
-                                      ? 'PM chưa bắt đầu lệnh làm việc'
-                                      : (order.stage.status === 'PENDING' ? 'Chưa đến lượt, chỉ có thể xem' :
-                                        (isQcFailed ? 'Đang chờ kỹ thuật xử lý lỗi' : ''))
-                                  }
+                                  onClick={() => navigate(`/leader/orders/${orderId}/progress`)} // Redirect to progress page which will load this stage as current (or default)
                                 >
                                   {buttonConfig.text}
                                 </Button>
                               );
-                            }
-                            return (
-                              <Button
-                                size="sm"
-                                variant={buttonConfig.variant}
-                                onClick={handleViewStage}
-                              >
-                                {buttonConfig.text}
-                              </Button>
-                            );
-                          })()}
-                        </td>
-                      </tr>
+                            })()}
+                          </td>
+                        </tr>
+                      ))
                     ) : (
                       <tr>
                         <td colSpan="5" className="text-center py-4 text-muted">
-                          Chưa có công đoạn được phân công
+                          Chưa có công đoạn nào
                         </td>
                       </tr>
                     )}

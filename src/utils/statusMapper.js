@@ -531,7 +531,7 @@ export const getPlanningRfqStatus = (rfq) => {
   const status = rfq.status;
 
   if (status === 'DRAFT' || status === 'SENT' || status === 'PRELIMINARY_CHECKED' || status === 'FORWARDED_TO_PLANNING' || status === 'RECEIVED_BY_PLANNING') return { label: 'Chờ tạo', variant: 'warning', value: 'WAITING_CREATE' };
-  if (status === 'QUOTED') return { label: 'Chờ xác nhận', variant: 'info', value: 'WAITING_CONFIRMATION' };
+  if (status === 'QUOTED') return { label: 'Đã báo giá', variant: 'success', value: 'QUOTED' };
   // Gộp REJECTED và CANCELED thành "Đã từ chối"
   if (status === 'REJECTED' || status === 'CANCELED') return { label: 'Đã từ chối', variant: 'danger', value: 'REJECTED' };
   if (status === 'ACCEPTED' || status === 'ORDER_CREATED') return { label: 'Đã xác nhận', variant: 'success', value: 'CONFIRMED' };

@@ -39,7 +39,7 @@ const ProductionOrderDetail = () => {
           status: s.executionStatus || s.status,
           statusLabel: stageStatus.label,
           statusVariant: stageStatus.variant,
-          buttons: stageStatus.buttons,
+          buttons: isDyeingStage ? [] : stageStatus.buttons, // Force empty buttons for Dyeing
           progress: s.progressPercent || 0,
           isDyeingStage: isDyeingStage
         };

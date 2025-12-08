@@ -171,9 +171,16 @@ const LeaderStageProgress = () => {
           const data = await productionService.getLeaderOrderDetail(orderId, userId);
           setOrder(data);
           if (data.stages && data.stages.length > 0) {
-            const currentStage = data.stages[0];
+            // Updated: Find the stage assigned to this leader using userId
+            // userId is string from storage, convert if needed or allow loose check
+            const currentStage = data.stages.find(s =>
+              (s.assignedLeader && String(s.assignedLeader.id) === String(userId)) ||
+              (String(s.assignedLeaderId) === String(userId)) ||
+              (s.assignee && s.assignee.includes && s.assignee.includes(userId)) // Fallback if assignee is string? Unlikely but safe
+            ) || data.stages[0]; // Fallback to first stage if not found (or view mode)
+
             setStage(currentStage);
-            setCurrentProgress(currentStage.progressPercent || 0);
+            setCurrentProgress(currentStage.progress || currentStage.progressPercent || 0);
             await loadStageHistory(currentStage.id);
           }
         }
@@ -612,6 +619,51 @@ const LeaderStageProgress = () => {
             )}
 
             {renderActions()}
+
+            {/* NEW: Stage List Table for context */}
+            <Card className="shadow-sm mb-3">
+              <Card.Body className="p-0">
+                <div className="p-3 border-bottom">
+                  <strong>Danh sách công đoạn</strong>
+                </div>
+                <Table responsive className="mb-0 align-middle">
+                  <thead className="table-light">
+                    <tr>
+                      <th>Công đoạn</th>
+                      <th>Người phụ trách</th>
+                      <th>Tiến độ (%)</th>
+                      <th>Trạng thái</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {order.stages && order.stages.length > 0 ? (
+                      order.stages.map((s) => {
+                        const statusInfo = getLeaderStageStatusLabel(s.status || s.executionStatus);
+                        return (
+                          <tr key={s.id} style={{ backgroundColor: s.id === stage?.id ? '#f0f8ff' : 'transparent' }}>
+                            <td>
+                              {s.name}
+                              {s.id === stage?.id && <Badge bg="primary" className="ms-2">Đang chọn</Badge>}
+                            </td>
+                            <td>{s.assignee || s.assignedLeader?.fullName || 'Chưa phân công'}</td>
+                            <td>{s.progress || s.progressPercent || 0}%</td>
+                            <td>
+                              <Badge bg={statusInfo.variant}>
+                                {statusInfo.label}
+                              </Badge>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan="4" className="text-center py-3 text-muted">Không có dữ liệu công đoạn</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </Table>
+              </Card.Body>
+            </Card>
 
             <Card className="shadow-sm mb-3">
               <Card.Body className="p-0">

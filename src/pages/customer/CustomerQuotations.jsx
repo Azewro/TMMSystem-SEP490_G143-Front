@@ -92,9 +92,9 @@ const CustomerQuotations = () => {
 
         } catch (err) {
             console.error('Error fetching quotations:', err);
-            const errorMessage = err.message || 'Lỗi khi tải danh sách báo giá.';
+            // Show generic message for users, log details
+            const errorMessage = 'Có lỗi xảy ra khi tải danh sách báo giá. Vui lòng thử lại sau.';
             setError(errorMessage);
-            toast.error(errorMessage);
             setQuotations([]);
             setTotalPages(1);
             setTotalElements(0);
