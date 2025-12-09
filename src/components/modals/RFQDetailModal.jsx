@@ -5,8 +5,13 @@ import { customerService } from '../../api/customerService';
 import { productService } from '../../api/productService';
 import { userService } from '../../api/userService';
 import toast from 'react-hot-toast';
-import { isVietnamesePhoneNumber, handleIntegerKeyPress, sanitizeNumericInput } from '../../utils/validators';
+import { isVietnamesePhoneNumber, sanitizeNumericInput, parseDateString, formatDateForBackend } from '../../utils/validators';
 import { getSalesRfqStatus } from '../../utils/statusMapper';
+import DatePicker, { registerLocale } from 'react-datepicker';
+import { vi } from 'date-fns/locale/vi';
+import 'react-datepicker/dist/react-datepicker.css';
+
+registerLocale('vi', vi);
 
 const RFQDetailModal = ({ rfqId, show, handleClose }) => {
   const [rfq, setRfq] = useState(null);
@@ -134,7 +139,7 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
         const products = await productService.getAllProducts();
         setAllProducts(products);
       } catch (error) {
-        toast.error("Failed to load products for editing.");
+        toast.error("Lỗi khi tải danh sách sản phẩm.");
       } finally {
         setEditLoading(false);
       }
@@ -160,10 +165,15 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
 
   const handleDetailChange = (index, field, value) => {
     const updatedDetails = [...editedRfq.rfqDetails];
-    // Sanitize quantity field to only allow integers
+    // For quantity field, allow empty string during editing, validate on save
     if (field === 'quantity') {
+      // Allow empty string or numeric value during editing
       const sanitized = sanitizeNumericInput(value.toString(), false);
-      updatedDetails[index] = { ...updatedDetails[index], [field]: sanitized ? parseInt(sanitized, 10) : 100 };
+      // Store as number if valid, otherwise store empty string (will be validated on save)
+      updatedDetails[index] = {
+        ...updatedDetails[index],
+        [field]: sanitized === '' ? '' : parseInt(sanitized, 10)
+      };
     } else {
       // Trim whitespace for string fields
       updatedDetails[index] = { ...updatedDetails[index], [field]: typeof value === 'string' ? value.trim() : value };
@@ -178,12 +188,12 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
 
   const handleAddDetail = () => {
     if (!newProductId) {
-      toast.error("Please select a product to add.");
+      toast.error("Vui lòng chọn sản phẩm để thêm.");
       return;
     }
     const productToAdd = allProducts.find(p => p.id === parseInt(newProductId));
     if (editedRfq.rfqDetails.some(d => d.productId === productToAdd.id)) {
-      toast.error("Product already in the list.");
+      toast.error("Sản phẩm này đã có trong danh sách.");
       return;
     }
     const newDetail = {
@@ -201,8 +211,85 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
   const handleSave = async () => {
     setEditLoading(true);
     try {
+      // ========== VALIDATION GIỐNG QUOTEREQUEST ==========
+      const validationErrors = [];
+
+      // 1. Validate Họ tên (bắt buộc)
+      if (!editedRfq.contactPerson?.trim()) {
+        validationErrors.push('Họ và tên là bắt buộc.');
+      }
+
+      // 2. Validate SĐT (bắt buộc + format)
+      if (!editedRfq.contactPhone?.trim()) {
+        validationErrors.push('Số điện thoại là bắt buộc.');
+      } else if (!isVietnamesePhoneNumber(editedRfq.contactPhone)) {
+        validationErrors.push('Số điện thoại không hợp lệ.');
+      }
+
+      // 3. Validate Email (bắt buộc + format)
+      if (!editedRfq.contactEmail?.trim()) {
+        validationErrors.push('Email là bắt buộc.');
+      } else if (!/\S+@\S+\.\S+/.test(editedRfq.contactEmail)) {
+        validationErrors.push('Email không hợp lệ.');
+      }
+
+      // 4. Validate Địa chỉ (bắt buộc)
+      if (!editedRfq.contactAddress?.trim()) {
+        validationErrors.push('Địa chỉ nhận hàng là bắt buộc.');
+      }
+
+      // 5. Validate Sản phẩm (ít nhất 1)
+      if (!editedRfq.rfqDetails || editedRfq.rfqDetails.length === 0) {
+        validationErrors.push('RFQ phải có ít nhất một sản phẩm.');
+      } else {
+        // Validate từng sản phẩm
+        editedRfq.rfqDetails.forEach((item, index) => {
+          if (!item.productId) {
+            validationErrors.push(`Sản phẩm ${index + 1}: Vui lòng chọn sản phẩm.`);
+          }
+          const qty = item.quantity;
+          if (qty === '' || qty === null || qty === undefined) {
+            validationErrors.push(`Sản phẩm ${index + 1}: Số lượng là bắt buộc.`);
+          } else if (isNaN(qty) || qty < 100) {
+            validationErrors.push(`Sản phẩm ${index + 1}: Số lượng phải từ 100 trở lên.`);
+          }
+        });
+      }
+
+      // 6. Validate Ngày giao (bắt buộc + tối thiểu 30 ngày sau ngày tạo)
+      if (!editedRfq.expectedDeliveryDate) {
+        validationErrors.push('Ngày giao hàng mong muốn là bắt buộc.');
+      } else {
+        // Tính ngày tối thiểu: ngày tạo + 30 ngày
+        const createdDate = editedRfq.createdAt ? new Date(editedRfq.createdAt) : new Date();
+        const minDeliveryDate = new Date(createdDate);
+        minDeliveryDate.setDate(minDeliveryDate.getDate() + 30);
+        // Reset time to 00:00:00 for date-only comparison
+        minDeliveryDate.setHours(0, 0, 0, 0);
+
+        // Parse ngày giao đã nhập
+        const deliveryDate = new Date(editedRfq.expectedDeliveryDate);
+        deliveryDate.setHours(0, 0, 0, 0);
+
+        if (deliveryDate < minDeliveryDate) {
+          // Format dd/MM/yyyy
+          const day = String(minDeliveryDate.getDate()).padStart(2, '0');
+          const month = String(minDeliveryDate.getMonth() + 1).padStart(2, '0');
+          const year = minDeliveryDate.getFullYear();
+          const formattedMinDate = `${day}/${month}/${year}`;
+          validationErrors.push(`Ngày giao hàng phải tối thiểu 30 ngày sau ngày tạo RFQ (từ ${formattedMinDate}).`);
+        }
+      }
+
+      // Nếu có lỗi, hiển thị và dừng
+      if (validationErrors.length > 0) {
+        validationErrors.forEach(err => toast.error(err));
+        setEditLoading(false);
+        return;
+      }
+      // ========== END VALIDATION ==========
+
       // Format expectedDeliveryDate properly
-      // Date input returns YYYY-MM-DD format string, but we need to ensure it's valid
       console.log('Raw expectedDeliveryDate from editedRfq:', editedRfq.expectedDeliveryDate);
       let formattedDate = editedRfq.expectedDeliveryDate;
 
@@ -389,7 +476,7 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
       }
 
       await rfqService.salesEditRfq(rfqId, payload);
-      toast.success("RFQ updated successfully!");
+      toast.success("Cập nhật RFQ thành công!");
       setIsEditMode(false);
       fetchRfqDetails(); // Refresh data
     } catch (error) {
@@ -455,7 +542,13 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
           <Col md={6} className="mt-2">
             <Form.Group>
               <Form.Label>Ngày tạo</Form.Label>
-              <Form.Control type="text" value={data.createdAt ? new Date(data.createdAt).toLocaleDateString() : 'N/A'} readOnly />
+              <Form.Control type="text" value={data.createdAt ? (() => {
+                const d = new Date(data.createdAt);
+                const day = String(d.getDate()).padStart(2, '0');
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const year = d.getFullYear();
+                return `${day}/${month}/${year}`;
+              })() : 'N/A'} readOnly />
             </Form.Group>
           </Col>
           <Col md={6} className="mt-2">
@@ -499,11 +592,10 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
                 <td>{item.standardDimensions || 'N/A'}</td> {/* Display standardDimensions */}
                 <td>
                   <Form.Control
-                    type="text"
-                    inputMode="numeric"
+                    type="number"
+                    min="100"
                     value={item.quantity}
                     onChange={(e) => handleDetailChange(index, 'quantity', e.target.value)}
-                    onKeyPress={handleIntegerKeyPress}
                     readOnly={!isEditMode}
                     placeholder="Tối thiểu 100"
                   />
@@ -571,13 +663,47 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
           <Col md={6}>
             <Form.Group>
               <Form.Label>Thời gian giao mong muốn</Form.Label>
-              <Form.Control
-                type="date"
-                name="expectedDeliveryDate"
-                value={dateValue}
-                onChange={handleInputChange}
-                readOnly={!isEditMode}
-              />
+              {isEditMode ? (() => {
+                // Tính ngày tối thiểu: ngày tạo + 30 ngày
+                const createdDate = data.createdAt ? new Date(data.createdAt) : new Date();
+                const minDate = new Date(createdDate);
+                minDate.setDate(minDate.getDate() + 30);
+
+                return (
+                  <div className="custom-datepicker-wrapper">
+                    <DatePicker
+                      selected={parseDateString(dateValue)}
+                      onChange={(date) => {
+                        if (date) {
+                          const formatted = formatDateForBackend(date);
+                          setEditedRfq(prev => ({ ...prev, expectedDeliveryDate: formatted }));
+                        } else {
+                          setEditedRfq(prev => ({ ...prev, expectedDeliveryDate: null }));
+                        }
+                      }}
+                      minDate={minDate}
+                      dateFormat="dd/MM/yyyy"
+                      locale="vi"
+                      className="form-control"
+                      placeholderText="dd/mm/yyyy"
+                      isClearable
+                      todayButton="Hôm nay"
+                    />
+                  </div>
+                );
+              })() : (
+                <Form.Control
+                  type="text"
+                  value={dateValue ? (() => {
+                    const d = new Date(dateValue);
+                    const day = String(d.getDate()).padStart(2, '0');
+                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                    const year = d.getFullYear();
+                    return `${day}/${month}/${year}`;
+                  })() : 'N/A'}
+                  readOnly
+                />
+              )}
             </Form.Group>
           </Col>
         </Row>

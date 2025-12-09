@@ -99,14 +99,8 @@ const MyRfqs = () => {
     setError('');
     try {
       // Prepare search parameter - only include if it has a value after trimming
-      // Backend accepts any non-empty string (no minimum length requirement)
       const trimmedSearch = debouncedSearchTerm?.trim() || '';
-      const searchParam = trimmedSearch.length > 0
-        ? trimmedSearch
-        : undefined;
-
-      // Don't send statusFilter to backend - we'll filter client-side
-      // because Sales status logic is based on mapped values, not backend status field
+      const searchParam = trimmedSearch.length > 0 ? trimmedSearch : undefined;
 
       // Fetch all RFQs (without pagination) to apply client-side filtering
       let allRfqsData = [];
@@ -120,7 +114,7 @@ const MyRfqs = () => {
           page,
           ITEMS_PER_PAGE,
           searchParam,
-          undefined // Don't send status filter to backend
+          undefined
         );
 
         let pageRfqs = [];
@@ -132,7 +126,6 @@ const MyRfqs = () => {
 
         allRfqsData = [...allRfqsData, ...pageRfqs];
 
-        // Check if there are more pages
         if (pageRfqs.length < ITEMS_PER_PAGE) {
           hasMore = false;
         } else {
@@ -154,7 +147,6 @@ const MyRfqs = () => {
         filteredRfqs = filteredRfqs.filter(rfq => {
           const rfqDate = getDateFromRfqNumber(rfq.rfqNumber);
           if (!rfqDate) {
-            // Fallback to createdAt if rfqNumber doesn't have date
             if (!rfq.createdAt) return false;
             const fallbackDate = new Date(rfq.createdAt).toISOString().split('T')[0];
             return fallbackDate === createdDateFilter;
@@ -163,19 +155,9 @@ const MyRfqs = () => {
         });
       }
 
-      // Calculate pagination for filtered results
-      const totalFiltered = filteredRfqs.length;
-      const newTotalPages = Math.max(1, Math.ceil(totalFiltered / ITEMS_PER_PAGE));
-      setTotalPages(newTotalPages);
-      setTotalElements(totalFiltered);
-
-      // Apply pagination to filtered results
-      const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-      const endIndex = startIndex + ITEMS_PER_PAGE;
-      const paginatedRfqs = filteredRfqs.slice(startIndex, endIndex);
-
+      // Enrich with customer data
       const enrichedData = await Promise.all(
-        (paginatedRfqs || []).map(async (rfq) => {
+        (filteredRfqs || []).map(async (rfq) => {
           if (rfq.customerId) {
             try {
               const customer = await customerService.getCustomerById(rfq.customerId);
@@ -192,20 +174,25 @@ const MyRfqs = () => {
         })
       );
 
+      // Store ALL filtered data - sorting and pagination will be done in useMemo
       setAllRfqs(enrichedData);
+
+      // Update pagination info
+      const totalFiltered = enrichedData.length;
+      setTotalPages(Math.max(1, Math.ceil(totalFiltered / ITEMS_PER_PAGE)));
+      setTotalElements(totalFiltered);
     } catch (err) {
       console.error('Error fetching RFQs:', err);
       const errorMessage = err.message || 'Lỗi khi tải danh sách yêu cầu báo giá của bạn.';
       setError(errorMessage);
       toast.error(errorMessage);
-      // Clear RFQs on error
       setAllRfqs([]);
       setTotalPages(1);
       setTotalElements(0);
     } finally {
       setLoading(false);
     }
-  }, [currentPage, debouncedSearchTerm, statusFilter, createdDateFilter]);
+  }, [debouncedSearchTerm, statusFilter, createdDateFilter]); // Removed currentPage
 
   // Debounce search term
   useEffect(() => {
@@ -232,36 +219,55 @@ const MyRfqs = () => {
     setCurrentPage(1);
   }, [debouncedSearchTerm, statusFilter, createdDateFilter]);
 
-  // Sort the RFQs based on sortColumn and sortDirection
+  // Sort and paginate the RFQs based on sortColumn, sortDirection, and currentPage
   const sortedRfqs = useMemo(() => {
-    if (!sortColumn) return allRfqs;
+    // First, sort all RFQs
+    let sorted = [...allRfqs];
 
-    return [...allRfqs].sort((a, b) => {
-      let aValue, bValue;
+    if (sortColumn) {
+      sorted.sort((a, b) => {
+        let aValue, bValue;
 
-      switch (sortColumn) {
-        case 'rfqNumber':
-          aValue = a.rfqNumber || '';
-          bValue = b.rfqNumber || '';
-          break;
-        case 'contactPerson':
-          aValue = a.contactPerson || '';
-          bValue = b.contactPerson || '';
-          break;
-        case 'createdDate':
-          // Use date from rfqNumber for accurate sorting
-          aValue = getDateFromRfqNumber(a.rfqNumber) || '';
-          bValue = getDateFromRfqNumber(b.rfqNumber) || '';
-          break;
-        default:
-          return 0;
-      }
+        switch (sortColumn) {
+          case 'rfqNumber':
+            aValue = a.rfqNumber || '';
+            bValue = b.rfqNumber || '';
+            break;
+          case 'contactPerson':
+            aValue = a.contactPerson || '';
+            bValue = b.contactPerson || '';
+            break;
+          case 'createdDate':
+            aValue = getDateFromRfqNumber(a.rfqNumber) || '';
+            bValue = getDateFromRfqNumber(b.rfqNumber) || '';
+            break;
+          case 'status':
+            // Map backend status sang 4 nhóm frontend rồi sort
+            const getStatusGroup = (status) => {
+              if (status === 'DRAFT' || status === 'SENT') return 1; // Chờ xác nhận
+              if (status === 'PRELIMINARY_CHECKED' || status === 'FORWARDED_TO_PLANNING' || status === 'RECEIVED_BY_PLANNING') return 2; // Đã xác nhận
+              if (status === 'QUOTED') return 3; // Đã báo giá
+              if (status === 'REJECTED' || status === 'CANCELED') return 4; // Đã hủy
+              return 99;
+            };
+            aValue = getStatusGroup(a.status);
+            bValue = getStatusGroup(b.status);
+            const statusComparison = aValue - bValue;
+            return sortDirection === 'asc' ? statusComparison : -statusComparison;
+          default:
+            return 0;
+        }
 
-      // String comparison
-      const comparison = aValue.localeCompare(bValue, 'vi');
-      return sortDirection === 'asc' ? comparison : -comparison;
-    });
-  }, [allRfqs, sortColumn, sortDirection]);
+        const comparison = aValue.localeCompare(bValue, 'vi');
+        return sortDirection === 'asc' ? comparison : -comparison;
+      });
+    }
+
+    // Then, apply pagination
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return sorted.slice(startIndex, endIndex);
+  }, [allRfqs, sortColumn, sortDirection, currentPage]);
 
   const handleViewQuotation = async (rfq) => {
     try {
@@ -413,7 +419,12 @@ const MyRfqs = () => {
                           >
                             Ngày tạo {getSortIcon('createdDate')}
                           </th>
-                          <th>Trạng Thái</th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('status')}
+                          >
+                            Trạng Thái {getSortIcon('status')}
+                          </th>
                           <th>Hành Động</th>
                         </tr>
                       </thead>

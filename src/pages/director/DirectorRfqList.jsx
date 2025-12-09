@@ -51,7 +51,7 @@ const DirectorRfqList = () => {
   // Search, Filter and Pagination state
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+
   const [createdDateFilter, setCreatedDateFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -86,56 +86,48 @@ const DirectorRfqList = () => {
     setLoading(true);
     setError('');
     try {
-      // Convert 1-based page to 0-based for backend
-      const page = currentPage - 1;
+      // Fetch all RFQs (without pagination) to apply client-side filter/sort/paginate
+      let allRfqsData = [];
+      let page = 0;
+      let hasMore = true;
 
-      // Prepare parameters - only include non-empty values
-      const params = {
-        page,
-        size: ITEMS_PER_PAGE
-      };
+      while (hasMore) {
+        const params = {
+          page,
+          size: ITEMS_PER_PAGE
+        };
 
-      if (searchTerm && searchTerm.trim()) {
-        params.search = searchTerm.trim();
+        if (searchTerm && searchTerm.trim()) {
+          params.search = searchTerm.trim();
+        }
+
+        const response = await rfqService.getRfqs(params);
+
+        let pageRfqs = [];
+        if (response && response.content) {
+          pageRfqs = response.content;
+        } else if (Array.isArray(response)) {
+          pageRfqs = response;
+        }
+
+        allRfqsData = [...allRfqsData, ...pageRfqs];
+
+        if (pageRfqs.length < ITEMS_PER_PAGE) {
+          hasMore = false;
+        } else {
+          page++;
+        }
       }
 
-      // Don't send statusFilter to backend - we'll filter client-side
-      // because Director status logic is based on assignedSalesId, not backend status field
-
-      const response = await rfqService.getRfqs(params);
-
-      // Handle PageResponse
-      let rfqs = [];
-      if (response && response.content) {
-        rfqs = response.content;
-        setTotalPages(response.totalPages || 1);
-        setTotalElements(response.totalElements || 0);
-      } else if (Array.isArray(response)) {
-        // Fallback for backward compatibility
-        rfqs = response;
-        setTotalPages(1);
-        setTotalElements(response.length);
-      }
-
-      // Filter by Director status (client-side based on assignedSalesId)
-      // Also filter out CANCELED RFQs as requested
-      let filteredRfqs = rfqs.filter(rfq => rfq.status !== 'CANCELED');
-      if (statusFilter === 'WAITING_ASSIGNMENT') {
-        // Chờ phân công: chưa có assignedSalesId
-        filteredRfqs = filteredRfqs.filter(rfq => !rfq.assignedSalesId);
-      } else if (statusFilter === 'ASSIGNED') {
-        // Đã phân công: đã có assignedSalesId
-        filteredRfqs = filteredRfqs.filter(rfq => !!rfq.assignedSalesId);
-      }
+      // Filter out CANCELED RFQs
+      let filteredRfqs = allRfqsData.filter(rfq => rfq.status !== 'CANCELED');
 
       // Filter by created date (client-side)
       if (createdDateFilter) {
         filteredRfqs = filteredRfqs.filter(rfq => {
           if (!rfq.createdAt) return false;
           try {
-            // Convert createdAt to local date string (YYYY-MM-DD) for comparison
             const rfqDateObj = new Date(rfq.createdAt);
-            // Get local date components to avoid timezone issues
             const year = rfqDateObj.getFullYear();
             const month = String(rfqDateObj.getMonth() + 1).padStart(2, '0');
             const day = String(rfqDateObj.getDate()).padStart(2, '0');
@@ -148,12 +140,7 @@ const DirectorRfqList = () => {
         });
       }
 
-      // Update pagination info after filtering
-      if (filteredRfqs.length !== rfqs.length) {
-        setTotalPages(Math.ceil(filteredRfqs.length / ITEMS_PER_PAGE) || 1);
-        setTotalElements(filteredRfqs.length);
-      }
-
+      // Enrich with customer data
       const enrichedData = await Promise.all(
         (filteredRfqs || []).map(async (rfq) => {
           if (rfq.customerId) {
@@ -172,7 +159,13 @@ const DirectorRfqList = () => {
         })
       );
 
+      // Store ALL filtered data - sorting and pagination will be done in useMemo
       setAllRfqs(enrichedData);
+
+      // Update pagination info
+      const totalFiltered = enrichedData.length;
+      setTotalPages(Math.max(1, Math.ceil(totalFiltered / ITEMS_PER_PAGE)));
+      setTotalElements(totalFiltered);
     } catch (err) {
       console.error('Error fetching RFQs:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Lỗi không xác định';
@@ -187,41 +180,49 @@ const DirectorRfqList = () => {
 
   useEffect(() => {
     fetchRfqs();
-  }, [currentPage, searchTerm, statusFilter, createdDateFilter]);
+  }, [searchTerm, createdDateFilter]); // Removed currentPage and statusFilter
 
   useEffect(() => {
     // Reset to page 1 when filters change
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, createdDateFilter]);
+  }, [searchTerm, createdDateFilter]);
 
-  // Sort the RFQs based on sortColumn and sortDirection
+  // Sort and paginate the RFQs based on sortColumn, sortDirection, and currentPage
   const sortedRfqs = useMemo(() => {
-    if (!sortColumn) return allRfqs;
+    // First, sort all RFQs
+    let sorted = [...allRfqs];
 
-    return [...allRfqs].sort((a, b) => {
-      let aValue, bValue;
+    if (sortColumn) {
+      sorted.sort((a, b) => {
+        let aValue, bValue;
 
-      switch (sortColumn) {
-        case 'rfqNumber':
-          aValue = a.rfqNumber || '';
-          bValue = b.rfqNumber || '';
-          break;
-        case 'contactPerson':
-          aValue = a.contactPerson || '';
-          bValue = b.contactPerson || '';
-          break;
-        case 'createdDate':
-          aValue = getDateFromRfqNumber(a.rfqNumber) || '';
-          bValue = getDateFromRfqNumber(b.rfqNumber) || '';
-          break;
-        default:
-          return 0;
-      }
+        switch (sortColumn) {
+          case 'rfqNumber':
+            aValue = a.rfqNumber || '';
+            bValue = b.rfqNumber || '';
+            break;
+          case 'contactPerson':
+            aValue = a.contactPerson || '';
+            bValue = b.contactPerson || '';
+            break;
+          case 'createdDate':
+            aValue = getDateFromRfqNumber(a.rfqNumber) || '';
+            bValue = getDateFromRfqNumber(b.rfqNumber) || '';
+            break;
+          default:
+            return 0;
+        }
 
-      const comparison = aValue.localeCompare(bValue, 'vi');
-      return sortDirection === 'asc' ? comparison : -comparison;
-    });
-  }, [allRfqs, sortColumn, sortDirection]);
+        const comparison = aValue.localeCompare(bValue, 'vi');
+        return sortDirection === 'asc' ? comparison : -comparison;
+      });
+    }
+
+    // Then, apply pagination
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return sorted.slice(startIndex, endIndex);
+  }, [allRfqs, sortColumn, sortDirection, currentPage]);
 
   const handleOpenAssignModal = (rfqId, viewMode = false) => {
     setSelectedRfqId(rfqId);
@@ -244,13 +245,7 @@ const DirectorRfqList = () => {
     setCurrentPage(1); // Reset to first page on new search
   };
 
-  const statusOptions = [
-    { value: '', label: 'Tất cả trạng thái' },
-    { value: 'WAITING_ASSIGNMENT', label: 'Chờ phân công' },
-    { value: 'ASSIGNED', label: 'Đã phân công' }
-  ];
 
-  // Note: Search and filter are now server-side, no client-side filtering needed
 
   return (
     <div>
@@ -325,22 +320,6 @@ const DirectorRfqList = () => {
                           todayButton="Hôm nay"
                         />
                       </div>
-                    </Form.Group>
-                  </Col>
-                  <Col md={3}>
-                    <Form.Group>
-                      <Form.Label className="mb-1 small">Lọc theo trạng thái</Form.Label>
-                      <Form.Select
-                        value={statusFilter}
-                        onChange={(e) => {
-                          setStatusFilter(e.target.value);
-                          setCurrentPage(1);
-                        }}
-                      >
-                        {statusOptions.map(option => (
-                          <option key={option.value} value={option.value}>{option.label}</option>
-                        ))}
-                      </Form.Select>
                     </Form.Group>
                   </Col>
                 </Row>

@@ -623,7 +623,7 @@ export const getCustomerRfqStatus = (status) => {
   if (status === 'RECEIVED_BY_PLANNING') return { label: 'Đã xác nhận', variant: 'primary', value: 'RECEIVED_BY_PLANNING' };
 
   if (status === 'QUOTED') return { label: 'Đã có báo giá', variant: 'success', value: 'QUOTED' };
-  if (status === 'REJECTED') return { label: 'Đã có báo giá', variant: 'warning', value: 'REJECTED' };
+  if (status === 'REJECTED') return { label: 'Đã hủy', variant: 'danger', value: 'REJECTED' };
   if (status === 'CANCELED') return { label: 'Đã hủy', variant: 'danger', value: 'CANCELED' };
 
   const label = getStatusLabel(status);

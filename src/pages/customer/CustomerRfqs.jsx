@@ -143,9 +143,9 @@ const CustomerRfqs = () => {
             case 'CONFIRMED':
               return rawStatus === 'PRELIMINARY_CHECKED' || rawStatus === 'FORWARDED_TO_PLANNING' || rawStatus === 'RECEIVED_BY_PLANNING';
             case 'QUOTED':
-              return rawStatus === 'QUOTED' || rawStatus === 'REJECTED';
+              return rawStatus === 'QUOTED';
             case 'CANCELED':
-              return rawStatus === 'CANCELED';
+              return rawStatus === 'CANCELED' || rawStatus === 'REJECTED';
             default:
               return true;
           }
@@ -165,18 +165,14 @@ const CustomerRfqs = () => {
         });
       }
 
+      // Store all filtered RFQs (without pagination) - pagination will be done after sorting
+      setAllRfqs(filteredRfqs);
+
       // Calculate pagination for filtered results
       const totalFiltered = filteredRfqs.length;
       const newTotalPages = Math.max(1, Math.ceil(totalFiltered / ITEMS_PER_PAGE));
       setTotalPages(newTotalPages);
       setTotalElements(totalFiltered);
-
-      // Apply pagination to filtered results
-      const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-      const endIndex = startIndex + ITEMS_PER_PAGE;
-      const paginatedRfqs = filteredRfqs.slice(startIndex, endIndex);
-
-      setAllRfqs(paginatedRfqs);
     } catch (err) {
       console.error('Error fetching RFQs:', err);
       const errorMessage = err.message || 'Lỗi khi tải danh sách yêu cầu báo giá.';
@@ -188,7 +184,7 @@ const CustomerRfqs = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, currentPage, debouncedSearchTerm, statusFilter, createdDateFilter]);
+  }, [user, debouncedSearchTerm, statusFilter, createdDateFilter]);
 
   // Debounce search term
   useEffect(() => {
@@ -212,30 +208,51 @@ const CustomerRfqs = () => {
     setCurrentPage(1);
   }, [debouncedSearchTerm, statusFilter, createdDateFilter]);
 
-  // Sort the RFQs based on sortColumn and sortDirection
+  // Sort and paginate the RFQs based on sortColumn, sortDirection, and currentPage
   const sortedRfqs = useMemo(() => {
-    if (!sortColumn) return allRfqs;
+    // First, sort all RFQs
+    let sorted = [...allRfqs];
 
-    return [...allRfqs].sort((a, b) => {
-      let aValue, bValue;
+    if (sortColumn) {
+      sorted.sort((a, b) => {
+        let aValue, bValue;
 
-      switch (sortColumn) {
-        case 'rfqNumber':
-          aValue = a.rfqNumber || '';
-          bValue = b.rfqNumber || '';
-          break;
-        case 'createdDate':
-          aValue = getDateFromRfqNumber(a.rfqNumber) || '';
-          bValue = getDateFromRfqNumber(b.rfqNumber) || '';
-          break;
-        default:
-          return 0;
-      }
+        switch (sortColumn) {
+          case 'rfqNumber':
+            aValue = a.rfqNumber || '';
+            bValue = b.rfqNumber || '';
+            break;
+          case 'createdDate':
+            aValue = getDateFromRfqNumber(a.rfqNumber) || '';
+            bValue = getDateFromRfqNumber(b.rfqNumber) || '';
+            break;
+          case 'status':
+            // Sort theo độ ưu tiên cho khách hàng: QUOTED (Đã có báo giá - cần quyết định) lên đầu
+            const getStatusGroup = (status) => {
+              if (status === 'QUOTED') return 1; // Đã có báo giá - CẦN ACTION
+              if (status === 'DRAFT' || status === 'SENT') return 2; // Chờ xác nhận
+              if (status === 'PRELIMINARY_CHECKED' || status === 'FORWARDED_TO_PLANNING' || status === 'RECEIVED_BY_PLANNING') return 3; // Đã xác nhận
+              if (status === 'REJECTED' || status === 'CANCELED') return 4; // Đã hủy
+              return 99;
+            };
+            aValue = getStatusGroup(a.status);
+            bValue = getStatusGroup(b.status);
+            const statusComparison = aValue - bValue;
+            return sortDirection === 'asc' ? statusComparison : -statusComparison;
+          default:
+            return 0;
+        }
 
-      const comparison = aValue.localeCompare(bValue, 'vi');
-      return sortDirection === 'asc' ? comparison : -comparison;
-    });
-  }, [allRfqs, sortColumn, sortDirection]);
+        const comparison = aValue.localeCompare(bValue, 'vi');
+        return sortDirection === 'asc' ? comparison : -comparison;
+      });
+    }
+
+    // Then, apply pagination
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return sorted.slice(startIndex, endIndex);
+  }, [allRfqs, sortColumn, sortDirection, currentPage]);
 
   const handleViewQuotation = async (rfq) => {
     try {
@@ -418,7 +435,12 @@ const CustomerRfqs = () => {
                           >
                             Ngày tạo {getSortIcon('createdDate')}
                           </th>
-                          <th>Trạng Thái</th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('status')}
+                          >
+                            Trạng Thái {getSortIcon('status')}
+                          </th>
                           <th>Hành Động</th>
                         </tr>
                       </thead>
