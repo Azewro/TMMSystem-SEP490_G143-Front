@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Container, Row, Col, Card, Table, Button, Alert, Spinner, Modal, Form, Badge } from 'react-bootstrap';
+import { Container, Row, Col, Card, Table, Button, Alert, Spinner, Modal, Form, Badge, Pagination } from 'react-bootstrap';
 import { FaArrowLeft, FaCogs, FaFileInvoice, FaInbox, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
@@ -32,6 +32,8 @@ const PlanningRFQDetail = () => {
 
   const [showCapacityReportModal, setShowCapacityReportModal] = useState(false);
   const [capacityReportData, setCapacityReportData] = useState(null);
+  const [backlogPage, setBacklogPage] = useState(1);
+  const backlogPageSize = 5;
 
   // Automation States
   const [autoCheckRun, setAutoCheckRun] = useState(false);
@@ -469,11 +471,11 @@ const PlanningRFQDetail = () => {
         loading={evaluationLoading}
       />
       {/* Capacity Report Modal */}
-      <Modal show={showCapacityReportModal} onHide={() => setShowCapacityReportModal(false)} size="lg" centered>
+      <Modal show={showCapacityReportModal} onHide={() => { setShowCapacityReportModal(false); setBacklogPage(1); }} size="xl" centered>
         <Modal.Header closeButton>
           <Modal.Title>Báo cáo chi tiết năng lực máy móc</Modal.Title>
         </Modal.Header>
-        <Modal.Body>
+        <Modal.Body style={{ maxHeight: '75vh', overflowY: 'auto' }}>
           {capacityReportData ? (
             <div>
               <Row className="mb-3">
@@ -486,7 +488,7 @@ const PlanningRFQDetail = () => {
                   {capacityReportData.bottleneck && (
                     <p><strong>Công đoạn giới hạn:</strong> <span className="text-warning">{capacityReportData.bottleneck}</span></p>
                   )}
-                  <p><strong>Số ngày cần thiết:</strong> {capacityReportData.requiredDays?.toFixed(2) || 'N/A'} ngày ({daysToHours(capacityReportData.requiredDays)})</p>
+                  <p><strong>Số ngày cần thiết (backlog + đơn hiện tại):</strong> {capacityReportData.requiredDays?.toFixed(2) || 'N/A'} ngày ({daysToHours(capacityReportData.requiredDays)})</p>
                   <p><strong>Số ngày có sẵn:</strong> {capacityReportData.availableDays?.toFixed(2) || 'N/A'} ngày ({daysToHours(capacityReportData.availableDays)})</p>
                 </Col>
                 <Col md={6}>
@@ -589,16 +591,18 @@ const PlanningRFQDetail = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {capacityReportData.backlogOrders.map((order, idx) => (
-                        <tr key={idx}>
-                          <td>{idx + 1}</td>
-                          <td>{order.quotationCode || 'N/A'}</td>
-                          <td>{order.customerName || 'N/A'}</td>
-                          <td>{order.deliveryDate ? new Date(order.deliveryDate).toLocaleDateString('vi-VN') : 'N/A'}</td>
-                          <td>{order.weightKg?.toFixed(2) || '0'}</td>
-                          <td><Badge bg={order.status === 'SENT' ? 'info' : order.status === 'ACCEPTED' ? 'success' : 'primary'}>{order.status}</Badge></td>
-                        </tr>
-                      ))}
+                      {capacityReportData.backlogOrders
+                        .slice((backlogPage - 1) * backlogPageSize, backlogPage * backlogPageSize)
+                        .map((order, idx) => (
+                          <tr key={idx}>
+                            <td>{(backlogPage - 1) * backlogPageSize + idx + 1}</td>
+                            <td>{order.quotationCode || 'N/A'}</td>
+                            <td>{order.customerName || 'N/A'}</td>
+                            <td>{order.deliveryDate ? new Date(order.deliveryDate).toLocaleDateString('vi-VN') : 'N/A'}</td>
+                            <td>{order.weightKg?.toFixed(2) || '0'}</td>
+                            <td><Badge bg={order.status === 'SENT' ? 'info' : order.status === 'ACCEPTED' ? 'success' : 'primary'}>{order.status}</Badge></td>
+                          </tr>
+                        ))}
                       <tr className="table-warning">
                         <td colSpan={4}><strong>Tổng Backlog</strong></td>
                         <td><strong>{capacityReportData.backlogWeightKg?.toFixed(2) || '0'} kg</strong></td>
@@ -606,6 +610,17 @@ const PlanningRFQDetail = () => {
                       </tr>
                     </tbody>
                   </Table>
+                  {capacityReportData.backlogOrders.length > backlogPageSize && (
+                    <div className="d-flex justify-content-center">
+                      <Pagination size="sm">
+                        <Pagination.Prev onClick={() => setBacklogPage(p => Math.max(1, p - 1))} disabled={backlogPage === 1} />
+                        {Array.from({ length: Math.ceil(capacityReportData.backlogOrders.length / backlogPageSize) }, (_, i) => (
+                          <Pagination.Item key={i + 1} active={backlogPage === i + 1} onClick={() => setBacklogPage(i + 1)}>{i + 1}</Pagination.Item>
+                        ))}
+                        <Pagination.Next onClick={() => setBacklogPage(p => Math.min(Math.ceil(capacityReportData.backlogOrders.length / backlogPageSize), p + 1))} disabled={backlogPage >= Math.ceil(capacityReportData.backlogOrders.length / backlogPageSize)} />
+                      </Pagination>
+                    </div>
+                  )}
                 </div>
               )}
 
