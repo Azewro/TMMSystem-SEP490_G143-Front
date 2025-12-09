@@ -404,9 +404,17 @@ const QuoteRequest = () => {
 
     try {
       await rfqService.createRfq(rfqData, isAuthenticated);
-      toast.success('Yêu cầu báo giá đã được gửi thành công!');
       if (isFromCart) clearCart();
-      navigate('/customer/rfqs');
+
+      // Redirect based on authentication status
+      if (isAuthenticated) {
+        toast.success('Yêu cầu báo giá đã được gửi thành công!');
+        navigate('/customer/rfqs');
+      } else {
+        // Guest: show message about checking email and go to homepage
+        toast.success('Yêu cầu báo giá đã được gửi thành công! Chúng tôi sẽ liên hệ với bạn sớm nhất.');
+        navigate('/');
+      }
     } catch (err) {
       toast.error(err.message || 'Gửi yêu cầu thất bại. Vui lòng kiểm tra lại thông tin.');
     } finally {
@@ -498,10 +506,18 @@ const QuoteRequest = () => {
               </Row>
               <hr />
               <h6>Chi tiết sản phẩm</h6>
-              <ul className="list-unstyled">
+              <ul className="list-unstyled mb-0">
                 {quoteItems.map((item, index) => {
                   const product = products.find(p => p.id === parseInt(item.productId));
-                  return <li key={index} className="mb-2"><strong>{product?.name || 'Sản phẩm đã chọn'}:</strong> {item.quantity} cái</li>;
+                  return (
+                    <li key={index} className="mb-2">
+                      <strong>{product?.name || 'Sản phẩm đã chọn'}:</strong> {item.quantity} cái
+                      <br />
+                      <span style={{ fontStyle: 'italic', color: '#6c757d' }}>
+                        Kích thước: {item.standardDimensions || product?.standardDimensions || 'N/A'}
+                      </span>
+                    </li>
+                  );
                 })}
               </ul>
               <Row>
