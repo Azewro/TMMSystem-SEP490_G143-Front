@@ -483,19 +483,131 @@ const PlanningRFQDetail = () => {
                       {capacityReportData.status === 'SUFFICIENT' ? 'Đủ năng lực' : 'Không đủ năng lực'}
                     </Badge>
                   </p>
-                  {/* Bottleneck field removed as requested */}
+                  {capacityReportData.bottleneck && (
+                    <p><strong>Công đoạn giới hạn:</strong> <span className="text-warning">{capacityReportData.bottleneck}</span></p>
+                  )}
                   <p><strong>Số ngày cần thiết:</strong> {capacityReportData.requiredDays?.toFixed(2) || 'N/A'} ngày ({daysToHours(capacityReportData.requiredDays)})</p>
                   <p><strong>Số ngày có sẵn:</strong> {capacityReportData.availableDays?.toFixed(2) || 'N/A'} ngày ({daysToHours(capacityReportData.availableDays)})</p>
                 </Col>
                 <Col md={6}>
                   <p><strong>Ngày bắt đầu dự kiến:</strong> {capacityReportData.productionStartDate ? new Date(capacityReportData.productionStartDate).toLocaleDateString('vi-VN') : 'N/A'}</p>
-                  <p><strong>Ngày kết thúc dự kiến:</strong> {capacityReportData.packagingStage?.endDate ? new Date(capacityReportData.packagingStage.endDate).toLocaleDateString('vi-VN') : 'N/A'}</p>
+                  <p><strong>Ngày kết thúc dự kiến:</strong> {capacityReportData.productionEndDate ? new Date(capacityReportData.productionEndDate).toLocaleDateString('vi-VN') : (capacityReportData.packagingStage?.endDate ? new Date(capacityReportData.packagingStage.endDate).toLocaleDateString('vi-VN') : 'N/A')}</p>
                   <p><strong>Tổng thời gian chờ:</strong> {capacityReportData.totalWaitTime?.toFixed(2) || 'N/A'} ngày ({daysToHours(capacityReportData.totalWaitTime)})</p>
-                  {capacityReportData.mergeSuggestion && (
-                    <p><strong>Gợi ý:</strong> {capacityReportData.mergeSuggestion}</p>
-                  )}
                 </Col>
               </Row>
+
+              {capacityReportData.mergeSuggestion && (
+                <Alert variant={capacityReportData.sufficient ? 'success' : 'warning'} className="mb-3">
+                  <strong>Kết quả:</strong> {capacityReportData.mergeSuggestion}
+                </Alert>
+              )}
+
+              {/* Công suất các công đoạn - giải thích bottleneck */}
+              {capacityReportData.stageCapacities && capacityReportData.stageCapacities.length > 0 && (
+                <div className="mb-3">
+                  <h6>🏭 Công suất các công đoạn:</h6>
+                  <Table striped bordered size="sm">
+                    <thead>
+                      <tr>
+                        <th>Công đoạn</th>
+                        <th>Số máy/người</th>
+                        <th>Năng suất/đơn vị</th>
+                        <th>Tổng năng suất/ngày</th>
+                        <th>Đơn vị</th>
+                        <th>Bottleneck?</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {capacityReportData.stageCapacities.map((stage, idx) => (
+                        <tr key={idx} className={stage.isBottleneck ? 'table-danger' : ''}>
+                          <td><strong>{stage.stageName}</strong></td>
+                          <td>{stage.machineCount || '-'}</td>
+                          <td>{stage.capacityPerMachine?.toFixed(2) || '-'}</td>
+                          <td><strong>{stage.totalCapacityPerDay?.toFixed(2) || '0'}</strong></td>
+                          <td>{stage.unit}</td>
+                          <td>{stage.isBottleneck ? <Badge bg="danger">⚠️ Bottleneck</Badge> : '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                  <small className="text-muted">
+                    💡 Bottleneck là công đoạn có năng suất thấp nhất (tính theo kg), giới hạn năng lực toàn bộ hệ thống.
+                  </small>
+                </div>
+              )}
+
+              {/* Chi tiết tính toán năng lực */}
+              <div className="mb-3">
+                <h6>📊 Chi tiết tính toán:</h6>
+                <Table striped bordered size="sm">
+                  <tbody>
+                    <tr>
+                      <td><strong>Công đoạn giới hạn (Bottleneck)</strong></td>
+                      <td>{capacityReportData.bottleneck || 'N/A'}</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Năng suất Bottleneck</strong></td>
+                      <td><strong>{capacityReportData.bottleneckCapacityPerDay?.toFixed(2) || 'N/A'} kg/ngày</strong></td>
+                    </tr>
+                    <tr className="table-info">
+                      <td><strong>A. Đơn mới (đang kiểm tra)</strong></td>
+                      <td><strong>{capacityReportData.newOrderWeightKg?.toFixed(2) || '0'} kg</strong></td>
+                    </tr>
+                    <tr>
+                      <td><strong>B. Backlog (đơn đang chờ)</strong></td>
+                      <td>{capacityReportData.backlogWeightKg?.toFixed(2) || '0'} kg</td>
+                    </tr>
+                    <tr className="table-warning">
+                      <td><strong>C. Tổng tải (A + B)</strong></td>
+                      <td><strong>{capacityReportData.totalLoadKg?.toFixed(2) || '0'} kg</strong></td>
+                    </tr>
+                    <tr className="table-success">
+                      <td><strong>D. Năng lực tối đa ({capacityReportData.availableDays || 0} ngày × {capacityReportData.bottleneckCapacityPerDay?.toFixed(0) || 0} kg)</strong></td>
+                      <td><strong>{capacityReportData.maxCapacityKg?.toFixed(2) || '0'} kg</strong></td>
+                    </tr>
+                    <tr className={capacityReportData.sufficient ? 'table-success' : 'table-danger'}>
+                      <td><strong>Kết luận (C ≤ D ?)</strong></td>
+                      <td><strong>{capacityReportData.sufficient ? '✅ ĐỦ NĂNG LỰC' : '❌ KHÔNG ĐỦ NĂNG LỰC'}</strong></td>
+                    </tr>
+                  </tbody>
+                </Table>
+              </div>
+
+              {/* Danh sách đơn đang chiếm năng lực */}
+              {capacityReportData.backlogOrders && capacityReportData.backlogOrders.length > 0 && (
+                <div className="mb-3">
+                  <h6>📋 Đơn hàng đang chiếm năng lực ({capacityReportData.backlogOrders.length} đơn):</h6>
+                  <Table striped bordered size="sm">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Mã báo giá</th>
+                        <th>Khách hàng</th>
+                        <th>Ngày giao</th>
+                        <th>Khối lượng (kg)</th>
+                        <th>Trạng thái</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {capacityReportData.backlogOrders.map((order, idx) => (
+                        <tr key={idx}>
+                          <td>{idx + 1}</td>
+                          <td>{order.quotationCode || 'N/A'}</td>
+                          <td>{order.customerName || 'N/A'}</td>
+                          <td>{order.deliveryDate ? new Date(order.deliveryDate).toLocaleDateString('vi-VN') : 'N/A'}</td>
+                          <td>{order.weightKg?.toFixed(2) || '0'}</td>
+                          <td><Badge bg={order.status === 'SENT' ? 'info' : order.status === 'ACCEPTED' ? 'success' : 'primary'}>{order.status}</Badge></td>
+                        </tr>
+                      ))}
+                      <tr className="table-warning">
+                        <td colSpan={4}><strong>Tổng Backlog</strong></td>
+                        <td><strong>{capacityReportData.backlogWeightKg?.toFixed(2) || '0'} kg</strong></td>
+                        <td></td>
+                      </tr>
+                    </tbody>
+                  </Table>
+                </div>
+              )}
 
               {capacityReportData.conflicts && capacityReportData.conflicts.length > 0 && (
                 <div className="mb-3">
