@@ -492,9 +492,11 @@ const PlanningRFQDetail = () => {
                   <p><strong>Số ngày có sẵn:</strong> {capacityReportData.availableDays?.toFixed(2) || 'N/A'} ngày ({daysToHours(capacityReportData.availableDays)})</p>
                 </Col>
                 <Col md={6}>
+                  {/* TẠM ẨN - Thuộc Scheduling, không thuộc Capacity Check
                   <p><strong>Ngày bắt đầu dự kiến:</strong> {capacityReportData.productionStartDate ? new Date(capacityReportData.productionStartDate).toLocaleDateString('vi-VN') : 'N/A'}</p>
                   <p><strong>Ngày kết thúc dự kiến:</strong> {capacityReportData.productionEndDate ? new Date(capacityReportData.productionEndDate).toLocaleDateString('vi-VN') : (capacityReportData.packagingStage?.endDate ? new Date(capacityReportData.packagingStage.endDate).toLocaleDateString('vi-VN') : 'N/A')}</p>
                   <p><strong>Tổng thời gian chờ:</strong> {capacityReportData.totalWaitTime?.toFixed(2) || 'N/A'} ngày ({daysToHours(capacityReportData.totalWaitTime)})</p>
+                  */}
                 </Col>
               </Row>
 
@@ -655,15 +657,12 @@ const PlanningRFQDetail = () => {
               )}
 
               <div className="mb-3">
-                <h6>Chi tiết các công đoạn:</h6>
+                <h6>Chi tiết các công đoạn (cho đơn RFQ này):</h6>
                 <Table striped bordered size="sm">
                   <thead>
                     <tr>
                       <th>Công đoạn</th>
                       <th>Thời gian xử lý</th>
-                      <th>Thời gian chờ</th>
-                      <th>Ngày bắt đầu</th>
-                      <th>Ngày kết thúc</th>
                       <th>Năng lực</th>
                     </tr>
                   </thead>
@@ -672,9 +671,6 @@ const PlanningRFQDetail = () => {
                       <tr>
                         <td>{capacityReportData.warpingStage.stageName}</td>
                         <td>{daysToHours(capacityReportData.warpingStage.processingDays)}</td>
-                        <td>{daysToHours(capacityReportData.warpingStage.waitTime)}</td>
-                        <td>{capacityReportData.warpingStage.startDate ? new Date(capacityReportData.warpingStage.startDate).toLocaleDateString('vi-VN') : 'N/A'}</td>
-                        <td>{capacityReportData.warpingStage.endDate ? new Date(capacityReportData.warpingStage.endDate).toLocaleDateString('vi-VN') : 'N/A'}</td>
                         <td>{formatCapacity(capacityReportData.warpingStage.stageType, capacityReportData.warpingStage.capacity)}</td>
                       </tr>
                     )}
@@ -682,9 +678,6 @@ const PlanningRFQDetail = () => {
                       <tr>
                         <td>{capacityReportData.weavingStage.stageName}</td>
                         <td>{daysToHours(capacityReportData.weavingStage.processingDays)}</td>
-                        <td>{daysToHours(capacityReportData.weavingStage.waitTime)}</td>
-                        <td>{capacityReportData.weavingStage.startDate ? new Date(capacityReportData.weavingStage.startDate).toLocaleDateString('vi-VN') : 'N/A'}</td>
-                        <td>{capacityReportData.weavingStage.endDate ? new Date(capacityReportData.weavingStage.endDate).toLocaleDateString('vi-VN') : 'N/A'}</td>
                         <td>{formatCapacity(capacityReportData.weavingStage.stageType, capacityReportData.weavingStage.capacity)}</td>
                       </tr>
                     )}
@@ -692,9 +685,6 @@ const PlanningRFQDetail = () => {
                       <tr>
                         <td>{capacityReportData.dyeingStage.stageName}</td>
                         <td>{daysToHours(capacityReportData.dyeingStage.processingDays)}</td>
-                        <td>{daysToHours(capacityReportData.dyeingStage.waitTime)}</td>
-                        <td>{capacityReportData.dyeingStage.startDate ? new Date(capacityReportData.dyeingStage.startDate).toLocaleDateString('vi-VN') : 'N/A'}</td>
-                        <td>{capacityReportData.dyeingStage.endDate ? new Date(capacityReportData.dyeingStage.endDate).toLocaleDateString('vi-VN') : 'N/A'}</td>
                         <td>{formatCapacity(capacityReportData.dyeingStage.stageType, capacityReportData.dyeingStage.capacity)}</td>
                       </tr>
                     )}
@@ -702,9 +692,6 @@ const PlanningRFQDetail = () => {
                       <tr>
                         <td>{capacityReportData.cuttingStage.stageName}</td>
                         <td>{daysToHours(capacityReportData.cuttingStage.processingDays)}</td>
-                        <td>{daysToHours(capacityReportData.cuttingStage.waitTime)}</td>
-                        <td>{capacityReportData.cuttingStage.startDate ? new Date(capacityReportData.cuttingStage.startDate).toLocaleDateString('vi-VN') : 'N/A'}</td>
-                        <td>{capacityReportData.cuttingStage.endDate ? new Date(capacityReportData.cuttingStage.endDate).toLocaleDateString('vi-VN') : 'N/A'}</td>
                         <td>{formatCapacity(capacityReportData.cuttingStage.stageType, capacityReportData.cuttingStage.capacity)}</td>
                       </tr>
                     )}
@@ -712,9 +699,6 @@ const PlanningRFQDetail = () => {
                       <tr>
                         <td>{capacityReportData.sewingStage.stageName}</td>
                         <td>{daysToHours(capacityReportData.sewingStage.processingDays)}</td>
-                        <td>{daysToHours(capacityReportData.sewingStage.waitTime)}</td>
-                        <td>{capacityReportData.sewingStage.startDate ? new Date(capacityReportData.sewingStage.startDate).toLocaleDateString('vi-VN') : 'N/A'}</td>
-                        <td>{capacityReportData.sewingStage.endDate ? new Date(capacityReportData.sewingStage.endDate).toLocaleDateString('vi-VN') : 'N/A'}</td>
                         <td>{formatCapacity(capacityReportData.sewingStage.stageType, capacityReportData.sewingStage.capacity)}</td>
                       </tr>
                     )}
@@ -722,9 +706,6 @@ const PlanningRFQDetail = () => {
                       <tr>
                         <td>{capacityReportData.packagingStage.stageName}</td>
                         <td>{daysToHours(capacityReportData.packagingStage.processingDays)}</td>
-                        <td>{daysToHours(capacityReportData.packagingStage.waitTime)}</td>
-                        <td>{capacityReportData.packagingStage.startDate ? new Date(capacityReportData.packagingStage.startDate).toLocaleDateString('vi-VN') : 'N/A'}</td>
-                        <td>{capacityReportData.packagingStage.endDate ? new Date(capacityReportData.packagingStage.endDate).toLocaleDateString('vi-VN') : 'N/A'}</td>
                         <td>{formatCapacity(capacityReportData.packagingStage.stageType, capacityReportData.packagingStage.capacity)}</td>
                       </tr>
                     )}
