@@ -77,6 +77,23 @@ const LeaderStageProgress = () => {
     fetchDefectInfo();
   }, [location.state?.defectId]);
 
+  // Fallback: nếu mở từ "Đơn hàng của tôi" không có state.defectId, nhưng stage có defectId
+  useEffect(() => {
+    const fetchStageDefect = async () => {
+      if (stage?.defectId) {
+        // tránh gọi lại nếu đã có cùng defect
+        if (defect && String(defect.id) === String(stage.defectId)) return;
+        try {
+          const data = await productionService.getDefectDetail(stage.defectId);
+          setDefect(data);
+        } catch (error) {
+          console.error("Error fetching defect by stage.defectId:", error);
+        }
+      }
+    };
+    fetchStageDefect();
+  }, [stage?.defectId, defect]);
+
   useEffect(() => {
     const loadInspections = async () => {
       const isFailedStatus = stage?.executionStatus === 'QC_FAILED' ||
@@ -172,13 +189,20 @@ const LeaderStageProgress = () => {
           const data = await productionService.getLeaderOrderDetail(orderId, userId);
           setOrder(data);
           if (data.stages && data.stages.length > 0) {
-            // Updated: Find the stage assigned to this leader using userId
-            // userId is string from storage, convert if needed or allow loose check
-            const currentStage = data.stages.find(s =>
-              (s.assignedLeader && String(s.assignedLeader.id) === String(userId)) ||
-              (String(s.assignedLeaderId) === String(userId)) ||
-              (s.assignee && s.assignee.includes && s.assignee.includes(userId)) // Fallback if assignee is string? Unlikely but safe
-            ) || data.stages[0]; // Fallback to first stage if not found (or view mode)
+            // Ưu tiên stageId được truyền từ danh sách/đơn hàng
+            const preferredStageId = location.state?.stageId;
+            let currentStage = null;
+            if (preferredStageId) {
+              currentStage = data.stages.find(s => String(s.id) === String(preferredStageId));
+            }
+            // Nếu không có stageId hoặc không tìm thấy, fallback: stage của leader, sau đó stage đầu tiên
+            if (!currentStage) {
+              currentStage = data.stages.find(s =>
+                (s.assignedLeader && String(s.assignedLeader.id) === String(userId)) ||
+                (String(s.assignedLeaderId) === String(userId)) ||
+                (s.assignee && s.assignee.includes && s.assignee.includes(userId))
+              ) || data.stages[0];
+            }
 
             setStage(currentStage);
             setCurrentProgress(currentStage.progress || currentStage.progressPercent || 0);

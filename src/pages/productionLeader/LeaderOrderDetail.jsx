@@ -258,29 +258,30 @@ const LeaderOrderDetail = () => {
                                 return <span className="text-muted small">Chưa đến lượt</span>;
                               }
 
+                              const goProgress = () => {
+                                navigate(`/leader/orders/${orderId}/progress`, {
+                                  state: {
+                                    stageId: stage.id,
+                                    defectId: stage.defectId,
+                                    severity: stage.defectSeverity
+                                  }
+                                });
+                              };
+
                               const handleAction = async () => {
                                 if (buttonConfig.action === 'start') {
                                   setLoading(true);
                                   try {
-                                    const navigateToProgress = () => {
-                                      navigate(`/leader/orders/${orderId}/progress`, {
-                                        state: {
-                                          defectId: stage.defectId,
-                                          severity: stage.defectSeverity
-                                        }
-                                      });
-                                    };
-
                                     // Rework flow: use startRework (auto pre-emption) and skip blocking check
                                     if (isReworkStage) {
                                       // If already in progress, just view detail
                                       if (stage.executionStatus === 'REWORK_IN_PROGRESS') {
-                                        navigateToProgress();
+                                        goProgress();
                                         return;
                                       }
                                       await executionService.startRework(stage.id, userId);
                                       toast.success('Đã bắt đầu sửa lỗi');
-                                      navigateToProgress();
+                                      goProgress();
                                       return;
                                     }
 
@@ -292,7 +293,7 @@ const LeaderOrderDetail = () => {
                                     }
                                     await productionService.startStageRolling(stage.id, userId);
                                     toast.success('Đã bắt đầu công đoạn');
-                                    navigate(`/leader/orders/${orderId}/progress`);
+                                    goProgress();
                                   } catch (error) {
                                     console.error('Error starting stage:', error);
                                     const msg = error.response?.data?.message || error.message || 'Không thể bắt đầu công đoạn';
@@ -305,7 +306,7 @@ const LeaderOrderDetail = () => {
                                       setLoading(false);
                                   }
                                 } else {
-                                  navigate(`/leader/orders/${orderId}/progress`);
+                                  goProgress();
                                 }
                               };
 
