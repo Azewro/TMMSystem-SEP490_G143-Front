@@ -37,11 +37,20 @@ const LeaderOrderList = () => {
           ordersData.map(async (order) => {
             try {
               const orderDetail = await orderService.getOrderById(order.id);
-              // Find the stage assigned to this leader
-              const leaderStage = (orderDetail.stages || []).find(
-                stage => stage.assignedLeaderId === numericUserId ||
+              // Find the stage(s) assigned to this leader and pick the one đang hoạt động nhất
+              const leaderStagesAll = (orderDetail.stages || [])
+                .filter(stage =>
+                  stage.assignedLeaderId === numericUserId ||
                   stage.assignedLeader?.id === numericUserId
-              );
+                )
+                // ưu tiên thứ tự công đoạn
+                .sort((a, b) => (a.stageSequence || 0) - (b.stageSequence || 0));
+
+              const activeStatuses = ['IN_PROGRESS', 'REWORK_IN_PROGRESS', 'READY_TO_PRODUCE', 'READY', 'WAITING', 'WAITING_QC', 'QC_IN_PROGRESS', 'WAITING_REWORK'];
+              const leaderStage =
+                leaderStagesAll.find(s => activeStatuses.includes(s.executionStatus || s.status)) ||
+                leaderStagesAll.find(s => (s.progressPercent ?? 0) < 100) ||
+                leaderStagesAll[0];
               const orderStatus = orderDetail.executionStatus || orderDetail.status;
               const productName =
                 orderDetail.productName ||
@@ -185,15 +194,26 @@ const OrderTable = ({ orders, handleStart, handleViewDetail, isRework = false })
               const stage = order.leaderStage;
               const orderLocked = order.orderStatus === 'WAITING_PRODUCTION' || order.orderStatus === 'PENDING_APPROVAL';
 
-              // Override logic: If order is locked (PM hasn't started), status should be "Đợi" and buttons hidden
+              // Hiển thị trạng thái theo công đoạn của leader (nếu có); nếu không, dùng trạng thái đơn hàng
               let displayStage = stage;
               let displayStatus = stage
                 ? stage
                 : getLeaderStageStatusLabel(order.executionStatus || order.status);
 
+              // Nếu PM chưa start lệnh: luôn "Đợi"
               if (orderLocked) {
                 displayStage = stage ? { ...stage, statusLabel: 'Đợi', statusVariant: 'secondary', buttons: [] } : null;
                 displayStatus = { label: 'Đợi', variant: 'secondary', buttons: [] };
+              } else {
+                // Nếu có stage và tiến độ 100% => chờ QC (thay vì hiển thị "Đạt")
+                if (displayStage && (displayStage.progress >= 100 || displayStage.status === 'WAITING_QC')) {
+                  displayStage = {
+                    ...displayStage,
+                    statusLabel: 'Chờ kiểm tra',
+                    statusVariant: 'warning',
+                    buttons: [{ text: 'Xem chi tiết', action: 'detail', variant: 'outline-secondary' }]
+                  };
+                }
               }
 
               return (

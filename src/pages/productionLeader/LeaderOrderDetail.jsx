@@ -59,8 +59,8 @@ const LeaderOrderDetail = () => {
             name: s.stageName || getStageTypeName(s.stageType) || s.stageType, // Use stageName from backend if available
             stageType: s.stageType,
             assignee: s.assigneeName || s.assignedLeader?.fullName || 'Chưa phân công',
-            status: s.status || s.executionStatus, // Use simple status or specific execution status
-            statusLabel: s.statusLabel || getStatusLabel(s.status || s.executionStatus),
+            status: s.executionStatus || s.status, // ưu tiên executionStatus
+            statusLabel: s.statusLabel || getStatusLabel(s.executionStatus || s.status),
             progress: s.progressPercent || 0,
             isRework: s.isRework,
             executionStatus: s.executionStatus

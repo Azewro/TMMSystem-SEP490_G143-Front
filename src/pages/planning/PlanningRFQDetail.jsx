@@ -485,9 +485,6 @@ const PlanningRFQDetail = () => {
                       {capacityReportData.status === 'SUFFICIENT' ? 'Đủ năng lực' : 'Không đủ năng lực'}
                     </Badge>
                   </p>
-                  {capacityReportData.bottleneck && (
-                    <p><strong>Công đoạn giới hạn:</strong> <span className="text-warning">{capacityReportData.bottleneck}</span></p>
-                  )}
                   <p><strong>Số ngày cần thiết (backlog + đơn hiện tại):</strong> {capacityReportData.requiredDays?.toFixed(2) || 'N/A'} ngày ({daysToHours(capacityReportData.requiredDays)})</p>
                   <p><strong>Số ngày có sẵn:</strong> {capacityReportData.availableDays?.toFixed(2) || 'N/A'} ngày ({daysToHours(capacityReportData.availableDays)})</p>
                 </Col>
@@ -506,7 +503,7 @@ const PlanningRFQDetail = () => {
                 </Alert>
               )}
 
-              {/* Công suất các công đoạn - giải thích bottleneck */}
+              {/* Công suất các công đoạn */}
               {capacityReportData.stageCapacities && capacityReportData.stageCapacities.length > 0 && (
                 <div className="mb-3">
                   <h6>🏭 Công suất các công đoạn:</h6>
@@ -518,25 +515,20 @@ const PlanningRFQDetail = () => {
                         <th>Năng suất/đơn vị</th>
                         <th>Tổng năng suất/ngày</th>
                         <th>Đơn vị</th>
-                        <th>Bottleneck?</th>
                       </tr>
                     </thead>
                     <tbody>
                       {capacityReportData.stageCapacities.map((stage, idx) => (
-                        <tr key={idx} className={stage.isBottleneck ? 'table-danger' : ''}>
+                        <tr key={idx}>
                           <td><strong>{stage.stageName}</strong></td>
                           <td>{stage.machineCount || '-'}</td>
                           <td>{stage.capacityPerMachine?.toFixed(2) || '-'}</td>
                           <td><strong>{stage.totalCapacityPerDay?.toFixed(2) || '0'}</strong></td>
                           <td>{stage.unit}</td>
-                          <td>{stage.isBottleneck ? <Badge bg="danger">⚠️ Bottleneck</Badge> : '-'}</td>
                         </tr>
                       ))}
                     </tbody>
                   </Table>
-                  <small className="text-muted">
-                    💡 Bottleneck là công đoạn có năng suất thấp nhất (tính theo kg), giới hạn năng lực toàn bộ hệ thống.
-                  </small>
                 </div>
               )}
 
@@ -546,12 +538,8 @@ const PlanningRFQDetail = () => {
                 <Table striped bordered size="sm">
                   <tbody>
                     <tr>
-                      <td><strong>Công đoạn giới hạn (Bottleneck)</strong></td>
-                      <td>{capacityReportData.bottleneck || 'N/A'}</td>
-                    </tr>
-                    <tr>
-                      <td><strong>Năng suất Bottleneck</strong></td>
-                      <td><strong>{capacityReportData.bottleneckCapacityPerDay?.toFixed(2) || 'N/A'} kg/ngày</strong></td>
+                      <td><strong>Công đoạn giới hạn</strong></td>
+                      <td><span className="text-warning">{capacityReportData.bottleneck || 'N/A'}</span></td>
                     </tr>
                     <tr className="table-info">
                       <td><strong>A. Đơn mới (đang kiểm tra)</strong></td>
