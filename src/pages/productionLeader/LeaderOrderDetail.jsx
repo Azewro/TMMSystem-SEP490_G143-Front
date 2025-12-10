@@ -240,6 +240,7 @@ const LeaderOrderDetail = () => {
                               // Disable if PENDING, Locked, or QC_FAILED (waiting for Tech) - specific to this stage
                               const isQcFailed = stage.status === 'QC_FAILED';
                               const isPending = stage.status === 'PENDING';
+                              const isReworkStage = stage.isRework || stage.executionStatus === 'WAITING_REWORK' || stage.executionStatus === 'REWORK_IN_PROGRESS';
                               // Also disable if NOT assigned to current user (view only)
                               // We need to check if this stage is assigned to the current user.
                               // Since we don't have easy access to userId here inside the map without prop drilling or context,
@@ -259,27 +260,49 @@ const LeaderOrderDetail = () => {
 
                               const handleAction = async () => {
                                 if (buttonConfig.action === 'start') {
+                                  setLoading(true);
                                   try {
-                                    setLoading(true);
-                                    // NEW: Check if stage is blocked before starting
+                                    const navigateToProgress = () => {
+                                      navigate(`/leader/orders/${orderId}/progress`, {
+                                        state: {
+                                          defectId: stage.defectId,
+                                          severity: stage.defectSeverity
+                                        }
+                                      });
+                                    };
+
+                                    // Rework flow: use startRework (auto pre-emption) and skip blocking check
+                                    if (isReworkStage) {
+                                      // If already in progress, just view detail
+                                      if (stage.executionStatus === 'REWORK_IN_PROGRESS') {
+                                        navigateToProgress();
+                                        return;
+                                      }
+                                      await executionService.startRework(stage.id, userId);
+                                      toast.success('Đã bắt đầu sửa lỗi');
+                                      navigateToProgress();
+                                      return;
+                                    }
+
+                                    // Normal flow: Check if stage is blocked before starting
                                     const blockCheck = await executionService.checkCanStart(stage.id);
                                     if (blockCheck && blockCheck.canStart === false) {
                                       toast.error(blockCheck.message || 'Công đoạn đang bị chiếm bởi lô khác');
-                                      setLoading(false);
                                       return;
                                     }
                                     await productionService.startStageRolling(stage.id, userId);
-                                    toast.success('Đã b\u1eaft \u0111\u1ea7u công đo\u1ea1n');
-                                    window.location.reload();
+                                    toast.success('Đã bắt đầu công đoạn');
+                                    navigate(`/leader/orders/${orderId}/progress`);
                                   } catch (error) {
                                     console.error('Error starting stage:', error);
-                                    const msg = error.response?.data?.message || error.message || 'Không th\u1ec3 b\u1eaft \u0111\u1ea7u công đo\u1ea1n';
+                                    const msg = error.response?.data?.message || error.message || 'Không thể bắt đầu công đoạn';
                                     if (msg.includes('BLOCKING')) {
                                       toast.error(msg.replace('java.lang.RuntimeException: BLOCKING: ', ''));
                                     } else {
                                       toast.error(msg);
                                     }
-                                    setLoading(false);
+                                    } finally {
+                                      setLoading(false);
                                   }
                                 } else {
                                   navigate(`/leader/orders/${orderId}/progress`);
