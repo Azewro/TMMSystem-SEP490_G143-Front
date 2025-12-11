@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Container, Card, Table, Button, Modal, Form, Alert, Spinner, Badge, InputGroup, Row, Col } from 'react-bootstrap';
-import { FaSearch, FaDownload, FaEye, FaFileContract, FaFileInvoiceDollar, FaExclamationTriangle } from 'react-icons/fa';
+import { FaSearch, FaDownload, FaEye, FaFileContract, FaFileInvoiceDollar, FaExclamationTriangle, FaSortUp, FaSortDown, FaSort } from 'react-icons/fa';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { contractService } from '../../api/contractService';
@@ -76,6 +76,30 @@ const DirectorContractApproval = () => {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
+
+  // Sort state
+  const [sortColumn, setSortColumn] = useState('');
+  const [sortDirection, setSortDirection] = useState('asc');
+
+  // Handle sort click
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  // Get sort icon for column
+  const getSortIcon = (column) => {
+    if (sortColumn !== column) {
+      return <FaSort className="ms-1 text-muted" style={{ opacity: 0.5 }} />;
+    }
+    return sortDirection === 'asc'
+      ? <FaSortUp className="ms-1 text-primary" />
+      : <FaSortDown className="ms-1 text-primary" />;
+  };
 
   // State for file viewer modal
   const [showFileViewer, setShowFileViewer] = useState(false);
@@ -159,11 +183,52 @@ const DirectorContractApproval = () => {
   }, [searchTerm, statusFilter, deliveryDateFilter, allContracts]);
 
   // Pagination Logic
-  const totalPages = Math.ceil(filteredContracts.length / ITEMS_PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(filteredContracts.length / ITEMS_PER_PAGE));
   const paginatedContracts = useMemo(() => {
+    // Apply sorting first
+    let sorted = [...filteredContracts];
+
+    if (sortColumn) {
+      sorted.sort((a, b) => {
+        let aValue, bValue;
+
+        switch (sortColumn) {
+          case 'contractNumber':
+            aValue = a.contractNumber || '';
+            bValue = b.contractNumber || '';
+            break;
+          case 'customerName':
+            aValue = a.customerName || '';
+            bValue = b.customerName || '';
+            break;
+          case 'createdAt':
+            aValue = a.createdAt || '';
+            bValue = b.createdAt || '';
+            break;
+          case 'deliveryDate':
+            aValue = a.deliveryDate || '';
+            bValue = b.deliveryDate || '';
+            break;
+          case 'status':
+            aValue = a.status || '';
+            bValue = b.status || '';
+            break;
+          case 'totalAmount':
+            aValue = a.totalAmount || 0;
+            bValue = b.totalAmount || 0;
+            return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+          default:
+            return 0;
+        }
+
+        const comparison = String(aValue).localeCompare(String(bValue), 'vi');
+        return sortDirection === 'asc' ? comparison : -comparison;
+      });
+    }
+
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredContracts.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredContracts, currentPage]);
+    return sorted.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredContracts, currentPage, sortColumn, sortDirection]);
 
   const openContract = async (contract) => {
     setSelectedContract(contract);
@@ -416,15 +481,45 @@ const DirectorContractApproval = () => {
                 ) : (
                   <>
                     <Table striped bordered hover responsive>
-                      <thead>
+                      <thead className="table-light">
                         <tr>
-                          <th style={{ width: 60 }}>#</th>
-                          <th style={{ width: 180 }}>Tên hợp đồng</th>
-                          <th style={{ width: 160 }}>Khách hàng</th>
-                          <th style={{ width: 160 }}>Ngày tạo</th>
-                          <th style={{ width: 160 }}>Ngày giao</th>
-                          <th style={{ width: 160 }}>Trạng thái</th>
-                          <th style={{ width: 160 }}>Tổng tiền</th>
+                          <th style={{ width: 60 }}>STT</th>
+                          <th
+                            style={{ width: 180, cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('contractNumber')}
+                          >
+                            Tên hợp đồng {getSortIcon('contractNumber')}
+                          </th>
+                          <th
+                            style={{ width: 160, cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('customerName')}
+                          >
+                            Khách hàng {getSortIcon('customerName')}
+                          </th>
+                          <th
+                            style={{ width: 160, cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('createdAt')}
+                          >
+                            Ngày tạo {getSortIcon('createdAt')}
+                          </th>
+                          <th
+                            style={{ width: 160, cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('deliveryDate')}
+                          >
+                            Ngày giao {getSortIcon('deliveryDate')}
+                          </th>
+                          <th
+                            style={{ width: 160, cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('status')}
+                          >
+                            Trạng thái {getSortIcon('status')}
+                          </th>
+                          <th
+                            style={{ width: 160, cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('totalAmount')}
+                          >
+                            Tổng tiền {getSortIcon('totalAmount')}
+                          </th>
                           <th style={{ width: 140 }} className="text-center">Hành động</th>
                         </tr>
                       </thead>
@@ -460,15 +555,11 @@ const DirectorContractApproval = () => {
                         )}
                       </tbody>
                     </Table>
-                    {totalPages > 1 && (
-                      <div className="mt-3">
-                        <Pagination
-                          currentPage={currentPage}
-                          totalPages={totalPages}
-                          onPageChange={setCurrentPage}
-                        />
-                      </div>
-                    )}
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={setCurrentPage}
+                    />
                   </>
                 )}
               </Card.Body>
