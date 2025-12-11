@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import DatePicker from 'react-datepicker';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import DatePicker, { registerLocale } from 'react-datepicker';
+import { vi } from 'date-fns/locale/vi';
 import 'react-datepicker/dist/react-datepicker.css';
-import { Container, Card, Table, Button, Form, InputGroup, Alert } from 'react-bootstrap';
-import { FaSearch, FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
+import { Container, Card, Table, Button, Form, InputGroup, Alert, Spinner, Row, Col } from 'react-bootstrap';
+import { FaSearch, FaPlus, FaEdit, FaSortUp, FaSortDown, FaSort } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
@@ -10,6 +11,8 @@ import { materialStockService } from '../../api/materialStockService';
 import MaterialStockModal from '../../components/modals/MaterialStockModal';
 import Pagination from '../../components/Pagination';
 import toast from 'react-hot-toast';
+
+registerLocale('vi', vi);
 
 const MaterialStockManagement = () => {
   const { user: currentUser } = useAuth();
@@ -34,6 +37,30 @@ const MaterialStockManagement = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
   const ITEMS_PER_PAGE = 10;
+
+  // Sort state
+  const [sortColumn, setSortColumn] = useState('');
+  const [sortDirection, setSortDirection] = useState('asc');
+
+  // Handle sort click
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  // Get sort icon for column
+  const getSortIcon = (column) => {
+    if (sortColumn !== column) {
+      return <FaSort className="ms-1 text-muted" style={{ opacity: 0.5 }} />;
+    }
+    return sortDirection === 'asc'
+      ? <FaSortUp className="ms-1 text-primary" />
+      : <FaSortDown className="ms-1 text-primary" />;
+  };
 
   const parseDateString = (value) => {
     if (!value) return null;
@@ -92,6 +119,43 @@ const MaterialStockManagement = () => {
     setCurrentPage(1);
   }, [searchTerm, receivedDateFilter]);
 
+  // Sort materials client-side
+  const sortedMaterialStocks = useMemo(() => {
+    if (!sortColumn) return materialStocks;
+
+    return [...materialStocks].sort((a, b) => {
+      let aValue, bValue;
+
+      switch (sortColumn) {
+        case 'materialCode':
+          aValue = a.materialCode || '';
+          bValue = b.materialCode || '';
+          break;
+        case 'materialName':
+          aValue = a.materialName || '';
+          bValue = b.materialName || '';
+          break;
+        case 'quantity':
+          aValue = a.quantity || 0;
+          bValue = b.quantity || 0;
+          return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+        case 'unitPrice':
+          aValue = a.unitPrice || 0;
+          bValue = b.unitPrice || 0;
+          return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+        case 'receivedDate':
+          aValue = a.receivedDate || '';
+          bValue = b.receivedDate || '';
+          break;
+        default:
+          return 0;
+      }
+
+      const comparison = String(aValue).localeCompare(String(bValue), 'vi');
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [materialStocks, sortColumn, sortDirection]);
+
   const handleCreate = () => {
     setSelectedStock(null);
     setShowModal(true);
@@ -119,8 +183,6 @@ const MaterialStockManagement = () => {
       throw err;
     }
   };
-
-
 
   const formatDate = (dateString) => {
     if (!dateString) return '—';
@@ -157,6 +219,14 @@ const MaterialStockManagement = () => {
     }
   };
 
+  if (loading && materialStocks.length === 0) {
+    return (
+      <div className="d-flex justify-content-center align-items-center vh-100">
+        <Spinner animation="border" />
+      </div>
+    );
+  }
+
   return (
     <div className="customer-layout">
       <Header />
@@ -164,59 +234,63 @@ const MaterialStockManagement = () => {
         <InternalSidebar userRole={getSidebarRole()} />
         <div className="flex-grow-1" style={{ backgroundColor: '#f8f9fa', minHeight: 'calc(100vh - 70px)' }}>
           <Container fluid className="p-4">
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <h4 className="mb-0">Quản lý nhập kho nguyên liệu</h4>
+            <div className="d-flex justify-content-between align-items-center mb-4">
+              <h3 className="mb-0" style={{ fontWeight: 600 }}>Quản lý nhập kho nguyên liệu</h3>
               <Button variant="primary" onClick={handleCreate}>
                 <FaPlus className="me-2" />
                 Nhập thêm nguyên liệu
               </Button>
             </div>
 
-            {/* Search and Filters */}
+            {/* Search and Filters - Improved Design */}
             <Card className="mb-3 shadow-sm">
               <Card.Body>
-                <div className="row g-3">
-                  <div className="col-md-6">
-                    <InputGroup>
-                      <InputGroup.Text>
-                        <FaSearch />
-                      </InputGroup.Text>
-                      <Form.Control
-                        placeholder="Tìm kiếm theo tên nguyên liệu, mã nguyên liệu..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            setCurrentPage(1);
-                          }
-                        }}
-                      />
-                    </InputGroup>
-                  </div>
-                  <div className="col-md-6">
-                    <Form.Label>Lọc theo ngày nhập hàng</Form.Label>
-                    <div className="custom-datepicker-wrapper">
-                      <DatePicker
-                        selected={parseDateString(receivedDateFilter)}
-                        onChange={(date) => {
-                          if (date) {
-                            // Format to yyyy-MM-dd for backend/state compatibility
-                            setReceivedDateFilter(formatDateForBackend(date));
-                          } else {
-                            setReceivedDateFilter('');
-                          }
-                        }}
-                        dateFormat="dd/MM/yyyy"
-                        locale="vi"
-                        className="form-control"
-                        placeholderText="dd/mm/yyyy"
-                        isClearable
-                        todayButton="Hôm nay"
-                      />
-                    </div>
-                  </div>
-                </div>
+                <Row className="g-3 align-items-end">
+                  <Col md={5}>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Tìm kiếm</Form.Label>
+                      <InputGroup>
+                        <InputGroup.Text>
+                          <FaSearch />
+                        </InputGroup.Text>
+                        <Form.Control
+                          placeholder="Tìm kiếm theo tên nguyên liệu, mã nguyên liệu..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              setCurrentPage(1);
+                            }
+                          }}
+                        />
+                      </InputGroup>
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Lọc theo ngày nhập hàng</Form.Label>
+                      <div className="custom-datepicker-wrapper">
+                        <DatePicker
+                          selected={parseDateString(receivedDateFilter)}
+                          onChange={(date) => {
+                            if (date) {
+                              setReceivedDateFilter(formatDateForBackend(date));
+                            } else {
+                              setReceivedDateFilter('');
+                            }
+                          }}
+                          dateFormat="dd/MM/yyyy"
+                          locale="vi"
+                          className="form-control"
+                          placeholderText="dd/mm/yyyy"
+                          isClearable
+                          todayButton="Hôm nay"
+                        />
+                      </div>
+                    </Form.Group>
+                  </Col>
+                </Row>
               </Card.Body>
             </Card>
 
@@ -227,22 +301,50 @@ const MaterialStockManagement = () => {
             )}
 
             <Card className="shadow-sm">
-              <Card.Body className="p-0">
+              <Card.Header>
+                Danh sách nhập kho nguyên liệu
+              </Card.Header>
+              <Card.Body>
                 <Table responsive className="mb-0 align-middle">
                   <thead className="table-light">
                     <tr>
                       <th style={{ width: 60 }}>STT</th>
-                      <th>Mã nguyên liệu</th>
-                      <th>Tên nguyên liệu</th>
-                      <th>Số lượng</th>
+                      <th
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                        onClick={() => handleSort('materialCode')}
+                      >
+                        Mã NL {getSortIcon('materialCode')}
+                      </th>
+                      <th
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                        onClick={() => handleSort('materialName')}
+                      >
+                        Tên nguyên liệu {getSortIcon('materialName')}
+                      </th>
+                      <th
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                        onClick={() => handleSort('quantity')}
+                      >
+                        Số lượng {getSortIcon('quantity')}
+                      </th>
                       <th>Đơn vị</th>
-                      <th>Đơn giá</th>
+                      <th
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                        onClick={() => handleSort('unitPrice')}
+                      >
+                        Đơn giá {getSortIcon('unitPrice')}
+                      </th>
                       <th>Thành tiền</th>
                       <th>Số lô</th>
                       <th>Vị trí kho</th>
-                      <th>Ngày nhập</th>
+                      <th
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                        onClick={() => handleSort('receivedDate')}
+                      >
+                        Ngày nhập {getSortIcon('receivedDate')}
+                      </th>
                       <th>Hạn sử dụng</th>
-                      <th style={{ width: 140 }} className="text-center">Hành động</th>
+                      <th style={{ width: 100 }} className="text-center">Hành động</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -254,14 +356,14 @@ const MaterialStockManagement = () => {
                         </td>
                       </tr>
                     )}
-                    {!loading && materialStocks.length === 0 && (
+                    {!loading && sortedMaterialStocks.length === 0 && (
                       <tr>
                         <td colSpan={12} className="text-center py-4 text-muted">
                           {totalElements === 0 ? 'Chưa có nhập kho nguyên liệu nào' : 'Không tìm thấy nhập kho phù hợp với bộ lọc'}
                         </td>
                       </tr>
                     )}
-                    {!loading && materialStocks.map((stock, idx) => {
+                    {!loading && sortedMaterialStocks.map((stock, idx) => {
                       const totalAmount = stock.quantity && stock.unitPrice
                         ? stock.quantity * stock.unitPrice
                         : null;
@@ -281,43 +383,33 @@ const MaterialStockManagement = () => {
                           <td>{formatDate(stock.receivedDate)}</td>
                           <td>{formatDate(stock.expiryDate)}</td>
                           <td className="text-center">
-                            <div className="d-flex gap-2 justify-content-center">
-                              <Button
-                                size="sm"
-                                variant="primary"
-                                onClick={() => handleEdit(stock)}
-                                title="Chỉnh sửa"
-                              >
-                                <FaEdit />
-                              </Button>
-
-                            </div>
+                            <Button
+                              size="sm"
+                              variant="primary"
+                              onClick={() => handleEdit(stock)}
+                              title="Chỉnh sửa"
+                            >
+                              <FaEdit />
+                            </Button>
                           </td>
                         </tr>
                       );
                     })}
                   </tbody>
                 </Table>
-              </Card.Body>
-            </Card>
-
-            {/* Pagination */}
-            {!loading && totalPages > 1 && (
-              <div className="d-flex justify-content-center mt-3">
                 <Pagination
                   currentPage={currentPage}
                   totalPages={totalPages}
                   onPageChange={setCurrentPage}
                 />
-              </div>
-            )}
-
-            {/* Display pagination info */}
-            {!loading && totalElements > 0 && (
-              <div className="text-center text-muted mt-2">
-                Hiển thị {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, totalElements)} trong tổng số {totalElements} bản ghi
-              </div>
-            )}
+                {/* Display pagination info */}
+                {!loading && totalElements > 0 && (
+                  <div className="text-center text-muted mt-2 small">
+                    Hiển thị {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, totalElements)} trong tổng số {totalElements} bản ghi
+                  </div>
+                )}
+              </Card.Body>
+            </Card>
           </Container>
         </div>
       </div>
@@ -337,4 +429,3 @@ const MaterialStockManagement = () => {
 };
 
 export default MaterialStockManagement;
-
