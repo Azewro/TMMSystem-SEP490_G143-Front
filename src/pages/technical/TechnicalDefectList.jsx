@@ -1,11 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Card, Table, Badge, Button, Spinner } from 'react-bootstrap';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Container, Card, Table, Badge, Button, Spinner, Form, InputGroup, Row, Col } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
+import { FaSearch, FaSortUp, FaSortDown, FaSort } from 'react-icons/fa';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
+import Pagination from '../../components/Pagination';
 import api from '../../api/apiConfig';
 import { toast } from 'react-hot-toast';
 import { getStageTypeName } from '../../utils/statusMapper';
+import DatePicker, { registerLocale } from 'react-datepicker';
+import { vi } from 'date-fns/locale/vi';
+import 'react-datepicker/dist/react-datepicker.css';
+import { parseDateString, formatDateForBackend } from '../../utils/validators';
+
+registerLocale('vi', vi);
+
+const ITEMS_PER_PAGE = 10;
 
 const severityConfig = {
   MINOR: { label: 'Lỗi nhẹ', variant: 'warning' },
@@ -21,16 +31,55 @@ const statusConfig = {
   WAITING_MATERIAL: { label: 'Chờ vật tư', variant: 'danger' }
 };
 
+const STATUS_FILTERS = [
+  { value: '', label: 'Tất cả trạng thái' },
+  { value: 'PENDING', label: 'Chờ xử lý' },
+  { value: 'IN_PROGRESS', label: 'Đang xử lý' },
+  { value: 'PROCESSED', label: 'Đã xử lý' },
+  { value: 'WAITING_REWORK', label: 'Chờ sửa' },
+  { value: 'WAITING_MATERIAL', label: 'Chờ vật tư' },
+];
+
 const TechnicalDefectList = () => {
   const navigate = useNavigate();
-  const [defects, setDefects] = useState([]);
+  const [allDefects, setAllDefects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Sort state
+  const [sortColumn, setSortColumn] = useState('');
+  const [sortDirection, setSortDirection] = useState('asc');
+
+  // Handle sort click
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  // Get sort icon for column
+  const getSortIcon = (column) => {
+    if (sortColumn !== column) {
+      return <FaSort className="ms-1 text-muted" style={{ opacity: 0.5 }} />;
+    }
+    return sortDirection === 'asc'
+      ? <FaSortUp className="ms-1 text-primary" />
+      : <FaSortDown className="ms-1 text-primary" />;
+  };
 
   const fetchData = async () => {
     setLoading(true);
     try {
       const response = await api.get('/v1/production/tech/defects');
-      setDefects(response.data);
+      setAllDefects(response.data);
     } catch (error) {
       console.error("Error fetching defects:", error);
       toast.error("Không thể tải danh sách lỗi");
@@ -43,6 +92,94 @@ const TechnicalDefectList = () => {
     fetchData();
   }, []);
 
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, dateFilter]);
+
+  // Filter defects
+  const filteredDefects = useMemo(() => {
+    return allDefects.filter((defect) => {
+      const matchesSearch = !searchTerm ||
+        (defect.batchNumber && defect.batchNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (defect.poNumber && defect.poNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (defect.productName && defect.productName.toLowerCase().includes(searchTerm.toLowerCase()));
+
+      const matchesStatus = !statusFilter || defect.status === statusFilter;
+
+      let matchesDate = true;
+      if (dateFilter && defect.createdAt) {
+        const defectDate = defect.createdAt.split('T')[0];
+        matchesDate = defectDate === dateFilter;
+      } else if (dateFilter) {
+        matchesDate = false;
+      }
+
+      return matchesSearch && matchesStatus && matchesDate;
+    });
+  }, [allDefects, searchTerm, statusFilter, dateFilter]);
+
+  // Sort and paginate
+  const paginatedDefects = useMemo(() => {
+    let sorted = [...filteredDefects];
+
+    if (sortColumn) {
+      sorted.sort((a, b) => {
+        let aValue, bValue;
+
+        switch (sortColumn) {
+          case 'batchNumber':
+            aValue = a.batchNumber || a.poNumber || '';
+            bValue = b.batchNumber || b.poNumber || '';
+            break;
+          case 'productName':
+            aValue = a.productName || '';
+            bValue = b.productName || '';
+            break;
+          case 'stageType':
+            aValue = getStageTypeName(a.stageType) || '';
+            bValue = getStageTypeName(b.stageType) || '';
+            break;
+          case 'severity':
+            aValue = a.severity || '';
+            bValue = b.severity || '';
+            break;
+          case 'status':
+            aValue = a.status || '';
+            bValue = b.status || '';
+            break;
+          case 'createdAt':
+            aValue = a.createdAt || '';
+            bValue = b.createdAt || '';
+            break;
+          default:
+            return 0;
+        }
+
+        const comparison = String(aValue).localeCompare(String(bValue), 'vi');
+        return sortDirection === 'asc' ? comparison : -comparison;
+      });
+    }
+
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return sorted.slice(startIndex, endIndex);
+  }, [filteredDefects, sortColumn, sortDirection, currentPage]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredDefects.length / ITEMS_PER_PAGE));
+
+  const getRowNumber = (index) => {
+    return (currentPage - 1) * ITEMS_PER_PAGE + index + 1;
+  };
+
+  if (loading) {
+    return (
+      <div className="d-flex justify-content-center align-items-center vh-100">
+        <Spinner animation="border" />
+      </div>
+    );
+  }
+
   return (
     <div className="customer-layout">
       <Header />
@@ -50,65 +187,162 @@ const TechnicalDefectList = () => {
         <InternalSidebar userRole="technical" />
         <div className="flex-grow-1" style={{ backgroundColor: '#f8f9fa', minHeight: 'calc(100vh - 70px)' }}>
           <Container fluid className="p-4">
-            <Card className="shadow-sm">
-              <Card.Body>
-                <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap">
-                  <div>
-                    <h5 className="mb-1">Danh Sách Lỗi (Tech)</h5>
-                    <small className="text-muted">Quản lý và xử lý các lỗi từ KSC</small>
-                  </div>
-                </div>
+            <h3 className="mb-4" style={{ fontWeight: 600 }}>Danh sách lỗi cần xử lý</h3>
 
-                {loading ? <Spinner animation="border" /> : (
-                  <Table hover responsive className="mb-0 align-middle">
-                    <thead className="table-light">
-                      <tr>
-                        <th>Mã lô</th>
-                        <th>Sản phẩm</th>
-                        <th>Kích thước</th>
-                        <th>Công đoạn lỗi</th>
-                        <th>Mức độ</th>
-                        <th>Trạng thái</th>
-                        <th>Ngày gửi</th>
-                        <th>Hành động</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {defects.length === 0 ? (
-                        <tr><td colSpan="8" className="text-center">Không có lỗi nào</td></tr>
-                      ) : (
-                        defects.map((defect) => {
-                          const severity = severityConfig[defect.severity] || { label: defect.severity, variant: 'secondary' };
-                          const status = statusConfig[defect.status] || { label: defect.status, variant: 'secondary' };
-                          return (
-                            <tr key={defect.id}>
-                              <td>{defect.batchNumber || defect.poNumber}</td>
-                              <td>{defect.productName || 'N/A'}</td>
-                              <td>{defect.size || 'N/A'}</td>
-                              <td>{getStageTypeName(defect.stageType)}</td>
-                              <td>
-                                <Badge bg={severity.variant}>{severity.label}</Badge>
-                              </td>
-                              <td>
-                                <Badge bg={status.variant}>{status.label}</Badge>
-                              </td>
-                              <td>{defect.createdAt ? new Date(defect.createdAt).toLocaleDateString('vi-VN') : ''}</td>
-                              <td>
-                                <Button
-                                  size="sm"
-                                  variant="outline-dark"
-                                  onClick={() => navigate(`/technical/defects/${defect.id}`)}
-                                >
-                                  Chi tiết
-                                </Button>
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                  </Table>
-                )}
+            {/* Search and Filter */}
+            <Card className="shadow-sm mb-3">
+              <Card.Body>
+                <Row className="g-3 align-items-end">
+                  <Col md={4}>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Tìm kiếm</Form.Label>
+                      <InputGroup>
+                        <InputGroup.Text><FaSearch /></InputGroup.Text>
+                        <Form.Control
+                          placeholder="Tìm kiếm theo mã lô, sản phẩm..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                      </InputGroup>
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Lọc theo ngày gửi</Form.Label>
+                      <div className="custom-datepicker-wrapper">
+                        <DatePicker
+                          selected={parseDateString(dateFilter)}
+                          onChange={(date) => {
+                            if (date) {
+                              setDateFilter(formatDateForBackend(date));
+                            } else {
+                              setDateFilter('');
+                            }
+                          }}
+                          onChangeRaw={(e) => {
+                            if (e.target.value === '' || e.target.value === null) {
+                              setDateFilter('');
+                            }
+                          }}
+                          dateFormat="dd/MM/yyyy"
+                          locale="vi"
+                          className="form-control"
+                          placeholderText="dd/mm/yyyy"
+                          isClearable
+                          todayButton="Hôm nay"
+                        />
+                      </div>
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Lọc theo trạng thái</Form.Label>
+                      <Form.Select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                      >
+                        {STATUS_FILTERS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                </Row>
+              </Card.Body>
+            </Card>
+
+            <Card className="shadow-sm">
+              <Card.Header>
+                Danh sách lỗi từ KCS
+              </Card.Header>
+              <Card.Body>
+                <Table hover responsive className="mb-0 align-middle">
+                  <thead className="table-light">
+                    <tr>
+                      <th style={{ width: 60 }}>STT</th>
+                      <th
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                        onClick={() => handleSort('batchNumber')}
+                      >
+                        Mã lô {getSortIcon('batchNumber')}
+                      </th>
+                      <th
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                        onClick={() => handleSort('productName')}
+                      >
+                        Sản phẩm {getSortIcon('productName')}
+                      </th>
+                      <th>Kích thước</th>
+                      <th
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                        onClick={() => handleSort('stageType')}
+                      >
+                        Công đoạn lỗi {getSortIcon('stageType')}
+                      </th>
+                      <th
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                        onClick={() => handleSort('severity')}
+                      >
+                        Mức độ {getSortIcon('severity')}
+                      </th>
+                      <th
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                        onClick={() => handleSort('status')}
+                      >
+                        Trạng thái {getSortIcon('status')}
+                      </th>
+                      <th
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                        onClick={() => handleSort('createdAt')}
+                      >
+                        Ngày gửi {getSortIcon('createdAt')}
+                      </th>
+                      <th style={{ width: 100 }}>Hành động</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedDefects.length === 0 ? (
+                      <tr><td colSpan="9" className="text-center py-4">Không có lỗi nào</td></tr>
+                    ) : (
+                      paginatedDefects.map((defect, index) => {
+                        const severity = severityConfig[defect.severity] || { label: defect.severity, variant: 'secondary' };
+                        const status = statusConfig[defect.status] || { label: defect.status, variant: 'secondary' };
+                        return (
+                          <tr key={defect.id}>
+                            <td>{getRowNumber(index)}</td>
+                            <td><strong>{defect.batchNumber || defect.poNumber}</strong></td>
+                            <td>{defect.productName || 'N/A'}</td>
+                            <td>{defect.size || 'N/A'}</td>
+                            <td>{getStageTypeName(defect.stageType)}</td>
+                            <td>
+                              <Badge bg={severity.variant}>{severity.label}</Badge>
+                            </td>
+                            <td>
+                              <Badge bg={status.variant}>{status.label}</Badge>
+                            </td>
+                            <td>{defect.createdAt ? new Date(defect.createdAt).toLocaleDateString('vi-VN') : ''}</td>
+                            <td>
+                              <Button
+                                size="sm"
+                                variant="primary"
+                                onClick={() => navigate(`/technical/defects/${defect.id}`)}
+                              >
+                                Chi tiết
+                              </Button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </Table>
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
               </Card.Body>
             </Card>
           </Container>

@@ -1,31 +1,64 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Container, Card, Table, Button, Badge, Form, InputGroup, Spinner } from 'react-bootstrap';
-import { FaSearch } from 'react-icons/fa';
+import { Container, Card, Table, Button, Badge, Form, InputGroup, Spinner, Row, Col } from 'react-bootstrap';
+import { FaSearch, FaSortUp, FaSortDown, FaSort } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
+import Pagination from '../../components/Pagination';
 import { productionService } from '../../api/productionService';
 import { getProductionOrderStatusFromStages } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
+import DatePicker, { registerLocale } from 'react-datepicker';
+import { vi } from 'date-fns/locale/vi';
+import 'react-datepicker/dist/react-datepicker.css';
+import { parseDateString, formatDateForBackend } from '../../utils/validators';
+
+registerLocale('vi', vi);
+
+const ITEMS_PER_PAGE = 10;
 
 const QaOrderList = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const [startDateFilter, setStartDateFilter] = useState('');
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  // Get userId from sessionStorage (set during login in authService.internalLogin)
-  // Fallback to localStorage for backward compatibility
   const qcUserId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Sort state
+  const [sortColumn, setSortColumn] = useState('');
+  const [sortDirection, setSortDirection] = useState('asc');
+
+  // Handle sort click
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  // Get sort icon for column
+  const getSortIcon = (column) => {
+    if (sortColumn !== column) {
+      return <FaSort className="ms-1 text-muted" style={{ opacity: 0.5 }} />;
+    }
+    return sortDirection === 'asc'
+      ? <FaSortUp className="ms-1 text-primary" />
+      : <FaSortDown className="ms-1 text-primary" />;
+  };
 
   useEffect(() => {
     const fetchOrders = async () => {
       try {
         setLoading(true);
         const data = await productionService.getQaOrders(qcUserId);
-        console.log('QA Orders data from API:', data); // Debug log
 
         if (!data || data.length === 0) {
-          console.log('No QA orders found');
           setOrders([]);
           return;
         }
@@ -41,6 +74,7 @@ const QaOrderList = () => {
             s.qcAssignee?.id === Number(qcUserId)
           );
 
+
           return {
             id: order.id,
             lotCode: order.lotCode || order.poNumber || order.id,
@@ -55,7 +89,6 @@ const QaOrderList = () => {
             qaStage: qaStage // Store QA stage for button logic
           };
         });
-        console.log('Mapped QA Orders:', mappedData); // Debug log
         setOrders(mappedData);
       } catch (error) {
         console.error('Error fetching QA orders:', error);
@@ -72,15 +105,80 @@ const QaOrderList = () => {
     }
   }, [qcUserId]);
 
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, startDateFilter]);
+
+  // Filter orders
   const filteredOrders = useMemo(() => {
-    if (!searchTerm) return orders;
-    const term = searchTerm.toLowerCase();
-    return orders.filter(
-      (o) =>
-        (o.lotCode && o.lotCode.toLowerCase().includes(term)) ||
-        (o.productName && o.productName.toLowerCase().includes(term))
-    );
-  }, [searchTerm, orders]);
+    return orders.filter((o) => {
+      const matchesSearch = !searchTerm ||
+        (o.lotCode && o.lotCode.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (o.productName && o.productName.toLowerCase().includes(searchTerm.toLowerCase()));
+
+      let matchesDate = true;
+      if (startDateFilter) {
+        const orderDate = o.expectedStartDate;
+        if (orderDate) {
+          matchesDate = orderDate === startDateFilter;
+        } else {
+          matchesDate = false;
+        }
+      }
+
+      return matchesSearch && matchesDate;
+    });
+  }, [searchTerm, startDateFilter, orders]);
+
+  // Sort and paginate
+  const paginatedOrders = useMemo(() => {
+    let sorted = [...filteredOrders];
+
+    if (sortColumn) {
+      sorted.sort((a, b) => {
+        let aValue, bValue;
+
+        switch (sortColumn) {
+          case 'lotCode':
+            aValue = a.lotCode || '';
+            bValue = b.lotCode || '';
+            break;
+          case 'productName':
+            aValue = a.productName || '';
+            bValue = b.productName || '';
+            break;
+          case 'quantity':
+            aValue = a.quantity || 0;
+            bValue = b.quantity || 0;
+            return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+          case 'startDate':
+            aValue = a.expectedStartDate || '';
+            bValue = b.expectedStartDate || '';
+            break;
+          case 'status':
+            aValue = a.statusLabel || '';
+            bValue = b.statusLabel || '';
+            break;
+          default:
+            return 0;
+        }
+
+        const comparison = String(aValue).localeCompare(String(bValue), 'vi');
+        return sortDirection === 'asc' ? comparison : -comparison;
+      });
+    }
+
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return sorted.slice(startIndex, endIndex);
+  }, [filteredOrders, sortColumn, sortDirection, currentPage]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / ITEMS_PER_PAGE));
+
+  const getRowNumber = (index) => {
+    return (currentPage - 1) * ITEMS_PER_PAGE + index + 1;
+  };
 
   if (loading) {
     return (
@@ -104,51 +202,110 @@ const QaOrderList = () => {
           style={{ backgroundColor: '#f8f9fa', minHeight: 'calc(100vh - 70px)' }}
         >
           <Container fluid className="p-4">
-            <h4 className="mb-3">Danh sách đơn hàng</h4>
-            <p className="text-muted mb-3">
-              Quản lý và theo dõi đơn hàng cần kiểm tra chất lượng.
-            </p>
+            <h3 className="mb-4" style={{ fontWeight: 600 }}>Danh sách đơn hàng cần kiểm tra</h3>
 
+            {/* Search and Filter */}
             <Card className="shadow-sm mb-3">
               <Card.Body>
-                <InputGroup>
-                  <InputGroup.Text>
-                    <FaSearch />
-                  </InputGroup.Text>
-                  <Form.Control
-                    placeholder="Tìm kiếm theo mã lô hàng hoặc mô tả..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </InputGroup>
+                <Row className="g-3 align-items-end">
+                  <Col md={4}>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Tìm kiếm</Form.Label>
+                      <InputGroup>
+                        <InputGroup.Text><FaSearch /></InputGroup.Text>
+                        <Form.Control
+                          placeholder="Tìm kiếm theo mã lô hoặc sản phẩm..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                      </InputGroup>
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Lọc theo ngày bắt đầu</Form.Label>
+                      <div className="custom-datepicker-wrapper">
+                        <DatePicker
+                          selected={parseDateString(startDateFilter)}
+                          onChange={(date) => {
+                            if (date) {
+                              setStartDateFilter(formatDateForBackend(date));
+                            } else {
+                              setStartDateFilter('');
+                            }
+                          }}
+                          onChangeRaw={(e) => {
+                            if (e.target.value === '' || e.target.value === null) {
+                              setStartDateFilter('');
+                            }
+                          }}
+                          dateFormat="dd/MM/yyyy"
+                          locale="vi"
+                          className="form-control"
+                          placeholderText="dd/mm/yyyy"
+                          isClearable
+                          todayButton="Hôm nay"
+                        />
+                      </div>
+                    </Form.Group>
+                  </Col>
+                </Row>
               </Card.Body>
             </Card>
 
             <Card className="shadow-sm">
-              <Card.Body className="p-0">
+              <Card.Header>
+                Danh sách đơn hàng
+              </Card.Header>
+              <Card.Body>
                 <Table responsive className="mb-0 align-middle">
                   <thead className="table-light">
                     <tr>
                       <th style={{ width: 60 }}>STT</th>
-                      <th>Mã lô</th>
-                      <th>Tên sản phẩm</th>
+                      <th
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                        onClick={() => handleSort('lotCode')}
+                      >
+                        Mã lô {getSortIcon('lotCode')}
+                      </th>
+                      <th
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                        onClick={() => handleSort('productName')}
+                      >
+                        Tên sản phẩm {getSortIcon('productName')}
+                      </th>
                       <th>Kích thước</th>
-                      <th>Số lượng</th>
-                      <th>Ngày bắt đầu dự kiến</th>
-                      <th>Ngày kết thúc dự kiến</th>
-                      <th>Trạng thái</th>
+                      <th
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                        onClick={() => handleSort('quantity')}
+                      >
+                        Số lượng {getSortIcon('quantity')}
+                      </th>
+                      <th
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                        onClick={() => handleSort('startDate')}
+                      >
+                        Ngày bắt đầu {getSortIcon('startDate')}
+                      </th>
+                      <th>Ngày kết thúc</th>
+                      <th
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                        onClick={() => handleSort('status')}
+                      >
+                        Trạng thái {getSortIcon('status')}
+                      </th>
                       <th style={{ width: 120 }}>Hành động</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredOrders.length === 0 ? (
+                    {paginatedOrders.length === 0 ? (
                       <tr>
                         <td colSpan="9" className="text-center py-4">Không có đơn hàng nào</td>
                       </tr>
                     ) : (
-                      filteredOrders.map((order, index) => (
+                      paginatedOrders.map((order, index) => (
                         <tr key={order.id}>
-                          <td>{index + 1}</td>
+                          <td>{getRowNumber(index)}</td>
                           <td>
                             <strong>{order.lotCode || order.id}</strong>
                           </td>
@@ -165,7 +322,7 @@ const QaOrderList = () => {
                           <td className="text-end">
                             <Button
                               size="sm"
-                              variant="dark"
+                              variant="primary"
                               onClick={() => handleInspect(order)}
                             >
                               Xem kế hoạch
@@ -176,6 +333,11 @@ const QaOrderList = () => {
                     )}
                   </tbody>
                 </Table>
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
               </Card.Body>
             </Card>
           </Container>
@@ -186,5 +348,3 @@ const QaOrderList = () => {
 };
 
 export default QaOrderList;
-
-
