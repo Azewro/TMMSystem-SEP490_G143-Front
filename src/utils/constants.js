@@ -1,5 +1,6 @@
 // API Configuration
-export const API_BASE_URL = 'https://tmmsystem-sep490g143-production.up.railway.app';
+// export const API_BASE_URL = 'https://tmmsystem-sep490g143-production.up.railway.app';
+export const API_BASE_URL = 'http://localhost:8080';
 
 // API Endpoints
 export const API_ENDPOINTS = {

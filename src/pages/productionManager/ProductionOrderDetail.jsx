@@ -5,7 +5,7 @@ import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { productionService } from '../../api/productionService';
 import { orderService } from '../../api/orderService';
-import { getStatusLabel, getStageTypeName, getStatusVariant, getProductionOrderStatusFromStages, getPMStageStatusLabel } from '../../utils/statusMapper';
+import { getStageTypeName, getProductionOrderStatusFromStages, getPMStageStatusLabel } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
 
 const ProductionOrderDetail = () => {
