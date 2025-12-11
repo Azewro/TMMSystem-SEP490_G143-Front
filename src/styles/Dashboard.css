@@ -1,0 +1,404 @@
+/* Dashboard Styles */
+
+/* =============== Layout =============== */
+.dashboard-container {
+  padding: 24px;
+  background-color: #f8f9fa;
+  min-height: calc(100vh - 70px);
+}
+
+.dashboard-header {
+  margin-bottom: 24px;
+}
+
+.dashboard-header h2 {
+  font-weight: 600;
+  color: #212529;
+  margin-bottom: 8px;
+}
+
+.dashboard-header .subtitle {
+  color: #6c757d;
+  font-size: 0.95rem;
+}
+
+/* =============== Section =============== */
+.dashboard-section {
+  margin-bottom: 28px;
+}
+
+.dashboard-section-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dashboard-section-title svg {
+  color: #6c757d;
+}
+
+/* =============== Stat Cards Grid =============== */
+.stat-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+/* =============== Stat Card =============== */
+.stat-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+  border: 1px solid #e9ecef;
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+}
+
+.stat-card.urgent::before {
+  background-color: #dc3545;
+}
+
+.stat-card.warning::before {
+  background-color: #ffc107;
+}
+
+.stat-card.info::before {
+  background-color: #0d6efd;
+}
+
+.stat-card.success::before {
+  background-color: #198754;
+}
+
+.stat-card-icon {
+  font-size: 2rem;
+  margin-bottom: 8px;
+}
+
+.stat-card-value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+
+.stat-card-label {
+  color: #6c757d;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.stat-card-sublabel {
+  color: #adb5bd;
+  font-size: 0.8rem;
+  margin-top: 4px;
+}
+
+/* =============== Alert Card =============== */
+.alert-card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid #e9ecef;
+}
+
+.alert-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.alert-card.danger {
+  border-left: 4px solid #dc3545;
+}
+
+.alert-card.warning {
+  border-left: 4px solid #ffc107;
+}
+
+.alert-card.info {
+  border-left: 4px solid #0d6efd;
+}
+
+.alert-card-icon {
+  font-size: 1.8rem;
+  flex-shrink: 0;
+}
+
+.alert-card-content {
+  flex: 1;
+}
+
+.alert-card-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.alert-card-label {
+  color: #6c757d;
+  font-size: 0.85rem;
+}
+
+/* =============== Stage Progress Matrix =============== */
+.stage-matrix {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  overflow-x: auto;
+}
+
+.stage-matrix table {
+  width: 100%;
+  min-width: 600px;
+}
+
+.stage-matrix th,
+.stage-matrix td {
+  padding: 12px 8px;
+  text-align: center;
+}
+
+.stage-matrix thead th {
+  font-weight: 600;
+  color: #495057;
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+  font-size: 0.85rem;
+}
+
+.stage-matrix tbody td:first-child {
+  font-weight: 600;
+  text-align: left;
+  color: #495057;
+  font-size: 0.85rem;
+}
+
+.stage-matrix .count-cell {
+  border-radius: 8px;
+  font-weight: 600;
+  padding: 8px 12px;
+}
+
+.stage-matrix .count-cell.in-progress {
+  background-color: rgba(13, 110, 253, 0.1);
+  color: #0d6efd;
+}
+
+.stage-matrix .count-cell.waiting-qc {
+  background-color: rgba(255, 193, 7, 0.15);
+  color: #856404;
+}
+
+.stage-matrix .count-cell.completed {
+  background-color: rgba(25, 135, 84, 0.1);
+  color: #198754;
+}
+
+.stage-matrix .count-cell.failed {
+  background-color: rgba(220, 53, 69, 0.1);
+  color: #dc3545;
+}
+
+/* =============== Widget Card =============== */
+.widget-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  height: 100%;
+}
+
+.widget-card-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* =============== Machine Status Bar =============== */
+.machine-status-bar {
+  height: 28px;
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  background-color: #e9ecef;
+  margin-bottom: 16px;
+}
+
+.machine-status-segment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: width 0.3s ease;
+}
+
+.machine-status-segment.in-use {
+  background-color: #0d6efd;
+}
+
+.machine-status-segment.available {
+  background-color: #198754;
+}
+
+.machine-status-segment.maintenance {
+  background-color: #ffc107;
+  color: #212529;
+}
+
+.machine-status-legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.machine-status-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+}
+
+.machine-status-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+/* =============== Today Schedule =============== */
+.today-schedule-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.today-schedule-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.today-schedule-item:last-child {
+  border-bottom: none;
+}
+
+.today-schedule-time {
+  color: #6c757d;
+  font-size: 0.85rem;
+  font-weight: 500;
+  min-width: 50px;
+}
+
+.today-schedule-content {
+  flex: 1;
+}
+
+.today-schedule-stage {
+  font-weight: 600;
+  color: #212529;
+}
+
+.today-schedule-details {
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+/* =============== QC Summary =============== */
+.qc-pass-rate {
+  font-size: 2.5rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.qc-pass-rate.good {
+  color: #198754;
+}
+
+.qc-pass-rate.warning {
+  color: #ffc107;
+}
+
+.qc-pass-rate.bad {
+  color: #dc3545;
+}
+
+.qc-issues-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.qc-issue-item {
+  text-align: center;
+  padding: 12px;
+  border-radius: 8px;
+  background-color: #f8f9fa;
+}
+
+.qc-issue-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.qc-issue-label {
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+
+/* =============== Responsive =============== */
+@media (max-width: 768px) {
+  .dashboard-container {
+    padding: 16px;
+  }
+
+  .stat-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .stat-card-value {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .stat-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}

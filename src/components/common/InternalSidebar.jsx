@@ -1,6 +1,6 @@
 import React from 'react';
 import { Nav } from 'react-bootstrap';
-import { FaListAlt, FaFileSignature, FaProjectDiagram, FaUsers, FaUserFriends, FaPlusSquare, FaCog, FaWarehouse, FaExclamationTriangle } from 'react-icons/fa';
+import { FaTachometerAlt, FaListAlt, FaFileSignature, FaProjectDiagram, FaUsers, FaUserFriends, FaPlusSquare, FaCog, FaWarehouse, FaExclamationTriangle } from 'react-icons/fa';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import '../../styles/Sidebar.css'; // Reuse the same dark theme
@@ -54,6 +54,7 @@ const InternalSidebar = ({ userRole: propUserRole }) => {
       { icon: FaUserFriends, label: 'Quản lý khách hàng', path: '/admin/customers' },
     ],
     director: [
+      { icon: FaTachometerAlt, label: 'Tổng quan', path: '/director/dashboard' },
       { icon: FaListAlt, label: 'Quản lý yêu cầu báo giá', path: '/director/rfqs' },
       { icon: FaFileSignature, label: 'Duyệt Hợp Đồng', path: '/director/contract-approval' },
       { icon: FaProjectDiagram, label: 'Duyệt Kế Hoạch Sản Xuất', path: '/director/production-plan-approvals' },
@@ -70,6 +71,7 @@ const InternalSidebar = ({ userRole: propUserRole }) => {
     ],
     // Production Manager
     production: [
+      { icon: FaTachometerAlt, label: 'Tổng quan', path: '/production/dashboard' },
       { icon: FaListAlt, label: 'Đơn hàng sản xuất', path: '/production/orders' },
       { icon: FaFileSignature, label: 'Yêu cầu cấp sợi', path: '/production/fiber-requests' },
       { icon: FaProjectDiagram, label: 'Sản xuất bổ sung', path: '/production/rework-orders' },

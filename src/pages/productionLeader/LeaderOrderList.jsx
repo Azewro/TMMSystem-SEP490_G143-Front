@@ -6,7 +6,7 @@ import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { productionService } from '../../api/productionService';
 import { orderService } from '../../api/orderService';
-import { getLeaderStageStatusLabel } from '../../utils/statusMapper';
+import { getLeaderStageStatusLabel, getProductionOrderStatusFromStages, getStageTypeName } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
 
 const LeaderOrderList = () => {
@@ -60,7 +60,10 @@ const LeaderOrderList = () => {
                 orderDetail.contract?.contractNumber ||
                 'N/A';
 
-              // Use new function for status mapping
+              // Use getProductionOrderStatusFromStages for dynamic label like PM page
+              const dynamicStatus = getProductionOrderStatusFromStages(orderDetail);
+
+              // Also get stage-specific status for button logic
               const stageStatus = leaderStage
                 ? getLeaderStageStatusLabel(leaderStage.executionStatus || leaderStage.status)
                 : null;
@@ -69,8 +72,12 @@ const LeaderOrderList = () => {
                 ...order,
                 productName,
                 orderStatus,
+                // Dynamic status label like PM page
+                dynamicStatusLabel: dynamicStatus.label,
+                dynamicStatusVariant: dynamicStatus.variant,
                 leaderStage: leaderStage ? {
                   id: leaderStage.id,
+                  stageType: leaderStage.stageType,
                   status: leaderStage.executionStatus || leaderStage.status,
                   statusLabel: stageStatus?.label || 'N/A',
                   statusVariant: stageStatus?.variant || 'secondary',
@@ -194,26 +201,18 @@ const OrderTable = ({ orders, handleStart, handleViewDetail, isRework = false })
               const stage = order.leaderStage;
               const orderLocked = order.orderStatus === 'WAITING_PRODUCTION' || order.orderStatus === 'PENDING_APPROVAL';
 
-              // Hiển thị trạng thái theo công đoạn của leader (nếu có); nếu không, dùng trạng thái đơn hàng
-              let displayStage = stage;
-              let displayStatus = stage
-                ? stage
-                : getLeaderStageStatusLabel(order.executionStatus || order.status);
+              // Use dynamic status label like PM page (e.g., "Đang Nhuộm", "Chờ đến lượt Dệt")
+              let statusLabel = order.dynamicStatusLabel || 'N/A';
+              let statusVariant = order.dynamicStatusVariant || 'secondary';
+
+              // Get buttons from stage status for action column
+              const stageStatus = stage ? getLeaderStageStatusLabel(stage.status) : { buttons: [] };
+              const buttons = stageStatus?.buttons || [];
 
               // Nếu PM chưa start lệnh: luôn "Đợi"
               if (orderLocked) {
-                displayStage = stage ? { ...stage, statusLabel: 'Đợi', statusVariant: 'secondary', buttons: [] } : null;
-                displayStatus = { label: 'Đợi', variant: 'secondary', buttons: [] };
-              } else {
-                // Nếu có stage và tiến độ 100% => chờ QC (thay vì hiển thị "Đạt")
-                if (displayStage && (displayStage.progress >= 100 || displayStage.status === 'WAITING_QC')) {
-                  displayStage = {
-                    ...displayStage,
-                    statusLabel: 'Chờ kiểm tra',
-                    statusVariant: 'warning',
-                    buttons: [{ text: 'Xem chi tiết', action: 'detail', variant: 'outline-secondary' }]
-                  };
-                }
+                statusLabel = 'Đợi';
+                statusVariant = 'secondary';
               }
 
               return (
@@ -228,13 +227,13 @@ const OrderTable = ({ orders, handleStart, handleViewDetail, isRework = false })
                   <td>{order.plannedStartDate}</td>
                   <td>{order.plannedEndDate}</td>
                   <td>
-                    <Badge bg={displayStage ? displayStage.statusVariant : displayStatus.variant}>
-                      {displayStage ? displayStage.statusLabel : displayStatus.label}
+                    <Badge bg={statusVariant}>
+                      {statusLabel}
                     </Badge>
                   </td>
                   <td className="text-end">
-                    {((displayStage || displayStatus).buttons || []).length > 0 ? (
-                      (displayStage || displayStatus).buttons.map((btn, idx) => (
+                    {!orderLocked && buttons.length > 0 ? (
+                      buttons.map((btn, idx) => (
                         <Button
                           key={idx}
                           size="sm"
@@ -247,8 +246,6 @@ const OrderTable = ({ orders, handleStart, handleViewDetail, isRework = false })
                               handleViewDetail(order);
                             }
                           }}
-                          disabled={orderLocked && !btn.action === 'detail'}
-                          title={orderLocked ? 'Chưa được phép, PM chưa bắt đầu lệnh làm việc' : ''}
                         >
                           {btn.text}
                         </Button>

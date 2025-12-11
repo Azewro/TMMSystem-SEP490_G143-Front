@@ -110,6 +110,10 @@ const ProductionOrderList = () => {
           // Use new function to get dynamic status label with stage name
           const statusResult = getProductionOrderStatusFromStages(order);
 
+          // Check if order has been started (has stages with non-PENDING/non-WAITING_PRODUCTION status)
+          const isStarted = order.executionStatus &&
+            !['WAITING_PRODUCTION', 'PENDING', 'PENDING_APPROVAL'].includes(order.executionStatus);
+
           return {
             id: order.id,
             lotCode: order.lotCode || order.poNumber,
@@ -121,7 +125,8 @@ const ProductionOrderList = () => {
             status: order.executionStatus || order.status,
             statusLabel: statusResult.label,
             statusVariant: statusResult.variant,
-            pendingMaterialRequestId: order.pendingMaterialRequestId
+            pendingMaterialRequestId: order.pendingMaterialRequestId,
+            isStarted: isStarted
           };
         });
         setOrders(mappedData);
@@ -134,6 +139,22 @@ const ProductionOrderList = () => {
     };
     fetchOrders();
   }, []);
+
+  const handleStartWorkOrder = async (orderId) => {
+    try {
+      await productionService.startWorkOrder(orderId);
+      toast.success('Đã bắt đầu lệnh làm việc');
+      // Update local state to reflect the change
+      setOrders(prev => prev.map(order =>
+        order.id === orderId
+          ? { ...order, isStarted: true, statusLabel: 'Chờ đến lượt Cuồng mắc', statusVariant: 'secondary' }
+          : order
+      ));
+    } catch (error) {
+      console.error('Error starting work order:', error);
+      toast.error(error.response?.data?.message || error.message || 'Không thể bắt đầu lệnh làm việc');
+    }
+  };
 
   const handleViewPlan = (orderId) => {
     navigate(`/production/orders/${orderId}`);
@@ -311,13 +332,23 @@ const ProductionOrderList = () => {
                                 Xem yêu cầu
                               </Button>
                             ) : null}
-                            <Button
-                              size="sm"
-                              variant="primary"
-                              onClick={() => handleViewPlan(order.id)}
-                            >
-                              Xem kế hoạch
-                            </Button>
+                            {!order.isStarted ? (
+                              <Button
+                                size="sm"
+                                variant="dark"
+                                onClick={() => handleStartWorkOrder(order.id)}
+                              >
+                                Bắt đầu lệnh
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="primary"
+                                onClick={() => handleViewPlan(order.id)}
+                              >
+                                Xem kế hoạch
+                              </Button>
+                            )}
                           </td>
                         </tr>
                       ))

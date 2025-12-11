@@ -40,9 +40,10 @@ import ProductionLots from './pages/planning/ProductionLots'; // Import new comp
 
 // Director Pages
 import ContractApproval from './pages/director/ContractApproval';
-import DirectorRfqList from './pages/director/DirectorRfqList'; // Import the new page
+import DirectorRfqList from './pages/director/DirectorRfqList';
 import ProductionPlanApprovals from './pages/director/ProductionPlanApprovals';
-import DirectorOrderList from './pages/director/DirectorOrderList'; // Import DirectorOrderList
+import DirectorOrderList from './pages/director/DirectorOrderList';
+import DirectorDashboard from './pages/director/DirectorDashboard';
 
 // Sales Pages
 import MyRfqs from './pages/sales/MyRfqs';
@@ -69,6 +70,7 @@ import ProductionReworkOrders from './pages/productionManager/ProductionReworkOr
 import ProductionReworkOrderDetail from './pages/productionManager/ProductionReworkOrderDetail';
 import ProductionReworkStageDetail from './pages/productionManager/ProductionReworkStageDetail';
 import StageProgressDetail from './pages/productionManager/StageProgressDetail';
+import PMDashboard from './pages/productionManager/PMDashboard';
 
 // Production Leader Pages
 import LeaderOrderList from './pages/productionLeader/LeaderOrderList';
@@ -127,6 +129,7 @@ function App() {
               <Route path="/planning/lots" element={<ProtectedRoute allowedRoles={['PLANNING DEPARTMENT', 'PLANNING', 'PLANNER']}><ProductionLots /></ProtectedRoute>} />
 
               {/* Director routes */}
+              <Route path="/director/dashboard" element={<ProtectedRoute allowedRoles={['DIRECTOR']}><DirectorDashboard /></ProtectedRoute>} />
               <Route path="/director/contract-approval" element={<ProtectedRoute allowedRoles={['DIRECTOR']}><ContractApproval /></ProtectedRoute>} />
               <Route path="/director/rfqs" element={<ProtectedRoute allowedRoles={['DIRECTOR']}><DirectorRfqList /></ProtectedRoute>} />
               <Route path="/director/production-plan-approvals" element={<ProtectedRoute allowedRoles={['DIRECTOR']}><ProductionPlanApprovals /></ProtectedRoute>} />
@@ -148,6 +151,7 @@ function App() {
               <Route path="/technical/defects/:defectId" element={<ProtectedRoute allowedRoles={['TECHNICAL DEPARTMENT', 'TECHNICAL']}><TechnicalDefectDetail /></ProtectedRoute>} />
 
               {/* Production Manager Routes */}
+              <Route path="/production/dashboard" element={<ProtectedRoute allowedRoles={['PRODUCTION MANAGER', 'PRODUCTION']}><PMDashboard /></ProtectedRoute>} />
               <Route path="/production/material-stock" element={<ProtectedRoute allowedRoles={['PRODUCTION MANAGER', 'PRODUCTION']}><MaterialStockManagement /></ProtectedRoute>} />
               <Route path="/production/orders" element={<ProtectedRoute allowedRoles={['PRODUCTION MANAGER', 'PRODUCTION']}><ProductionOrderList /></ProtectedRoute>} />
               <Route path="/production/orders/:orderId" element={<ProtectedRoute allowedRoles={['PRODUCTION MANAGER', 'PRODUCTION']}><ProductionOrderDetail /></ProtectedRoute>} />
