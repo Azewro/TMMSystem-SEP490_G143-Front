@@ -54,7 +54,7 @@ const InternalSidebar = ({ userRole: propUserRole }) => {
       { icon: FaUserFriends, label: 'Quản lý khách hàng', path: '/admin/customers' },
     ],
     director: [
-      { icon: FaTachometerAlt, label: 'Tổng quan', path: '/director/dashboard' },
+      // { icon: FaTachometerAlt, label: 'Tổng quan', path: '/director/dashboard' }, // Temporarily hidden
       { icon: FaListAlt, label: 'Quản lý yêu cầu báo giá', path: '/director/rfqs' },
       { icon: FaFileSignature, label: 'Duyệt Hợp Đồng', path: '/director/contract-approval' },
       { icon: FaProjectDiagram, label: 'Duyệt Kế Hoạch Sản Xuất', path: '/director/production-plan-approvals' },
@@ -71,7 +71,7 @@ const InternalSidebar = ({ userRole: propUserRole }) => {
     ],
     // Production Manager
     production: [
-      { icon: FaTachometerAlt, label: 'Tổng quan', path: '/production/dashboard' },
+      // { icon: FaTachometerAlt, label: 'Tổng quan', path: '/production/dashboard' }, // Temporarily hidden
       { icon: FaListAlt, label: 'Đơn hàng sản xuất', path: '/production/orders' },
       { icon: FaFileSignature, label: 'Yêu cầu cấp sợi', path: '/production/fiber-requests' },
       { icon: FaProjectDiagram, label: 'Sản xuất bổ sung', path: '/production/rework-orders' },
