@@ -6,7 +6,7 @@ import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import Pagination from '../../components/Pagination';
 import { productionService } from '../../api/productionService';
-import { getStatusLabel, getStatusVariant } from '../../utils/statusMapper';
+import { getProductionOrderStatusFromStages } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import { vi } from 'date-fns/locale/vi';
@@ -65,69 +65,15 @@ const QaOrderList = () => {
 
         // Map backend data to match UI structure
         const mappedData = data.map(order => {
+          // Use getProductionOrderStatusFromStages for overall order status (like PM page)
+          const statusResult = getProductionOrderStatusFromStages(order);
+
+          // Find the stage assigned to this QA for button logic
           const qaStage = (order.stages || []).find(s =>
             s.qcAssigneeId === Number(qcUserId) ||
             s.qcAssignee?.id === Number(qcUserId)
           );
 
-          // Get stage type name for display
-          const stageTypeMap = {
-            'WARPING': 'Cuồng mắc',
-            'WEAVING': 'Dệt',
-            'DYEING': 'Nhuộm',
-            'CUTTING': 'Cắt',
-            'HEMMING': 'May',
-            'PACKAGING': 'Đóng gói',
-          };
-          const stageName = qaStage ? (stageTypeMap[qaStage.stageType] || qaStage.stageType) : '';
-          const execStatus = qaStage?.executionStatus || order.executionStatus;
-
-          // Dynamic status mapping for QA Order List
-          let statusLabel = 'N/A';
-          let statusVariant = 'secondary';
-
-          if (qaStage) {
-            switch (execStatus) {
-              case 'PENDING':
-              case 'WAITING':
-                statusLabel = `Chờ ${stageName} làm`;
-                statusVariant = 'secondary';
-                break;
-              case 'READY_TO_PRODUCE':
-              case 'IN_PROGRESS':
-                statusLabel = `${stageName} đang làm`;
-                statusVariant = 'info';
-                break;
-              case 'WAITING_QC':
-                statusLabel = `${stageName} chờ kiểm tra`;
-                statusVariant = 'warning';
-                break;
-              case 'QC_IN_PROGRESS':
-                statusLabel = `${stageName} đang kiểm tra`;
-                statusVariant = 'warning';
-                break;
-              case 'QC_PASSED':
-                statusLabel = 'Hoàn thành';
-                statusVariant = 'success';
-                break;
-              case 'QC_FAILED':
-              case 'WAITING_REWORK':
-              case 'REWORK_IN_PROGRESS':
-                statusLabel = 'Không đạt';
-                statusVariant = 'danger';
-                break;
-              case 'PAUSED':
-                statusLabel = `${stageName} tạm dừng`;
-                statusVariant = 'danger';
-                break;
-              default:
-                statusLabel = getStatusLabel(execStatus);
-                statusVariant = getStatusVariant(execStatus);
-            }
-          } else {
-            statusLabel = getStatusLabel(order.executionStatus || order.status);
-            statusVariant = getStatusVariant(order.executionStatus || order.status);
-          }
 
           return {
             id: order.id,
@@ -137,10 +83,10 @@ const QaOrderList = () => {
             quantity: order.totalQuantity || 0,
             expectedStartDate: order.plannedStartDate || order.expectedStartDate,
             expectedFinishDate: order.plannedEndDate || order.expectedFinishDate,
-            status: execStatus,
-            statusLabel: statusLabel,
-            statusVariant: statusVariant,
-            qaStage: qaStage
+            status: order.executionStatus,
+            statusLabel: statusResult.label,
+            statusVariant: statusResult.variant,
+            qaStage: qaStage // Store QA stage for button logic
           };
         });
         setOrders(mappedData);
