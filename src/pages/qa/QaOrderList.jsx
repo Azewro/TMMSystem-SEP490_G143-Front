@@ -39,15 +39,63 @@ const QaOrderList = () => {
             s.qcAssignee?.id === Number(qcUserId)
           );
 
-          // Determine status label - use QA's stage status if available, otherwise use order status
-          const status = qaStage?.executionStatus || order.executionStatus || order.status;
-          // Determine status label - use QA's stage status if available
-          let statusLabel;
-          if (qaStage && qaStage.executionStatus === 'QC_PASSED') {
-            statusLabel = 'Hoàn thành';
+          // Get stage type name for display
+          const stageTypeMap = {
+            'WARPING': 'Cuồng mắc',
+            'WEAVING': 'Dệt',
+            'DYEING': 'Nhuộm',
+            'CUTTING': 'Cắt',
+            'HEMMING': 'May',
+            'PACKAGING': 'Đóng gói',
+          };
+          const stageName = qaStage ? (stageTypeMap[qaStage.stageType] || qaStage.stageType) : '';
+          const execStatus = qaStage?.executionStatus || order.executionStatus;
+
+          // Dynamic status mapping for QA Order List
+          let statusLabel = 'N/A';
+          let statusVariant = 'secondary';
+
+          if (qaStage) {
+            switch (execStatus) {
+              case 'PENDING':
+              case 'WAITING':
+                statusLabel = `chờ ${stageName} làm`;
+                statusVariant = 'secondary';
+                break;
+              case 'READY_TO_PRODUCE':
+              case 'IN_PROGRESS':
+                statusLabel = `${stageName} đang làm`;
+                statusVariant = 'info';
+                break;
+              case 'WAITING_QC':
+                statusLabel = `${stageName} chờ kiểm tra`;
+                statusVariant = 'warning';
+                break;
+              case 'QC_IN_PROGRESS':
+                statusLabel = `${stageName} đang kiểm tra`;
+                statusVariant = 'warning';
+                break;
+              case 'QC_PASSED':
+                statusLabel = 'hoàn thành';
+                statusVariant = 'success';
+                break;
+              case 'QC_FAILED':
+              case 'WAITING_REWORK':
+              case 'REWORK_IN_PROGRESS':
+                statusLabel = 'không đạt';
+                statusVariant = 'danger';
+                break;
+              case 'PAUSED':
+                statusLabel = `${stageName} tạm dừng`;
+                statusVariant = 'danger';
+                break;
+              default:
+                statusLabel = getStatusLabel(execStatus);
+                statusVariant = getStatusVariant(execStatus);
+            }
           } else {
-            statusLabel = qaStage ? getStatusLabel(qaStage.executionStatus) :
-              (order.statusLabel || getStatusLabel(order.executionStatus || order.status));
+            statusLabel = getStatusLabel(order.executionStatus || order.status);
+            statusVariant = getStatusVariant(order.executionStatus || order.status);
           }
 
           return {
@@ -58,8 +106,9 @@ const QaOrderList = () => {
             quantity: order.totalQuantity || 0,
             expectedStartDate: order.plannedStartDate || order.expectedStartDate,
             expectedFinishDate: order.plannedEndDate || order.expectedFinishDate,
-            status: status,
+            status: execStatus,
             statusLabel: statusLabel,
+            statusVariant: statusVariant,
             qaStage: qaStage // Store QA stage for button logic
           };
         });
@@ -166,7 +215,7 @@ const QaOrderList = () => {
                           <td>{order.expectedStartDate}</td>
                           <td>{order.expectedFinishDate}</td>
                           <td>
-                            <Badge bg={getStatusVariant(order.status)}>
+                            <Badge bg={order.statusVariant}>
                               {order.statusLabel}
                             </Badge>
                           </td>

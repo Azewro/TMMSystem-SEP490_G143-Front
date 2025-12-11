@@ -30,18 +30,69 @@ const QaOrderDetail = () => {
             return stage.qcAssigneeId === Number(qcUserId) ||
               stage.qcAssignee?.id === Number(qcUserId);
           })
-          .map(stage => ({
-            id: stage.id,
-            code: stage.stageType,
-            name: getStageTypeName(stage.stageType) || stage.stageType,
-            assignee: stage.assignedLeader?.fullName ||
-              stage.assigneeName ||
-              (stage.stageType === 'DYEING' || stage.stageType === 'NHUOM' ? 'Production Manager' : 'Chưa phân công'),
-            status: stage.executionStatus || stage.status,
-            statusLabel: getStatusLabel(stage.executionStatus || stage.status),
-            progress: stage.progressPercent || 0,
-            qcAssigneeId: stage.qcAssigneeId || stage.qcAssignee?.id
-          }));
+          .map(stage => {
+            // Simple status mapping for QA "Xem kế hoạch" page
+            const execStatus = stage.executionStatus || stage.status;
+            let statusLabel = 'đợi';
+            let statusVariant = 'secondary';
+
+            switch (execStatus) {
+              case 'PENDING':
+                statusLabel = 'đợi';
+                statusVariant = 'secondary';
+                break;
+              case 'WAITING':
+              case 'READY':
+              case 'READY_TO_PRODUCE':
+                statusLabel = 'chờ làm';
+                statusVariant = 'primary';
+                break;
+              case 'IN_PROGRESS':
+              case 'REWORK_IN_PROGRESS':
+                statusLabel = 'đang làm';
+                statusVariant = 'info';
+                break;
+              case 'WAITING_QC':
+                statusLabel = 'chờ kiểm tra';
+                statusVariant = 'warning';
+                break;
+              case 'QC_IN_PROGRESS':
+                statusLabel = 'đang kiểm tra';
+                statusVariant = 'warning';
+                break;
+              case 'QC_PASSED':
+              case 'COMPLETED':
+                statusLabel = 'đạt';
+                statusVariant = 'success';
+                break;
+              case 'QC_FAILED':
+              case 'WAITING_REWORK':
+                statusLabel = 'không đạt';
+                statusVariant = 'danger';
+                break;
+              case 'PAUSED':
+                statusLabel = 'tạm dừng';
+                statusVariant = 'danger';
+                break;
+              default:
+                statusLabel = getStatusLabel(execStatus);
+                statusVariant = getStatusVariant(execStatus);
+            }
+
+            return {
+              id: stage.id,
+              code: stage.stageType,
+              name: getStageTypeName(stage.stageType) || stage.stageType,
+              assignee: stage.assignedLeader?.fullName ||
+                stage.assigneeName ||
+                (stage.stageType === 'DYEING' || stage.stageType === 'NHUOM' ? 'Production Manager' : 'Chưa phân công'),
+              status: execStatus,
+              statusLabel: statusLabel,
+              statusVariant: statusVariant,
+              progress: stage.progressPercent || 0,
+              qcAssigneeId: stage.qcAssigneeId || stage.qcAssignee?.id
+            };
+          });
 
         // Lấy token từ stage đầu tiên (hoặc bất kỳ stage nào có token)
         // Lưu ý: data.stages chứa TẤT CẢ stages, không chỉ của QA này
@@ -228,7 +279,7 @@ const QaOrderDetail = () => {
                             <td>{stage.assignee}</td>
                             <td>{stage.progress ?? 0}%</td>
                             <td>
-                              <Badge bg={getStatusVariant(stage.status)}>
+                              <Badge bg={stage.statusVariant}>
                                 {stage.statusLabel}
                               </Badge>
                             </td>
