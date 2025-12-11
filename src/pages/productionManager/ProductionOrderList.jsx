@@ -144,24 +144,16 @@ const ProductionOrderList = () => {
 
   console.log("orders: ", orders);
 
-  const checkStatusAndStatusLabel = (status, statusLabel) => {
-    return (
-      (status === "IN_PROGRESS" && statusLabel === "Chờ Cuồng mắc") ||
-      (status === "IN_PROGRESS" && statusLabel === "Đang Cuồng mắc")
-    );
-  };
-
-  // status === 'IN_PROGRESS', statusLabel = "Chờ Cuồng mắc" && statusLabel = "Đang Cuồng mắc" => return false
-  const countStatusAndStatusLabel = () => {
-    let count = 0;
+  const checkStatusAndStatusLabel = (status, statusLabel) => (status === "IN_PROGRESS" && statusLabel === "Sẵn sàng Cuồng mắc");
+  
+  const checkButtonIsDisabled = () => {
     orders.forEach((order) => {
       if (checkStatusAndStatusLabel(order.status, order.statusLabel)) {
-        count++;
+        return true;
       }
     });
-    return count;
-  };
-
+    return false;
+  }
   const checkStatusIsWaitForProduction = (status) => {
     return status !== "WAITING_PRODUCTION";
   };
@@ -379,7 +371,7 @@ const ProductionOrderList = () => {
                               >
                                 Xem kế hoạch
                               </Button>
-                            ) : (countStatusAndStatusLabel() < 2) ? (
+                            ) : (checkButtonIsDisabled()) ? (
                               <Button
                                 size="sm"
                                 variant="success"
