@@ -3,64 +3,17 @@ import { Container, Card, Table, Button, Badge, Form, InputGroup, Spinner, Row, 
 import { FaSearch, FaSortUp, FaSortDown, FaSort } from 'react-icons/fa';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
+import Pagination from '../../components/Pagination';
 import { useNavigate } from 'react-router-dom';
 import { productionService } from '../../api/productionService';
 import { getStatusLabel, getStatusVariant, getProductionOrderStatusFromStages } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
+import DatePicker, { registerLocale } from 'react-datepicker';
+import { vi } from 'date-fns/locale/vi';
+import 'react-datepicker/dist/react-datepicker.css';
+import { parseDateString, formatDateForBackend } from '../../utils/validators';
 
-// Mock data cho màn danh sách đơn hàng sản xuất (Production Manager)
-const MOCK_PRODUCTION_ORDERS = [
-  {
-    id: 'ORD-2025-001',
-    lotCode: 'LOT-001',
-    productName: 'Khăn tắm cao cấp',
-    size: '70x140cm',
-    quantity: 1000,
-    expectedStartDate: '2025-11-20',
-    expectedFinishDate: '2025-12-05',
-    status: 'CHO_SAN_XUAT',
-    statusLabel: 'Chờ sản xuất',
-    stageSummary: 'Đang dệt vải'
-  },
-  {
-    id: 'ORD-2025-002',
-    lotCode: 'LOT-002',
-    productName: 'Khăn mặt cotton',
-    size: '30x30cm',
-    quantity: 2000,
-    expectedStartDate: '2025-11-18',
-    expectedFinishDate: '2025-12-01',
-    status: 'DANG_SAN_XUAT',
-    statusLabel: 'Nguyên liệu sẵn sàng',
-    stageSummary: 'May đang làm'
-  },
-  {
-    id: 'ORD-2025-003',
-    lotCode: 'LOT-003',
-    productName: 'Khăn lau siêu thấm',
-    size: '40x80cm',
-    quantity: 1500,
-    expectedStartDate: '2025-11-15',
-    expectedFinishDate: '2025-11-30',
-    status: 'DANG_SAN_XUAT',
-    statusLabel: 'Máy đang làm',
-    stageSummary: 'Nhuộm đang làm'
-  },
-  {
-    id: 'ORD-2025-004',
-    lotCode: 'LOT-004',
-    productName: 'Khăn khách sạn',
-    size: '60x120cm',
-    quantity: 800,
-    expectedStartDate: '2025-11-10',
-    expectedFinishDate: '2025-11-25',
-    status: 'HOAN_THANH',
-    statusLabel: 'Hoàn thành',
-    stageSummary: 'Đóng gói xong'
-  }
-];
-
-// Removed local getStatusVariant - using the one from statusMapper.js for consistency
+registerLocale('vi', vi);
 
 const STATUS_FILTERS = [
   { value: 'ALL', label: 'Tất cả trạng thái' },
@@ -69,12 +22,18 @@ const STATUS_FILTERS = [
   { value: 'HOAN_THANH', label: 'Hoàn thành' },
 ];
 
+const ITEMS_PER_PAGE = 10;
+
 const ProductionOrderList = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [startDateFilter, setStartDateFilter] = useState('');
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Sort state
   const [sortColumn, setSortColumn] = useState('');
@@ -105,7 +64,7 @@ const ProductionOrderList = () => {
       try {
         setLoading(true);
         const data = await productionService.getManagerOrders();
-        // Map backend data to match mock structure
+        // Map backend data to match structure
         const mappedData = data.map(order => {
           // Use new function to get dynamic status label with stage name
           const statusResult = getProductionOrderStatusFromStages(order);
@@ -140,6 +99,11 @@ const ProductionOrderList = () => {
     fetchOrders();
   }, []);
 
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, startDateFilter]);
+
   const handleStartWorkOrder = async (orderId) => {
     try {
       await productionService.startWorkOrder(orderId);
@@ -164,49 +128,89 @@ const ProductionOrderList = () => {
     navigate(`/production/fiber-requests/${requestId}`);
   };
 
+  // Filter orders
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
       const matchesSearch =
         !searchTerm ||
-        order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.lotCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.productName.toLowerCase().includes(searchTerm.toLowerCase());
+        String(order.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (order.lotCode && order.lotCode.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (order.productName && order.productName.toLowerCase().includes(searchTerm.toLowerCase()));
 
       const matchesStatus =
         statusFilter === 'ALL' ? true : order.status === statusFilter;
 
-      return matchesSearch && matchesStatus;
-    });
-  }, [orders, searchTerm, statusFilter]);
-
-  // Sort filteredOrders
-  const sortedOrders = useMemo(() => {
-    if (!sortColumn) return filteredOrders;
-
-    return [...filteredOrders].sort((a, b) => {
-      let aValue, bValue;
-
-      switch (sortColumn) {
-        case 'lotCode':
-          aValue = a.lotCode || '';
-          bValue = b.lotCode || '';
-          break;
-        case 'productName':
-          aValue = a.productName || '';
-          bValue = b.productName || '';
-          break;
-        case 'startDate':
-          aValue = a.expectedStartDate || '';
-          bValue = b.expectedStartDate || '';
-          break;
-        default:
-          return 0;
+      // Filter by start date
+      let matchesDate = true;
+      if (startDateFilter) {
+        const orderDate = order.expectedStartDate;
+        if (orderDate) {
+          matchesDate = orderDate === startDateFilter;
+        } else {
+          matchesDate = false;
+        }
       }
 
-      const comparison = String(aValue).localeCompare(String(bValue), 'vi');
-      return sortDirection === 'asc' ? comparison : -comparison;
+      return matchesSearch && matchesStatus && matchesDate;
     });
-  }, [filteredOrders, sortColumn, sortDirection]);
+  }, [orders, searchTerm, statusFilter, startDateFilter]);
+
+  // Sort and paginate orders
+  const paginatedOrders = useMemo(() => {
+    // First, sort all filtered orders
+    let sorted = [...filteredOrders];
+
+    if (sortColumn) {
+      sorted.sort((a, b) => {
+        let aValue, bValue;
+
+        switch (sortColumn) {
+          case 'lotCode':
+            aValue = a.lotCode || '';
+            bValue = b.lotCode || '';
+            break;
+          case 'productName':
+            aValue = a.productName || '';
+            bValue = b.productName || '';
+            break;
+          case 'startDate':
+            aValue = a.expectedStartDate || '';
+            bValue = b.expectedStartDate || '';
+            break;
+          case 'status':
+            // Sort by status priority
+            const getStatusPriority = (status) => {
+              if (status === 'CHO_SAN_XUAT') return 1;
+              if (status === 'DANG_SAN_XUAT') return 2;
+              if (status === 'HOAN_THANH') return 3;
+              return 99;
+            };
+            aValue = getStatusPriority(a.status);
+            bValue = getStatusPriority(b.status);
+            const statusComparison = aValue - bValue;
+            return sortDirection === 'asc' ? statusComparison : -statusComparison;
+          default:
+            return 0;
+        }
+
+        const comparison = String(aValue).localeCompare(String(bValue), 'vi');
+        return sortDirection === 'asc' ? comparison : -comparison;
+      });
+    }
+
+    // Then, apply pagination
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return sorted.slice(startIndex, endIndex);
+  }, [filteredOrders, sortColumn, sortDirection, currentPage]);
+
+  // Calculate total pages
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / ITEMS_PER_PAGE));
+
+  // Calculate correct STT based on current page
+  const getRowNumber = (index) => {
+    return (currentPage - 1) * ITEMS_PER_PAGE + index + 1;
+  };
 
   if (loading) {
     return (
@@ -233,7 +237,7 @@ const ProductionOrderList = () => {
             <Card className="shadow-sm mb-3">
               <Card.Body>
                 <Row className="g-3 align-items-end">
-                  <Col md={6}>
+                  <Col md={4}>
                     <Form.Group>
                       <Form.Label className="mb-1 small">Tìm kiếm</Form.Label>
                       <InputGroup>
@@ -246,7 +250,35 @@ const ProductionOrderList = () => {
                       </InputGroup>
                     </Form.Group>
                   </Col>
-                  <Col md={4}>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Lọc theo ngày bắt đầu</Form.Label>
+                      <div className="custom-datepicker-wrapper">
+                        <DatePicker
+                          selected={parseDateString(startDateFilter)}
+                          onChange={(date) => {
+                            if (date) {
+                              setStartDateFilter(formatDateForBackend(date));
+                            } else {
+                              setStartDateFilter('');
+                            }
+                          }}
+                          onChangeRaw={(e) => {
+                            if (e.target.value === '' || e.target.value === null) {
+                              setStartDateFilter('');
+                            }
+                          }}
+                          dateFormat="dd/MM/yyyy"
+                          locale="vi"
+                          className="form-control"
+                          placeholderText="dd/mm/yyyy"
+                          isClearable
+                          todayButton="Hôm nay"
+                        />
+                      </div>
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
                     <Form.Group>
                       <Form.Label className="mb-1 small">Lọc theo trạng thái</Form.Label>
                       <Form.Select
@@ -295,19 +327,24 @@ const ProductionOrderList = () => {
                         Ngày bắt đầu dự kiến {getSortIcon('startDate')}
                       </th>
                       <th>Ngày kết thúc dự kiến</th>
-                      <th>Trạng thái</th>
+                      <th
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                        onClick={() => handleSort('status')}
+                      >
+                        Trạng thái {getSortIcon('status')}
+                      </th>
                       <th>Hành động</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {sortedOrders.length === 0 ? (
+                    {paginatedOrders.length === 0 ? (
                       <tr>
                         <td colSpan="9" className="text-center py-4">Không có đơn hàng nào</td>
                       </tr>
                     ) : (
-                      sortedOrders.map((order, index) => (
+                      paginatedOrders.map((order, index) => (
                         <tr key={order.id}>
-                          <td>{index + 1}</td>
+                          <td>{getRowNumber(index)}</td>
                           <td>
                             <strong>{order.lotCode}</strong>
                           </td>
@@ -355,6 +392,11 @@ const ProductionOrderList = () => {
                     )}
                   </tbody>
                 </Table>
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
               </Card.Body>
             </Card>
           </Container>
@@ -365,5 +407,3 @@ const ProductionOrderList = () => {
 };
 
 export default ProductionOrderList;
-
-

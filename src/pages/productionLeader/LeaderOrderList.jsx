@@ -1,21 +1,29 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Container, Card, Table, Button, Badge, Form, InputGroup, Spinner, Tab, Tabs } from 'react-bootstrap';
-import { FaSearch } from 'react-icons/fa';
+import { Container, Card, Table, Button, Badge, Form, InputGroup, Spinner, Tab, Tabs, Row, Col } from 'react-bootstrap';
+import { FaSearch, FaSortUp, FaSortDown, FaSort } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
+import Pagination from '../../components/Pagination';
 import { productionService } from '../../api/productionService';
 import { orderService } from '../../api/orderService';
 import { getLeaderStageStatusLabel, getProductionOrderStatusFromStages, getStageTypeName } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
+import DatePicker, { registerLocale } from 'react-datepicker';
+import { vi } from 'date-fns/locale/vi';
+import 'react-datepicker/dist/react-datepicker.css';
+import { parseDateString, formatDateForBackend } from '../../utils/validators';
+
+registerLocale('vi', vi);
+
+const ITEMS_PER_PAGE = 10;
 
 const LeaderOrderList = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const [startDateFilter, setStartDateFilter] = useState('');
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  // Get userId from sessionStorage (set during login in authService.internalLogin)
-  // Fallback to localStorage for backward compatibility
   const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
 
   useEffect(() => {
@@ -29,21 +37,17 @@ const LeaderOrderList = () => {
         }
 
         const numericUserId = Number(userId);
-
         const ordersData = await productionService.getLeaderOrders(numericUserId);
 
-        // Fetch order details to get stages for each order
         const ordersWithStages = await Promise.all(
           ordersData.map(async (order) => {
             try {
               const orderDetail = await orderService.getOrderById(order.id);
-              // Find the stage(s) assigned to this leader and pick the one đang hoạt động nhất
               const leaderStagesAll = (orderDetail.stages || [])
                 .filter(stage =>
                   stage.assignedLeaderId === numericUserId ||
                   stage.assignedLeader?.id === numericUserId
                 )
-                // ưu tiên thứ tự công đoạn
                 .sort((a, b) => (a.stageSequence || 0) - (b.stageSequence || 0));
 
               const activeStatuses = ['IN_PROGRESS', 'REWORK_IN_PROGRESS', 'READY_TO_PRODUCE', 'READY', 'WAITING', 'WAITING_QC', 'QC_IN_PROGRESS', 'WAITING_REWORK'];
@@ -107,18 +111,28 @@ const LeaderOrderList = () => {
   }, [userId]);
 
   const filteredOrders = useMemo(() => {
-    if (!searchTerm) return orders;
-    const term = searchTerm.toLowerCase();
-    return orders.filter(
-      (o) =>
-        o.poNumber.toLowerCase().includes(term) ||
-        (o.contract?.contractNumber || '').toLowerCase().includes(term) ||
-        (o.productName || '').toLowerCase().includes(term)
-    );
-  }, [searchTerm, orders]);
+    return orders.filter((o) => {
+      const matchesSearch = !searchTerm ||
+        (o.poNumber && o.poNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (o.contract?.contractNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (o.productName || '').toLowerCase().includes(searchTerm.toLowerCase());
+
+      let matchesDate = true;
+      if (startDateFilter) {
+        const orderDate = o.plannedStartDate;
+        if (orderDate) {
+          matchesDate = orderDate === startDateFilter;
+        } else {
+          matchesDate = false;
+        }
+      }
+
+      return matchesSearch && matchesDate;
+    });
+  }, [searchTerm, startDateFilter, orders]);
 
   const handleStart = (order) => {
-    navigate(`/leader/orders/${order.id}`); // Redirect to Detail page (Stage List) instead of direct progress
+    navigate(`/leader/orders/${order.id}`);
   };
 
   const handleViewDetail = (order) => {
@@ -133,6 +147,9 @@ const LeaderOrderList = () => {
     );
   }
 
+  const mainOrders = filteredOrders.filter(o => !o.poNumber.includes('-REWORK'));
+  const reworkOrders = filteredOrders.filter(o => o.poNumber.includes('-REWORK'));
+
   return (
     <div className="customer-layout">
       <Header />
@@ -143,29 +160,72 @@ const LeaderOrderList = () => {
           style={{ backgroundColor: '#f8f9fa', minHeight: 'calc(100vh - 70px)' }}
         >
           <Container fluid className="p-4">
-            <h4 className="mb-3">Danh sách lô sản xuất</h4>
+            <h3 className="mb-4" style={{ fontWeight: 600 }}>Danh sách lô sản xuất</h3>
 
+            {/* Search and Filter */}
             <Card className="shadow-sm mb-3">
               <Card.Body>
-                <InputGroup>
-                  <InputGroup.Text>
-                    <FaSearch />
-                  </InputGroup.Text>
-                  <Form.Control
-                    placeholder="Tìm kiếm theo mã lô hàng hoặc hợp đồng..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </InputGroup>
+                <Row className="g-3 align-items-end">
+                  <Col md={4}>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Tìm kiếm</Form.Label>
+                      <InputGroup>
+                        <InputGroup.Text><FaSearch /></InputGroup.Text>
+                        <Form.Control
+                          placeholder="Tìm kiếm theo mã lô hoặc sản phẩm..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                      </InputGroup>
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Lọc theo ngày bắt đầu</Form.Label>
+                      <div className="custom-datepicker-wrapper">
+                        <DatePicker
+                          selected={parseDateString(startDateFilter)}
+                          onChange={(date) => {
+                            if (date) {
+                              setStartDateFilter(formatDateForBackend(date));
+                            } else {
+                              setStartDateFilter('');
+                            }
+                          }}
+                          onChangeRaw={(e) => {
+                            if (e.target.value === '' || e.target.value === null) {
+                              setStartDateFilter('');
+                            }
+                          }}
+                          dateFormat="dd/MM/yyyy"
+                          locale="vi"
+                          className="form-control"
+                          placeholderText="dd/mm/yyyy"
+                          isClearable
+                          todayButton="Hôm nay"
+                        />
+                      </div>
+                    </Form.Group>
+                  </Col>
+                </Row>
               </Card.Body>
             </Card>
 
             <Tabs defaultActiveKey="main" className="mb-3">
               <Tab eventKey="main" title="Lô sản xuất chính">
-                <OrderTable orders={filteredOrders.filter(o => !o.poNumber.includes('-REWORK'))} handleStart={handleStart} handleViewDetail={handleViewDetail} />
+                <OrderTable
+                  orders={mainOrders}
+                  handleStart={handleStart}
+                  handleViewDetail={handleViewDetail}
+                />
               </Tab>
               <Tab eventKey="rework" title="Lô bổ sung (Sửa lỗi)">
-                <OrderTable orders={filteredOrders.filter(o => o.poNumber.includes('-REWORK'))} handleStart={handleStart} handleViewDetail={handleViewDetail} isRework={true} />
+                <OrderTable
+                  orders={reworkOrders}
+                  handleStart={handleStart}
+                  handleViewDetail={handleViewDetail}
+                  isRework={true}
+                />
               </Tab>
             </Tabs>
           </Container>
@@ -175,93 +235,200 @@ const LeaderOrderList = () => {
   );
 };
 
-const OrderTable = ({ orders, handleStart, handleViewDetail, isRework = false }) => (
-  <Card className="shadow-sm">
-    <Card.Body className="p-0">
-      <Table responsive className="mb-0 align-middle">
-        <thead className="table-light">
-          <tr>
-            <th style={{ width: 60 }}>STT</th>
-            <th>Mã lô</th>
-            <th>Sản phẩm</th>
-            <th>Số lượng</th>
-            <th>Ngày bắt đầu</th>
-            <th>Ngày kết thúc</th>
-            <th>Trạng thái</th>
-            <th style={{ width: 120 }}>Hành động</th>
-          </tr>
-        </thead>
-        <tbody>
-          {orders.length === 0 ? (
+const OrderTable = ({ orders, handleStart, handleViewDetail, isRework = false }) => {
+  // Sort state
+  const [sortColumn, setSortColumn] = useState('');
+  const [sortDirection, setSortDirection] = useState('asc');
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Reset page when orders change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [orders]);
+
+  // Handle sort click
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  // Get sort icon for column
+  const getSortIcon = (column) => {
+    if (sortColumn !== column) {
+      return <FaSort className="ms-1 text-muted" style={{ opacity: 0.5 }} />;
+    }
+    return sortDirection === 'asc'
+      ? <FaSortUp className="ms-1 text-primary" />
+      : <FaSortDown className="ms-1 text-primary" />;
+  };
+
+  // Sort and paginate
+  const paginatedOrders = useMemo(() => {
+    let sorted = [...orders];
+
+    if (sortColumn) {
+      sorted.sort((a, b) => {
+        let aValue, bValue;
+
+        switch (sortColumn) {
+          case 'lotCode':
+            aValue = a.lotCode || a.poNumber || '';
+            bValue = b.lotCode || b.poNumber || '';
+            break;
+          case 'productName':
+            aValue = a.productName || '';
+            bValue = b.productName || '';
+            break;
+          case 'startDate':
+            aValue = a.plannedStartDate || '';
+            bValue = b.plannedStartDate || '';
+            break;
+          case 'quantity':
+            aValue = a.totalQuantity || 0;
+            bValue = b.totalQuantity || 0;
+            return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+          default:
+            return 0;
+        }
+
+        const comparison = String(aValue).localeCompare(String(bValue), 'vi');
+        return sortDirection === 'asc' ? comparison : -comparison;
+      });
+    }
+
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return sorted.slice(startIndex, endIndex);
+  }, [orders, sortColumn, sortDirection, currentPage]);
+
+  const totalPages = Math.max(1, Math.ceil(orders.length / ITEMS_PER_PAGE));
+
+  const getRowNumber = (index) => {
+    return (currentPage - 1) * ITEMS_PER_PAGE + index + 1;
+  };
+
+  return (
+    <Card className="shadow-sm">
+      <Card.Header>
+        {isRework ? 'Danh sách lô bổ sung' : 'Danh sách lô sản xuất chính'}
+      </Card.Header>
+      <Card.Body>
+        <Table responsive className="mb-0 align-middle">
+          <thead className="table-light">
             <tr>
-              <td colSpan="8" className="text-center py-4">Không có lô sản xuất nào</td>
+              <th style={{ width: 60 }}>STT</th>
+              <th
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+                onClick={() => handleSort('lotCode')}
+              >
+                Mã lô {getSortIcon('lotCode')}
+              </th>
+              <th
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+                onClick={() => handleSort('productName')}
+              >
+                Sản phẩm {getSortIcon('productName')}
+              </th>
+              <th
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+                onClick={() => handleSort('quantity')}
+              >
+                Số lượng {getSortIcon('quantity')}
+              </th>
+              <th
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+                onClick={() => handleSort('startDate')}
+              >
+                Ngày bắt đầu {getSortIcon('startDate')}
+              </th>
+              <th>Ngày kết thúc</th>
+              <th>Trạng thái</th>
+              <th style={{ width: 150 }}>Hành động</th>
             </tr>
-          ) : (
-            orders.map((order, index) => {
-              const stage = order.leaderStage;
-              const orderLocked = order.orderStatus === 'WAITING_PRODUCTION' || order.orderStatus === 'PENDING_APPROVAL';
+          </thead>
+          <tbody>
+            {paginatedOrders.length === 0 ? (
+              <tr>
+                <td colSpan="8" className="text-center py-4">Không có lô sản xuất nào</td>
+              </tr>
+            ) : (
+              paginatedOrders.map((order, index) => {
+                const stage = order.leaderStage;
+                const orderLocked = order.orderStatus === 'WAITING_PRODUCTION' || order.orderStatus === 'PENDING_APPROVAL';
 
-              // Use dynamic status label like PM page (e.g., "Đang Nhuộm", "Chờ đến lượt Dệt")
-              let statusLabel = order.dynamicStatusLabel || 'N/A';
-              let statusVariant = order.dynamicStatusVariant || 'secondary';
+                // Use dynamic status label like PM page (e.g., "Đang Nhuộm", "Chờ đến lượt Dệt")
+                let statusLabel = order.dynamicStatusLabel || 'N/A';
+                let statusVariant = order.dynamicStatusVariant || 'secondary';
 
-              // Get buttons from stage status for action column
-              const stageStatus = stage ? getLeaderStageStatusLabel(stage.status) : { buttons: [] };
-              const buttons = stageStatus?.buttons || [];
+                // Get buttons from stage status for action column
+                const stageStatus = stage ? getLeaderStageStatusLabel(stage.status) : { buttons: [] };
+                const buttons = stageStatus?.buttons || [];
 
-              // Nếu PM chưa start lệnh: luôn "Đợi"
-              if (orderLocked) {
-                statusLabel = 'Đợi';
-                statusVariant = 'secondary';
-              }
+                // Nếu PM chưa start lệnh: luôn "Đợi"
+                if (orderLocked) {
+                  statusLabel = 'Đợi';
+                  statusVariant = 'secondary';
+                }
 
-              return (
-                <tr key={order.id}>
-                  <td>{index + 1}</td>
-                  <td>
-                    <strong>{order.lotCode || order.poNumber}</strong>
-                    {isRework && <Badge bg="danger" className="ms-2">Rework</Badge>}
-                  </td>
-                  <td>{order.productName || order.contract?.contractNumber || 'N/A'}</td>
-                  <td>{order.totalQuantity?.toLocaleString('vi-VN')}</td>
-                  <td>{order.plannedStartDate}</td>
-                  <td>{order.plannedEndDate}</td>
-                  <td>
-                    <Badge bg={statusVariant}>
-                      {statusLabel}
-                    </Badge>
-                  </td>
-                  <td className="text-end">
-                    {!orderLocked && buttons.length > 0 ? (
-                      buttons.map((btn, idx) => (
-                        <Button
-                          key={idx}
-                          size="sm"
-                          variant={btn.variant}
-                          className="me-1"
-                          onClick={() => {
-                            if (btn.action === 'start' || btn.action === 'update' || btn.action === 'rework') {
-                              handleStart(order);
-                            } else {
-                              handleViewDetail(order);
-                            }
-                          }}
-                        >
-                          {btn.text}
-                        </Button>
-                      ))
-                    ) : (
-                      <span className="text-muted">-</span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })
-          )}
-        </tbody>
-      </Table>
-    </Card.Body>
-  </Card>
-);
+                return (
+                  <tr key={order.id}>
+                    <td>{getRowNumber(index)}</td>
+                    <td>
+                      <strong>{order.lotCode || order.poNumber}</strong>
+                      {isRework && <Badge bg="danger" className="ms-2">Rework</Badge>}
+                    </td>
+                    <td>{order.productName || order.contract?.contractNumber || 'N/A'}</td>
+                    <td>{order.totalQuantity?.toLocaleString('vi-VN')}</td>
+                    <td>{order.plannedStartDate}</td>
+                    <td>{order.plannedEndDate}</td>
+                    <td>
+                      <Badge bg={statusVariant}>
+                        {statusLabel}
+                      </Badge>
+                    </td>
+                    <td className="text-end">
+                      {!orderLocked && buttons.length > 0 ? (
+                        buttons.map((btn, idx) => (
+                          <Button
+                            key={idx}
+                            size="sm"
+                            variant={btn.variant}
+                            className="me-1"
+                            onClick={() => {
+                              if (btn.action === 'start' || btn.action === 'update' || btn.action === 'rework') {
+                                handleStart(order);
+                              } else {
+                                handleViewDetail(order);
+                              }
+                            }}
+                          >
+                            {btn.text}
+                          </Button>
+                        ))
+                      ) : (
+                        <span className="text-muted">-</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </Table>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
+      </Card.Body>
+    </Card>
+  );
+};
 
 export default LeaderOrderList;
