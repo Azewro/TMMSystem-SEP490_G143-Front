@@ -169,7 +169,6 @@ const LeaderStageProgress = () => {
         progress: formatTrackingProgress(tracking),
         timestamp: formatTimestamp(tracking.timestamp),
         operator: tracking.operatorName || 'Không xác định',
-        operator: tracking.operatorName || 'Không xác định',
         notes: tracking.notes || '',
         isRework: tracking.isRework, // Map isRework
       }));
