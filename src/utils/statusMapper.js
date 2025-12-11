@@ -86,10 +86,11 @@ export const getProductionOrderStatusFromStages = (order) => {
 
   if (!activeStage) {
     // Fallback: use order status or first non-completed stage
-    const firstPendingStage = stages.find(s => s.executionStatus === 'WAITING' || s.executionStatus === 'READY');
+    const firstPendingStage = stages.find(s => s.executionStatus === 'WAITING' || s.executionStatus === 'READY' || s.executionStatus === 'READY_TO_PRODUCE');
     if (firstPendingStage) {
       const stageName = getStageTypeName(firstPendingStage.stageType);
-      return { label: `Chờ ${stageName}`, variant: 'secondary' };
+      const isReady = firstPendingStage.executionStatus === 'READY' || firstPendingStage.executionStatus === 'READY_TO_PRODUCE';
+      return { label: isReady ? `Sẵn sàng ${stageName}` : `Chờ đến lượt ${stageName}`, variant: isReady ? 'primary' : 'secondary' };
     }
     return { label: getStatusLabel(order.executionStatus || order.status), variant: getStatusVariant(order.executionStatus || order.status) };
   }
@@ -99,9 +100,9 @@ export const getProductionOrderStatusFromStages = (order) => {
 
   // Map execution status to Vietnamese prefix with stage name
   const statusPrefixMap = {
-    'WAITING': { prefix: 'Chờ', variant: 'secondary' },
-    'READY': { prefix: 'Chờ', variant: 'secondary' },
-    'READY_TO_PRODUCE': { prefix: 'Chờ', variant: 'primary' },
+    'WAITING': { prefix: 'Chờ đến lượt', variant: 'secondary' },
+    'READY': { prefix: 'Sẵn sàng', variant: 'primary' },
+    'READY_TO_PRODUCE': { prefix: 'Sẵn sàng', variant: 'primary' },
     'IN_PROGRESS': { prefix: 'Đang', variant: 'info' },
     'WAITING_QC': { prefix: 'Chờ kiểm tra', variant: 'warning' },
     'QC_IN_PROGRESS': { prefix: 'Đang kiểm tra', variant: 'warning' },
