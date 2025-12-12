@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Card, Table, Badge, Button, Alert, Spinner } from 'react-bootstrap';
+import { Container, Card, Table, Badge, Button, Alert, Spinner, Modal } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { productionService } from '../../api/productionService';
 import { getStageTypeName } from '../../utils/statusMapper';
+import api from '../../api/apiConfig';
 
 const severityConfig = {
   MINOR: { label: 'Lỗi nhẹ', variant: 'warning' },
@@ -22,6 +24,12 @@ const LeaderDefectList = () => {
   const [defects, setDefects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [processingDefectId, setProcessingDefectId] = useState(null);
+
+  // Confirmation modal state
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingDefect, setPendingDefect] = useState(null);
+  const [activeStagesInfo, setActiveStagesInfo] = useState(null);
 
   useEffect(() => {
     fetchDefects();
@@ -41,6 +49,65 @@ const LeaderDefectList = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleStartRework = async (defect) => {
+    try {
+      setProcessingDefectId(defect.id);
+
+      // 1. Check if any stage is currently active
+      const checkResult = await api.get(`/v1/production/stages/${defect.stageId}/check-rework`);
+
+      if (checkResult.data.hasActiveStages) {
+        // Store pending info and show confirmation modal
+        setPendingDefect(defect);
+        setActiveStagesInfo(checkResult.data);
+        setShowConfirmModal(true);
+      } else {
+        // No active stages - start rework directly
+        await startReworkAndNavigate(defect, false);
+      }
+    } catch (err) {
+      console.error('Error checking before rework:', err);
+      toast.error(err.response?.data?.message || 'Lỗi khi kiểm tra trạng thái');
+    } finally {
+      setProcessingDefectId(null);
+    }
+  };
+
+  const startReworkAndNavigate = async (defect, forceStop) => {
+    try {
+      const leaderUserId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
+      await api.post(`/v1/production/stages/${defect.stageId}/start-rework?leaderUserId=${leaderUserId}&forceStop=${forceStop}`);
+
+      toast.success('Đã bắt đầu sửa lỗi');
+
+      // Navigate to progress page
+      navigate(`/leader/orders/${defect.orderId}/progress`, {
+        state: {
+          defectId: defect.id,
+          severity: defect.severity
+        }
+      });
+    } catch (err) {
+      console.error('Error starting rework:', err);
+      toast.error(err.response?.data?.message || 'Lỗi khi bắt đầu sửa lỗi');
+    }
+  };
+
+  const handleConfirmForceStop = async () => {
+    setShowConfirmModal(false);
+    if (pendingDefect) {
+      await startReworkAndNavigate(pendingDefect, true);
+    }
+    setPendingDefect(null);
+    setActiveStagesInfo(null);
+  };
+
+  const handleCancelForceStop = () => {
+    setShowConfirmModal(false);
+    setPendingDefect(null);
+    setActiveStagesInfo(null);
   };
 
   return (
@@ -95,14 +162,17 @@ const LeaderDefectList = () => {
                             <Button
                               size="sm"
                               variant="outline-danger"
-                              onClick={() => navigate(`/leader/orders/${defect.orderId}/progress`, {
-                                state: {
-                                  defectId: defect.id,
-                                  severity: defect.severity
-                                }
-                              })}
+                              disabled={processingDefectId === defect.id}
+                              onClick={() => handleStartRework(defect)}
                             >
-                              Tạm dừng và sửa lỗi
+                              {processingDefectId === defect.id ? (
+                                <>
+                                  <Spinner size="sm" animation="border" className="me-1" />
+                                  Đang xử lý...
+                                </>
+                              ) : (
+                                'Tạm dừng và sửa lỗi'
+                              )}
                             </Button>
                           </td>
                         </tr>
@@ -115,8 +185,41 @@ const LeaderDefectList = () => {
           </Container>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      <Modal show={showConfirmModal} onHide={handleCancelForceStop} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Xác nhận dừng đơn hàng</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {activeStagesInfo && (
+            <>
+              <p>
+                <strong>Đơn hàng đang chạy công đoạn {activeStagesInfo.stageTypeName || getStageTypeName(activeStagesInfo.stageType)}:</strong>
+              </p>
+              <ul>
+                {activeStagesInfo.activeStages?.map((stage, idx) => (
+                  <li key={idx}><strong>{stage.lotCode}</strong></li>
+                ))}
+              </ul>
+              <p className="mt-3 text-danger">
+                Bạn có muốn <strong>dừng</strong> các đơn hàng trên để tiến hành sửa lỗi không?
+              </p>
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleCancelForceStop}>
+            Hủy
+          </Button>
+          <Button variant="danger" onClick={handleConfirmForceStop}>
+            Xác nhận dừng và sửa lỗi
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 };
 
 export default LeaderDefectList;
+
