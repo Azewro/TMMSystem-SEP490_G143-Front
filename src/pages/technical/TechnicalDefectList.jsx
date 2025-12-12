@@ -31,13 +31,10 @@ const statusConfig = {
   WAITING_MATERIAL: { label: 'Chờ vật tư', variant: 'danger' }
 };
 
-const STATUS_FILTERS = [
-  { value: '', label: 'Tất cả trạng thái' },
-  { value: 'PENDING', label: 'Chờ xử lý' },
-  { value: 'IN_PROGRESS', label: 'Đang xử lý' },
-  { value: 'PROCESSED', label: 'Đã xử lý' },
-  { value: 'WAITING_REWORK', label: 'Chờ sửa' },
-  { value: 'WAITING_MATERIAL', label: 'Chờ vật tư' },
+const SEVERITY_FILTERS = [
+  { value: '', label: 'Tất cả mức độ' },
+  { value: 'MINOR', label: 'Lỗi nhẹ' },
+  { value: 'MAJOR', label: 'Lỗi nặng' },
 ];
 
 const TechnicalDefectList = () => {
@@ -45,7 +42,7 @@ const TechnicalDefectList = () => {
   const [allDefects, setAllDefects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [severityFilter, setSeverityFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
 
   // Pagination state
@@ -95,7 +92,7 @@ const TechnicalDefectList = () => {
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, dateFilter]);
+  }, [searchTerm, severityFilter, dateFilter]);
 
   // Filter defects
   const filteredDefects = useMemo(() => {
@@ -105,7 +102,7 @@ const TechnicalDefectList = () => {
         (defect.poNumber && defect.poNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (defect.productName && defect.productName.toLowerCase().includes(searchTerm.toLowerCase()));
 
-      const matchesStatus = !statusFilter || defect.status === statusFilter;
+      const matchesSeverity = !severityFilter || defect.severity === severityFilter;
 
       let matchesDate = true;
       if (dateFilter && defect.createdAt) {
@@ -115,9 +112,9 @@ const TechnicalDefectList = () => {
         matchesDate = false;
       }
 
-      return matchesSearch && matchesStatus && matchesDate;
+      return matchesSearch && matchesSeverity && matchesDate;
     });
-  }, [allDefects, searchTerm, statusFilter, dateFilter]);
+  }, [allDefects, searchTerm, severityFilter, dateFilter]);
 
   // Sort and paginate
   const paginatedDefects = useMemo(() => {
@@ -236,12 +233,12 @@ const TechnicalDefectList = () => {
                   </Col>
                   <Col md={3}>
                     <Form.Group>
-                      <Form.Label className="mb-1 small">Lọc theo trạng thái</Form.Label>
+                      <Form.Label className="mb-1 small">Lọc theo mức độ lỗi</Form.Label>
                       <Form.Select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
+                        value={severityFilter}
+                        onChange={(e) => setSeverityFilter(e.target.value)}
                       >
-                        {STATUS_FILTERS.map((option) => (
+                        {SEVERITY_FILTERS.map((option) => (
                           <option key={option.value} value={option.value}>
                             {option.label}
                           </option>

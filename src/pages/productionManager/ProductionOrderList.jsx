@@ -15,19 +15,13 @@ import { parseDateString, formatDateForBackend } from '../../utils/validators';
 
 registerLocale('vi', vi);
 
-const STATUS_FILTERS = [
-  { value: 'ALL', label: 'Tất cả trạng thái' },
-  { value: 'CHO_SAN_XUAT', label: 'Chờ sản xuất' },
-  { value: 'DANG_SAN_XUAT', label: 'Đang sản xuất' },
-  { value: 'HOAN_THANH', label: 'Hoàn thành' },
-];
+
 
 const ITEMS_PER_PAGE = 10;
 
 const ProductionOrderList = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
   const [startDateFilter, setStartDateFilter] = useState('');
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -102,7 +96,7 @@ const ProductionOrderList = () => {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, startDateFilter]);
+  }, [searchTerm, startDateFilter]);
 
   const handleStartWorkOrder = async (orderId) => {
     try {
@@ -137,8 +131,7 @@ const ProductionOrderList = () => {
         (order.lotCode && order.lotCode.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (order.productName && order.productName.toLowerCase().includes(searchTerm.toLowerCase()));
 
-      const matchesStatus =
-        statusFilter === 'ALL' ? true : order.status === statusFilter;
+      const matchesStatus = true; // Removed status filter
 
       // Filter by start date
       let matchesDate = true;
@@ -151,9 +144,9 @@ const ProductionOrderList = () => {
         }
       }
 
-      return matchesSearch && matchesStatus && matchesDate;
+      return matchesSearch && matchesDate;
     });
-  }, [orders, searchTerm, statusFilter, startDateFilter]);
+  }, [orders, searchTerm, startDateFilter]);
 
   // Sort and paginate orders
   const paginatedOrders = useMemo(() => {
@@ -250,7 +243,7 @@ const ProductionOrderList = () => {
                       </InputGroup>
                     </Form.Group>
                   </Col>
-                  <Col md={3}>
+                  <Col md={4}>
                     <Form.Group>
                       <Form.Label className="mb-1 small">Lọc theo ngày bắt đầu</Form.Label>
                       <div className="custom-datepicker-wrapper">
@@ -276,21 +269,6 @@ const ProductionOrderList = () => {
                           todayButton="Hôm nay"
                         />
                       </div>
-                    </Form.Group>
-                  </Col>
-                  <Col md={3}>
-                    <Form.Group>
-                      <Form.Label className="mb-1 small">Lọc theo trạng thái</Form.Label>
-                      <Form.Select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                      >
-                        {STATUS_FILTERS.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </Form.Select>
                     </Form.Group>
                   </Col>
                 </Row>
