@@ -322,6 +322,14 @@ const TechnicalDefectDetail = () => {
                     rounds.push(currentRound);
                   }
 
+                  // Filter to only show the round matching this defect's attemptNumber
+                  // attemptNumber is 1-indexed (Lỗi lần 1 = attemptNumber 1)
+                  const attemptNum = defect.attemptNumber || 1;
+                  const targetRoundIndex = attemptNum - 1; // Convert to 0-indexed
+                  const filteredRounds = rounds.length > targetRoundIndex
+                    ? [rounds[targetRoundIndex]]
+                    : rounds.slice(-1); // Fallback to last round if not found
+
                   // Helper for robust URL
                   const getFullPhotoUrl = (url) => {
                     if (!url) return null;
@@ -334,18 +342,20 @@ const TechnicalDefectDetail = () => {
 
                   return (
                     <div className="d-flex flex-column gap-4">
-                      {rounds.map((roundItems, roundIndex) => {
+                      {filteredRounds.map((roundItems, idx) => {
                         const hasFailure = roundItems.some(item => item.result !== 'PASS');
                         const roundDate = roundItems[0]?.inspectedAt
                           ? new Date(roundItems[0].inspectedAt).toLocaleString('vi-VN')
                           : '';
+                        // Display the actual round number (attemptNumber)
+                        const displayRoundNum = attemptNum;
 
                         return (
-                          <div key={roundIndex}>
+                          <div key={idx}>
                             <div className="d-flex justify-content-between align-items-center mb-3">
                               <h6 className="mb-0">
                                 <Badge bg={hasFailure ? 'danger' : 'success'} className="me-2">
-                                  Lần kiểm tra {roundIndex + 1}
+                                  Lần kiểm tra {displayRoundNum}
                                 </Badge>
                                 <small className="text-muted">{roundDate}</small>
                               </h6>
@@ -385,7 +395,7 @@ const TechnicalDefectDetail = () => {
                                 );
                               })}
                             </div>
-                            {roundIndex < rounds.length - 1 && <hr className="my-4" />}
+                            {/* Removed divider - only showing single round now */}
                           </div>
                         );
                       })}
@@ -402,70 +412,12 @@ const TechnicalDefectDetail = () => {
                 <Card.Body>
                   <strong>Xử lý lỗi nhẹ</strong>
 
-                  {/* Rework Progress Section */}
-                  {(defect.stageStatus === 'WAITING_REWORK' || defect.stageStatus === 'REWORK_IN_PROGRESS' || (defect.reworkHistory && defect.reworkHistory.length > 0)) && (
-                    <div className="mb-4 p-3 bg-light rounded border">
-                      <h6 className="text-primary mb-3">Tiến độ sửa lỗi (Rework)</h6>
-                      <div className="mb-2">
-                        <div className="d-flex justify-content-between mb-1">
-                          <small>Tiến độ hiện tại</small>
-                          <small className="fw-bold">{defect.reworkProgress || 0}%</small>
-                        </div>
-                        <div className="progress" style={{ height: '10px' }}>
-                          <div
-                            className="progress-bar bg-warning"
-                            role="progressbar"
-                            style={{ width: `${defect.reworkProgress || 0}%` }}
-                            aria-valuenow={defect.reworkProgress || 0}
-                            aria-valuemin="0"
-                            aria-valuemax="100"
-                          ></div>
-                        </div>
-                      </div>
-
-                      {defect.reworkHistory && defect.reworkHistory.length > 0 && (
-                        <div className="mt-3">
-                          <small className="text-muted d-block mb-2">Lịch sử cập nhật:</small>
-                          <div className="table-responsive" style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                            <table className="table table-sm table-bordered bg-white mb-0" style={{ fontSize: '0.85rem' }}>
-                              <thead>
-                                <tr>
-                                  <th>Thời gian</th>
-                                  <th>Hành động</th>
-                                  <th>%</th>
-                                  <th>Người cập nhật</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {defect.reworkHistory.map((h) => (
-                                  <tr key={h.id}>
-                                    <td>{new Date(h.timestamp).toLocaleString('vi-VN')}</td>
-                                    <td>{h.action}</td>
-                                    <td>{h.quantityCompleted}%</td>
-                                    <td>{h.operatorName}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  {/* Rework Progress Section - Hidden for Tech staff, only visible to Leaders */}
 
                   <p className="text-muted mt-2 mb-4">Lỗi này được đánh giá là lỗi nhẹ. Bạn có thể yêu cầu Leader làm lại (Rework).</p>
 
-                  {/* FIX: Show button based on defect.status (PENDING), not stageStatus */}
-                  {/* This ensures new defects after second QC fail still show the button */}
-                  {defect.status === 'PROCESSED' ? (
-                    <div className="alert alert-info">
-                      <strong>Đã yêu cầu làm lại.</strong>
-                      <div className="mt-1">
-                        <small className="text-muted">Ghi chú đã gửi:</small>
-                        <div>{defect.technicalNotes}</div>
-                      </div>
-                    </div>
-                  ) : (
+                  {/* Only show form if status is PENDING - not yet sent */}
+                  {defect.status === 'PENDING' ? (
                     <>
                       <Form.Group className="mb-3">
                         <Form.Label>Ghi chú cho Leader</Form.Label>
@@ -479,6 +431,16 @@ const TechnicalDefectDetail = () => {
                       </Form.Group>
                       <Button variant="warning" onClick={() => handleDecision('REWORK')}>Yêu cầu làm lại</Button>
                     </>
+                  ) : (
+                    <div className="alert alert-info">
+                      <strong>Đã yêu cầu xử lý.</strong>
+                      {defect.technicalNotes && (
+                        <div className="mt-1">
+                          <small className="text-muted">Ghi chú đã gửi:</small>
+                          <div>{defect.technicalNotes}</div>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </Card.Body>
               </Card>
