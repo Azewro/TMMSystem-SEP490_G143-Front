@@ -286,59 +286,112 @@ const TechnicalDefectDetail = () => {
               </Card.Body>
             </Card>
 
-            {/* Inspection Criteria List */}
+            {/* Inspection Criteria List - Grouped by QC Round */}
             <Card className="shadow-sm mb-4">
               <Card.Header className="bg-white">
                 <strong>Tiêu chí kiểm tra</strong>
               </Card.Header>
               <Card.Body>
-                {defect.inspections && defect.inspections.length > 0 ? (
-                  <div className="d-flex flex-column gap-3">
-                    {defect.inspections.map((item, index) => {
-                      // Helper for robust URL
-                      const getFullPhotoUrl = (url) => {
-                        if (!url) return null;
-                        const domain = API_BASE_URL.replace(/^https?:\/\//, '');
-                        if (url.includes(domain)) {
-                          return url.startsWith('http') ? url : `https://${url}`;
-                        }
-                        return `${API_BASE_URL}/api/files/${url}`;
-                      };
+                {defect.inspections && defect.inspections.length > 0 ? (() => {
+                  // Group inspections by round (based on inspectedAt timestamp)
+                  // Inspections within 5 minutes are considered same round
+                  const sortedInspections = [...defect.inspections].sort((a, b) => {
+                    const dateA = a.inspectedAt ? new Date(a.inspectedAt) : new Date(0);
+                    const dateB = b.inspectedAt ? new Date(b.inspectedAt) : new Date(0);
+                    return dateA - dateB;
+                  });
 
-                      const itemPhotoUrl = getFullPhotoUrl(item.photoUrl);
-                      const translatedName = translateCheckpointName(item.checkpointName);
+                  const rounds = [];
+                  let currentRound = [];
+                  let lastTime = null;
+                  const ROUND_GAP_MS = 5 * 60 * 1000; // 5 minutes
 
-                      return (
-                        <div
-                          key={index}
-                          className="p-3 rounded"
-                          style={{
-                            border: `1px solid ${item.result === 'PASS' ? '#c3ebd3' : '#f9cfd9'}`,
-                            backgroundColor: item.result === 'PASS' ? '#e8f7ef' : '#fdecef',
-                          }}
-                        >
-                          <div className="d-flex justify-content-between align-items-center mb-2">
-                            <div className="fw-semibold">{translatedName || `Tiêu chí ${index + 1}`}</div>
-                            <Badge bg={item.result === 'PASS' ? 'success' : 'danger'}>
-                              {item.result === 'PASS' ? 'Đạt' : 'Không đạt'}
-                            </Badge>
-                          </div>
-                          {itemPhotoUrl && (
-                            <div className="mt-2">
-                              <img
-                                src={itemPhotoUrl}
-                                alt={translatedName}
-                                className="rounded mb-2"
-                                style={{ maxWidth: '100%', maxHeight: '400px', objectFit: 'contain' }}
-                              />
+                  sortedInspections.forEach((item) => {
+                    const itemTime = item.inspectedAt ? new Date(item.inspectedAt).getTime() : 0;
+                    if (lastTime === null || (itemTime - lastTime) < ROUND_GAP_MS) {
+                      currentRound.push(item);
+                    } else {
+                      if (currentRound.length > 0) {
+                        rounds.push([...currentRound]);
+                      }
+                      currentRound = [item];
+                    }
+                    lastTime = itemTime;
+                  });
+                  if (currentRound.length > 0) {
+                    rounds.push(currentRound);
+                  }
+
+                  // Helper for robust URL
+                  const getFullPhotoUrl = (url) => {
+                    if (!url) return null;
+                    const domain = API_BASE_URL.replace(/^https?:\/\//, '');
+                    if (url.includes(domain)) {
+                      return url.startsWith('http') ? url : `https://${url}`;
+                    }
+                    return `${API_BASE_URL}/api/files/${url}`;
+                  };
+
+                  return (
+                    <div className="d-flex flex-column gap-4">
+                      {rounds.map((roundItems, roundIndex) => {
+                        const hasFailure = roundItems.some(item => item.result !== 'PASS');
+                        const roundDate = roundItems[0]?.inspectedAt
+                          ? new Date(roundItems[0].inspectedAt).toLocaleString('vi-VN')
+                          : '';
+
+                        return (
+                          <div key={roundIndex}>
+                            <div className="d-flex justify-content-between align-items-center mb-3">
+                              <h6 className="mb-0">
+                                <Badge bg={hasFailure ? 'danger' : 'success'} className="me-2">
+                                  Lần kiểm tra {roundIndex + 1}
+                                </Badge>
+                                <small className="text-muted">{roundDate}</small>
+                              </h6>
                             </div>
-                          )}
-                          {item.notes && <div className="text-muted small">Ghi chú: {item.notes}</div>}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
+                            <div className="d-flex flex-column gap-2">
+                              {roundItems.map((item, index) => {
+                                const itemPhotoUrl = getFullPhotoUrl(item.photoUrl);
+                                const translatedName = translateCheckpointName(item.checkpointName);
+
+                                return (
+                                  <div
+                                    key={index}
+                                    className="p-3 rounded"
+                                    style={{
+                                      border: `1px solid ${item.result === 'PASS' ? '#c3ebd3' : '#f9cfd9'}`,
+                                      backgroundColor: item.result === 'PASS' ? '#e8f7ef' : '#fdecef',
+                                    }}
+                                  >
+                                    <div className="d-flex justify-content-between align-items-center mb-2">
+                                      <div className="fw-semibold">{translatedName || `Tiêu chí ${index + 1}`}</div>
+                                      <Badge bg={item.result === 'PASS' ? 'success' : 'danger'}>
+                                        {item.result === 'PASS' ? 'Đạt' : 'Không đạt'}
+                                      </Badge>
+                                    </div>
+                                    {itemPhotoUrl && (
+                                      <div className="mt-2">
+                                        <img
+                                          src={itemPhotoUrl}
+                                          alt={translatedName}
+                                          className="rounded mb-2"
+                                          style={{ maxWidth: '100%', maxHeight: '400px', objectFit: 'contain' }}
+                                        />
+                                      </div>
+                                    )}
+                                    {item.notes && <div className="text-muted small">Ghi chú: {item.notes}</div>}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            {roundIndex < rounds.length - 1 && <hr className="my-4" />}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })() : (
                   <div className="text-muted">Không có thông tin chi tiết tiêu chí.</div>
                 )}
               </Card.Body>
