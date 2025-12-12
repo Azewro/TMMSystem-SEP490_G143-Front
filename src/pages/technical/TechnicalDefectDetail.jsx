@@ -402,8 +402,9 @@ const TechnicalDefectDetail = () => {
 
                   <p className="text-muted mt-2 mb-4">Lỗi này được đánh giá là lỗi nhẹ. Bạn có thể yêu cầu Leader làm lại (Rework).</p>
 
-                  {/* Persistent Notes Display */}
-                  {(defect.stageStatus === 'WAITING_REWORK' || defect.stageStatus === 'REWORK_IN_PROGRESS' || (defect.reworkHistory && defect.reworkHistory.length > 0)) ? (
+                  {/* FIX: Show button based on defect.status (PENDING), not stageStatus */}
+                  {/* This ensures new defects after second QC fail still show the button */}
+                  {defect.status === 'PROCESSED' ? (
                     <div className="alert alert-info">
                       <strong>Đã yêu cầu làm lại.</strong>
                       <div className="mt-1">
