@@ -28,7 +28,8 @@ const statusConfig = {
   IN_PROGRESS: { label: 'Đang xử lý', variant: 'primary' },
   WAITING_REWORK: { label: 'Chờ sửa', variant: 'info' },
   REWORK_IN_PROGRESS: { label: 'Đang sửa', variant: 'primary' },
-  WAITING_MATERIAL: { label: 'Chờ vật tư', variant: 'danger' }
+  WAITING_MATERIAL: { label: 'Chờ vật tư', variant: 'danger' },
+  RESOLVED: { label: 'Đã giải quyết', variant: 'success' }
 };
 
 const SEVERITY_FILTERS = [
