@@ -258,7 +258,7 @@ const TechnicalDefectDetail = () => {
               <Card.Body>
                 <div className="d-flex justify-content-between flex-wrap gap-2 mb-3">
                   <div>
-                    <h5 className="mb-1">Chi Tiết Lỗi #{defect.id}</h5>
+                    <h5 className="mb-1">Chi Tiết Lỗi #{defect.id} {defect.attemptLabel && <Badge bg="info" className="ms-2">{defect.attemptLabel}</Badge>}</h5>
                     <small className="text-muted">Xem và xử lý lỗi</small>
                   </div>
                   <Badge bg={severity.variant} className="align-self-start">
