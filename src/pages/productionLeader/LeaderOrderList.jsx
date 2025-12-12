@@ -393,27 +393,41 @@ const OrderTable = ({ orders, handleStart, handleViewDetail, isRework = false })
                       </Badge>
                     </td>
                     <td className="text-end">
-                      {!orderLocked && buttons.length > 0 ? (
-                        buttons.map((btn, idx) => (
+                      {(() => {
+                        // Filter buttons - hide 'start' action when waiting for turn (another lot using the machine)
+                        const isWaitingForTurn = statusLabel.includes('Chờ đến lượt');
+                        const filteredButtons = isWaitingForTurn
+                          ? buttons.filter(btn => btn.action !== 'start')
+                          : buttons;
+
+                        return !orderLocked && filteredButtons.length > 0 ? (
+                          filteredButtons.map((btn, idx) => (
+                            <Button
+                              key={idx}
+                              size="sm"
+                              variant={btn.variant}
+                              className="me-1"
+                              onClick={() => {
+                                if (btn.action === 'start' || btn.action === 'update' || btn.action === 'rework') {
+                                  handleStart(order);
+                                } else {
+                                  handleViewDetail(order);
+                                }
+                              }}
+                            >
+                              {btn.text}
+                            </Button>
+                          ))
+                        ) : (
                           <Button
-                            key={idx}
                             size="sm"
-                            variant={btn.variant}
-                            className="me-1"
-                            onClick={() => {
-                              if (btn.action === 'start' || btn.action === 'update' || btn.action === 'rework') {
-                                handleStart(order);
-                              } else {
-                                handleViewDetail(order);
-                              }
-                            }}
+                            variant="outline-secondary"
+                            onClick={() => handleViewDetail(order)}
                           >
-                            {btn.text}
+                            Xem chi tiết
                           </Button>
-                        ))
-                      ) : (
-                        <span className="text-muted">-</span>
-                      )}
+                        );
+                      })()}
                     </td>
                   </tr>
                 );
