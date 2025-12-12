@@ -258,7 +258,7 @@ const TechnicalDefectDetail = () => {
               <Card.Body>
                 <div className="d-flex justify-content-between flex-wrap gap-2 mb-3">
                   <div>
-                    <h5 className="mb-1">Chi Tiết Lỗi #{defect.id}</h5>
+                    <h5 className="mb-1">Chi Tiết Lỗi #{defect.id} {defect.attemptLabel && <Badge bg="info" className="ms-2">{defect.attemptLabel}</Badge>}</h5>
                     <small className="text-muted">Xem và xử lý lỗi</small>
                   </div>
                   <Badge bg={severity.variant} className="align-self-start">
@@ -286,59 +286,122 @@ const TechnicalDefectDetail = () => {
               </Card.Body>
             </Card>
 
-            {/* Inspection Criteria List */}
+            {/* Inspection Criteria List - Grouped by QC Round */}
             <Card className="shadow-sm mb-4">
               <Card.Header className="bg-white">
                 <strong>Tiêu chí kiểm tra</strong>
               </Card.Header>
               <Card.Body>
-                {defect.inspections && defect.inspections.length > 0 ? (
-                  <div className="d-flex flex-column gap-3">
-                    {defect.inspections.map((item, index) => {
-                      // Helper for robust URL
-                      const getFullPhotoUrl = (url) => {
-                        if (!url) return null;
-                        const domain = API_BASE_URL.replace(/^https?:\/\//, '');
-                        if (url.includes(domain)) {
-                          return url.startsWith('http') ? url : `https://${url}`;
-                        }
-                        return `${API_BASE_URL}/api/files/${url}`;
-                      };
+                {defect.inspections && defect.inspections.length > 0 ? (() => {
+                  // Group inspections by round (based on inspectedAt timestamp)
+                  // Inspections within 5 minutes are considered same round
+                  const sortedInspections = [...defect.inspections].sort((a, b) => {
+                    const dateA = a.inspectedAt ? new Date(a.inspectedAt) : new Date(0);
+                    const dateB = b.inspectedAt ? new Date(b.inspectedAt) : new Date(0);
+                    return dateA - dateB;
+                  });
 
-                      const itemPhotoUrl = getFullPhotoUrl(item.photoUrl);
-                      const translatedName = translateCheckpointName(item.checkpointName);
+                  const rounds = [];
+                  let currentRound = [];
+                  let lastTime = null;
+                  const ROUND_GAP_MS = 5 * 60 * 1000; // 5 minutes
 
-                      return (
-                        <div
-                          key={index}
-                          className="p-3 rounded"
-                          style={{
-                            border: `1px solid ${item.result === 'PASS' ? '#c3ebd3' : '#f9cfd9'}`,
-                            backgroundColor: item.result === 'PASS' ? '#e8f7ef' : '#fdecef',
-                          }}
-                        >
-                          <div className="d-flex justify-content-between align-items-center mb-2">
-                            <div className="fw-semibold">{translatedName || `Tiêu chí ${index + 1}`}</div>
-                            <Badge bg={item.result === 'PASS' ? 'success' : 'danger'}>
-                              {item.result === 'PASS' ? 'Đạt' : 'Không đạt'}
-                            </Badge>
-                          </div>
-                          {itemPhotoUrl && (
-                            <div className="mt-2">
-                              <img
-                                src={itemPhotoUrl}
-                                alt={translatedName}
-                                className="rounded mb-2"
-                                style={{ maxWidth: '100%', maxHeight: '400px', objectFit: 'contain' }}
-                              />
+                  sortedInspections.forEach((item) => {
+                    const itemTime = item.inspectedAt ? new Date(item.inspectedAt).getTime() : 0;
+                    if (lastTime === null || (itemTime - lastTime) < ROUND_GAP_MS) {
+                      currentRound.push(item);
+                    } else {
+                      if (currentRound.length > 0) {
+                        rounds.push([...currentRound]);
+                      }
+                      currentRound = [item];
+                    }
+                    lastTime = itemTime;
+                  });
+                  if (currentRound.length > 0) {
+                    rounds.push(currentRound);
+                  }
+
+                  // Filter to only show the round matching this defect's attemptNumber
+                  // attemptNumber is 1-indexed (Lỗi lần 1 = attemptNumber 1)
+                  const attemptNum = defect.attemptNumber || 1;
+                  const targetRoundIndex = attemptNum - 1; // Convert to 0-indexed
+                  const filteredRounds = rounds.length > targetRoundIndex
+                    ? [rounds[targetRoundIndex]]
+                    : rounds.slice(-1); // Fallback to last round if not found
+
+                  // Helper for robust URL
+                  const getFullPhotoUrl = (url) => {
+                    if (!url) return null;
+                    const domain = API_BASE_URL.replace(/^https?:\/\//, '');
+                    if (url.includes(domain)) {
+                      return url.startsWith('http') ? url : `https://${url}`;
+                    }
+                    return `${API_BASE_URL}/api/files/${url}`;
+                  };
+
+                  return (
+                    <div className="d-flex flex-column gap-4">
+                      {filteredRounds.map((roundItems, idx) => {
+                        const hasFailure = roundItems.some(item => item.result !== 'PASS');
+                        const roundDate = roundItems[0]?.inspectedAt
+                          ? new Date(roundItems[0].inspectedAt).toLocaleString('vi-VN')
+                          : '';
+                        // Display the actual round number (attemptNumber)
+                        const displayRoundNum = attemptNum;
+
+                        return (
+                          <div key={idx}>
+                            <div className="d-flex justify-content-between align-items-center mb-3">
+                              <h6 className="mb-0">
+                                <Badge bg={hasFailure ? 'danger' : 'success'} className="me-2">
+                                  Lần kiểm tra {displayRoundNum}
+                                </Badge>
+                                <small className="text-muted">{roundDate}</small>
+                              </h6>
                             </div>
-                          )}
-                          {item.notes && <div className="text-muted small">Ghi chú: {item.notes}</div>}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
+                            <div className="d-flex flex-column gap-2">
+                              {roundItems.map((item, index) => {
+                                const itemPhotoUrl = getFullPhotoUrl(item.photoUrl);
+                                const translatedName = translateCheckpointName(item.checkpointName);
+
+                                return (
+                                  <div
+                                    key={index}
+                                    className="p-3 rounded"
+                                    style={{
+                                      border: `1px solid ${item.result === 'PASS' ? '#c3ebd3' : '#f9cfd9'}`,
+                                      backgroundColor: item.result === 'PASS' ? '#e8f7ef' : '#fdecef',
+                                    }}
+                                  >
+                                    <div className="d-flex justify-content-between align-items-center mb-2">
+                                      <div className="fw-semibold">{translatedName || `Tiêu chí ${index + 1}`}</div>
+                                      <Badge bg={item.result === 'PASS' ? 'success' : 'danger'}>
+                                        {item.result === 'PASS' ? 'Đạt' : 'Không đạt'}
+                                      </Badge>
+                                    </div>
+                                    {itemPhotoUrl && (
+                                      <div className="mt-2">
+                                        <img
+                                          src={itemPhotoUrl}
+                                          alt={translatedName}
+                                          className="rounded mb-2"
+                                          style={{ maxWidth: '100%', maxHeight: '400px', objectFit: 'contain' }}
+                                        />
+                                      </div>
+                                    )}
+                                    {item.notes && <div className="text-muted small">Ghi chú: {item.notes}</div>}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            {/* Removed divider - only showing single round now */}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })() : (
                   <div className="text-muted">Không có thông tin chi tiết tiêu chí.</div>
                 )}
               </Card.Body>
@@ -349,69 +412,12 @@ const TechnicalDefectDetail = () => {
                 <Card.Body>
                   <strong>Xử lý lỗi nhẹ</strong>
 
-                  {/* Rework Progress Section */}
-                  {(defect.stageStatus === 'WAITING_REWORK' || defect.stageStatus === 'REWORK_IN_PROGRESS' || (defect.reworkHistory && defect.reworkHistory.length > 0)) && (
-                    <div className="mb-4 p-3 bg-light rounded border">
-                      <h6 className="text-primary mb-3">Tiến độ sửa lỗi (Rework)</h6>
-                      <div className="mb-2">
-                        <div className="d-flex justify-content-between mb-1">
-                          <small>Tiến độ hiện tại</small>
-                          <small className="fw-bold">{defect.reworkProgress || 0}%</small>
-                        </div>
-                        <div className="progress" style={{ height: '10px' }}>
-                          <div
-                            className="progress-bar bg-warning"
-                            role="progressbar"
-                            style={{ width: `${defect.reworkProgress || 0}%` }}
-                            aria-valuenow={defect.reworkProgress || 0}
-                            aria-valuemin="0"
-                            aria-valuemax="100"
-                          ></div>
-                        </div>
-                      </div>
-
-                      {defect.reworkHistory && defect.reworkHistory.length > 0 && (
-                        <div className="mt-3">
-                          <small className="text-muted d-block mb-2">Lịch sử cập nhật:</small>
-                          <div className="table-responsive" style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                            <table className="table table-sm table-bordered bg-white mb-0" style={{ fontSize: '0.85rem' }}>
-                              <thead>
-                                <tr>
-                                  <th>Thời gian</th>
-                                  <th>Hành động</th>
-                                  <th>%</th>
-                                  <th>Người cập nhật</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {defect.reworkHistory.map((h) => (
-                                  <tr key={h.id}>
-                                    <td>{new Date(h.timestamp).toLocaleString('vi-VN')}</td>
-                                    <td>{h.action}</td>
-                                    <td>{h.quantityCompleted}%</td>
-                                    <td>{h.operatorName}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  {/* Rework Progress Section - Hidden for Tech staff, only visible to Leaders */}
 
                   <p className="text-muted mt-2 mb-4">Lỗi này được đánh giá là lỗi nhẹ. Bạn có thể yêu cầu Leader làm lại (Rework).</p>
 
-                  {/* Persistent Notes Display */}
-                  {(defect.stageStatus === 'WAITING_REWORK' || defect.stageStatus === 'REWORK_IN_PROGRESS' || (defect.reworkHistory && defect.reworkHistory.length > 0)) ? (
-                    <div className="alert alert-info">
-                      <strong>Đã yêu cầu làm lại.</strong>
-                      <div className="mt-1">
-                        <small className="text-muted">Ghi chú đã gửi:</small>
-                        <div>{defect.technicalNotes}</div>
-                      </div>
-                    </div>
-                  ) : (
+                  {/* Only show form if status is PENDING - not yet sent */}
+                  {defect.status === 'PENDING' ? (
                     <>
                       <Form.Group className="mb-3">
                         <Form.Label>Ghi chú cho Leader</Form.Label>
@@ -425,6 +431,16 @@ const TechnicalDefectDetail = () => {
                       </Form.Group>
                       <Button variant="warning" onClick={() => handleDecision('REWORK')}>Yêu cầu làm lại</Button>
                     </>
+                  ) : (
+                    <div className="alert alert-info">
+                      <strong>Đã yêu cầu xử lý.</strong>
+                      {defect.technicalNotes && (
+                        <div className="mt-1">
+                          <small className="text-muted">Ghi chú đã gửi:</small>
+                          <div>{defect.technicalNotes}</div>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </Card.Body>
               </Card>

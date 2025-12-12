@@ -105,7 +105,7 @@ const LeaderDefectDetail = () => {
               <Card.Body>
                 <div className="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
                   <div>
-                    <h5 className="mb-1">Chi tiết lỗi</h5>
+                    <h5 className="mb-1">Chi tiết lỗi {defect.attemptLabel && <Badge bg="info" className="ms-2">{defect.attemptLabel}</Badge>}</h5>
                   </div>
                   <Badge bg={severity.variant}>{severity.label}</Badge>
                 </div>

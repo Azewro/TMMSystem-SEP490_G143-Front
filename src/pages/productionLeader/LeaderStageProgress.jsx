@@ -586,8 +586,9 @@ const LeaderStageProgress = () => {
             {/* Defect Details for Rework */}
             {(defect || (stage && (stage.executionStatus === 'QC_FAILED' || stage.executionStatus === 'WAITING_REWORK' || stage.executionStatus === 'REWORK_IN_PROGRESS'))) && (
               <Card className="shadow-sm mb-3 border-danger">
-                <Card.Header className="bg-danger text-white">
+                <Card.Header className="bg-danger text-white d-flex justify-content-between align-items-center">
                   <strong>Thông tin lỗi cần sửa</strong>
+                  {defect?.attemptLabel && <Badge bg="light" text="dark">{defect.attemptLabel}</Badge>}
                 </Card.Header>
                 <Card.Body>
                   {defect && (

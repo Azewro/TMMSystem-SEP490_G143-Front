@@ -22,6 +22,7 @@ const ProductionFiberRequestDetail = () => {
   const [request, setRequest] = useState(null);
   const [loading, setLoading] = useState(true);
   const [approvedQuantity, setApprovedQuantity] = useState(0);
+  const [approvedDetails, setApprovedDetails] = useState({}); // Per-material approved quantities
   const [processing, setProcessing] = useState(false);
 
   // Get userId for directorId (assuming PM/Director role)
@@ -34,6 +35,14 @@ const ProductionFiberRequestDetail = () => {
         const data = await productionService.getMaterialRequest(id);
         setRequest(data);
         setApprovedQuantity(data.quantityRequested || 0);
+        // Initialize approvedDetails with requested quantities
+        if (data.details && data.details.length > 0) {
+          const initialDetails = {};
+          data.details.forEach((detail, index) => {
+            initialDetails[index] = detail.quantityRequested || 0;
+          });
+          setApprovedDetails(initialDetails);
+        }
       } catch (error) {
         console.error('Error fetching request:', error);
         toast.error('Không thể tải thông tin yêu cầu');
@@ -289,27 +298,55 @@ const ProductionFiberRequestDetail = () => {
               <Card className="shadow-sm">
                 <Card.Body>
                   <h6 className="mb-3">Phê duyệt yêu cầu</h6>
-                  <Row className="align-items-end">
-                    <Col md={4}>
-                      <Form.Group>
-                        <Form.Label>Số lượng phê duyệt (kg)</Form.Label>
-                        <Form.Control
-                          type="number"
-                          value={approvedQuantity}
-                          onChange={(e) => setApprovedQuantity(e.target.value)}
-                        />
-                      </Form.Group>
-                    </Col>
-                    <Col md={8}>
-                      <Button
-                        variant="primary"
-                        onClick={handlePreApprove}
-                        disabled={processing}
-                      >
-                        {processing ? <Spinner size="sm" animation="border" /> : 'Phê duyệt & Tạo lệnh bù'}
-                      </Button>
-                    </Col>
-                  </Row>
+                  <div className="table-responsive mb-3">
+                    <table className="table table-bordered">
+                      <thead className="table-light">
+                        <tr>
+                          <th>Vật tư</th>
+                          <th style={{ width: '150px' }}>SL Yêu cầu (kg)</th>
+                          <th style={{ width: '180px' }}>SL Phê duyệt (kg)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {request.details && request.details.map((detail, index) => (
+                          <tr key={index}>
+                            <td>
+                              <div className="fw-medium">{detail.materialName || '-'}</div>
+                              <small className="text-muted">{detail.materialCode}</small>
+                            </td>
+                            <td className="text-end">{detail.quantityRequested?.toLocaleString('vi-VN')}</td>
+                            <td>
+                              <Form.Control
+                                type="number"
+                                min="0"
+                                step="0.1"
+                                value={approvedDetails[index] || 0}
+                                onChange={(e) => {
+                                  const newDetails = { ...approvedDetails, [index]: parseFloat(e.target.value) || 0 };
+                                  setApprovedDetails(newDetails);
+                                  // Update total
+                                  const total = Object.values(newDetails).reduce((sum, val) => sum + val, 0);
+                                  setApprovedQuantity(total);
+                                }}
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                        <tr className="table-light fw-bold">
+                          <td>Tổng cộng</td>
+                          <td className="text-end">{request.quantityRequested?.toLocaleString('vi-VN')}</td>
+                          <td className="text-end">{approvedQuantity.toLocaleString('vi-VN')}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <Button
+                    variant="primary"
+                    onClick={handlePreApprove}
+                    disabled={processing || approvedQuantity <= 0}
+                  >
+                    {processing ? <Spinner size="sm" animation="border" /> : 'Phê duyệt & Tạo lệnh bù'}
+                  </Button>
                 </Card.Body>
               </Card>
             )}
