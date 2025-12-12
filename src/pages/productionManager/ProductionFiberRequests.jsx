@@ -16,8 +16,8 @@ const ProductionFiberRequests = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch Pending Material Requests
-      const reqResponse = await api.get('/v1/execution/material-requisitions?status=PENDING');
+      // Fetch ALL Material Requests (no status filter)
+      const reqResponse = await api.get('/v1/execution/material-requisitions');
       setRequests(reqResponse.data);
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -31,6 +31,17 @@ const ProductionFiberRequests = () => {
     fetchData();
   }, []);
 
+  // Status badge config
+  const getStatusBadge = (status) => {
+    const config = {
+      PENDING: { bg: 'warning', text: 'Chờ duyệt' },
+      APPROVED: { bg: 'success', text: 'Đã duyệt' },
+      REJECTED: { bg: 'danger', text: 'Từ chối' },
+      COMPLETED: { bg: 'info', text: 'Hoàn thành' }
+    };
+    const c = config[status] || { bg: 'secondary', text: status };
+    return <Badge bg={c.bg}>{c.text}</Badge>;
+  };
 
 
   return (
@@ -69,10 +80,10 @@ const ProductionFiberRequests = () => {
                             <td>{req.stageType || req.stageName}</td>
                             <td>{req.requestedByName || req.requestedBy?.fullName || 'N/A'}</td>
                             <td>{req.notes}</td>
-                            <td><Badge bg="warning">Chờ duyệt</Badge></td>
+                            <td>{getStatusBadge(req.status)}</td>
                             <td>
                               <Button size="sm" variant="primary" onClick={() => navigate(`/production/fiber-requests/${req.id}`)}>
-                                Xem & Duyệt
+                                {req.status === 'PENDING' ? 'Xem & Duyệt' : 'Xem chi tiết'}
                               </Button>
                             </td>
                           </tr>
