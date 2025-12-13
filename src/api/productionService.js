@@ -70,9 +70,12 @@ export const productionService = {
         return response.data;
     },
 
-    approveMaterialRequest: async (id, approvedQuantity, directorId) => {
-        const response = await apiClient.post(`/v1/production/material-requests/${id}/approve`, null, {
-            params: { approvedQuantity, directorId }
+    approveMaterialRequest: async (id, details, directorId, force = false) => {
+        // details should be array of { id: detailId, quantityApproved: number }
+        const response = await apiClient.post(`/v1/production/material-requests/${id}/approve`, {
+            directorId,
+            force,
+            details
         });
         return response.data;
     }

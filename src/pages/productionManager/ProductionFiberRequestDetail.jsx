@@ -4,6 +4,7 @@ import { Container, Card, Row, Col, Badge, Button, Spinner, Form, Modal } from '
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { productionService } from '../../api/productionService';
+import { getStageTypeName } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
 
 const severityConfig = {
@@ -94,8 +95,13 @@ const ProductionFiberRequestDetail = () => {
     }
     try {
       setProcessing(true);
-      // Pass force parameter if needed (backend supports it)
-      await productionService.approveMaterialRequest(id, approvedQuantity, userId, force);
+      // Build details array with per-material approved quantities
+      const details = request.details?.map((detail, index) => ({
+        id: detail.id,
+        quantityApproved: Number(approvedDetails[index]) || 0
+      })) || [];
+
+      await productionService.approveMaterialRequest(id, details, userId, force);
       toast.success('Đã phê duyệt yêu cầu và tạo lệnh sản xuất bù');
       setShowConfirmModal(false);
       setShowWarningModal(false);
@@ -153,7 +159,7 @@ const ProductionFiberRequestDetail = () => {
                 <div className="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
                   <div>
                     <h5 className="mb-1">Chi Tiết Yêu Cầu Cấp Sợi</h5>
-                    <small className="text-muted">Mã yêu cầu: {request.requisitionNumber}</small>
+                    <small className="text-muted">Mã lô hàng: {request.lotCode || request.poNumber || 'N/A'}</small>
                   </div>
                   <div className="d-flex gap-2">
                     <Badge bg={request.status === 'PENDING' ? 'warning' : 'success'}>
@@ -167,7 +173,7 @@ const ProductionFiberRequestDetail = () => {
                 <Row className="g-3">
                   <Col md={6}>
                     <div className="text-muted small mb-1">Công đoạn</div>
-                    <div className="fw-semibold">{request.stageName || request.productionStage?.stageType}</div>
+                    <div className="fw-semibold">{getStageTypeName(request.productionStage?.stageType) || request.stageName || 'N/A'}</div>
                   </Col>
                   <Col md={6}>
                     <div className="text-muted small mb-1">Người yêu cầu</div>

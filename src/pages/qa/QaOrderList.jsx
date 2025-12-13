@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Container, Card, Table, Button, Badge, Form, InputGroup, Spinner, Row, Col } from 'react-bootstrap';
+import { Container, Card, Table, Button, Badge, Form, InputGroup, Spinner, Row, Col, Tab, Tabs } from 'react-bootstrap';
 import { FaSearch, FaSortUp, FaSortDown, FaSort } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
@@ -24,6 +24,9 @@ const QaOrderList = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const qcUserId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState('main');
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -105,10 +108,10 @@ const QaOrderList = () => {
     }
   }, [qcUserId]);
 
-  // Reset page when filters change
+  // Reset page when filters or tab change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, startDateFilter]);
+  }, [searchTerm, startDateFilter, activeTab]);
 
   // Filter orders
   const filteredOrders = useMemo(() => {
@@ -131,9 +134,21 @@ const QaOrderList = () => {
     });
   }, [searchTerm, startDateFilter, orders]);
 
+  // Split orders into main and rework
+  const mainOrders = useMemo(() => {
+    return filteredOrders.filter(o => !o.lotCode?.includes('-REWORK') && !o.poNumber?.includes('-REWORK'));
+  }, [filteredOrders]);
+
+  const reworkOrders = useMemo(() => {
+    return filteredOrders.filter(o => o.lotCode?.includes('-REWORK') || o.poNumber?.includes('-REWORK'));
+  }, [filteredOrders]);
+
+  // Get currently active orders based on tab
+  const activeOrders = activeTab === 'main' ? mainOrders : reworkOrders;
+
   // Sort and paginate
   const paginatedOrders = useMemo(() => {
-    let sorted = [...filteredOrders];
+    let sorted = [...activeOrders];
 
     if (sortColumn) {
       sorted.sort((a, b) => {
@@ -172,9 +187,9 @@ const QaOrderList = () => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
     return sorted.slice(startIndex, endIndex);
-  }, [filteredOrders, sortColumn, sortDirection, currentPage]);
+  }, [activeOrders, sortColumn, sortDirection, currentPage]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / ITEMS_PER_PAGE));
+  const totalPages = Math.max(1, Math.ceil(activeOrders.length / ITEMS_PER_PAGE));
 
   const getRowNumber = (index) => {
     return (currentPage - 1) * ITEMS_PER_PAGE + index + 1;
@@ -253,93 +268,184 @@ const QaOrderList = () => {
               </Card.Body>
             </Card>
 
-            <Card className="shadow-sm">
-              <Card.Header>
-                Danh sách đơn hàng
-              </Card.Header>
-              <Card.Body>
-                <Table responsive className="mb-0 align-middle">
-                  <thead className="table-light">
-                    <tr>
-                      <th style={{ width: 60 }}>STT</th>
-                      <th
-                        style={{ cursor: 'pointer', userSelect: 'none' }}
-                        onClick={() => handleSort('lotCode')}
-                      >
-                        Mã lô {getSortIcon('lotCode')}
-                      </th>
-                      <th
-                        style={{ cursor: 'pointer', userSelect: 'none' }}
-                        onClick={() => handleSort('productName')}
-                      >
-                        Tên sản phẩm {getSortIcon('productName')}
-                      </th>
-                      <th>Kích thước</th>
-                      <th
-                        style={{ cursor: 'pointer', userSelect: 'none' }}
-                        onClick={() => handleSort('quantity')}
-                      >
-                        Số lượng {getSortIcon('quantity')}
-                      </th>
-                      <th
-                        style={{ cursor: 'pointer', userSelect: 'none' }}
-                        onClick={() => handleSort('startDate')}
-                      >
-                        Ngày bắt đầu {getSortIcon('startDate')}
-                      </th>
-                      <th>Ngày kết thúc</th>
-                      <th
-                        style={{ cursor: 'pointer', userSelect: 'none' }}
-                        onClick={() => handleSort('status')}
-                      >
-                        Trạng thái {getSortIcon('status')}
-                      </th>
-                      <th style={{ width: 120 }}>Hành động</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedOrders.length === 0 ? (
-                      <tr>
-                        <td colSpan="9" className="text-center py-4">Không có đơn hàng nào</td>
-                      </tr>
-                    ) : (
-                      paginatedOrders.map((order, index) => (
-                        <tr key={order.id}>
-                          <td>{getRowNumber(index)}</td>
-                          <td>
-                            <strong>{order.lotCode || order.id}</strong>
-                          </td>
-                          <td>{order.productName}</td>
-                          <td>{order.size}</td>
-                          <td>{order.quantity.toLocaleString('vi-VN')}</td>
-                          <td>{order.expectedStartDate}</td>
-                          <td>{order.expectedFinishDate}</td>
-                          <td>
-                            <Badge bg={order.statusVariant}>
-                              {order.statusLabel}
-                            </Badge>
-                          </td>
-                          <td className="text-end">
-                            <Button
-                              size="sm"
-                              variant="primary"
-                              onClick={() => handleInspect(order)}
-                            >
-                              Xem kế hoạch
-                            </Button>
-                          </td>
+            <Tabs
+              activeKey={activeTab}
+              onSelect={(k) => setActiveTab(k)}
+              className="mb-3"
+            >
+              <Tab eventKey="main" title="Lô sản xuất chính">
+                <Card className="shadow-sm">
+                  <Card.Body>
+                    <Table responsive className="mb-0 align-middle">
+                      <thead className="table-light">
+                        <tr>
+                          <th style={{ width: 60 }}>STT</th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('lotCode')}
+                          >
+                            Mã lô {getSortIcon('lotCode')}
+                          </th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('productName')}
+                          >
+                            Tên sản phẩm {getSortIcon('productName')}
+                          </th>
+                          <th>Kích thước</th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('quantity')}
+                          >
+                            Số lượng {getSortIcon('quantity')}
+                          </th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('startDate')}
+                          >
+                            Ngày bắt đầu {getSortIcon('startDate')}
+                          </th>
+                          <th>Ngày kết thúc</th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('status')}
+                          >
+                            Trạng thái {getSortIcon('status')}
+                          </th>
+                          <th style={{ width: 120 }}>Hành động</th>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </Table>
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={setCurrentPage}
-                />
-              </Card.Body>
-            </Card>
+                      </thead>
+                      <tbody>
+                        {paginatedOrders.length === 0 ? (
+                          <tr>
+                            <td colSpan="9" className="text-center py-4">Không có đơn hàng nào</td>
+                          </tr>
+                        ) : (
+                          paginatedOrders.map((order, index) => (
+                            <tr key={order.id}>
+                              <td>{getRowNumber(index)}</td>
+                              <td>
+                                <strong>{order.lotCode || order.id}</strong>
+                              </td>
+                              <td>{order.productName}</td>
+                              <td>{order.size}</td>
+                              <td>{order.quantity.toLocaleString('vi-VN')}</td>
+                              <td>{order.expectedStartDate}</td>
+                              <td>{order.expectedFinishDate}</td>
+                              <td>
+                                <Badge bg={order.statusVariant}>
+                                  {order.statusLabel}
+                                </Badge>
+                              </td>
+                              <td className="text-end">
+                                <Button
+                                  size="sm"
+                                  variant="primary"
+                                  onClick={() => handleInspect(order)}
+                                >
+                                  Xem kế hoạch
+                                </Button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </Table>
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={setCurrentPage}
+                    />
+                  </Card.Body>
+                </Card>
+              </Tab>
+              <Tab eventKey="rework" title="Lô bổ sung (Sửa lỗi)">
+                <Card className="shadow-sm">
+                  <Card.Body>
+                    <Table responsive className="mb-0 align-middle">
+                      <thead className="table-light">
+                        <tr>
+                          <th style={{ width: 60 }}>STT</th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('lotCode')}
+                          >
+                            Mã lô {getSortIcon('lotCode')}
+                          </th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('productName')}
+                          >
+                            Tên sản phẩm {getSortIcon('productName')}
+                          </th>
+                          <th>Kích thước</th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('quantity')}
+                          >
+                            Số lượng {getSortIcon('quantity')}
+                          </th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('startDate')}
+                          >
+                            Ngày bắt đầu {getSortIcon('startDate')}
+                          </th>
+                          <th>Ngày kết thúc</th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('status')}
+                          >
+                            Trạng thái {getSortIcon('status')}
+                          </th>
+                          <th style={{ width: 120 }}>Hành động</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paginatedOrders.length === 0 ? (
+                          <tr>
+                            <td colSpan="9" className="text-center py-4">Không có đơn hàng bổ sung nào</td>
+                          </tr>
+                        ) : (
+                          paginatedOrders.map((order, index) => (
+                            <tr key={order.id}>
+                              <td>{getRowNumber(index)}</td>
+                              <td>
+                                <strong>{order.lotCode || order.id}</strong>
+                              </td>
+                              <td>{order.productName}</td>
+                              <td>{order.size}</td>
+                              <td>{order.quantity.toLocaleString('vi-VN')}</td>
+                              <td>{order.expectedStartDate}</td>
+                              <td>{order.expectedFinishDate}</td>
+                              <td>
+                                <Badge bg={order.statusVariant}>
+                                  {order.statusLabel}
+                                </Badge>
+                              </td>
+                              <td className="text-end">
+                                <Button
+                                  size="sm"
+                                  variant="primary"
+                                  onClick={() => handleInspect(order)}
+                                >
+                                  Xem kế hoạch
+                                </Button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </Table>
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={setCurrentPage}
+                    />
+                  </Card.Body>
+                </Card>
+              </Tab>
+            </Tabs>
           </Container>
         </div>
       </div>

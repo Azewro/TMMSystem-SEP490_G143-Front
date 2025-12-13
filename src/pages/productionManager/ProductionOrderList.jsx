@@ -79,9 +79,12 @@ const ProductionOrderList = () => {
             statusLabel: statusResult.label,
             statusVariant: statusResult.variant,
             pendingMaterialRequestId: order.pendingMaterialRequestId,
-            isStarted: isStarted
+            isStarted: isStarted,
+            poNumber: order.poNumber // Keep for filtering
           };
-        });
+        })
+        // Filter out rework orders - they go to ProductionReworkOrders page
+        .filter(o => !o.poNumber || !o.poNumber.includes('REWORK'));
         setOrders(mappedData);
       } catch (error) {
         console.error('Error fetching orders:', error);

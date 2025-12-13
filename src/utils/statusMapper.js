@@ -30,6 +30,12 @@ export const getStatusLabel = (status) => {
     'REWORK_IN_PROGRESS': 'đang sửa',
     'PAUSED': 'Tạm dừng',
     'WAITING_MATERIAL': 'Chờ phê duyệt cấp sợi', // Frontend-only status
+
+    // Supplementary/Rework order statuses
+    'READY_SUPPLEMENTARY': 'Sẵn sàng SX bổ sung',
+    'WAITING_SUPPLEMENTARY': 'Chờ sản xuất bổ sung',
+    'IN_SUPPLEMENTARY': 'Đang sản xuất bổ sung',
+    'SUPPLEMENTARY_CREATED': 'Đã tạo lệnh bổ sung',
   };
   return statusMap[status] || status;
 };
@@ -62,8 +68,22 @@ export const getStageTypeName = (stageType) => {
  * @returns {{ label: string, variant: string }} Status label and Bootstrap variant
  */
 export const getProductionOrderStatusFromStages = (order) => {
-  // Handle special status: Chờ phê duyệt cấp sợi
-  if (order.pendingMaterialRequestId) {
+  // Handle supplementary/rework order statuses first
+  if (order.executionStatus === 'READY_SUPPLEMENTARY') {
+    return { label: 'Sẵn sàng SX bổ sung', variant: 'primary' };
+  }
+  if (order.executionStatus === 'WAITING_SUPPLEMENTARY') {
+    return { label: 'Chờ sản xuất bổ sung', variant: 'secondary' };
+  }
+  if (order.executionStatus === 'IN_SUPPLEMENTARY') {
+    return { label: 'Đang sản xuất bổ sung', variant: 'info' };
+  }
+  if (order.executionStatus === 'SUPPLEMENTARY_CREATED') {
+    return { label: 'Đã tạo lệnh bổ sung', variant: 'success' };
+  }
+
+  // Handle special status: Chờ phê duyệt cấp sợi (only if still pending)
+  if (order.pendingMaterialRequestId && order.executionStatus === 'WAITING_MATERIAL_APPROVAL') {
     return { label: 'Chờ phê duyệt cấp sợi', variant: 'warning' };
   }
 
