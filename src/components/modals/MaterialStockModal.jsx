@@ -77,7 +77,7 @@ const MaterialStockModal = ({ show, onHide, onSave, materialStock = null }) => {
     if (name === 'quantity' || name === 'unitPrice') {
       sanitizedValue = sanitizeNumericInput(value, true);
     }
-    
+
     setFormData(prev => ({
       ...prev,
       [name]: sanitizedValue
@@ -94,11 +94,11 @@ const MaterialStockModal = ({ show, onHide, onSave, materialStock = null }) => {
 
   const validate = () => {
     const newErrors = {};
-    
+
     if (!formData.materialId) {
       newErrors.materialId = 'Vui lòng chọn nguyên liệu';
     }
-    
+
     // Validate quantity with trim
     const quantityStr = formData.quantity ? formData.quantity.toString().trim() : '';
     if (!quantityStr) {
@@ -109,7 +109,7 @@ const MaterialStockModal = ({ show, onHide, onSave, materialStock = null }) => {
         newErrors.quantity = 'Vui lòng nhập số lượng hợp lệ';
       }
     }
-    
+
     // Validate unitPrice with trim
     const unitPriceStr = formData.unitPrice ? formData.unitPrice.toString().trim() : '';
     if (!unitPriceStr) {
@@ -120,18 +120,18 @@ const MaterialStockModal = ({ show, onHide, onSave, materialStock = null }) => {
         newErrors.unitPrice = 'Vui lòng nhập đơn giá hợp lệ';
       }
     }
-    
+
     if (!formData.receivedDate) {
       newErrors.receivedDate = 'Vui lòng chọn ngày nhập hàng';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validate()) {
       return;
     }
@@ -148,7 +148,7 @@ const MaterialStockModal = ({ show, onHide, onSave, materialStock = null }) => {
         receivedDate: formData.receivedDate || null,
         expiryDate: formData.expiryDate || null
       };
-      
+
       await onSave(submitData);
     } catch (err) {
       // Error is handled by parent component
@@ -309,17 +309,6 @@ const MaterialStockModal = ({ show, onHide, onSave, materialStock = null }) => {
                 <Form.Control.Feedback type="invalid">
                   {errors.receivedDate}
                 </Form.Control.Feedback>
-              </Form.Group>
-            </Col>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Hạn sử dụng</Form.Label>
-                <Form.Control
-                  type="date"
-                  name="expiryDate"
-                  value={formData.expiryDate}
-                  onChange={handleChange}
-                />
               </Form.Group>
             </Col>
           </Row>
