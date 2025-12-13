@@ -20,26 +20,33 @@ export const isVietnamesePhoneNumber = (phoneNumber) => {
  * @param {boolean} allowDecimal Whether to allow decimal point (default: false for integers)
  */
 export const handleNumericKeyPress = (e, allowDecimal = false) => {
-  // Allow: backspace, delete, tab, escape, enter, and decimal point (if allowed)
-  if (
-    [8, 9, 27, 13, 46, 110, 190].indexOf(e.keyCode) !== -1 ||
-    // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
-    (e.keyCode === 65 && e.ctrlKey === true) ||
-    (e.keyCode === 67 && e.ctrlKey === true) ||
-    (e.keyCode === 86 && e.ctrlKey === true) ||
-    (e.keyCode === 88 && e.ctrlKey === true) ||
-    // Allow: home, end, left, right, down, up
-    (e.keyCode >= 35 && e.keyCode <= 40)
-  ) {
+  const key = e.key;
+
+  // Allow: backspace, delete, tab, escape, enter, arrows, home, end
+  // These are typically handled by onKeyDown, but just in case
+  if (['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(key)) {
     return;
   }
-  // Ensure that it is a number and stop the keypress
-  if (
-    ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105)) ||
-    (allowDecimal && e.keyCode === 190 && e.target.value.includes('.'))
-  ) {
-    e.preventDefault();
+
+  // Allow Ctrl/Cmd combinations (copy, paste, etc.)
+  if (e.ctrlKey || e.metaKey) {
+    return;
   }
+
+  // Allow numbers 0-9
+  if (/^[0-9]$/.test(key)) {
+    return;
+  }
+
+  // Allow decimal point if enabled and not already present
+  if (allowDecimal && (key === '.' || key === ',')) {
+    if (!e.target.value.includes('.') && !e.target.value.includes(',')) {
+      return;
+    }
+  }
+
+  // Block all other characters
+  e.preventDefault();
 };
 
 /**
@@ -84,20 +91,20 @@ export const parseDateString = (dateString) => {
   if (!dateString || typeof dateString !== 'string') {
     return null;
   }
-  
+
   // Match YYYY-MM-DD format
   const dateMatch = dateString.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!dateMatch) {
     return null;
   }
-  
+
   const year = parseInt(dateMatch[1], 10);
   const month = parseInt(dateMatch[2], 10) - 1; // Month is 0-indexed
   const day = parseInt(dateMatch[3], 10);
-  
+
   // Create date in local timezone (not UTC)
   const date = new Date(year, month, day);
-  
+
   // Validate the date is valid (handles invalid dates like 2024-02-30)
   if (
     date.getFullYear() !== year ||
@@ -106,7 +113,7 @@ export const parseDateString = (dateString) => {
   ) {
     return null;
   }
-  
+
   return date;
 };
 
@@ -120,12 +127,12 @@ export const formatDateForBackend = (date) => {
   if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
     return '';
   }
-  
+
   // Use local date components to avoid timezone issues
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
-  
+
   return `${year}-${month}-${day}`;
 };
 
@@ -139,28 +146,28 @@ export const validateQuantity = (quantity) => {
   if (!quantity || typeof quantity !== 'string') {
     return { isValid: false, error: 'Số lượng là bắt buộc.' };
   }
-  
+
   const trimmed = quantity.trim();
-  
+
   // Check if empty
   if (!trimmed) {
     return { isValid: false, error: 'Số lượng là bắt buộc.' };
   }
-  
+
   // Regex: Must be a positive integer (1 or more digits, no leading zeros except single digit 0-9)
   // Allows: 0-9, 10-99, 100-999, etc. (no leading zeros for multi-digit numbers)
   const integerRegex = /^(0|[1-9]\d*)$/;
-  
+
   if (!integerRegex.test(trimmed)) {
     return { isValid: false, error: 'Số lượng phải là số nguyên dương hợp lệ.' };
   }
-  
+
   const numValue = parseInt(trimmed, 10);
-  
+
   // Check minimum value (100)
   if (numValue < 100) {
     return { isValid: false, error: 'Số lượng tối thiểu là 100.' };
   }
-  
+
   return { isValid: true, error: null };
 };
