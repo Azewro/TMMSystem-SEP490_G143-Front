@@ -159,7 +159,10 @@ const ProductionFiberRequestDetail = () => {
                 <div className="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
                   <div>
                     <h5 className="mb-1">Chi Tiết Yêu Cầu Cấp Sợi</h5>
-                    <small className="text-muted">Mã lô hàng: {request.lotCode || request.poNumber || 'N/A'}</small>
+                    <small className="text-muted d-block">Mã lô hàng: {request.lotCode || request.poNumber || 'N/A'}</small>
+                    {request.productName && (
+                      <small className="text-muted d-block">Sản phẩm: <strong>{request.productName}</strong>{request.size ? ` - ${request.size}` : ''}</small>
+                    )}
                   </div>
                   <div className="d-flex gap-2">
                     <Badge bg={request.status === 'PENDING' ? 'warning' : 'success'}>
