@@ -109,10 +109,11 @@ export const getProductionOrderStatusFromStages = (order) => {
     const firstPendingStage = stages.find(s => s.executionStatus === 'WAITING' || s.executionStatus === 'READY' || s.executionStatus === 'READY_TO_PRODUCE');
     if (firstPendingStage) {
       const stageName = getStageTypeName(firstPendingStage.stageType);
-      // FIX: WAITING, READY, READY_TO_PRODUCE đều là trạng thái "sẵn sàng"
-      // Việc kiểm tra có bị block hay không sẽ thực hiện khi bấm nút "Bắt đầu"
-      const isReadyStatus = ['READY', 'READY_TO_PRODUCE', 'WAITING'].includes(firstPendingStage.executionStatus);
-      return { label: `Sẵn sàng ${stageName}`, variant: isReadyStatus ? 'primary' : 'secondary' };
+      // NEW: Check isBlocked from backend - if true, show "Chờ đến lượt"
+      if (firstPendingStage.isBlocked) {
+        return { label: `Chờ đến lượt ${stageName}`, variant: 'secondary' };
+      }
+      return { label: `Sẵn sàng ${stageName}`, variant: 'primary' };
     }
     return { label: getStatusLabel(order.executionStatus || order.status), variant: getStatusVariant(order.executionStatus || order.status) };
   }
@@ -135,6 +136,10 @@ export const getProductionOrderStatusFromStages = (order) => {
 
   const mapping = statusPrefixMap[status];
   if (mapping) {
+    // NEW: If blocked and status is ready-type, show "Chờ đến lượt" instead
+    if (activeStage.isBlocked && ['WAITING', 'READY', 'READY_TO_PRODUCE'].includes(status)) {
+      return { label: `Chờ đến lượt ${stageName}`, variant: 'secondary' };
+    }
     return { label: `${mapping.prefix} ${stageName}`, variant: mapping.variant };
   }
 
