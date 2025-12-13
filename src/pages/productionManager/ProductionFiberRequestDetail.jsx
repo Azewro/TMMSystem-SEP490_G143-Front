@@ -173,7 +173,7 @@ const ProductionFiberRequestDetail = () => {
                 <Row className="g-3">
                   <Col md={6}>
                     <div className="text-muted small mb-1">Công đoạn</div>
-                    <div className="fw-semibold">{getStageTypeName(request.productionStage?.stageType) || request.stageName || 'N/A'}</div>
+                    <div className="fw-semibold">{getStageTypeName(request.productionStage?.stageType || request.stageName) || 'N/A'}</div>
                   </Col>
                   <Col md={6}>
                     <div className="text-muted small mb-1">Người yêu cầu</div>
