@@ -68,7 +68,57 @@ export const getStageTypeName = (stageType) => {
  * @returns {{ label: string, variant: string }} Status label and Bootstrap variant
  */
 export const getProductionOrderStatusFromStages = (order) => {
-  // Handle supplementary/rework order statuses first
+  // Handle special status: Chờ phê duyệt cấp sợi (only if still pending)
+  if (order.pendingMaterialRequestId && order.executionStatus === 'WAITING_MATERIAL_APPROVAL') {
+    return { label: 'Chờ phê duyệt cấp sợi', variant: 'warning' };
+  }
+
+  // Handle order-level execution status for non-supplementary statuses first
+  if (order.executionStatus === 'WAITING_PRODUCTION') {
+    return { label: 'Chờ sản xuất', variant: 'secondary' };
+  }
+  if (order.executionStatus === 'COMPLETED' || order.executionStatus === 'ORDER_COMPLETED') {
+    return { label: 'Hoàn thành', variant: 'success' };
+  }
+
+  // Find active stage FIRST (not PENDING and not COMPLETED) - for both normal and supplementary orders
+  const stages = order.stages || [];
+  const activeStage = stages.find(s =>
+    s.executionStatus &&
+    s.executionStatus !== 'PENDING' &&
+    s.executionStatus !== 'COMPLETED' &&
+    s.executionStatus !== 'QC_PASSED'
+  );
+
+  // If there's an active stage, use its status (priority over order-level supplementary status)
+  if (activeStage) {
+    const stageName = getStageTypeName(activeStage.stageType);
+    const status = activeStage.executionStatus;
+
+    // Map execution status to Vietnamese prefix with stage name
+    const statusPrefixMap = {
+      'WAITING': { prefix: 'Sẵn sàng', variant: 'primary' },
+      'READY': { prefix: 'Sẵn sàng', variant: 'primary' },
+      'READY_TO_PRODUCE': { prefix: 'Sẵn sàng', variant: 'primary' },
+      'IN_PROGRESS': { prefix: 'Đang', variant: 'info' },
+      'WAITING_QC': { prefix: 'Chờ kiểm tra', variant: 'warning' },
+      'QC_IN_PROGRESS': { prefix: 'Đang kiểm tra', variant: 'warning' },
+      'WAITING_REWORK': { prefix: 'Chờ sửa', variant: 'warning' },
+      'REWORK_IN_PROGRESS': { prefix: 'Đang sửa', variant: 'info' },
+      'PAUSED': { prefix: 'Tạm dừng', variant: 'danger' },
+    };
+
+    const mapping = statusPrefixMap[status];
+    if (mapping) {
+      // If blocked and status is ready-type, show "Chờ đến lượt" instead
+      if (activeStage.isBlocked && ['WAITING', 'READY', 'READY_TO_PRODUCE'].includes(status)) {
+        return { label: `Chờ đến lượt ${stageName}`, variant: 'secondary' };
+      }
+      return { label: `${mapping.prefix} ${stageName}`, variant: mapping.variant };
+    }
+  }
+
+  // NOW handle supplementary/rework order statuses (fallback when no active stage found)
   if (order.executionStatus === 'READY_SUPPLEMENTARY') {
     return { label: 'Sẵn sàng SX bổ sung', variant: 'primary' };
   }
@@ -82,70 +132,21 @@ export const getProductionOrderStatusFromStages = (order) => {
     return { label: 'Đã tạo lệnh bổ sung', variant: 'success' };
   }
 
-  // Handle special status: Chờ phê duyệt cấp sợi (only if still pending)
-  if (order.pendingMaterialRequestId && order.executionStatus === 'WAITING_MATERIAL_APPROVAL') {
-    return { label: 'Chờ phê duyệt cấp sợi', variant: 'warning' };
-  }
-
-  // Handle order-level execution status
-  if (order.executionStatus === 'WAITING_PRODUCTION') {
-    return { label: 'Chờ sản xuất', variant: 'secondary' };
-  }
-  if (order.executionStatus === 'COMPLETED' || order.executionStatus === 'ORDER_COMPLETED') {
-    return { label: 'Hoàn thành', variant: 'success' };
-  }
-
-  // Find active stage (not PENDING and not COMPLETED)
-  const stages = order.stages || [];
-  const activeStage = stages.find(s =>
-    s.executionStatus &&
-    s.executionStatus !== 'PENDING' &&
-    s.executionStatus !== 'COMPLETED' &&
-    s.executionStatus !== 'QC_PASSED'
-  );
-
-  if (!activeStage) {
-    // Fallback: use order status or first non-completed stage
-    const firstPendingStage = stages.find(s => s.executionStatus === 'WAITING' || s.executionStatus === 'READY' || s.executionStatus === 'READY_TO_PRODUCE');
-    if (firstPendingStage) {
-      const stageName = getStageTypeName(firstPendingStage.stageType);
-      // NEW: Check isBlocked from backend - if true, show "Chờ đến lượt"
-      if (firstPendingStage.isBlocked) {
-        return { label: `Chờ đến lượt ${stageName}`, variant: 'secondary' };
-      }
-      return { label: `Sẵn sàng ${stageName}`, variant: 'primary' };
-    }
-    return { label: getStatusLabel(order.executionStatus || order.status), variant: getStatusVariant(order.executionStatus || order.status) };
-  }
-
-  const stageName = getStageTypeName(activeStage.stageType);
-  const status = activeStage.executionStatus;
-
-  // Map execution status to Vietnamese prefix with stage name
-  const statusPrefixMap = {
-    'WAITING': { prefix: 'Sẵn sàng', variant: 'primary' },
-    'READY': { prefix: 'Sẵn sàng', variant: 'primary' },
-    'READY_TO_PRODUCE': { prefix: 'Sẵn sàng', variant: 'primary' },
-    'IN_PROGRESS': { prefix: 'Đang', variant: 'info' },
-    'WAITING_QC': { prefix: 'Chờ kiểm tra', variant: 'warning' },
-    'QC_IN_PROGRESS': { prefix: 'Đang kiểm tra', variant: 'warning' },
-    'WAITING_REWORK': { prefix: 'Chờ sửa', variant: 'warning' },
-    'REWORK_IN_PROGRESS': { prefix: 'Đang sửa', variant: 'info' },
-    'PAUSED': { prefix: 'Tạm dừng', variant: 'danger' },
-  };
-
-  const mapping = statusPrefixMap[status];
-  if (mapping) {
-    // NEW: If blocked and status is ready-type, show "Chờ đến lượt" instead
-    if (activeStage.isBlocked && ['WAITING', 'READY', 'READY_TO_PRODUCE'].includes(status)) {
+  // Fallback: use first pending stage
+  const firstPendingStage = stages.find(s => s.executionStatus === 'WAITING' || s.executionStatus === 'READY' || s.executionStatus === 'READY_TO_PRODUCE');
+  if (firstPendingStage) {
+    const stageName = getStageTypeName(firstPendingStage.stageType);
+    // Check isBlocked from backend - if true, show "Chờ đến lượt"
+    if (firstPendingStage.isBlocked) {
       return { label: `Chờ đến lượt ${stageName}`, variant: 'secondary' };
     }
-    return { label: `${mapping.prefix} ${stageName}`, variant: mapping.variant };
+    return { label: `Sẵn sàng ${stageName}`, variant: 'primary' };
   }
 
-  // Fallback
-  return { label: getStatusLabel(status), variant: getStatusVariant(status) };
+  // Final fallback
+  return { label: getStatusLabel(order.executionStatus || order.status), variant: getStatusVariant(order.executionStatus || order.status) };
 };
+
 
 /**
  * Get stage status label and buttons for Production Manager view
