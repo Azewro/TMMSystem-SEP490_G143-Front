@@ -372,6 +372,24 @@ export const getLeaderStageStatusLabel = (status) => {
       label: 'Hoàn thành',
       variant: 'success',
       buttons: [{ text: 'Xem chi tiết', action: 'detail', variant: 'outline-secondary' }]
+    },
+    // Sản xuất bổ sung - sẵn sàng
+    'READY_SUPPLEMENTARY': {
+      label: 'Sẵn sàng SX bổ sung',
+      variant: 'warning',
+      buttons: [{ text: 'Tạm dừng và SX bổ sung', action: 'start', variant: 'warning' }]
+    },
+    // Sản xuất bổ sung - chờ
+    'WAITING_SUPPLEMENTARY': {
+      label: 'Chờ SX bổ sung',
+      variant: 'secondary',
+      buttons: [] // Đang chờ máy/công đoạn rảnh
+    },
+    // Sản xuất bổ sung - đang làm
+    'IN_SUPPLEMENTARY': {
+      label: 'Đang SX bổ sung',
+      variant: 'info',
+      buttons: [{ text: 'Cập nhật tiến độ', action: 'update', variant: 'primary' }]
     }
   };
 

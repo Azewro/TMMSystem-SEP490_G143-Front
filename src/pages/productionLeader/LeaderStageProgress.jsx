@@ -135,6 +135,8 @@ const LeaderStageProgress = () => {
     switch (action) {
       case 'START':
         return 'Bắt đầu';
+      case 'START_REWORK':
+        return 'Bắt đầu sửa lỗi';
       case 'UPDATE_PROGRESS':
         return 'Cập nhật tiến độ';
       case 'COMPLETE':
@@ -583,8 +585,8 @@ const LeaderStageProgress = () => {
               </Card.Body>
             </Card>
 
-            {/* Defect Details for Rework */}
-            {(defect || (stage && (stage.executionStatus === 'QC_FAILED' || stage.executionStatus === 'WAITING_REWORK' || stage.executionStatus === 'REWORK_IN_PROGRESS'))) && (
+            {/* Defect Details for Rework - hide for supplementary production orders */}
+            {!stage?.isRework && !(order?.poNumber || '').includes('-REWORK') && (defect || (stage && (stage.executionStatus === 'QC_FAILED' || stage.executionStatus === 'WAITING_REWORK' || stage.executionStatus === 'REWORK_IN_PROGRESS'))) && (
               <Card className="shadow-sm mb-3 border-danger">
                 <Card.Header className="bg-danger text-white d-flex justify-content-between align-items-center">
                   <strong>Thông tin lỗi cần sửa</strong>
