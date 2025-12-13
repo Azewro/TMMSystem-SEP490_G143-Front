@@ -39,7 +39,10 @@ const ProductionOrderDetail = () => {
           status: s.executionStatus || s.status,
           statusLabel: stageStatus.label,
           statusVariant: stageStatus.variant,
-          buttons: isDyeingStage ? [] : stageStatus.buttons, // Force empty buttons for Dyeing
+          // Always include at least Chi tiết button - for Dyeing, only keep non-start/update buttons
+          buttons: isDyeingStage
+            ? (stageStatus.buttons || []).filter(btn => btn.action === 'detail')
+            : stageStatus.buttons,
           progress: s.progressPercent || 0,
           isDyeingStage: isDyeingStage
         };

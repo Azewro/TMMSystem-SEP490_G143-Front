@@ -302,8 +302,8 @@ const LeaderOrderDetail = () => {
                                     } else {
                                       toast.error(msg);
                                     }
-                                    } finally {
-                                      setLoading(false);
+                                  } finally {
+                                    setLoading(false);
                                   }
                                 } else {
                                   goProgress();
@@ -325,7 +325,9 @@ const LeaderOrderDetail = () => {
                                 <Button
                                   size="sm"
                                   variant={buttonConfig.variant}
-                                  onClick={() => navigate(`/leader/orders/${orderId}/progress`)}
+                                  onClick={() => navigate(`/leader/orders/${orderId}/progress`, {
+                                    state: { stageId: stage.id }
+                                  })}
                                 >
                                   {buttonConfig.text}
                                 </Button>
