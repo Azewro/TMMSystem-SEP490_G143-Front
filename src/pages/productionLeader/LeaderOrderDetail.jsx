@@ -237,6 +237,12 @@ const LeaderOrderDetail = () => {
                               // Use specific stage status for button logic
                               const buttonConfig = getButtonForStage(stage.status, 'leader');
                               const orderLocked = order.orderStatus === 'WAITING_PRODUCTION' || order.orderStatus === 'PENDING_APPROVAL';
+
+                              // Check if order is locked due to supplementary/rework order in progress
+                              const supplementaryStatuses = ['WAITING_MATERIAL', 'WAITING_MATERIAL_APPROVAL', 'WAITING_SUPPLEMENTARY', 'READY_SUPPLEMENTARY', 'IN_SUPPLEMENTARY', 'SUPPLEMENTARY_CREATED'];
+                              const hasSupplementaryLock = supplementaryStatuses.includes(order.orderStatus) ||
+                                order.stages?.some(s => supplementaryStatuses.includes(s.executionStatus));
+
                               // Disable if PENDING, Locked, or QC_FAILED (waiting for Tech) - specific to this stage
                               const isQcFailed = stage.status === 'QC_FAILED';
                               const isPending = stage.status === 'PENDING';
@@ -251,10 +257,27 @@ const LeaderOrderDetail = () => {
                               // BUT, we should probably only enable "Start/Update" if it's assigned to *this* leader.
                               // The user request says "Leader... ấn bắt đầu thì sẽ hiện thêm danh sách các công đoạn...".
                               // It implies they want visibility. Maybe they can only ACT on their own stages.
-                              const isDisabled = isPending || orderLocked || isQcFailed;
 
-                              // HIDE BUTTON if disabled (User Request)
+                              // Lock if supplementary order is in progress (only allow view detail)
+                              const isDisabled = isPending || orderLocked || isQcFailed || hasSupplementaryLock;
+
+                              // Show "Xem chi tiết" for locked stages (due to supplementary) or completed stages
+                              // Show "Chưa đến lượt" only for truly pending stages
                               if (isDisabled) {
+                                // If it's locked due to supplementary but stage has progress, show view detail button
+                                if (hasSupplementaryLock && stage.progress > 0) {
+                                  return (
+                                    <Button
+                                      size="sm"
+                                      variant="outline-secondary"
+                                      onClick={() => navigate(`/leader/orders/${orderId}/progress`, {
+                                        state: { stageId: stage.id }
+                                      })}
+                                    >
+                                      Xem chi tiết
+                                    </Button>
+                                  );
+                                }
                                 return <span className="text-muted small">Chưa đến lượt</span>;
                               }
 
