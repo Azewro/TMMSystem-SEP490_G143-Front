@@ -257,7 +257,7 @@ const ProductionFiberRequests = () => {
                         <tr key={req.id}>
                           <td>{getRowNumber(index)}</td>
                           <td><strong>{req.lotCode || req.requisitionNumber}</strong></td>
-                          <td>{getStageTypeName(req.stageType) || req.stageName}</td>
+                          <td>{getStageTypeName(req.stageType || req.stageName) || 'N/A'}</td>
                           <td>{req.requestedByName || req.requestedBy?.fullName || 'N/A'}</td>
                           <td>{req.notes || '—'}</td>
                           <td>{getStatusBadge(req.status)}</td>

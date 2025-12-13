@@ -81,6 +81,7 @@ const QaOrderList = () => {
           return {
             id: order.id,
             lotCode: order.lotCode || order.poNumber || order.id,
+            poNumber: order.poNumber, // Keep original poNumber for rework filtering
             productName: order.productName || order.contract?.contractNumber || 'N/A',
             size: order.size || '-',
             quantity: order.totalQuantity || 0,
