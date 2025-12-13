@@ -222,7 +222,7 @@ const ProductionFiberRequestDetail = () => {
                           <td>{detail.materialName || '-'}</td>
                           <td>{detail.materialCode || '-'}</td>
                           <td className="text-end">{detail.quantityRequested?.toLocaleString('vi-VN')}</td>
-                          <td className="text-end">{detail.quantityApproved?.toLocaleString('vi-VN') || '-'}</td>
+                          <td className="text-end">{(detail.quantityApproved || detail.quantityRequested)?.toLocaleString('vi-VN') || '-'}</td>
                           <td>{detail.unit}</td>
                           <td>{detail.notes || '-'}</td>
                         </tr>
