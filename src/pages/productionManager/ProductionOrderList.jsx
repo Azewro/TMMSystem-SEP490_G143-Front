@@ -23,6 +23,7 @@ const ProductionOrderList = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [startDateFilter, setStartDateFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -83,8 +84,8 @@ const ProductionOrderList = () => {
             poNumber: order.poNumber // Keep for filtering
           };
         })
-        // Filter out rework orders - they go to ProductionReworkOrders page
-        .filter(o => !o.poNumber || !o.poNumber.includes('REWORK'));
+          // Filter out rework orders - they go to ProductionReworkOrders page
+          .filter(o => !o.poNumber || !o.poNumber.includes('REWORK'));
         setOrders(mappedData);
       } catch (error) {
         console.error('Error fetching orders:', error);
@@ -99,7 +100,7 @@ const ProductionOrderList = () => {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, startDateFilter]);
+  }, [searchTerm, startDateFilter, statusFilter]);
 
   const handleStartWorkOrder = async (orderId) => {
     try {
@@ -134,7 +135,12 @@ const ProductionOrderList = () => {
         (order.lotCode && order.lotCode.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (order.productName && order.productName.toLowerCase().includes(searchTerm.toLowerCase()));
 
-      const matchesStatus = true; // Removed status filter
+      // Filter by status
+      let matchesStatus = true;
+      if (statusFilter) {
+        // Use includes() because statusLabel may contain stage name (e.g., "Đang Dệt")
+        matchesStatus = order.statusLabel && order.statusLabel.includes(statusFilter);
+      }
 
       // Filter by start date
       let matchesDate = true;
@@ -147,9 +153,9 @@ const ProductionOrderList = () => {
         }
       }
 
-      return matchesSearch && matchesDate;
+      return matchesSearch && matchesStatus && matchesDate;
     });
-  }, [orders, searchTerm, startDateFilter]);
+  }, [orders, searchTerm, startDateFilter, statusFilter]);
 
   // Sort and paginate orders
   const paginatedOrders = useMemo(() => {
@@ -174,15 +180,22 @@ const ProductionOrderList = () => {
             bValue = b.expectedStartDate || '';
             break;
           case 'status':
-            // Sort by status priority
-            const getStatusPriority = (status) => {
-              if (status === 'CHO_SAN_XUAT') return 1;
-              if (status === 'DANG_SAN_XUAT') return 2;
-              if (status === 'HOAN_THANH') return 3;
+            // Sort by status priority based on teammate's state diagram
+            const getStatusPriority = (label) => {
+              if (!label) return 99;
+              if (label.includes('Chờ sản xuất') && !label.includes('bổ sung')) return 1;
+              if (label.includes('Chờ đến lượt')) return 2;
+              if (label.includes('Sẵn sàng')) return 3;
+              if (label.includes('Đang') && !label.includes('bổ sung')) return 4;
+              if (label.includes('Tạm dừng')) return 5;
+              if (label.includes('Chờ phê duyệt cấp sợi')) return 6;
+              if (label.includes('Chờ sản xuất bổ sung')) return 7;
+              if (label.includes('Đang sản xuất bổ sung')) return 8;
+              if (label.includes('Hoàn thành')) return 9;
               return 99;
             };
-            aValue = getStatusPriority(a.status);
-            bValue = getStatusPriority(b.status);
+            aValue = getStatusPriority(a.statusLabel);
+            bValue = getStatusPriority(b.statusLabel);
             const statusComparison = aValue - bValue;
             return sortDirection === 'asc' ? statusComparison : -statusComparison;
           default:
@@ -239,14 +252,14 @@ const ProductionOrderList = () => {
                       <InputGroup>
                         <InputGroup.Text><FaSearch /></InputGroup.Text>
                         <Form.Control
-                          placeholder="Tìm kiếm theo mã đơn hàng hoặc mã lô..."
+                          placeholder="Tìm theo mã lô..."
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
                         />
                       </InputGroup>
                     </Form.Group>
                   </Col>
-                  <Col md={4}>
+                  <Col md={3}>
                     <Form.Group>
                       <Form.Label className="mb-1 small">Lọc theo ngày bắt đầu</Form.Label>
                       <div className="custom-datepicker-wrapper">
@@ -258,10 +271,12 @@ const ProductionOrderList = () => {
                             } else {
                               setStartDateFilter('');
                             }
+                            setCurrentPage(1);
                           }}
                           onChangeRaw={(e) => {
                             if (e.target.value === '' || e.target.value === null) {
                               setStartDateFilter('');
+                              setCurrentPage(1);
                             }
                           }}
                           dateFormat="dd/MM/yyyy"
@@ -272,6 +287,29 @@ const ProductionOrderList = () => {
                           todayButton="Hôm nay"
                         />
                       </div>
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Lọc theo trạng thái</Form.Label>
+                      <Form.Select
+                        value={statusFilter}
+                        onChange={(e) => {
+                          setStatusFilter(e.target.value);
+                          setCurrentPage(1);
+                        }}
+                      >
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="Chờ sản xuất">Chờ sản xuất</option>
+                        <option value="Chờ đến lượt">Chờ đến lượt</option>
+                        <option value="Sẵn sàng sản xuất">Sẵn sàng sản xuất</option>
+                        <option value="Đang làm">Đang làm</option>
+                        <option value="Tạm dừng">Tạm dừng</option>
+                        <option value="Chờ phê duyệt cấp sợi">Chờ phê duyệt cấp sợi</option>
+                        <option value="Chờ sản xuất bổ sung">Chờ sản xuất bổ sung</option>
+                        <option value="Đang sản xuất bổ sung">Đang sản xuất bổ sung</option>
+                        <option value="Hoàn thành">Hoàn thành</option>
+                      </Form.Select>
                     </Form.Group>
                   </Col>
                 </Row>

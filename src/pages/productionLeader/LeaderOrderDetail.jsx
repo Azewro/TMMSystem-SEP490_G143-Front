@@ -5,7 +5,7 @@ import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { productionService } from '../../api/productionService';
 import { executionService } from '../../api/executionService';
-import { getStatusLabel, getStageTypeName, getButtonForStage, getStatusVariant } from '../../utils/statusMapper';
+import { getStatusLabel, getStageTypeName, getButtonForStage, getStatusVariant, getProductionOrderStatusFromStages, getLeaderStageStatusLabel } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
 
 const LeaderOrderDetail = () => {
@@ -67,6 +67,22 @@ const LeaderOrderDetail = () => {
             executionStatus: s.executionStatus
           })) : []
         };
+
+        // Use getProductionOrderStatusFromStages for dynamic header status
+        const dynamicOrderStatus = getProductionOrderStatusFromStages(data);
+        mappedOrder.statusLabel = dynamicOrderStatus.label;
+        mappedOrder.statusVariant = dynamicOrderStatus.variant;
+
+        // Update stage labels using getLeaderStageStatusLabel
+        mappedOrder.stages = mappedOrder.stages.map(s => {
+          const leaderStatus = getLeaderStageStatusLabel(s.status);
+          return {
+            ...s,
+            statusLabel: leaderStatus.label,
+            statusVariant: leaderStatus.variant
+          };
+        });
+
         setOrder(mappedOrder);
       } catch (error) {
         console.error('Error fetching order:', error);
@@ -189,7 +205,7 @@ const LeaderOrderDetail = () => {
                       </div>
                       <div className="col-sm-6 d-flex flex-column">
                         <div className="text-muted small mb-1">Trạng thái</div>
-                        <Badge bg={getStatusVariant(order.status)} className="status-badge align-self-start">
+                        <Badge bg={order.statusVariant || getStatusVariant(order.status)} className="status-badge align-self-start">
                           {order.statusLabel}
                         </Badge>
                       </div>
@@ -242,7 +258,7 @@ const LeaderOrderDetail = () => {
                           <td>{stage.assignee}</td>
                           <td>{stage.progress ?? 0}%</td>
                           <td>
-                            <Badge bg={getStatusVariant(stage.status)}>
+                            <Badge bg={stage.statusVariant || getStatusVariant(stage.status)}>
                               {stage.statusLabel}
                             </Badge>
                           </td>
