@@ -22,6 +22,7 @@ const LeaderOrderList = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [startDateFilter, setStartDateFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
@@ -129,9 +130,16 @@ const LeaderOrderList = () => {
         }
       }
 
-      return matchesSearch && matchesDate;
+      // Filter by status
+      let matchesStatus = true;
+      if (statusFilter) {
+        const label = o.dynamicStatusLabel || '';
+        matchesStatus = label.includes(statusFilter);
+      }
+
+      return matchesSearch && matchesDate && matchesStatus;
     });
-  }, [searchTerm, startDateFilter, orders]);
+  }, [searchTerm, startDateFilter, statusFilter, orders]);
 
   const handleStart = (order) => {
     navigate(`/leader/orders/${order.id}`);
@@ -207,6 +215,25 @@ const LeaderOrderList = () => {
                           todayButton="Hôm nay"
                         />
                       </div>
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Lọc theo trạng thái</Form.Label>
+                      <Form.Select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                      >
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="Sẵn sàng">Sẵn sàng</option>
+                        <option value="Đang làm">Đang làm</option>
+                        <option value="Chờ kiểm tra">Chờ kiểm tra</option>
+                        <option value="Đang kiểm tra">Đang kiểm tra</option>
+                        <option value="Đạt">Đạt</option>
+                        <option value="Không đạt">Không đạt</option>
+                        <option value="Đang sản xuất bổ sung">Đang sản xuất bổ sung</option>
+                        <option value="Hoàn thành">Hoàn thành</option>
+                      </Form.Select>
                     </Form.Group>
                   </Col>
                 </Row>
@@ -295,6 +322,24 @@ const OrderTable = ({ orders, handleStart, handleViewDetail, isRework = false })
             aValue = a.totalQuantity || 0;
             bValue = b.totalQuantity || 0;
             return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+          case 'status':
+            // Sort by status priority for Leader
+            const getStatusPriority = (label) => {
+              if (!label) return 99;
+              if (label.includes('Sẵn sàng')) return 1;
+              if (label.includes('Đang làm')) return 2;
+              if (label.includes('Chờ kiểm tra')) return 3;
+              if (label.includes('Đang kiểm tra')) return 4;
+              if (label.includes('Đạt')) return 5;
+              if (label.includes('Không đạt')) return 6;
+              if (label.includes('Đang sản xuất bổ sung')) return 7;
+              if (label.includes('Hoàn thành')) return 8;
+              return 99;
+            };
+            aValue = getStatusPriority(a.dynamicStatusLabel);
+            bValue = getStatusPriority(b.dynamicStatusLabel);
+            const statusComparison = aValue - bValue;
+            return sortDirection === 'asc' ? statusComparison : -statusComparison;
           default:
             return 0;
         }
@@ -351,7 +396,13 @@ const OrderTable = ({ orders, handleStart, handleViewDetail, isRework = false })
               </th>
               <th>Ngày kết thúc</th>
               <th>Leader</th>
-              <th>Trạng thái</th>
+
+              <th
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+                onClick={() => handleSort('status')}
+              >
+                Trạng thái {getSortIcon('status')}
+              </th>
               <th style={{ width: 150 }}>Hành động</th>
             </tr>
           </thead>

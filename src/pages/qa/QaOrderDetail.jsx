@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { orderService } from '../../api/orderService';
-import { getStatusLabel, getStageTypeName, getButtonForStage, getStatusVariant } from '../../utils/statusMapper';
+import { getStatusLabel, getStageTypeName, getButtonForStage, getStatusVariant, getProductionOrderStatusFromStages } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
 
 const QaOrderDetail = () => {
@@ -33,45 +33,45 @@ const QaOrderDetail = () => {
           .map(stage => {
             // Simple status mapping for QA "Xem kế hoạch" page
             const execStatus = stage.executionStatus || stage.status;
-            let statusLabel = 'đợi';
+            let statusLabel = 'Đang đợi';
             let statusVariant = 'secondary';
 
             switch (execStatus) {
               case 'PENDING':
-                statusLabel = 'đợi';
+                statusLabel = 'Đang đợi';
                 statusVariant = 'secondary';
                 break;
               case 'WAITING':
               case 'READY':
               case 'READY_TO_PRODUCE':
-                statusLabel = 'chờ làm';
+                statusLabel = 'Sẵn sàng';
                 statusVariant = 'primary';
                 break;
               case 'IN_PROGRESS':
               case 'REWORK_IN_PROGRESS':
-                statusLabel = 'đang làm';
+                statusLabel = 'Đang làm';
                 statusVariant = 'info';
                 break;
               case 'WAITING_QC':
-                statusLabel = 'chờ kiểm tra';
+                statusLabel = 'Chờ kiểm tra';
                 statusVariant = 'warning';
                 break;
               case 'QC_IN_PROGRESS':
-                statusLabel = 'đang kiểm tra';
+                statusLabel = 'Đang kiểm tra';
                 statusVariant = 'warning';
                 break;
               case 'QC_PASSED':
               case 'COMPLETED':
-                statusLabel = 'đạt';
+                statusLabel = 'Đạt';
                 statusVariant = 'success';
                 break;
               case 'QC_FAILED':
               case 'WAITING_REWORK':
-                statusLabel = 'không đạt';
+                statusLabel = 'Không đạt';
                 statusVariant = 'danger';
                 break;
               case 'PAUSED':
-                statusLabel = 'tạm dừng';
+                statusLabel = 'Tạm dừng';
                 statusVariant = 'danger';
                 break;
               default:
@@ -99,6 +99,9 @@ const QaOrderDetail = () => {
         const firstStageWithToken = (data.stages || []).find(s => s.qrToken);
         const qrToken = firstStageWithToken ? firstStageWithToken.qrToken : null;
 
+        // Use getProductionOrderStatusFromStages for header status
+        const orderStatusResult = getProductionOrderStatusFromStages(data);
+
         // Map backend data to match UI structure
         const mappedOrder = {
           id: data.id || orderId,
@@ -108,7 +111,8 @@ const QaOrderDetail = () => {
           quantity: data.totalQuantity || 0,
           expectedStartDate: data.plannedStartDate || data.expectedStartDate,
           expectedFinishDate: data.plannedEndDate || data.expectedFinishDate,
-          statusLabel: getStatusLabel(data.executionStatus || data.status),
+          statusLabel: orderStatusResult.label,
+          statusVariant: orderStatusResult.variant,
           stages: stages,
           qrToken: qrToken // Add token to order object
         };
@@ -240,7 +244,7 @@ const QaOrderDetail = () => {
                     </div>
                     <div className="d-flex align-items-center gap-2">
                       <div className="text-muted small mb-0">Trạng thái</div>
-                      <Badge bg="warning" className="status-badge">
+                      <Badge bg={order.statusVariant || 'warning'} className="status-badge">
                         {order.statusLabel}
                       </Badge>
                     </div>

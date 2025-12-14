@@ -6,7 +6,7 @@ import InternalSidebar from '../../components/common/InternalSidebar';
 import { orderService } from '../../api/orderService';
 import { executionService } from '../../api/executionService';
 import toast from 'react-hot-toast';
-import { getStageTypeName, getStatusLabel } from '../../utils/statusMapper';
+import { getStageTypeName, getQaStageStatusLabel } from '../../utils/statusMapper';
 import { API_BASE_URL } from '../../utils/constants';
 import CameraCapture from '../../components/common/CameraCapture';
 
@@ -538,9 +538,14 @@ const QaStageQualityCheck = () => {
                   </div>
                 </div>
                 <div className="text-end">
-                  <Badge bg="info" className="p-2">
-                    {getStatusLabel(stage.executionStatus)}
-                  </Badge>
+                  {(() => {
+                    const statusInfo = getQaStageStatusLabel(stage.executionStatus);
+                    return (
+                      <Badge bg={statusInfo.variant} className="p-2">
+                        {statusInfo.label}
+                      </Badge>
+                    );
+                  })()}
                 </div>
               </Card.Body>
             </Card>

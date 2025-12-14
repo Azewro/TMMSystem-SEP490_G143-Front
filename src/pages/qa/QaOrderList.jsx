@@ -21,6 +21,7 @@ const QaOrderList = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [startDateFilter, setStartDateFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const qcUserId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
@@ -114,7 +115,7 @@ const QaOrderList = () => {
   // Reset page when filters or tab change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, startDateFilter, activeTab]);
+  }, [searchTerm, startDateFilter, statusFilter, activeTab]);
 
   // Filter orders
   const filteredOrders = useMemo(() => {
@@ -133,9 +134,15 @@ const QaOrderList = () => {
         }
       }
 
-      return matchesSearch && matchesDate;
+      // Filter by status
+      let matchesStatus = true;
+      if (statusFilter) {
+        matchesStatus = o.statusLabel && o.statusLabel.includes(statusFilter);
+      }
+
+      return matchesSearch && matchesDate && matchesStatus;
     });
-  }, [searchTerm, startDateFilter, orders]);
+  }, [searchTerm, startDateFilter, statusFilter, orders]);
 
   // Split orders into main and rework
   const mainOrders = useMemo(() => {
@@ -175,9 +182,19 @@ const QaOrderList = () => {
             bValue = b.expectedStartDate || '';
             break;
           case 'status':
-            aValue = a.statusLabel || '';
-            bValue = b.statusLabel || '';
-            break;
+            // Sort by status priority for QA
+            const getStatusPriority = (label) => {
+              if (!label) return 99;
+              if (label.includes('Chờ kiểm tra')) return 1;
+              if (label.includes('Đang kiểm tra')) return 2;
+              if (label.includes('Đang làm')) return 3;
+              if (label.includes('Đang sản xuất bổ sung')) return 4;
+              if (label.includes('Hoàn thành')) return 5;
+              return 99;
+            };
+            aValue = getStatusPriority(a.statusLabel);
+            bValue = getStatusPriority(b.statusLabel);
+            return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
           default:
             return 0;
         }
@@ -265,6 +282,22 @@ const QaOrderList = () => {
                           todayButton="Hôm nay"
                         />
                       </div>
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Lọc theo trạng thái</Form.Label>
+                      <Form.Select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                      >
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="Chờ kiểm tra">Chờ kiểm tra</option>
+                        <option value="Đang kiểm tra">Đang kiểm tra</option>
+                        <option value="Đang làm">Đang làm</option>
+                        <option value="Đang sản xuất bổ sung">Đang sản xuất bổ sung</option>
+                        <option value="Hoàn thành">Hoàn thành</option>
+                      </Form.Select>
                     </Form.Group>
                   </Col>
                 </Row>
