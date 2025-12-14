@@ -141,35 +141,48 @@ const ProductionOrderDetail = () => {
             <Card className="shadow-sm mb-3">
               <Card.Body>
                 <div className="row g-4 align-items-center">
-                  <div className="col-md-4 d-flex gap-3 align-items-center">
-                    <div
-                      style={{
-                        width: 150,
-                        height: 150,
-                        borderRadius: 12,
-                        border: '1px dashed #ced4da',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        overflow: 'hidden',
-                        backgroundColor: '#fff'
-                      }}
-                    >
-                      {order.qrToken ? (
-                        <img
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.origin + '/qa/scan/' + order.qrToken)}`}
-                          alt="QR Code"
-                          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                        />
-                      ) : (
-                        <span className="text-muted">No QR</span>
-                      )}
+                  <div className="col-md-4">
+                    <div className="d-flex gap-3 align-items-center">
+                      <div
+                        style={{
+                          width: 150,
+                          height: 150,
+                          borderRadius: 12,
+                          border: '1px dashed #ced4da',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          overflow: 'hidden',
+                          backgroundColor: '#fff'
+                        }}
+                      >
+                        {order.qrToken ? (
+                          <img
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.origin + '/qa/scan/' + order.qrToken)}`}
+                            alt="QR Code"
+                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                          />
+                        ) : (
+                          <span className="text-muted">No QR</span>
+                        )}
+                      </div>
+                      <div>
+                        <div className="text-muted small mb-1">Mã lô sản xuất</div>
+                        <h5 className="mb-1">{order.lotCode}</h5>
+                        <div className="text-muted small">Đơn hàng {order.productName}</div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="text-muted small mb-1">Mã lô sản xuất</div>
-                      <h5 className="mb-1">{order.lotCode}</h5>
-                      <div className="text-muted small">Đơn hàng {order.productName}</div>
-                    </div>
+                    {/* Print QR Button */}
+                    {order.qrToken && (
+                      <Button
+                        variant="outline-dark"
+                        size="sm"
+                        className="mt-2"
+                        onClick={() => window.print()}
+                      >
+                        🖨️ In mã QR
+                      </Button>
+                    )}
                   </div>
                   <div className="col-md-8">
                     <div className="row g-2 order-info-grid">
@@ -286,6 +299,42 @@ const ProductionOrderDetail = () => {
           </Container>
         </div>
       </div>
+
+      {/* Hidden Printable QR Label - Only visible when printing */}
+      {order && order.qrToken && (
+        <div id="qr-print-label" className="qr-print-label">
+          <div className="qr-print-content">
+            <div className="qr-code-section">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(window.location.origin + '/qa/scan/' + order.qrToken)}`}
+                alt="QR Code"
+                className="qr-code-img"
+              />
+            </div>
+            <div className="info-section">
+              <div className="lot-info">
+                <span className="info-label">Mã lô sản xuất</span>
+                <h2 className="lot-code">{order.lotCode}</h2>
+                <span className="order-name">Đơn hàng {order.productName}</span>
+              </div>
+              <div className="product-info">
+                <div className="info-item">
+                  <span className="info-label">Tên sản phẩm</span>
+                  <strong>{order.productName}</strong>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">Kích thước</span>
+                  <span>{order.size}</span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">Số lượng</span>
+                  <span>{order.quantity?.toLocaleString('vi-VN')} sản phẩm</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
