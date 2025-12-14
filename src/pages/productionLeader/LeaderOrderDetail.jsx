@@ -266,33 +266,50 @@ const LeaderOrderDetail = () => {
                               // Disable if PENDING, Locked, or QC_FAILED (waiting for Tech) - specific to this stage
                               const isQcFailed = stage.status === 'QC_FAILED';
                               const isPending = stage.status === 'PENDING';
-                              const isReworkStage = stage.isRework || stage.executionStatus === 'WAITING_REWORK' || stage.executionStatus === 'REWORK_IN_PROGRESS';
-                              // Also disable if NOT assigned to current user (view only)
-                              // We need to check if this stage is assigned to the current user.
-                              // Since we don't have easy access to userId here inside the map without prop drilling or context,
-                              // we rely on the backend filtering or we might need to check stage.assigneeId if available.
-                              // However, for now, let's assume we can see actions for all, and "disabled" might handle permissions?
-                              // Actually, getLeaderOrderDetail returns stages. 
-                              // Use simplistic approach: if buttonConfig returns start/update, imply permission.
-                              // BUT, we should probably only enable "Start/Update" if it's assigned to *this* leader.
-                              // The user request says "Leader... ấn bắt đầu thì sẽ hiện thêm danh sách các công đoạn...".
-                              // It implies they want visibility. Maybe they can only ACT on their own stages.
+                              const isReworkStage = stage.isRework || stage.executionStatus === 'WAITING_REWORK' || stage.executionStatus === 'REWORK_IN_PROGRESS' || isReworkOrder;
 
-                              // For rework orders, allow first stage to have buttons even if PENDING/WAITING
+                              // For rework orders, check if this stage can be started
                               const stageIndex = order.stages?.findIndex(s => s.id === stage.id) ?? -1;
                               const isFirstStageOfRework = isReworkOrder && stageIndex === 0;
-                              const isReadyOrWaiting = stage.status === 'READY_TO_PRODUCE' || stage.status === 'WAITING' ||
-                                stage.status === 'READY' || stage.status === 'READY_SUPPLEMENTARY' ||
-                                stage.executionStatus === 'READY_TO_PRODUCE' || stage.executionStatus === 'WAITING';
+                              const canStartReworkStage = isReworkOrder && (
+                                stage.status === 'READY_TO_PRODUCE' ||
+                                stage.status === 'WAITING' ||
+                                stage.status === 'READY' ||
+                                stage.executionStatus === 'READY_TO_PRODUCE' ||
+                                stage.executionStatus === 'WAITING' ||
+                                (isPending && isFirstStageOfRework) // First stage can start even if PENDING
+                              );
 
-                              // Lock if supplementary order is in progress (only allow view detail) - ONLY for main orders
-                              // For rework orders: allow first stage if it's WAITING/READY, others must wait
-                              const isDisabled = (isPending && !isFirstStageOfRework && !isReadyOrWaiting) ||
-                                orderLocked || isQcFailed || hasSupplementaryLock;
+                              // For REWORK ORDERS: Only disable if QC failed or stage completed
+                              // For NORMAL ORDERS: Use original logic
+                              const isDisabled = isReworkOrder
+                                ? (isQcFailed || stage.status === 'COMPLETED' || stage.status === 'QC_PASSED') && !canStartReworkStage
+                                : (isPending || orderLocked || isQcFailed || hasSupplementaryLock);
+
+                              // Show buttons for rework orders that can start
+                              if (isReworkOrder) {
+                                if (canStartReworkStage || stage.status === 'IN_PROGRESS' || stage.executionStatus === 'IN_PROGRESS') {
+                                  // Continue to normal button rendering below
+                                } else if (stage.status === 'COMPLETED' || stage.status === 'QC_PASSED' || stage.progress >= 100) {
+                                  return (
+                                    <Button
+                                      size="sm"
+                                      variant="outline-secondary"
+                                      onClick={() => navigate(`/leader/orders/${orderId}/progress`, {
+                                        state: { stageId: stage.id }
+                                      })}
+                                    >
+                                      Xem chi tiết
+                                    </Button>
+                                  );
+                                } else {
+                                  return <span className="text-muted small">Chờ công đoạn trước</span>;
+                                }
+                              }
 
                               // Show "Xem chi tiết" for locked stages (due to supplementary) or completed stages
                               // Show "Chưa đến lượt" only for truly pending stages (not first stage of rework)
-                              if (isDisabled) {
+                              if (isDisabled && !isReworkOrder) {
                                 // If it's locked due to supplementary but stage has progress, show view detail button
                                 if (hasSupplementaryLock && stage.progress > 0) {
                                   return (

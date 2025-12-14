@@ -79,6 +79,8 @@ const LeaderOrderList = () => {
                 // Dynamic status label like PM page
                 dynamicStatusLabel: dynamicStatus.label,
                 dynamicStatusVariant: dynamicStatus.variant,
+                // Get leader name from first stage
+                leaderName: leaderStagesAll?.[0]?.assignedLeader?.fullName || leaderStagesAll?.[0]?.assigneeName || 'Chưa phân công',
                 leaderStage: leaderStage ? {
                   id: leaderStage.id,
                   stageType: leaderStage.stageType,
@@ -348,6 +350,7 @@ const OrderTable = ({ orders, handleStart, handleViewDetail, isRework = false })
                 Ngày bắt đầu {getSortIcon('startDate')}
               </th>
               <th>Ngày kết thúc</th>
+              <th>Leader</th>
               <th>Trạng thái</th>
               <th style={{ width: 150 }}>Hành động</th>
             </tr>
@@ -387,6 +390,7 @@ const OrderTable = ({ orders, handleStart, handleViewDetail, isRework = false })
                     <td>{order.totalQuantity?.toLocaleString('vi-VN')}</td>
                     <td>{order.plannedStartDate}</td>
                     <td>{order.plannedEndDate}</td>
+                    <td>{order.leaderName}</td>
                     <td>
                       <Badge bg={statusVariant}>
                         {statusLabel}
