@@ -30,6 +30,7 @@ const LeaderOrderDetail = () => {
         const mappedOrder = {
           id: data.id || orderId,
           lotCode: data.lotCode || data.poNumber || orderId,
+          poNumber: data.poNumber, // Keep original poNumber for rework detection
           productName: data.productName || data.contract?.contractNumber || 'N/A',
           size: data.size || '-',
           quantity: data.totalQuantity || 0,
@@ -251,10 +252,16 @@ const LeaderOrderDetail = () => {
                               const buttonConfig = getButtonForStage(stage.status, 'leader');
                               const orderLocked = order.orderStatus === 'WAITING_PRODUCTION' || order.orderStatus === 'PENDING_APPROVAL';
 
+                              // Check if this is a REWORK order (should NOT be locked by supplementary logic)
+                              const isReworkOrder = order.lotCode?.includes('-REWORK') || order.poNumber?.includes('-REWORK');
+
                               // Check if order is locked due to supplementary/rework order in progress
+                              // ONLY applies to main orders, NOT to rework orders themselves
                               const supplementaryStatuses = ['WAITING_MATERIAL', 'WAITING_MATERIAL_APPROVAL', 'WAITING_SUPPLEMENTARY', 'READY_SUPPLEMENTARY', 'IN_SUPPLEMENTARY', 'SUPPLEMENTARY_CREATED'];
-                              const hasSupplementaryLock = supplementaryStatuses.includes(order.orderStatus) ||
-                                order.stages?.some(s => supplementaryStatuses.includes(s.executionStatus));
+                              const hasSupplementaryLock = !isReworkOrder && (
+                                supplementaryStatuses.includes(order.orderStatus) ||
+                                order.stages?.some(s => supplementaryStatuses.includes(s.executionStatus))
+                              );
 
                               // Disable if PENDING, Locked, or QC_FAILED (waiting for Tech) - specific to this stage
                               const isQcFailed = stage.status === 'QC_FAILED';
@@ -271,11 +278,20 @@ const LeaderOrderDetail = () => {
                               // The user request says "Leader... ấn bắt đầu thì sẽ hiện thêm danh sách các công đoạn...".
                               // It implies they want visibility. Maybe they can only ACT on their own stages.
 
-                              // Lock if supplementary order is in progress (only allow view detail)
-                              const isDisabled = isPending || orderLocked || isQcFailed || hasSupplementaryLock;
+                              // For rework orders, allow first stage to have buttons even if PENDING/WAITING
+                              const stageIndex = order.stages?.findIndex(s => s.id === stage.id) ?? -1;
+                              const isFirstStageOfRework = isReworkOrder && stageIndex === 0;
+                              const isReadyOrWaiting = stage.status === 'READY_TO_PRODUCE' || stage.status === 'WAITING' ||
+                                stage.status === 'READY' || stage.status === 'READY_SUPPLEMENTARY' ||
+                                stage.executionStatus === 'READY_TO_PRODUCE' || stage.executionStatus === 'WAITING';
+
+                              // Lock if supplementary order is in progress (only allow view detail) - ONLY for main orders
+                              // For rework orders: allow first stage if it's WAITING/READY, others must wait
+                              const isDisabled = (isPending && !isFirstStageOfRework && !isReadyOrWaiting) ||
+                                orderLocked || isQcFailed || hasSupplementaryLock;
 
                               // Show "Xem chi tiết" for locked stages (due to supplementary) or completed stages
-                              // Show "Chưa đến lượt" only for truly pending stages
+                              // Show "Chưa đến lượt" only for truly pending stages (not first stage of rework)
                               if (isDisabled) {
                                 // If it's locked due to supplementary but stage has progress, show view detail button
                                 if (hasSupplementaryLock && stage.progress > 0) {
