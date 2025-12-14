@@ -68,6 +68,10 @@ const ProductionOrderList = () => {
           const isStarted = order.executionStatus &&
             !['WAITING_PRODUCTION', 'PENDING', 'PENDING_APPROVAL'].includes(order.executionStatus);
 
+          // Get leader name from first stage
+          const firstStage = order.stages && order.stages.length > 0 ? order.stages[0] : null;
+          const leaderName = firstStage?.assignedLeader?.fullName || firstStage?.assigneeName || 'Chưa phân công';
+
           return {
             id: order.id,
             lotCode: order.lotCode || order.poNumber,
@@ -81,7 +85,8 @@ const ProductionOrderList = () => {
             statusVariant: statusResult.variant,
             pendingMaterialRequestId: order.pendingMaterialRequestId,
             isStarted: isStarted,
-            poNumber: order.poNumber // Keep for filtering
+            poNumber: order.poNumber, // Keep for filtering
+            leaderName: leaderName // Leader assigned to this lot
           };
         })
           // Filter out rework orders - they go to ProductionReworkOrders page
@@ -346,6 +351,7 @@ const ProductionOrderList = () => {
                         Ngày bắt đầu dự kiến {getSortIcon('startDate')}
                       </th>
                       <th>Ngày kết thúc dự kiến</th>
+                      <th>Leader phụ trách</th>
                       <th
                         style={{ cursor: 'pointer', userSelect: 'none' }}
                         onClick={() => handleSort('status')}
@@ -372,6 +378,7 @@ const ProductionOrderList = () => {
                           <td>{order.quantity.toLocaleString('vi-VN')}</td>
                           <td>{order.expectedStartDate}</td>
                           <td>{order.expectedFinishDate}</td>
+                          <td>{order.leaderName}</td>
                           <td>
                             <Badge bg={order.statusVariant || getStatusVariant(order.status)}>
                               {order.statusLabel}

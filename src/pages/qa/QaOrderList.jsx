@@ -91,7 +91,9 @@ const QaOrderList = () => {
             status: order.executionStatus,
             statusLabel: statusResult.label,
             statusVariant: statusResult.variant,
-            qaStage: qaStage // Store QA stage for button logic
+            qaStage: qaStage, // Store QA stage for button logic
+            // Get leader name from first stage
+            leaderName: order.stages?.[0]?.assignedLeader?.fullName || order.stages?.[0]?.assigneeName || 'Chưa phân công'
           };
         });
         setOrders(mappedData);
@@ -340,6 +342,7 @@ const QaOrderList = () => {
                             Ngày bắt đầu {getSortIcon('startDate')}
                           </th>
                           <th>Ngày kết thúc</th>
+                          <th>Leader</th>
                           <th
                             style={{ cursor: 'pointer', userSelect: 'none' }}
                             onClick={() => handleSort('status')}
@@ -366,6 +369,7 @@ const QaOrderList = () => {
                               <td>{order.quantity.toLocaleString('vi-VN')}</td>
                               <td>{order.expectedStartDate}</td>
                               <td>{order.expectedFinishDate}</td>
+                              <td>{order.leaderName}</td>
                               <td>
                                 <Badge bg={order.statusVariant}>
                                   {order.statusLabel}
