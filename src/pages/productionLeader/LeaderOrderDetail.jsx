@@ -30,6 +30,7 @@ const LeaderOrderDetail = () => {
         const mappedOrder = {
           id: data.id || orderId,
           lotCode: data.lotCode || data.poNumber || orderId,
+          poNumber: data.poNumber, // Keep original poNumber for rework detection
           productName: data.productName || data.contract?.contractNumber || 'N/A',
           size: data.size || '-',
           quantity: data.totalQuantity || 0,
@@ -125,35 +126,48 @@ const LeaderOrderDetail = () => {
             <Card className="shadow-sm mb-3">
               <Card.Body>
                 <div className="row g-4 align-items-center">
-                  <div className="col-md-4 d-flex gap-3 align-items-center">
-                    <div
-                      style={{
-                        width: 150,
-                        height: 150,
-                        borderRadius: 12,
-                        border: '1px dashed #ced4da',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        overflow: 'hidden',
-                        backgroundColor: '#fff'
-                      }}
-                    >
-                      {order.qrToken ? (
-                        <img
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.origin + '/qa/scan/' + order.qrToken)}`}
-                          alt="QR Code"
-                          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                        />
-                      ) : (
-                        <span className="text-muted">No QR</span>
-                      )}
+                  <div className="col-md-4">
+                    <div className="d-flex gap-3 align-items-center">
+                      <div
+                        style={{
+                          width: 150,
+                          height: 150,
+                          borderRadius: 12,
+                          border: '1px dashed #ced4da',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          overflow: 'hidden',
+                          backgroundColor: '#fff'
+                        }}
+                      >
+                        {order.qrToken ? (
+                          <img
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.origin + '/qa/scan/' + order.qrToken)}`}
+                            alt="QR Code"
+                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                          />
+                        ) : (
+                          <span className="text-muted">No QR</span>
+                        )}
+                      </div>
+                      <div>
+                        <div className="text-muted small mb-1">Mã lô</div>
+                        <h5 className="mb-1">{order.lotCode || order.id}</h5>
+                        <div className="text-muted small">Kích thước {order.size}</div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="text-muted small mb-1">Mã lô</div>
-                      <h5 className="mb-1">{order.lotCode || order.id}</h5>
-                      <div className="text-muted small">Kích thước {order.size}</div>
-                    </div>
+                    {/* Print QR Button */}
+                    {order.qrToken && (
+                      <Button
+                        variant="outline-dark"
+                        size="sm"
+                        className="mt-2"
+                        onClick={() => window.print()}
+                      >
+                        🖨️ In mã QR
+                      </Button>
+                    )}
                   </div>
                   <div className="col-md-8">
                     <div className="row g-2 order-info-grid">
@@ -238,10 +252,16 @@ const LeaderOrderDetail = () => {
                               const buttonConfig = getButtonForStage(stage.status, 'leader');
                               const orderLocked = order.orderStatus === 'WAITING_PRODUCTION' || order.orderStatus === 'PENDING_APPROVAL';
 
+                              // Check if this is a REWORK order (should NOT be locked by supplementary logic)
+                              const isReworkOrder = order.lotCode?.includes('-REWORK') || order.poNumber?.includes('-REWORK');
+
                               // Check if order is locked due to supplementary/rework order in progress
+                              // ONLY applies to main orders, NOT to rework orders themselves
                               const supplementaryStatuses = ['WAITING_MATERIAL', 'WAITING_MATERIAL_APPROVAL', 'WAITING_SUPPLEMENTARY', 'READY_SUPPLEMENTARY', 'IN_SUPPLEMENTARY', 'SUPPLEMENTARY_CREATED'];
-                              const hasSupplementaryLock = supplementaryStatuses.includes(order.orderStatus) ||
-                                order.stages?.some(s => supplementaryStatuses.includes(s.executionStatus));
+                              const hasSupplementaryLock = !isReworkOrder && (
+                                supplementaryStatuses.includes(order.orderStatus) ||
+                                order.stages?.some(s => supplementaryStatuses.includes(s.executionStatus))
+                              );
 
                               // Disable if PENDING, Locked, or QC_FAILED (waiting for Tech) - specific to this stage
                               const isQcFailed = stage.status === 'QC_FAILED';
@@ -258,11 +278,20 @@ const LeaderOrderDetail = () => {
                               // The user request says "Leader... ấn bắt đầu thì sẽ hiện thêm danh sách các công đoạn...".
                               // It implies they want visibility. Maybe they can only ACT on their own stages.
 
-                              // Lock if supplementary order is in progress (only allow view detail)
-                              const isDisabled = isPending || orderLocked || isQcFailed || hasSupplementaryLock;
+                              // For rework orders, allow first stage to have buttons even if PENDING/WAITING
+                              const stageIndex = order.stages?.findIndex(s => s.id === stage.id) ?? -1;
+                              const isFirstStageOfRework = isReworkOrder && stageIndex === 0;
+                              const isReadyOrWaiting = stage.status === 'READY_TO_PRODUCE' || stage.status === 'WAITING' ||
+                                stage.status === 'READY' || stage.status === 'READY_SUPPLEMENTARY' ||
+                                stage.executionStatus === 'READY_TO_PRODUCE' || stage.executionStatus === 'WAITING';
+
+                              // Lock if supplementary order is in progress (only allow view detail) - ONLY for main orders
+                              // For rework orders: allow first stage if it's WAITING/READY, others must wait
+                              const isDisabled = (isPending && !isFirstStageOfRework && !isReadyOrWaiting) ||
+                                orderLocked || isQcFailed || hasSupplementaryLock;
 
                               // Show "Xem chi tiết" for locked stages (due to supplementary) or completed stages
-                              // Show "Chưa đến lượt" only for truly pending stages
+                              // Show "Chưa đến lượt" only for truly pending stages (not first stage of rework)
                               if (isDisabled) {
                                 // If it's locked due to supplementary but stage has progress, show view detail button
                                 if (hasSupplementaryLock && stage.progress > 0) {
@@ -373,6 +402,42 @@ const LeaderOrderDetail = () => {
           </Container>
         </div>
       </div>
+
+      {/* Hidden Printable QR Label - Only visible when printing */}
+      {order && order.qrToken && (
+        <div id="qr-print-label" className="qr-print-label">
+          <div className="qr-print-content">
+            <div className="qr-code-section">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(window.location.origin + '/qa/scan/' + order.qrToken)}`}
+                alt="QR Code"
+                className="qr-code-img"
+              />
+            </div>
+            <div className="info-section">
+              <div className="lot-info">
+                <span className="info-label">Mã lô sản xuất</span>
+                <h2 className="lot-code">{order.lotCode || order.id}</h2>
+                <span className="order-name">Đơn hàng {order.productName}</span>
+              </div>
+              <div className="product-info">
+                <div className="info-item">
+                  <span className="info-label">Tên sản phẩm</span>
+                  <strong>{order.productName}</strong>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">Kích thước</span>
+                  <span>{order.size}</span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">Số lượng</span>
+                  <span>{order.quantity?.toLocaleString('vi-VN')} sản phẩm</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div >
   );
 };
