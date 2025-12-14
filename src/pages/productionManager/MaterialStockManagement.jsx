@@ -324,6 +324,7 @@ const MaterialStockManagement = () => {
                       <th
                         style={{ cursor: 'pointer', userSelect: 'none' }}
                         onClick={() => handleSort('quantity')}
+                        className="text-end"
                       >
                         Số lượng {getSortIcon('quantity')}
                       </th>
@@ -331,10 +332,11 @@ const MaterialStockManagement = () => {
                       <th
                         style={{ cursor: 'pointer', userSelect: 'none' }}
                         onClick={() => handleSort('unitPrice')}
+                        className="text-end"
                       >
                         Đơn giá {getSortIcon('unitPrice')}
                       </th>
-                      <th>Thành tiền</th>
+                      <th className="text-end">Thành tiền</th>
                       <th>Số lô</th>
                       <th>Vị trí kho</th>
                       <th
@@ -343,14 +345,13 @@ const MaterialStockManagement = () => {
                       >
                         Ngày nhập {getSortIcon('receivedDate')}
                       </th>
-                      <th>Hạn sử dụng</th>
                       <th style={{ width: 100 }} className="text-center">Hành động</th>
                     </tr>
                   </thead>
                   <tbody>
                     {loading && (
                       <tr>
-                        <td colSpan={12} className="text-center py-4">
+                        <td colSpan={10} className="text-center py-4">
                           <div className="spinner-border spinner-border-sm me-2"></div>
                           Đang tải...
                         </td>
@@ -358,7 +359,7 @@ const MaterialStockManagement = () => {
                     )}
                     {!loading && sortedMaterialStocks.length === 0 && (
                       <tr>
-                        <td colSpan={12} className="text-center py-4 text-muted">
+                        <td colSpan={10} className="text-center py-4 text-muted">
                           {totalElements === 0 ? 'Chưa có nhập kho nguyên liệu nào' : 'Không tìm thấy nhập kho phù hợp với bộ lọc'}
                         </td>
                       </tr>
@@ -381,7 +382,6 @@ const MaterialStockManagement = () => {
                           <td>{stock.batchNumber || '—'}</td>
                           <td>{stock.location || '—'}</td>
                           <td>{formatDate(stock.receivedDate)}</td>
-                          <td>{formatDate(stock.expiryDate)}</td>
                           <td className="text-center">
                             <Button
                               size="sm"
