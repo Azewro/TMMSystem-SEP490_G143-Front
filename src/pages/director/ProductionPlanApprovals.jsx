@@ -52,34 +52,26 @@ const calculateDuration = (startTime, endTime) => {
     const end = new Date(endTime);
     if (start >= end) return 0;
 
+    // Calculate total duration in minutes using working hours (8:00-12:00, 13:00-17:00)
+    // This is 8 working hours per day
     let totalMinutes = 0;
     const current = new Date(start);
-
-    // Helper to check if time is within working hours (08:00-12:00, 13:00-17:00)
-    // We will iterate minute by minute or simplified approach?
-    // Minute iteration is safe but slow if long duration.
-    // Better: iterate by days.
-
-    // Let's implement a robust calculation function:
-    // Working hours: 08:00-12:00, 13:00-17:00.
+    current.setHours(0, 0, 0, 0); // Start at beginning of day
 
     while (current < end) {
-      // Check if current day is working day? user didn't specify weekends. Assuming 7 days as per previous tasks?
-      // "Adjust Production Schedule Logic... 7-day work week". So work everyday.
-
       // Define working intervals for current day
       const dayStart = new Date(current); dayStart.setHours(8, 0, 0, 0);
       const lunchStart = new Date(current); lunchStart.setHours(12, 0, 0, 0);
       const lunchEnd = new Date(current); lunchEnd.setHours(13, 0, 0, 0);
       const dayEnd = new Date(current); dayEnd.setHours(17, 0, 0, 0);
 
-      // Interval 1: 08:00 - 12:00
-      // Interval 2: 13:00 - 17:00
+      // Working intervals: 08:00-12:00 and 13:00-17:00
+      const intervals = [[dayStart, lunchStart], [lunchEnd, dayEnd]];
 
-      [[dayStart, lunchStart], [lunchEnd, dayEnd]].forEach(([s, e]) => {
-        // Intersect [current, end] with [s, e]
-        const overlapStart = new Date(Math.max(start, s));
-        const overlapEnd = new Date(Math.min(end, e));
+      intervals.forEach(([intervalStart, intervalEnd]) => {
+        // Intersect [start, end] with current day's interval
+        const overlapStart = new Date(Math.max(start.getTime(), intervalStart.getTime()));
+        const overlapEnd = new Date(Math.min(end.getTime(), intervalEnd.getTime()));
         if (overlapStart < overlapEnd) {
           totalMinutes += (overlapEnd - overlapStart) / (1000 * 60);
         }
@@ -87,12 +79,12 @@ const calculateDuration = (startTime, endTime) => {
 
       // Move to next day
       current.setDate(current.getDate() + 1);
-      current.setHours(0, 0, 0, 0);
     }
 
     const hours = totalMinutes / 60;
     return hours.toFixed(1);
   } catch (error) {
+    console.error('Error calculating duration:', error);
     return '—';
   }
 };
@@ -575,7 +567,17 @@ const ProductionPlanApprovals = () => {
                             <td>{stage.qcUserName || stage.qcUser?.name || stage.qcUser?.fullName || '—'}</td>
                             <td>{formatDateTime(stage.plannedStartTime || stage.startTime)}</td>
                             <td>{formatDateTime(stage.plannedEndTime || stage.endTime)}</td>
-                            <td>{stage.durationMinutes ? Math.round(stage.durationMinutes / 60) : (stage.durationHours || calculateDuration(stage.plannedStartTime || stage.startTime, stage.plannedEndTime || stage.endTime))}</td>
+                            <td>
+                              {(() => {
+                                // Try multiple sources for duration
+                                const minutes = stage.durationMinutes ?? stage.minRequiredDurationMinutes;
+                                if (minutes != null && minutes > 0) {
+                                  return (minutes / 60).toFixed(2);
+                                }
+                                // Fallback to calculate from times
+                                return calculateDuration(stage.plannedStartTime || stage.startTime, stage.plannedEndTime || stage.endTime);
+                              })()}
+                            </td>
                             <td>{stage.notes || stage.note || '—'}</td>
                           </tr>
                         )) || (
