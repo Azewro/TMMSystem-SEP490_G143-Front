@@ -16,20 +16,20 @@ export const getStatusLabel = (status) => {
     'COMPLETED': 'Hoàn thành',
     'HOAN_THANH': 'Hoàn thành',
 
-    // ProductionStage statuses
-    'PENDING': 'đợi',
-    'WAITING': 'chờ làm',
-    'READY': 'sẵn sàng sản xuất',
-    'READY_TO_PRODUCE': 'sẵn sàng sản xuất',
-    'IN_PROGRESS': 'đang làm',
-    'WAITING_QC': 'chờ kiểm tra',
-    'QC_IN_PROGRESS': 'đang kiểm tra',
-    'QC_PASSED': 'đạt',
-    'QC_FAILED': 'không đạt',
-    'WAITING_REWORK': 'chờ sửa',
-    'REWORK_IN_PROGRESS': 'đang sửa',
+    // ProductionStage statuses - ALL CAPITALIZED
+    'PENDING': 'Đang đợi',
+    'WAITING': 'Sẵn sàng',
+    'READY': 'Sẵn sàng',
+    'READY_TO_PRODUCE': 'Sẵn sàng',
+    // Note: IN_PROGRESS is mapped above as 'Đang sản xuất' for order level
+    'WAITING_QC': 'Chờ kiểm tra',
+    'QC_IN_PROGRESS': 'Đang kiểm tra',
+    'QC_PASSED': 'Đạt',
+    'QC_FAILED': 'Không đạt',
+    'WAITING_REWORK': 'Chờ sửa lỗi',
+    'REWORK_IN_PROGRESS': 'Đang sửa lỗi',
     'PAUSED': 'Tạm dừng',
-    'WAITING_MATERIAL': 'Chờ phê duyệt cấp sợi', // Frontend-only status
+    'WAITING_MATERIAL': 'Chờ phê duyệt cấp sợi',
 
     // Supplementary/Rework order statuses
     'READY_SUPPLEMENTARY': 'Chờ sản xuất bổ sung',
@@ -94,16 +94,17 @@ export const getProductionOrderStatusFromStages = (order) => {
   if (activeStage) {
     const status = activeStage.executionStatus;
 
-    // Simplified status labels matching teammate's state diagram
+    // Simplified status labels for PM Order List - only 9 statuses per diagram
+    // Note: WAITING_QC and QC_IN_PROGRESS are grouped into "Đang làm" for PM list
     const statusLabelMap = {
       'WAITING': { label: 'Sẵn sàng sản xuất', variant: 'primary' },
       'READY': { label: 'Sẵn sàng sản xuất', variant: 'primary' },
       'READY_TO_PRODUCE': { label: 'Sẵn sàng sản xuất', variant: 'primary' },
       'IN_PROGRESS': { label: 'Đang làm', variant: 'info' },
-      'WAITING_QC': { label: 'Chờ kiểm tra', variant: 'warning' },
-      'QC_IN_PROGRESS': { label: 'Đang kiểm tra', variant: 'warning' },
-      'WAITING_REWORK': { label: 'Chờ sửa', variant: 'warning' },
-      'REWORK_IN_PROGRESS': { label: 'Đang sửa', variant: 'info' },
+      'WAITING_QC': { label: 'Đang làm', variant: 'info' },  // Grouped into "Đang làm"
+      'QC_IN_PROGRESS': { label: 'Đang làm', variant: 'info' },  // Grouped into "Đang làm"
+      'WAITING_REWORK': { label: 'Đang làm', variant: 'info' },  // Still in production
+      'REWORK_IN_PROGRESS': { label: 'Đang làm', variant: 'info' },  // Still in production
       'PAUSED': { label: 'Tạm dừng', variant: 'danger' },
     };
 

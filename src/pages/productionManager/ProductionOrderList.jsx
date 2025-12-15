@@ -191,7 +191,7 @@ const ProductionOrderList = () => {
               if (label.includes('Chờ sản xuất') && !label.includes('bổ sung')) return 1;
               if (label.includes('Chờ đến lượt')) return 2;
               if (label.includes('Sẵn sàng')) return 3;
-              if (label.includes('Đang') && !label.includes('bổ sung')) return 4;
+              if (label === 'Đang làm') return 4;  // Exact match for Đang làm
               if (label.includes('Tạm dừng')) return 5;
               if (label.includes('Chờ phê duyệt cấp sợi')) return 6;
               if (label.includes('Chờ sản xuất bổ sung')) return 7;
