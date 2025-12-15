@@ -44,8 +44,9 @@ const QaOrderDetail = () => {
               case 'WAITING':
               case 'READY':
               case 'READY_TO_PRODUCE':
-                statusLabel = 'Sẵn sàng';
-                statusVariant = 'primary';
+                // Per KCS diagram: before Leader starts, show "Đang đợi"
+                statusLabel = 'Đang đợi';
+                statusVariant = 'secondary';
                 break;
               case 'IN_PROGRESS':
               case 'REWORK_IN_PROGRESS':

@@ -519,9 +519,9 @@ export const getPMStageStatusLabel = (status, isDyeingStage = false) => {
 export const getQaStageStatusLabel = (status) => {
   const statusMap = {
     'PENDING': { label: 'Đang đợi', variant: 'secondary' },
-    'WAITING': { label: 'Sẵn sàng', variant: 'primary' },
-    'READY': { label: 'Sẵn sàng', variant: 'primary' },
-    'READY_TO_PRODUCE': { label: 'Sẵn sàng', variant: 'primary' },
+    'WAITING': { label: 'Đang đợi', variant: 'secondary' },  // Per KCS diagram: before Leader starts
+    'READY': { label: 'Đang đợi', variant: 'secondary' },
+    'READY_TO_PRODUCE': { label: 'Đang đợi', variant: 'secondary' },
     'IN_PROGRESS': { label: 'Đang làm', variant: 'info' },
     'REWORK_IN_PROGRESS': { label: 'Đang sửa lỗi', variant: 'info' },
     'WAITING_QC': { label: 'Chờ kiểm tra', variant: 'warning' },
