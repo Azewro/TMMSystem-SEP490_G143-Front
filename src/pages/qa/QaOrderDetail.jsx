@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { orderService } from '../../api/orderService';
-import { getStatusLabel, getStageTypeName, getButtonForStage, getStatusVariant, getProductionOrderStatusFromStages } from '../../utils/statusMapper';
+import { getStatusLabel, getStageTypeName, getButtonForStage, getStatusVariant, getQaOrderStatusFromStages } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
 
 const QaOrderDetail = () => {
@@ -99,8 +99,8 @@ const QaOrderDetail = () => {
         const firstStageWithToken = (data.stages || []).find(s => s.qrToken);
         const qrToken = firstStageWithToken ? firstStageWithToken.qrToken : null;
 
-        // Use getProductionOrderStatusFromStages for header status
-        const orderStatusResult = getProductionOrderStatusFromStages(data);
+        // Use getQaOrderStatusFromStages for QA-specific header status
+        const orderStatusResult = getQaOrderStatusFromStages(data);
 
         // Map backend data to match UI structure
         const mappedOrder = {

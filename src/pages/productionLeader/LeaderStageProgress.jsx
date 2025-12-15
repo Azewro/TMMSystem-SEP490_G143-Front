@@ -248,7 +248,7 @@ const LeaderStageProgress = () => {
   }, [stage?.id, stage?.executionStatus, refreshKey]);
 
   const handleBack = () => {
-    navigate('/leader/orders');
+    navigate(`/leader/orders/${orderId}`);
   };
 
   const handleStartStage = async () => {
@@ -482,7 +482,7 @@ const LeaderStageProgress = () => {
         >
           <Container fluid className="p-4">
             <Button variant="link" className="p-0 mb-3" onClick={handleBack}>
-              &larr; Quay lại danh sách
+              &larr; Quay lại chi tiết đơn hàng
             </Button>
 
             <Card className="shadow-sm mb-3">

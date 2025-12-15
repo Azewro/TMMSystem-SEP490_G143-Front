@@ -5,7 +5,7 @@ import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { productionService } from '../../api/productionService';
 import { executionService } from '../../api/executionService';
-import { getStatusLabel, getStageTypeName, getButtonForStage, getStatusVariant, getProductionOrderStatusFromStages, getLeaderStageStatusLabel } from '../../utils/statusMapper';
+import { getStatusLabel, getStageTypeName, getButtonForStage, getStatusVariant, getLeaderOrderStatusFromStages, getLeaderStageStatusLabel } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
 
 const LeaderOrderDetail = () => {
@@ -68,16 +68,31 @@ const LeaderOrderDetail = () => {
           })) : []
         };
 
-        // Use getProductionOrderStatusFromStages for dynamic header status
-        const dynamicOrderStatus = getProductionOrderStatusFromStages(data);
+        // Use getLeaderOrderStatusFromStages for dynamic header status with stage name
+        const dynamicOrderStatus = getLeaderOrderStatusFromStages(data);
         mappedOrder.statusLabel = dynamicOrderStatus.label;
         mappedOrder.statusVariant = dynamicOrderStatus.variant;
 
-        // Update stage labels using getLeaderStageStatusLabel
-        mappedOrder.stages = mappedOrder.stages.map(s => {
-          const leaderStatus = getLeaderStageStatusLabel(s.status);
+        // Update stage labels using getLeaderStageStatusLabel with defectSeverity
+        mappedOrder.stages = mappedOrder.stages.map((s, idx) => {
+          // Get defectSeverity from original data
+          const originalStage = data.stages && data.stages[idx];
+          const defectSeverity = originalStage?.defectSeverity || originalStage?.defectLevel || null;
+
+          // PENDING stages show 'Chưa đến lượt' instead of 'Đang đợi'
+          if (s.status === 'PENDING') {
+            return {
+              ...s,
+              defectSeverity,
+              statusLabel: 'Chưa đến lượt',
+              statusVariant: 'secondary'
+            };
+          }
+
+          const leaderStatus = getLeaderStageStatusLabel(s.status, defectSeverity);
           return {
             ...s,
+            defectSeverity,
             statusLabel: leaderStatus.label,
             statusVariant: leaderStatus.variant
           };

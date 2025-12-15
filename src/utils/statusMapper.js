@@ -148,6 +148,225 @@ export const getProductionOrderStatusFromStages = (order) => {
 
 
 /**
+ * Build dynamic status label for Leader Order List with stage name
+ * Format: "Status [StageName]" (e.g., "Đang làm Cuồng mắc", "Chờ kiểm tra Dệt")
+ * 
+ * Status labels per Leader diagram:
+ * 1. Sẵn sàng sản xuất [xxx]
+ * 2. Chờ đến lượt [xxx]
+ * 3. Đang làm [xxx]
+ * 4. Chờ kiểm tra [xxx]
+ * 5. Đang kiểm tra [xxx]
+ * 6. [xxx] lỗi nhẹ
+ * 7. [xxx] lỗi nặng
+ * 8. Tạm dừng
+ * 9. Hoàn thành
+ * 
+ * @param {Object} order - ProductionOrderDto with stages array
+ * @returns {{ label: string, variant: string }} Status label with stage name and Bootstrap variant
+ */
+export const getLeaderOrderStatusFromStages = (order) => {
+  // Handle order-level execution status first
+  if (order.executionStatus === 'WAITING_PRODUCTION') {
+    return { label: 'Chờ sản xuất', variant: 'secondary' };
+  }
+  if (order.executionStatus === 'COMPLETED' || order.executionStatus === 'ORDER_COMPLETED') {
+    return { label: 'Hoàn thành', variant: 'success' };
+  }
+
+  // Find active stage
+  const stages = order.stages || [];
+  const activeStage = stages.find(s =>
+    s.executionStatus &&
+    s.executionStatus !== 'PENDING' &&
+    s.executionStatus !== 'COMPLETED' &&
+    s.executionStatus !== 'QC_PASSED'
+  );
+
+  if (activeStage) {
+    const status = activeStage.executionStatus;
+    const stageName = getStageTypeName(activeStage.stageType) || activeStage.stageType;
+
+    // Status with stage name for Leader list
+    const statusConfig = {
+      'WAITING': { prefix: 'Sẵn sàng sản xuất', variant: 'primary' },
+      'READY': { prefix: 'Sẵn sàng sản xuất', variant: 'primary' },
+      'READY_TO_PRODUCE': { prefix: 'Sẵn sàng sản xuất', variant: 'primary' },
+      'IN_PROGRESS': { prefix: 'Đang làm', variant: 'info' },
+      'WAITING_QC': { prefix: 'Chờ kiểm tra', variant: 'warning' },
+      'QC_IN_PROGRESS': { prefix: 'Đang kiểm tra', variant: 'warning' },
+      'WAITING_REWORK': { prefix: 'Chờ sửa lỗi', variant: 'warning' },
+      'REWORK_IN_PROGRESS': { prefix: 'Đang sửa lỗi', variant: 'info' },
+      'QC_FAILED': { suffix: 'lỗi', variant: 'danger' },
+      'PAUSED': { label: 'Tạm dừng', variant: 'danger' },
+    };
+
+    const config = statusConfig[status];
+    if (config) {
+      // Handle PAUSED - no stage name
+      if (config.label) {
+        return { label: config.label, variant: config.variant };
+      }
+      // Handle prefix format: "Status StageName"
+      if (config.prefix) {
+        // Check if blocked
+        if (activeStage.isBlocked && ['WAITING', 'READY', 'READY_TO_PRODUCE'].includes(status)) {
+          return { label: `Chờ đến lượt ${stageName}`, variant: 'secondary' };
+        }
+        return { label: `${config.prefix} ${stageName}`, variant: config.variant };
+      }
+      // Handle suffix format: "StageName suffix" - for QC_FAILED with severity
+      if (config.suffix) {
+        // Check defectSeverity to show 'lỗi nhẹ' or 'lỗi nặng'
+        const severity = activeStage.defectSeverity;
+        let defectLabel = 'lỗi';
+        if (severity === 'MINOR') {
+          defectLabel = 'lỗi nhẹ';
+        } else if (severity === 'MAJOR') {
+          defectLabel = 'lỗi nặng';
+        }
+        return { label: `${stageName} ${defectLabel}`, variant: config.variant };
+      }
+    }
+  }
+
+  // Handle supplementary order statuses
+  if (order.executionStatus === 'READY_SUPPLEMENTARY' || order.executionStatus === 'WAITING_SUPPLEMENTARY') {
+    return { label: 'Chờ sản xuất bổ sung', variant: 'secondary' };
+  }
+  if (order.executionStatus === 'IN_SUPPLEMENTARY' || order.executionStatus === 'SUPPLEMENTARY_CREATED') {
+    return { label: 'Đang sản xuất bổ sung', variant: 'info' };
+  }
+
+  // Fallback: find first pending stage
+  const firstPendingStage = stages.find(s =>
+    s.executionStatus === 'WAITING' || s.executionStatus === 'READY' || s.executionStatus === 'READY_TO_PRODUCE'
+  );
+  if (firstPendingStage) {
+    const stageName = getStageTypeName(firstPendingStage.stageType) || firstPendingStage.stageType;
+    if (firstPendingStage.isBlocked) {
+      return { label: `Chờ đến lượt ${stageName}`, variant: 'secondary' };
+    }
+    return { label: `Sẵn sàng sản xuất ${stageName}`, variant: 'primary' };
+  }
+
+  // Final fallback
+  return { label: getStatusLabel(order.executionStatus || order.status), variant: getStatusVariant(order.executionStatus || order.status) };
+};
+
+
+/**
+ * Build dynamic status label for QA (KCS) Order List with stage name
+ * 
+ * Status labels per QA diagram:
+ * 1. Chuẩn bị làm - PM started but Leader hasn't
+ * 2. Đang làm - Leader in progress
+ * 3. Chờ kiểm tra [xxx] - Leader completed 100%
+ * 4. Đang kiểm tra [xxx] - KCS started inspection
+ * 5. [xxx] lỗi nhẹ - QC failed with MINOR severity
+ * 6. [xxx] lỗi nặng - QC failed with MAJOR severity
+ * 7. Tạm dừng - Paused for another order's rework
+ * 8. Hoàn thành - All stages completed
+ * 
+ * @param {Object} order - ProductionOrderDto with stages array
+ * @returns {{ label: string, variant: string }} Status label with stage name and Bootstrap variant
+ */
+export const getQaOrderStatusFromStages = (order) => {
+  // Handle order-level completed status first
+  if (order.executionStatus === 'COMPLETED' || order.executionStatus === 'ORDER_COMPLETED') {
+    return { label: 'Hoàn thành', variant: 'success' };
+  }
+
+  // Find active stage
+  const stages = order.stages || [];
+  const activeStage = stages.find(s =>
+    s.executionStatus &&
+    s.executionStatus !== 'PENDING' &&
+    s.executionStatus !== 'COMPLETED' &&
+    s.executionStatus !== 'QC_PASSED'
+  );
+
+  if (activeStage) {
+    const status = activeStage.executionStatus;
+    const stageName = getStageTypeName(activeStage.stageType) || activeStage.stageType;
+
+    // Status config per QA diagram
+    switch (status) {
+      // PM started but Leader hasn't started first stage - "Chuẩn bị làm"
+      // After QC pass on non-final stage, next stage is WAITING but should show "Đang làm"
+      case 'WAITING':
+      case 'READY':
+      case 'READY_TO_PRODUCE': {
+        // Only show "Chuẩn bị làm" if this is the FIRST stage (stageSequence=1)
+        // After QC pass on previous stage, the next stage becomes WAITING but order should show "Đang làm"
+        const isFirstStage = activeStage.stageSequence === 1 || activeStage.stageSequence === '1';
+        if (isFirstStage) {
+          return { label: 'Chuẩn bị làm', variant: 'secondary' };
+        }
+        // Non-first stage in WAITING means previous stage passed QC → "Đang làm"
+        return { label: 'Đang làm', variant: 'info' };
+      }
+
+      // Leader in progress - "Đang làm"
+      case 'IN_PROGRESS':
+      case 'REWORK_IN_PROGRESS':
+        return { label: 'Đang làm', variant: 'info' };
+
+      // Leader completed 100% - "Chờ kiểm tra xxx"
+      case 'WAITING_QC':
+        return { label: `Chờ kiểm tra ${stageName}`, variant: 'warning' };
+
+      // KCS started inspection - "Đang kiểm tra xxx"
+      case 'QC_IN_PROGRESS':
+        return { label: `Đang kiểm tra ${stageName}`, variant: 'warning' };
+
+      // QC failed - "xxx lỗi nhẹ" or "xxx lỗi nặng"
+      case 'QC_FAILED':
+      case 'WAITING_REWORK': {
+        const severity = activeStage.defectSeverity;
+        let defectLabel = 'lỗi';
+        let variant = 'danger';
+        if (severity === 'MINOR') {
+          defectLabel = 'lỗi nhẹ';
+          variant = 'warning';
+        } else if (severity === 'MAJOR') {
+          defectLabel = 'lỗi nặng';
+          variant = 'danger';
+        }
+        return { label: `${stageName} ${defectLabel}`, variant };
+      }
+
+      // Paused - "Tạm dừng"
+      case 'PAUSED':
+        return { label: 'Tạm dừng', variant: 'danger' };
+
+      default:
+        break;
+    }
+  }
+
+  // Handle supplementary order statuses
+  if (order.executionStatus === 'READY_SUPPLEMENTARY' || order.executionStatus === 'WAITING_SUPPLEMENTARY') {
+    return { label: 'Chờ sản xuất bổ sung', variant: 'secondary' };
+  }
+  if (order.executionStatus === 'IN_SUPPLEMENTARY' || order.executionStatus === 'SUPPLEMENTARY_CREATED') {
+    return { label: 'Đang sản xuất bổ sung', variant: 'info' };
+  }
+
+  // Fallback: PM started but Leader hasn't (first stage is WAITING)
+  const firstWaitingStage = stages.find(s =>
+    s.executionStatus === 'WAITING' || s.executionStatus === 'READY' || s.executionStatus === 'READY_TO_PRODUCE'
+  );
+  if (firstWaitingStage) {
+    return { label: 'Chuẩn bị làm', variant: 'secondary' };
+  }
+
+  // Final fallback
+  return { label: getStatusLabel(order.executionStatus || order.status), variant: getStatusVariant(order.executionStatus || order.status) };
+};
+
+
+/**
  * Get stage status label and buttons for Production Manager view
  * Maps backend executionStatus to Vietnamese labels and determines button configuration
  * 
@@ -176,25 +395,26 @@ export const getPMStageStatusLabel = (status, isDyeingStage = false) => {
       buttons: [] // Không có button
     },
     // Sẵn sàng - PM bấm bắt đầu lệnh || công đoạn trước đạt
+    // Changed to show 'Đang đợi' same as PENDING per user request
     'WAITING': {
-      label: 'Sẵn sàng',
-      variant: 'primary',
+      label: 'Đang đợi',
+      variant: 'secondary',
       buttons: isDyeingStage
         ? [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' },
         { text: 'Bắt đầu', action: 'start', variant: 'dark' }]
         : [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
     },
     'READY': {
-      label: 'Sẵn sàng',
-      variant: 'primary',
+      label: 'Đang đợi',
+      variant: 'secondary',
       buttons: isDyeingStage
         ? [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' },
         { text: 'Bắt đầu', action: 'start', variant: 'dark' }]
         : [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
     },
     'READY_TO_PRODUCE': {
-      label: 'Sẵn sàng',
-      variant: 'primary',
+      label: 'Đang đợi',
+      variant: 'secondary',
       buttons: isDyeingStage
         ? [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' },
         { text: 'Bắt đầu', action: 'start', variant: 'dark' }]
@@ -323,7 +543,7 @@ export const getQaStageStatusLabel = (status) => {
  * @param {string} status - Backend executionStatus
  * @returns {{ label: string, variant: string, buttons: Array<{text: string, action: string, variant: string, disabled?: boolean}> }}
  */
-export const getLeaderStageStatusLabel = (status) => {
+export const getLeaderStageStatusLabel = (status, defectSeverity = null) => {
   const statusMap = {
     // Đang đợi - đơn hàng phía trước chưa xong công đoạn
     'PENDING': {
@@ -331,19 +551,19 @@ export const getLeaderStageStatusLabel = (status) => {
       variant: 'secondary',
       buttons: [] // Không có button
     },
-    // Sẵn sàng - công đoạn trước 100% và đạt hoặc đây là công đoạn đầu
+    // Chờ làm - PM bấm bắt đầu, Leader chưa bấm (per diagram: "chờ làm")
     'WAITING': {
-      label: 'Sẵn sàng',
+      label: 'Chờ làm',
       variant: 'primary',
       buttons: [{ text: 'Bắt đầu', action: 'start', variant: 'success' }]
     },
     'READY': {
-      label: 'Sẵn sàng',
+      label: 'Chờ làm',
       variant: 'primary',
       buttons: [{ text: 'Bắt đầu', action: 'start', variant: 'success' }]
     },
     'READY_TO_PRODUCE': {
-      label: 'Sẵn sàng',
+      label: 'Chờ làm',
       variant: 'primary',
       buttons: [{ text: 'Bắt đầu', action: 'start', variant: 'success' }]
     },
@@ -359,7 +579,7 @@ export const getLeaderStageStatusLabel = (status) => {
       variant: 'warning',
       buttons: [{ text: 'Xem chi tiết', action: 'detail', variant: 'outline-secondary' }]
     },
-    // Đang kiểm tra - KCS bấm kiểm tra
+    // Đang kiểm tra - KCS bắ bấm kiểm tra
     'QC_IN_PROGRESS': {
       label: 'Đang kiểm tra',
       variant: 'warning',
@@ -371,7 +591,7 @@ export const getLeaderStageStatusLabel = (status) => {
       variant: 'success',
       buttons: [{ text: 'Xem chi tiết', action: 'detail', variant: 'outline-secondary' }]
     },
-    // Không đạt - kết quả kiểm tra không đạt
+    // Không đạt - kết quả kiểm tra không đạt (will be overridden by severity below)
     'QC_FAILED': {
       label: 'Không đạt',
       variant: 'danger',
@@ -379,7 +599,7 @@ export const getLeaderStageStatusLabel = (status) => {
     },
     // Chờ sửa - kỹ thuật gửi yêu cầu làm lại
     'WAITING_REWORK': {
-      label: 'Chờ sửa',
+      label: 'Chờ sửa lỗi',
       variant: 'warning',
       buttons: [{ text: 'Tạm dừng và Sửa lỗi', action: 'rework', variant: 'warning' }]
     },
@@ -427,6 +647,24 @@ export const getLeaderStageStatusLabel = (status) => {
   };
 
   const result = statusMap[status];
+
+  // Special handling for QC_FAILED - check defectSeverity to show 'Lỗi nhẹ' or 'Lỗi nặng'
+  if (status === 'QC_FAILED' && defectSeverity) {
+    if (defectSeverity === 'MINOR') {
+      return {
+        label: 'Lỗi nhẹ',
+        variant: 'warning',
+        buttons: [{ text: 'Xem chi tiết', action: 'detail', variant: 'outline-secondary' }]
+      };
+    } else if (defectSeverity === 'MAJOR') {
+      return {
+        label: 'Lỗi nặng',
+        variant: 'danger',
+        buttons: [{ text: 'Xem chi tiết', action: 'detail', variant: 'outline-secondary' }]
+      };
+    }
+  }
+
   if (result) {
     return result;
   }

@@ -7,7 +7,7 @@ import InternalSidebar from '../../components/common/InternalSidebar';
 import Pagination from '../../components/Pagination';
 import { productionService } from '../../api/productionService';
 import { orderService } from '../../api/orderService';
-import { getLeaderStageStatusLabel, getProductionOrderStatusFromStages, getStageTypeName } from '../../utils/statusMapper';
+import { getLeaderStageStatusLabel, getLeaderOrderStatusFromStages, getStageTypeName } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import { vi } from 'date-fns/locale/vi';
@@ -23,6 +23,7 @@ const LeaderOrderList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [startDateFilter, setStartDateFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [activeTab, setActiveTab] = useState('main'); // Track active tab
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
@@ -65,8 +66,8 @@ const LeaderOrderList = () => {
                 orderDetail.contract?.contractNumber ||
                 'N/A';
 
-              // Use getProductionOrderStatusFromStages for dynamic label like PM page
-              const dynamicStatus = getProductionOrderStatusFromStages(orderDetail);
+              // Use getLeaderOrderStatusFromStages for status with stage name
+              const dynamicStatus = getLeaderOrderStatusFromStages(orderDetail);
 
               // Also get stage-specific status for button logic
               const stageStatus = leaderStage
@@ -115,6 +116,13 @@ const LeaderOrderList = () => {
 
   const filteredOrders = useMemo(() => {
     return orders.filter((o) => {
+      // Filter out orders where Leader's assigned stage is PENDING (previous stages not completed)
+      // These orders should not appear on Leader list per diagram
+      const leaderStageStatus = o.leaderStage?.status;
+      if (leaderStageStatus === 'PENDING') {
+        return false;
+      }
+
       const matchesSearch = !searchTerm ||
         (o.poNumber && o.poNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (o.contract?.contractNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -225,13 +233,15 @@ const LeaderOrderList = () => {
                         onChange={(e) => setStatusFilter(e.target.value)}
                       >
                         <option value="">Tất cả trạng thái</option>
-                        <option value="Sẵn sàng">Sẵn sàng</option>
+                        <option value="Sẵn sàng sản xuất">Sẵn sàng sản xuất</option>
+                        <option value="Chờ đến lượt">Chờ đến lượt</option>
                         <option value="Đang làm">Đang làm</option>
                         <option value="Chờ kiểm tra">Chờ kiểm tra</option>
                         <option value="Đang kiểm tra">Đang kiểm tra</option>
-                        <option value="Đạt">Đạt</option>
-                        <option value="Không đạt">Không đạt</option>
-                        <option value="Đang sản xuất bổ sung">Đang sản xuất bổ sung</option>
+                        {/* Lỗi nhẹ/nặng only for main orders, not supplementary */}
+                        {activeTab === 'main' && <option value="lỗi nhẹ">Lỗi nhẹ</option>}
+                        {activeTab === 'main' && <option value="lỗi nặng">Lỗi nặng</option>}
+                        <option value="Tạm dừng">Tạm dừng</option>
                         <option value="Hoàn thành">Hoàn thành</option>
                       </Form.Select>
                     </Form.Group>
@@ -240,7 +250,7 @@ const LeaderOrderList = () => {
               </Card.Body>
             </Card>
 
-            <Tabs defaultActiveKey="main" className="mb-3">
+            <Tabs defaultActiveKey="main" className="mb-3" onSelect={(k) => setActiveTab(k)}>
               <Tab eventKey="main" title="Lô sản xuất chính">
                 <OrderTable
                   orders={mainOrders}
@@ -323,17 +333,27 @@ const OrderTable = ({ orders, handleStart, handleViewDetail, isRework = false })
             bValue = b.totalQuantity || 0;
             return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
           case 'status':
-            // Sort by status priority for Leader
+            // Sort by status priority for Leader per diagram
             const getStatusPriority = (label) => {
               if (!label) return 99;
-              if (label.includes('Sẵn sàng')) return 1;
-              if (label.includes('Đang làm')) return 2;
-              if (label.includes('Chờ kiểm tra')) return 3;
-              if (label.includes('Đang kiểm tra')) return 4;
-              if (label.includes('Đạt')) return 5;
-              if (label.includes('Không đạt')) return 6;
-              if (label.includes('Đang sản xuất bổ sung')) return 7;
-              if (label.includes('Hoàn thành')) return 8;
+              // 1. Sẵn sàng sản xuất xxx (most urgent - need to start)
+              if (label.includes('Sẵn sàng sản xuất')) return 1;
+              // 2. Chờ đến lượt xxx
+              if (label.includes('Chờ đến lượt')) return 2;
+              // 3. Đang làm xxx
+              if (label.includes('Đang làm')) return 3;
+              // 4. Chờ kiểm tra xxx
+              if (label.includes('Chờ kiểm tra')) return 4;
+              // 5. Đang kiểm tra xxx
+              if (label.includes('Đang kiểm tra')) return 5;
+              // 6. xxx lỗi nhẹ
+              if (label.includes('lỗi nhẹ')) return 6;
+              // 7. xxx lỗi nặng
+              if (label.includes('lỗi nặng')) return 7;
+              // 8. Tạm dừng
+              if (label.includes('Tạm dừng')) return 8;
+              // 9. Hoàn thành
+              if (label.includes('Hoàn thành')) return 9;
               return 99;
             };
             aValue = getStatusPriority(a.dynamicStatusLabel);

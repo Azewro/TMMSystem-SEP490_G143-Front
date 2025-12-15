@@ -6,7 +6,7 @@ import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import Pagination from '../../components/Pagination';
 import { productionService } from '../../api/productionService';
-import { getProductionOrderStatusFromStages } from '../../utils/statusMapper';
+import { getQaOrderStatusFromStages } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import { vi } from 'date-fns/locale/vi';
@@ -69,8 +69,8 @@ const QaOrderList = () => {
 
         // Map backend data to match UI structure
         const mappedData = data.map(order => {
-          // Use getProductionOrderStatusFromStages for overall order status (like PM page)
-          const statusResult = getProductionOrderStatusFromStages(order);
+          // Use getQaOrderStatusFromStages for QA-specific order status per diagram
+          const statusResult = getQaOrderStatusFromStages(order);
 
           // Find the stage assigned to this QA for button logic
           const qaStage = (order.stages || []).find(s =>
@@ -182,14 +182,25 @@ const QaOrderList = () => {
             bValue = b.expectedStartDate || '';
             break;
           case 'status':
-            // Sort by status priority for QA
+            // Sort by status priority for QA per diagram
             const getStatusPriority = (label) => {
               if (!label) return 99;
-              if (label.includes('Chờ kiểm tra')) return 1;
-              if (label.includes('Đang kiểm tra')) return 2;
-              if (label.includes('Đang làm')) return 3;
-              if (label.includes('Đang sản xuất bổ sung')) return 4;
-              if (label.includes('Hoàn thành')) return 5;
+              // 1. Chuẩn bị làm - PM started but Leader hasn't
+              if (label.includes('Chuẩn bị làm')) return 1;
+              // 2. Đang làm - Leader in progress
+              if (label === 'Đang làm') return 2;
+              // 3. Chờ kiểm tra xxx - Leader completed 100%
+              if (label.includes('Chờ kiểm tra')) return 3;
+              // 4. Đang kiểm tra xxx - KCS started inspection
+              if (label.includes('Đang kiểm tra')) return 4;
+              // 5. xxx lỗi nhẹ
+              if (label.includes('lỗi nhẹ')) return 5;
+              // 6. xxx lỗi nặng
+              if (label.includes('lỗi nặng')) return 6;
+              // 7. Tạm dừng
+              if (label.includes('Tạm dừng')) return 7;
+              // 8. Hoàn thành
+              if (label.includes('Hoàn thành')) return 8;
               return 99;
             };
             aValue = getStatusPriority(a.statusLabel);
