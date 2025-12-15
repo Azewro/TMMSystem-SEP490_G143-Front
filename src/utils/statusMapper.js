@@ -93,13 +93,25 @@ export const getProductionOrderStatusFromStages = (order) => {
   // If there's an active stage, use its status (simplified labels per teammate's diagram)
   if (activeStage) {
     const status = activeStage.executionStatus;
+    const isFirstStage = activeStage.stageSequence === 1 || activeStage.stageSequence === '1';
+
+    // For WAITING/READY status - check if first stage or not
+    if (['WAITING', 'READY', 'READY_TO_PRODUCE'].includes(status)) {
+      // If blocked, show "Chờ đến lượt"
+      if (activeStage.isBlocked) {
+        return { label: 'Chờ đến lượt', variant: 'secondary' };
+      }
+      // First stage WAITING = "Sẵn sàng sản xuất"
+      // Later stages WAITING (after previous stage passed QC) = "Đang làm"
+      if (isFirstStage) {
+        return { label: 'Sẵn sàng sản xuất', variant: 'primary' };
+      } else {
+        return { label: 'Đang làm', variant: 'info' };
+      }
+    }
 
     // Simplified status labels for PM Order List - only 9 statuses per diagram
-    // Note: WAITING_QC and QC_IN_PROGRESS are grouped into "Đang làm" for PM list
     const statusLabelMap = {
-      'WAITING': { label: 'Sẵn sàng sản xuất', variant: 'primary' },
-      'READY': { label: 'Sẵn sàng sản xuất', variant: 'primary' },
-      'READY_TO_PRODUCE': { label: 'Sẵn sàng sản xuất', variant: 'primary' },
       'IN_PROGRESS': { label: 'Đang làm', variant: 'info' },
       'WAITING_QC': { label: 'Đang làm', variant: 'info' },  // Grouped into "Đang làm"
       'QC_IN_PROGRESS': { label: 'Đang làm', variant: 'info' },  // Grouped into "Đang làm"
@@ -110,10 +122,6 @@ export const getProductionOrderStatusFromStages = (order) => {
 
     const mapping = statusLabelMap[status];
     if (mapping) {
-      // If blocked and status is ready-type, show "Chờ đến lượt" instead
-      if (activeStage.isBlocked && ['WAITING', 'READY', 'READY_TO_PRODUCE'].includes(status)) {
-        return { label: 'Chờ đến lượt', variant: 'secondary' };
-      }
       return mapping;
     }
   }
@@ -142,7 +150,12 @@ export const getProductionOrderStatusFromStages = (order) => {
     return { label: 'Sẵn sàng sản xuất', variant: 'primary' };
   }
 
-  // Final fallback
+  // Final fallback - handle IN_PROGRESS order without recognizable active stage
+  if (order.executionStatus === 'IN_PROGRESS' || order.executionStatus === 'DANG_SAN_XUAT') {
+    return { label: 'Đang làm', variant: 'info' };
+  }
+
+  // Ultimate fallback
   return { label: getStatusLabel(order.executionStatus || order.status), variant: getStatusVariant(order.executionStatus || order.status) };
 };
 

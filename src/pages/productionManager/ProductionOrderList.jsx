@@ -1,6 +1,6 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { Container, Card, Table, Button, Badge, Form, InputGroup, Spinner, Row, Col } from 'react-bootstrap';
-import { FaSearch, FaSortUp, FaSortDown, FaSort } from 'react-icons/fa';
+import { FaSearch, FaSortUp, FaSortDown, FaSort, FaWifi } from 'react-icons/fa';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import Pagination from '../../components/Pagination';
@@ -12,6 +12,7 @@ import DatePicker, { registerLocale } from 'react-datepicker';
 import { vi } from 'date-fns/locale/vi';
 import 'react-datepicker/dist/react-datepicker.css';
 import { parseDateString, formatDateForBackend } from '../../utils/validators';
+import useWebSocket from '../../hooks/useWebSocket';
 
 registerLocale('vi', vi);
 
@@ -54,53 +55,55 @@ const ProductionOrderList = () => {
       : <FaSortDown className="ms-1 text-primary" />;
   };
 
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        setLoading(true);
-        const data = await productionService.getManagerOrders();
-        // Map backend data to match structure
-        const mappedData = data.map(order => {
-          // Use new function to get dynamic status label with stage name
-          const statusResult = getProductionOrderStatusFromStages(order);
+  // Fetch orders function (extracted for reuse)
+  const fetchOrders = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await productionService.getManagerOrders();
+      const mappedData = data.map(order => {
+        const statusResult = getProductionOrderStatusFromStages(order);
+        const isStarted = order.executionStatus &&
+          !['WAITING_PRODUCTION', 'PENDING', 'PENDING_APPROVAL'].includes(order.executionStatus);
+        const firstStage = order.stages && order.stages.length > 0 ? order.stages[0] : null;
+        const leaderName = firstStage?.assignedLeader?.fullName || firstStage?.assigneeName || 'Chưa phân công';
 
-          // Check if order has been started (has stages with non-PENDING/non-WAITING_PRODUCTION status)
-          const isStarted = order.executionStatus &&
-            !['WAITING_PRODUCTION', 'PENDING', 'PENDING_APPROVAL'].includes(order.executionStatus);
-
-          // Get leader name from first stage
-          const firstStage = order.stages && order.stages.length > 0 ? order.stages[0] : null;
-          const leaderName = firstStage?.assignedLeader?.fullName || firstStage?.assigneeName || 'Chưa phân công';
-
-          return {
-            id: order.id,
-            lotCode: order.lotCode || order.poNumber,
-            productName: order.productName || order.contract?.contractNumber || 'N/A',
-            size: order.size || '-',
-            quantity: order.totalQuantity || 0,
-            expectedStartDate: order.expectedStartDate || order.plannedStartDate,
-            expectedFinishDate: order.expectedFinishDate || order.plannedEndDate,
-            status: order.executionStatus || order.status,
-            statusLabel: statusResult.label,
-            statusVariant: statusResult.variant,
-            pendingMaterialRequestId: order.pendingMaterialRequestId,
-            isStarted: isStarted,
-            poNumber: order.poNumber, // Keep for filtering
-            leaderName: leaderName // Leader assigned to this lot
-          };
-        })
-          // Filter out rework orders - they go to ProductionReworkOrders page
-          .filter(o => !o.poNumber || !o.poNumber.includes('REWORK'));
-        setOrders(mappedData);
-      } catch (error) {
-        console.error('Error fetching orders:', error);
-        toast.error('Không thể tải danh sách đơn hàng');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchOrders();
+        return {
+          id: order.id,
+          lotCode: order.lotCode || order.poNumber,
+          productName: order.productName || order.contract?.contractNumber || 'N/A',
+          size: order.size || '-',
+          quantity: order.totalQuantity || 0,
+          expectedStartDate: order.expectedStartDate || order.plannedStartDate,
+          expectedFinishDate: order.expectedFinishDate || order.plannedEndDate,
+          status: order.executionStatus || order.status,
+          statusLabel: statusResult.label,
+          statusVariant: statusResult.variant,
+          pendingMaterialRequestId: order.pendingMaterialRequestId,
+          isStarted: isStarted,
+          poNumber: order.poNumber,
+          leaderName: leaderName
+        };
+      }).filter(o => !o.poNumber || !o.poNumber.includes('REWORK'));
+      setOrders(mappedData);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      toast.error('Không thể tải danh sách đơn hàng');
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  // WebSocket for real-time updates
+  const { isConnected } = useWebSocket({
+    onOrderUpdate: useCallback(() => {
+      console.log('[ProductionOrderList] Received order update, refreshing...');
+      fetchOrders();
+    }, [fetchOrders]),
+  });
+
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -246,6 +249,9 @@ const ProductionOrderList = () => {
           <Container fluid className="p-4">
             <h3 className="mb-4" style={{ fontWeight: 600 }}>
               Quản lý sản xuất
+              {isConnected && (
+                <FaWifi className="ms-2 text-success" title="Real-time updates enabled" style={{ fontSize: '0.6em' }} />
+              )}
             </h3>
 
             <Card className="shadow-sm mb-3">
