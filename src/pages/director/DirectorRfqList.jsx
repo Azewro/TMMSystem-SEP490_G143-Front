@@ -122,17 +122,22 @@ const DirectorRfqList = () => {
       // Filter out CANCELED RFQs
       let filteredRfqs = allRfqsData.filter(rfq => rfq.status !== 'CANCELED');
 
-      // Filter by created date (client-side)
+      // Filter by created date (client-side) - use date from rfqNumber for accuracy
       if (createdDateFilter) {
         filteredRfqs = filteredRfqs.filter(rfq => {
+          // Priority 1: Use date from rfqNumber (most accurate, no timezone issues)
+          const rfqDateFromNumber = getDateFromRfqNumber(rfq.rfqNumber);
+          if (rfqDateFromNumber) {
+            return rfqDateFromNumber === createdDateFilter;
+          }
+          // Priority 2: Fallback to createdAt
           if (!rfq.createdAt) return false;
           try {
+            // Parse createdAt as UTC and convert to local date string
             const rfqDateObj = new Date(rfq.createdAt);
-            const year = rfqDateObj.getFullYear();
-            const month = String(rfqDateObj.getMonth() + 1).padStart(2, '0');
-            const day = String(rfqDateObj.getDate()).padStart(2, '0');
-            const rfqDate = `${year}-${month}-${day}`;
-            return rfqDate === createdDateFilter;
+            // Use toLocaleDateString to get the correct local date
+            const localDate = rfqDateObj.toLocaleDateString('sv-SE'); // YYYY-MM-DD format
+            return localDate === createdDateFilter;
           } catch (e) {
             console.error('Error parsing date:', rfq.createdAt, e);
             return false;
