@@ -22,20 +22,28 @@ const severityConfig = {
   MAJOR: { label: 'Lỗi nặng', variant: 'danger' },
 };
 
-const statusConfig = {
-  PENDING: { label: 'Chờ xử lý', variant: 'warning' },
-  PROCESSED: { label: 'Đã xử lý', variant: 'success' },
-  IN_PROGRESS: { label: 'Đang xử lý', variant: 'primary' },
-  WAITING_REWORK: { label: 'Chờ sửa', variant: 'info' },
-  REWORK_IN_PROGRESS: { label: 'Đang sửa', variant: 'primary' },
-  WAITING_MATERIAL: { label: 'Chờ vật tư', variant: 'danger' },
-  RESOLVED: { label: 'Đã giải quyết', variant: 'success' }
+// For Technical: Only 2 statuses matter
+// - PENDING: QA sent defect, waiting for Tech to handle
+// - PROCESSED: Tech has sent rework request or material request
+const getTechStatus = (backendStatus) => {
+  // PENDING means QA just sent it, Tech hasn't acted yet
+  if (backendStatus === 'PENDING') {
+    return { label: 'Chờ xử lý', variant: 'warning' };
+  }
+  // Any other status means Tech has already processed it
+  return { label: 'Đã xử lý', variant: 'success' };
 };
 
 const SEVERITY_FILTERS = [
   { value: '', label: 'Tất cả mức độ' },
   { value: 'MINOR', label: 'Lỗi nhẹ' },
   { value: 'MAJOR', label: 'Lỗi nặng' },
+];
+
+const STATUS_FILTERS = [
+  { value: '', label: 'Tất cả trạng thái' },
+  { value: 'PENDING', label: 'Chờ xử lý' },
+  { value: 'PROCESSED', label: 'Đã xử lý' },
 ];
 
 const TechnicalDefectList = () => {
@@ -45,6 +53,7 @@ const TechnicalDefectList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [severityFilter, setSeverityFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -93,7 +102,7 @@ const TechnicalDefectList = () => {
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, severityFilter, dateFilter]);
+  }, [searchTerm, severityFilter, dateFilter, statusFilter]);
 
   // Filter defects
   const filteredDefects = useMemo(() => {
@@ -113,9 +122,17 @@ const TechnicalDefectList = () => {
         matchesDate = false;
       }
 
-      return matchesSearch && matchesSeverity && matchesDate;
+      // Filter by status (for Technical: PENDING or not PENDING)
+      let matchesStatus = true;
+      if (statusFilter === 'PENDING') {
+        matchesStatus = defect.status === 'PENDING';
+      } else if (statusFilter === 'PROCESSED') {
+        matchesStatus = defect.status !== 'PENDING';
+      }
+
+      return matchesSearch && matchesSeverity && matchesDate && matchesStatus;
     });
-  }, [allDefects, searchTerm, severityFilter, dateFilter]);
+  }, [allDefects, searchTerm, severityFilter, dateFilter, statusFilter]);
 
   // Sort and paginate
   const paginatedDefects = useMemo(() => {
@@ -247,6 +264,21 @@ const TechnicalDefectList = () => {
                       </Form.Select>
                     </Form.Group>
                   </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label className="mb-1 small">Lọc theo trạng thái</Form.Label>
+                      <Form.Select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                      >
+                        {STATUS_FILTERS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
                 </Row>
               </Card.Body>
             </Card>
@@ -285,6 +317,7 @@ const TechnicalDefectList = () => {
                       >
                         Mức độ {getSortIcon('severity')}
                       </th>
+                      <th>Leader</th>
                       <th
                         style={{ cursor: 'pointer', userSelect: 'none' }}
                         onClick={() => handleSort('status')}
@@ -302,11 +335,11 @@ const TechnicalDefectList = () => {
                   </thead>
                   <tbody>
                     {paginatedDefects.length === 0 ? (
-                      <tr><td colSpan="9" className="text-center py-4">Không có lỗi nào</td></tr>
+                      <tr><td colSpan="10" className="text-center py-4">Không có lỗi nào</td></tr>
                     ) : (
                       paginatedDefects.map((defect, index) => {
                         const severity = severityConfig[defect.severity] || { label: defect.severity, variant: 'secondary' };
-                        const status = statusConfig[defect.status] || { label: defect.status, variant: 'secondary' };
+                        const status = getTechStatus(defect.status);
                         return (
                           <tr key={defect.id}>
                             <td>{getRowNumber(index)}</td>
@@ -317,6 +350,7 @@ const TechnicalDefectList = () => {
                             <td>
                               <Badge bg={severity.variant}>{severity.label}</Badge>
                             </td>
+                            <td>{defect.leaderName || 'Chưa phân công'}</td>
                             <td>
                               <Badge bg={status.variant}>{status.label}</Badge>
                             </td>

@@ -159,21 +159,33 @@ const LeaderDefectList = () => {
                           <td>{defect.description || 'Không có mô tả'}</td>
                           <td>{statusLabel[defect.status] || defect.status}</td>
                           <td className="d-flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline-danger"
-                              disabled={processingDefectId === defect.id}
-                              onClick={() => handleStartRework(defect)}
-                            >
-                              {processingDefectId === defect.id ? (
-                                <>
-                                  <Spinner size="sm" animation="border" className="me-1" />
-                                  Đang xử lý...
-                                </>
-                              ) : (
-                                'Tạm dừng và sửa lỗi'
-                              )}
-                            </Button>
+                            {defect.status === 'RESOLVED' ? (
+                              <Button
+                                size="sm"
+                                variant="outline-primary"
+                                onClick={() => navigate(`/leader/orders/${defect.orderId}/progress`, {
+                                  state: { stageId: defect.stageId }
+                                })}
+                              >
+                                Chi tiết
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline-danger"
+                                disabled={processingDefectId === defect.id}
+                                onClick={() => handleStartRework(defect)}
+                              >
+                                {processingDefectId === defect.id ? (
+                                  <>
+                                    <Spinner size="sm" animation="border" className="me-1" />
+                                    Đang xử lý...
+                                  </>
+                                ) : (
+                                  'Tạm dừng và sửa lỗi'
+                                )}
+                              </Button>
+                            )}
                           </td>
                         </tr>
                       ))}
