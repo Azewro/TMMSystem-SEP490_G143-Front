@@ -462,8 +462,8 @@ const CustomerRfqs = () => {
                                       Xem báo giá
                                     </Button>
                                   )}
-                                  {rfq.status === 'DRAFT' && (
-                                    <Button variant="danger" size="sm" onClick={() => handleCancelRfq(rfq.id)}>
+                                  {(rfq.status === 'DRAFT' || rfq.status === 'SENT') && (
+                                    <Button variant="outline-danger" size="sm" onClick={() => handleCancelRfq(rfq.id)}>
                                       Hủy
                                     </Button>
                                   )}
