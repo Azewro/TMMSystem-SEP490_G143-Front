@@ -45,7 +45,7 @@ const QCSummaryWidget = ({ passRate = 100, newIssues = 0, minorIssues = 0, major
                 </div>
                 <div className="qc-issue-item">
                     <div className="qc-issue-value text-secondary">{reworkStages}</div>
-                    <div className="qc-issue-label">Đang sửa lỗi</div>
+                    <div className="qc-issue-label">Đang xử lý</div>
                 </div>
             </div>
         </div>

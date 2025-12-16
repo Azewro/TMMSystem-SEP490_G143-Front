@@ -309,7 +309,8 @@ const QaStageQualityCheck = () => {
   }, [criteria]);
 
   const handleBack = () => {
-    navigate(`/qa/orders/${orderId}`);
+    // Pass refresh timestamp to force data re-fetch on QaOrderDetail
+    navigate(`/qa/orders/${orderId}`, { state: { refreshKey: Date.now() } });
   };
 
   const handleChangeResult = (id, value) => {

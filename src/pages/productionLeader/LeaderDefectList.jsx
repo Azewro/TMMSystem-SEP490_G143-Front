@@ -24,12 +24,15 @@ const severityConfig = {
 };
 
 // Status configuration per Leader Defect List diagram
+// PROCESSED = Technical processed the issue and sent "Yêu cầu làm lại" to Leader
 const statusConfig = {
-  PENDING: { label: 'Sẵn sàng sửa lỗi', variant: 'primary', priority: 1 },
+  PENDING: { label: 'Chờ xử lý', variant: 'secondary', priority: 0 },
+  PROCESSED: { label: 'Sẵn sàng sửa lỗi', variant: 'primary', priority: 1 },
   WAITING: { label: 'Chờ đến lượt sửa lỗi', variant: 'secondary', priority: 2 },
   IN_PROGRESS: { label: 'Đang xử lý', variant: 'info', priority: 3 },
   RESOLVED: { label: 'Đã xử lý', variant: 'success', priority: 4 },
 };
+
 
 const LeaderDefectList = () => {
   const navigate = useNavigate();
@@ -389,21 +392,31 @@ const LeaderDefectList = () => {
                             </td>
                             <td>{defect.createdAt ? new Date(defect.createdAt).toLocaleDateString('vi-VN') : ''}</td>
                             <td>
-                              <Button
-                                size="sm"
-                                variant="outline-danger"
-                                disabled={processingDefectId === defect.id || defect.status === 'RESOLVED'}
-                                onClick={() => handleStartRework(defect)}
-                              >
-                                {processingDefectId === defect.id ? (
-                                  <>
-                                    <Spinner size="sm" animation="border" className="me-1" />
-                                    Đang xử lý...
-                                  </>
-                                ) : (
-                                  'Tạm dừng và sửa lỗi'
-                                )}
-                              </Button>
+                              {defect.status === 'IN_PROGRESS' ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline-info"
+                                  onClick={() => navigate(`/leader/orders/${defect.orderId}/progress`)}
+                                >
+                                  Cập nhật tiến độ
+                                </Button>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="outline-danger"
+                                  disabled={processingDefectId === defect.id || defect.status === 'RESOLVED'}
+                                  onClick={() => handleStartRework(defect)}
+                                >
+                                  {processingDefectId === defect.id ? (
+                                    <>
+                                      <Spinner size="sm" animation="border" className="me-1" />
+                                      Đang xử lý...
+                                    </>
+                                  ) : (
+                                    'Tạm dừng và sửa lỗi'
+                                  )}
+                                </Button>
+                              )}
                             </td>
                           </tr>
                         );

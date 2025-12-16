@@ -60,10 +60,11 @@ const LeaderOrderDetail = () => {
             name: s.stageName || getStageTypeName(s.stageType) || s.stageType, // Use stageName from backend if available
             stageType: s.stageType,
             assignee: s.assigneeName || s.assignedLeader?.fullName || 'Chưa phân công',
-            status: s.executionStatus || s.status, // ưu tiên executionStatus
-            statusLabel: s.statusLabel || getStatusLabel(s.executionStatus || s.status),
+            status: s.status === 'PAUSED' ? 'PAUSED' : (s.executionStatus || s.status),
+            statusLabel: s.statusLabel || getStatusLabel(s.status === 'PAUSED' ? 'PAUSED' : (s.executionStatus || s.status)),
             progress: s.progressPercent || 0,
             isRework: s.isRework,
+            isBlocked: s.isBlocked, // Add isBlocked for queue logic
             executionStatus: s.executionStatus
           })) : []
         };
@@ -79,12 +80,16 @@ const LeaderOrderDetail = () => {
           const originalStage = data.stages && data.stages[idx];
           const defectSeverity = originalStage?.defectSeverity || originalStage?.defectLevel || null;
 
-          // PENDING stages show 'Chưa đến lượt' instead of 'Đang đợi'
-          if (s.status === 'PENDING') {
+          // PENDING stages show 'Chờ làm' per state diagram
+
+
+          // BLOCKED stages (in queue) also show 'Chờ làm' per state diagram
+          // Button disable logic will prevent starting when blocked
+          if (s.isBlocked && ['WAITING', 'READY', 'READY_TO_PRODUCE'].includes(s.status)) {
             return {
               ...s,
               defectSeverity,
-              statusLabel: 'Chưa đến lượt',
+              statusLabel: 'Chờ làm',
               statusVariant: 'secondary'
             };
           }
@@ -230,11 +235,11 @@ const LeaderOrderDetail = () => {
               </Card.Body>
             </Card>
 
-            {/* Defect Info Card for Rework */}
-            {order.stage && order.stage.isRework && order.stage.defectId && (
+            {/* Defect Info Card for Rework or Failed QC */}
+            {order.stage && (order.stage.isRework || order.stage.status === 'QC_FAILED') && order.stage.defectId && (
               <Card className="shadow-sm mb-3 border-danger">
                 <Card.Header className="bg-danger text-white">
-                  <strong>Thông tin lỗi cần sửa (Rework)</strong>
+                  <strong>Thông tin lỗi cần sửa</strong>
                 </Card.Header>
                 <Card.Body>
                   <div className="row">
@@ -297,6 +302,7 @@ const LeaderOrderDetail = () => {
                               // Disable if PENDING, Locked, or QC_FAILED (waiting for Tech) - specific to this stage
                               const isQcFailed = stage.status === 'QC_FAILED';
                               const isPending = stage.status === 'PENDING';
+                              const isBlocked = stage.isBlocked === true; // Check if stage is blocked in queue
                               const isReworkStage = stage.isRework || stage.executionStatus === 'WAITING_REWORK' || stage.executionStatus === 'REWORK_IN_PROGRESS' || isReworkOrder;
 
                               // For rework orders, check if this stage can be started
@@ -312,10 +318,10 @@ const LeaderOrderDetail = () => {
                               );
 
                               // For REWORK ORDERS: Only disable if QC failed or stage completed
-                              // For NORMAL ORDERS: Use original logic
+                              // For NORMAL ORDERS: Use original logic + check isBlocked
                               const isDisabled = isReworkOrder
                                 ? (isQcFailed || stage.status === 'COMPLETED' || stage.status === 'QC_PASSED') && !canStartReworkStage
-                                : (isPending || orderLocked || isQcFailed || hasSupplementaryLock);
+                                : (isPending || orderLocked || isQcFailed || hasSupplementaryLock || isBlocked);
 
                               // Show buttons for rework orders that can start
                               if (isReworkOrder) {
@@ -341,8 +347,8 @@ const LeaderOrderDetail = () => {
                               // Show "Xem chi tiết" for locked stages (due to supplementary) or completed stages
                               // Show "Chưa đến lượt" only for truly pending stages (not first stage of rework)
                               if (isDisabled && !isReworkOrder) {
-                                // If it's locked due to supplementary but stage has progress, show view detail button
-                                if (hasSupplementaryLock && stage.progress > 0) {
+                                // If it's locked due to supplementary but stage has progress, OR if it's QC_FAILED, show view detail button
+                                if ((hasSupplementaryLock && stage.progress > 0) || isQcFailed) {
                                   return (
                                     <Button
                                       size="sm"

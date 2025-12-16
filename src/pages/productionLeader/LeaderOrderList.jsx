@@ -52,7 +52,7 @@ const LeaderOrderList = () => {
                 )
                 .sort((a, b) => (a.stageSequence || 0) - (b.stageSequence || 0));
 
-              const activeStatuses = ['IN_PROGRESS', 'REWORK_IN_PROGRESS', 'READY_TO_PRODUCE', 'READY', 'WAITING', 'WAITING_QC', 'QC_IN_PROGRESS', 'WAITING_REWORK'];
+              const activeStatuses = ['IN_PROGRESS', 'REWORK_IN_PROGRESS', 'READY_TO_PRODUCE', 'READY', 'WAITING', 'WAITING_QC', 'QC_IN_PROGRESS', 'WAITING_REWORK', 'QC_FAILED'];
               const leaderStage =
                 leaderStagesAll.find(s => activeStatuses.includes(s.executionStatus || s.status)) ||
                 leaderStagesAll.find(s => (s.progressPercent ?? 0) < 100) ||
@@ -71,7 +71,7 @@ const LeaderOrderList = () => {
 
               // Also get stage-specific status for button logic
               const stageStatus = leaderStage
-                ? getLeaderStageStatusLabel(leaderStage.executionStatus || leaderStage.status)
+                ? getLeaderStageStatusLabel(leaderStage.status === 'PAUSED' ? 'PAUSED' : (leaderStage.executionStatus || leaderStage.status))
                 : null;
 
               return {
@@ -86,7 +86,7 @@ const LeaderOrderList = () => {
                 leaderStage: leaderStage ? {
                   id: leaderStage.id,
                   stageType: leaderStage.stageType,
-                  status: leaderStage.executionStatus || leaderStage.status,
+                  status: leaderStage.status === 'PAUSED' ? 'PAUSED' : (leaderStage.executionStatus || leaderStage.status),
                   statusLabel: stageStatus?.label || 'N/A',
                   statusVariant: stageStatus?.variant || 'secondary',
                   buttons: stageStatus?.buttons || [],
@@ -119,7 +119,14 @@ const LeaderOrderList = () => {
       // Filter out orders where Leader's assigned stage is PENDING (previous stages not completed)
       // These orders should not appear on Leader list per diagram
       const leaderStageStatus = o.leaderStage?.status;
+      // Filter out PENDING stages (previous stages not completed)
       if (leaderStageStatus === 'PENDING') {
+        return false;
+      }
+
+      // Filter out orders that PM hasn't started yet
+      // User requirement: Only show orders when PM clicks "Start" -> Status is not WAITING_PRODUCTION
+      if (o.orderStatus === 'WAITING_PRODUCTION' || o.orderStatus === 'PENDING_APPROVAL') {
         return false;
       }
 
@@ -444,11 +451,11 @@ const OrderTable = ({ orders, handleStart, handleViewDetail, isRework = false })
                 const stageStatus = stage ? getLeaderStageStatusLabel(stage.status) : { buttons: [] };
                 const buttons = stageStatus?.buttons || [];
 
-                // Nếu PM chưa start lệnh: luôn "Đợi"
-                if (orderLocked) {
-                  statusLabel = 'Đợi';
-                  statusVariant = 'secondary';
-                }
+                // Nếu PM chưa start lệnh: luôn "Đợi" -> REMOVED per user feedback, fallback to "Chờ sản xuất" from dynamicStatusLabel
+                // if (orderLocked) {
+                //   statusLabel = 'Đợi';
+                //   statusVariant = 'secondary';
+                // }
 
                 return (
                   <tr key={order.id}>

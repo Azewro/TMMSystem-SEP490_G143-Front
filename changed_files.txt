@@ -1,0 +1,14 @@
+﻿src/components/dashboard/QCSummaryWidget.jsx
+src/pages/productionLeader/LeaderDefectList.jsx
+src/pages/productionLeader/LeaderOrderDetail.jsx
+src/pages/productionLeader/LeaderOrderList.jsx
+src/pages/productionLeader/LeaderStageProgress.jsx
+src/pages/productionManager/ProductionFiberRequestDetail.jsx
+src/pages/productionManager/ProductionFiberRequests.jsx
+src/pages/productionManager/ProductionOrderDetail.jsx
+src/pages/productionManager/ProductionOrderList.jsx
+src/pages/productionManager/ProductionReworkOrders.jsx
+src/pages/qa/QaOrderDetail.jsx
+src/pages/qa/QaOrderList.jsx
+src/pages/qa/QaStageQualityCheck.jsx
+src/utils/statusMapper.js

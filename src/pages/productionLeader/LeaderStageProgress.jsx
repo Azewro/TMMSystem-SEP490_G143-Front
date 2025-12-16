@@ -327,16 +327,18 @@ const LeaderStageProgress = () => {
   const statusConfig = useMemo(() => {
     if (!stage) return { label: '...', variant: 'secondary' };
 
-    const status = stage.executionStatus || stage.status;
+    // Fix: Prioritize PAUSED status from stage.status if present, because executionStatus might still be IN_PROGRESS
+    const status = stage.status === 'PAUSED' ? 'PAUSED' : (stage.executionStatus || stage.status);
+    const defectSeverity = stage.defectSeverity || stage.defectLevel;
     // Use the new getLeaderStageStatusLabel function for consistent mapping
-    const result = getLeaderStageStatusLabel(status);
+    const result = getLeaderStageStatusLabel(status, defectSeverity);
     return { label: result.label, variant: result.variant };
   }, [stage]);
 
   // Check if stage is pending (chưa đến lượt)
   const orderStatus = order?.executionStatus || order?.status;
   const orderLocked = orderStatus === 'WAITING_PRODUCTION' || orderStatus === 'PENDING_APPROVAL' || orderStatus === 'DRAFT';
-  const isPaused = stage?.status === 'PAUSED';
+  const isPaused = stage?.status === 'PAUSED' || stage?.executionStatus === 'PAUSED';
 
   const isPending = stage && (
     stage.executionStatus === 'PENDING' ||
@@ -423,7 +425,7 @@ const LeaderStageProgress = () => {
               <strong>Cập nhật tiến độ</strong>
               <small className="text-muted">Nhập tiến độ từ 0 đến 100</small>
             </div>
-            <div className="d-flex align-items-center gap-3">
+            <div className="d-flex align-items-center gap-3 flex-wrap">
               <Form.Control
                 type="number"
                 min={0}
@@ -437,9 +439,33 @@ const LeaderStageProgress = () => {
               <Button variant="dark" onClick={handleUpdateProgress} disabled={isPending || isPaused || isUpdating}>
                 {isUpdating ? <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" /> : 'Cập nhật'}
               </Button>
-              {/* <Button variant="outline-danger" onClick={handlePause} disabled={isPending || isPaused}>
+              <Button
+                variant="outline-danger"
+                onClick={() => {
+                  setPauseReason('OTHER');
+                  setPauseNotes('');
+                  setShowPauseModal(true);
+                }}
+                disabled={isPending || isPaused}
+              >
                 Tạm dừng
-              </Button> */}
+              </Button>
+              {
+                // Add "Tạm dừng và sửa lỗi" button specifically
+                !isRework && (
+                  <Button
+                    variant="outline-warning"
+                    onClick={() => {
+                      setPauseReason('REWORK');
+                      setPauseNotes('Tạm dừng để sửa lỗi phát sinh');
+                      setShowPauseModal(true);
+                    }}
+                    disabled={isPending || isPaused}
+                  >
+                    Tạm dừng & Sửa lỗi
+                  </Button>
+                )
+              }
             </div>
           </Card.Body>
         </Card>

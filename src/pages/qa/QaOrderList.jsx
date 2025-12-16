@@ -6,7 +6,7 @@ import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import Pagination from '../../components/Pagination';
 import { productionService } from '../../api/productionService';
-import { getQaOrderStatusFromStages } from '../../utils/statusMapper';
+import { getQaOrderStatusFromStages, getButtonForStage } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import { vi } from 'date-fns/locale/vi';
@@ -387,13 +387,23 @@ const QaOrderList = () => {
                                 </Badge>
                               </td>
                               <td className="text-end">
-                                <Button
-                                  size="sm"
-                                  variant="primary"
-                                  onClick={() => handleInspect(order)}
-                                >
-                                  Xem kế hoạch
-                                </Button>
+                                {(() => {
+                                  // Find relevant stage
+                                  const renderStage = order.qaStage || order.stages.find(s => ['WAITING_QC', 'QC_IN_PROGRESS', 'QC_FAILED', 'QC_PASSED'].includes(s.executionStatus));
+                                  const stageStatus = renderStage ? ((renderStage.status === 'PAUSED' ? 'PAUSED' : renderStage.executionStatus) || renderStage.status) : (order.executionStatus || order.status);
+
+                                  const btnConfig = getButtonForStage(stageStatus, 'kcs');
+
+                                  return (
+                                    <Button
+                                      size="sm"
+                                      variant={btnConfig.variant}
+                                      onClick={() => handleInspect(order)}
+                                    >
+                                      {btnConfig.text}
+                                    </Button>
+                                  );
+                                })()}
                               </td>
                             </tr>
                           ))
@@ -473,13 +483,31 @@ const QaOrderList = () => {
                                 </Badge>
                               </td>
                               <td className="text-end">
-                                <Button
-                                  size="sm"
-                                  variant="primary"
-                                  onClick={() => handleInspect(order)}
-                                >
-                                  Xem kế hoạch
-                                </Button>
+                                {(() => {
+                                  // Find relevant stage (assigned to this Q/C or default to first waiting/in-progress)
+                                  const renderStage = order.qaStage || order.stages.find(s => ['WAITING_QC', 'QC_IN_PROGRESS', 'QC_FAILED', 'QC_PASSED'].includes(s.executionStatus));
+                                  const stageStatus = renderStage ? (renderStage.executionStatus || renderStage.status) : (order.executionStatus || order.status);
+
+                                  // Get button configuration from shared helper
+                                  // 'kcs' role triggers QA/KCS specific button logic (Inspect/Detail)
+                                  const btnConfig = getButtonForStage(stageStatus, 'kcs');
+
+                                  return (
+                                    <Button
+                                      size="sm"
+                                      variant={btnConfig.variant}
+                                      onClick={() => {
+                                        if (btnConfig.action === 'inspect') {
+                                          handleInspect(order);
+                                        } else {
+                                          handleInspect(order); // Both detail and inspect go to same page currently
+                                        }
+                                      }}
+                                    >
+                                      {btnConfig.text}
+                                    </Button>
+                                  );
+                                })()}
                               </td>
                             </tr>
                           ))

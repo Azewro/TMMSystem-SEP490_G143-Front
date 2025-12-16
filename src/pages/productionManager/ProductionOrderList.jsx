@@ -114,12 +114,8 @@ const ProductionOrderList = () => {
     try {
       await productionService.startWorkOrder(orderId);
       toast.success('Đã bắt đầu lệnh làm việc');
-      // Update local state to reflect the change
-      setOrders(prev => prev.map(order =>
-        order.id === orderId
-          ? { ...order, isStarted: true, statusLabel: 'Chờ đến lượt Cuồng mắc', statusVariant: 'secondary' }
-          : order
-      ));
+      // Refresh orders from API to get accurate status from backend
+      await fetchOrders();
     } catch (error) {
       console.error('Error starting work order:', error);
       toast.error(error.response?.data?.message || error.message || 'Không thể bắt đầu lệnh làm việc');

@@ -166,7 +166,7 @@ const ProductionFiberRequestDetail = () => {
                   </div>
                   <div className="d-flex gap-2">
                     <Badge bg={request.status === 'PENDING' ? 'warning' : 'success'}>
-                      {request.status === 'PENDING' ? 'Chờ duyệt' : 'Đã duyệt'}
+                      {request.status === 'PENDING' ? 'Chờ phê duyệt' : 'Đã phê duyệt'}
                     </Badge>
                     {request.sourceIssue && (
                       <Badge bg={severity.variant}>{severity.label}</Badge>

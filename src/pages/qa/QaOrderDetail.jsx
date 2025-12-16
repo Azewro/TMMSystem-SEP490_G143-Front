@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Card, Table, Button, Badge, Spinner } from 'react-bootstrap';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { orderService } from '../../api/orderService';
@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 
 const QaOrderDetail = () => {
   const navigate = useNavigate();
+  const location = useLocation(); // For refreshing data on navigate back
   const { orderId } = useParams();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -32,7 +33,7 @@ const QaOrderDetail = () => {
           })
           .map(stage => {
             // Simple status mapping for QA "Xem kế hoạch" page
-            const execStatus = stage.executionStatus || stage.status;
+            const execStatus = (stage.status === 'PAUSED') ? 'PAUSED' : (stage.executionStatus || stage.status);
             let statusLabel = 'Đang đợi';
             let statusVariant = 'secondary';
 
@@ -126,7 +127,7 @@ const QaOrderDetail = () => {
       }
     };
     fetchOrder();
-  }, [orderId]);
+  }, [orderId, location.state?.refreshKey]); // refreshKey from navigation state forces data refresh
 
   const handleBack = () => {
     navigate('/qa/orders');

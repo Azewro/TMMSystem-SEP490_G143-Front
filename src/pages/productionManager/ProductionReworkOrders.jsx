@@ -17,11 +17,15 @@ registerLocale('vi', vi);
 const ITEMS_PER_PAGE = 10;
 
 const statusConfig = {
+  READY_SUPPLEMENTARY: { label: 'Chờ sản xuất', variant: 'secondary' },
+  WAITING_SUPPLEMENTARY: { label: 'Chờ sản xuất', variant: 'secondary' },
+  IN_SUPPLEMENTARY: { label: 'Đang sản xuất', variant: 'primary' },
+  SUPPLEMENTARY_CREATED: { label: 'Đang sản xuất', variant: 'primary' },
   WAITING_PRODUCTION: { label: 'Chờ sản xuất', variant: 'secondary' },
   IN_PROGRESS: { label: 'Đang sản xuất', variant: 'primary' },
   COMPLETED: { label: 'Hoàn thành', variant: 'success' },
   PENDING: { label: 'Chờ xử lý', variant: 'warning' },
-  APPROVED: { label: 'Đã duyệt', variant: 'success' },
+  APPROVED: { label: 'Đã phê duyệt', variant: 'success' },
 };
 
 const ProductionReworkOrders = () => {
@@ -306,7 +310,7 @@ const ProductionReworkOrders = () => {
                             <Button size="sm" variant="primary" onClick={() => navigate(`/production/orders/${order.id}`)} className="me-2">
                               Chi tiết
                             </Button>
-                            {order.executionStatus === 'WAITING_PRODUCTION' && (
+                            {(order.executionStatus === 'WAITING_PRODUCTION' || order.executionStatus === 'READY_SUPPLEMENTARY') && (
                               <Button size="sm" variant="success" onClick={() => handleStart(order.id)}>
                                 Bắt đầu
                               </Button>

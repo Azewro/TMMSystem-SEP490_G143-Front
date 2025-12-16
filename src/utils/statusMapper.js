@@ -27,15 +27,15 @@ export const getStatusLabel = (status) => {
     'QC_PASSED': 'Đạt',
     'QC_FAILED': 'Không đạt',
     'WAITING_REWORK': 'Chờ sửa lỗi',
-    'REWORK_IN_PROGRESS': 'Đang sửa lỗi',
+    'REWORK_IN_PROGRESS': 'Đang xử lý',
     'PAUSED': 'Tạm dừng',
     'WAITING_MATERIAL': 'Chờ phê duyệt cấp sợi',
 
     // Supplementary/Rework order statuses
-    'READY_SUPPLEMENTARY': 'Chờ sản xuất bổ sung',
-    'WAITING_SUPPLEMENTARY': 'Chờ sản xuất bổ sung',
-    'IN_SUPPLEMENTARY': 'Đang sản xuất bổ sung',
-    'SUPPLEMENTARY_CREATED': 'Đang sản xuất bổ sung',
+    'READY_SUPPLEMENTARY': 'Chờ sản xuất',
+    'WAITING_SUPPLEMENTARY': 'Chờ sản xuất',
+    'IN_SUPPLEMENTARY': 'Đang sản xuất',
+    'SUPPLEMENTARY_CREATED': 'Đang sản xuất',
   };
   return statusMap[status] || status;
 };
@@ -92,7 +92,7 @@ export const getProductionOrderStatusFromStages = (order) => {
 
   // If there's an active stage, use its status (simplified labels per teammate's diagram)
   if (activeStage) {
-    const status = activeStage.executionStatus;
+    const status = (activeStage.status === 'PAUSED') ? 'PAUSED' : activeStage.executionStatus;
     const isFirstStage = activeStage.stageSequence === 1 || activeStage.stageSequence === '1';
 
     // For WAITING/READY status - check if first stage or not
@@ -128,16 +128,16 @@ export const getProductionOrderStatusFromStages = (order) => {
 
   // NOW handle supplementary/rework order statuses (fallback when no active stage found)
   if (order.executionStatus === 'READY_SUPPLEMENTARY') {
-    return { label: 'Chờ sản xuất bổ sung', variant: 'secondary' };
+    return { label: 'Chờ sản xuất', variant: 'secondary' };
   }
   if (order.executionStatus === 'WAITING_SUPPLEMENTARY') {
-    return { label: 'Chờ sản xuất bổ sung', variant: 'secondary' };
+    return { label: 'Chờ sản xuất', variant: 'secondary' };
   }
   if (order.executionStatus === 'IN_SUPPLEMENTARY') {
-    return { label: 'Đang sản xuất bổ sung', variant: 'info' };
+    return { label: 'Đang sản xuất', variant: 'info' };
   }
   if (order.executionStatus === 'SUPPLEMENTARY_CREATED') {
-    return { label: 'Đang sản xuất bổ sung', variant: 'info' };
+    return { label: 'Đang sản xuất', variant: 'info' };
   }
 
   // Fallback: use first pending stage
@@ -197,7 +197,7 @@ export const getLeaderOrderStatusFromStages = (order) => {
   );
 
   if (activeStage) {
-    const status = activeStage.executionStatus;
+    const status = (activeStage.status === 'PAUSED') ? 'PAUSED' : activeStage.executionStatus;
     const stageName = getStageTypeName(activeStage.stageType) || activeStage.stageType;
 
     // Status with stage name for Leader list
@@ -208,9 +208,10 @@ export const getLeaderOrderStatusFromStages = (order) => {
       'IN_PROGRESS': { prefix: 'Đang làm', variant: 'info' },
       'WAITING_QC': { prefix: 'Chờ kiểm tra', variant: 'warning' },
       'QC_IN_PROGRESS': { prefix: 'Đang kiểm tra', variant: 'warning' },
-      'WAITING_REWORK': { prefix: 'Chờ sửa lỗi', variant: 'warning' },
-      'REWORK_IN_PROGRESS': { prefix: 'Đang sửa lỗi', variant: 'info' },
-      'QC_FAILED': { suffix: 'lỗi', variant: 'danger' },
+      // WAITING_REWORK and REWORK_IN_PROGRESS: show defect label per diagram
+      'WAITING_REWORK': { useDefectLabel: true, variant: 'danger' },
+      'REWORK_IN_PROGRESS': { useDefectLabel: true, variant: 'danger' },
+      'QC_FAILED': { useDefectLabel: true, variant: 'danger' },
       'PAUSED': { label: 'Tạm dừng', variant: 'danger' },
     };
 
@@ -228,10 +229,10 @@ export const getLeaderOrderStatusFromStages = (order) => {
         }
         return { label: `${config.prefix} ${stageName}`, variant: config.variant };
       }
-      // Handle suffix format: "StageName suffix" - for QC_FAILED with severity
-      if (config.suffix) {
+      // Handle defect label format: "StageName lỗi nhẹ/nặng" - for QC_FAILED, WAITING_REWORK, REWORK_IN_PROGRESS
+      if (config.useDefectLabel) {
         // Check defectSeverity to show 'lỗi nhẹ' or 'lỗi nặng'
-        const severity = activeStage.defectSeverity;
+        const severity = activeStage.defectSeverity || activeStage.defectLevel;
         let defectLabel = 'lỗi';
         if (severity === 'MINOR') {
           defectLabel = 'lỗi nhẹ';
@@ -245,10 +246,10 @@ export const getLeaderOrderStatusFromStages = (order) => {
 
   // Handle supplementary order statuses
   if (order.executionStatus === 'READY_SUPPLEMENTARY' || order.executionStatus === 'WAITING_SUPPLEMENTARY') {
-    return { label: 'Chờ sản xuất bổ sung', variant: 'secondary' };
+    return { label: 'Chờ sản xuất', variant: 'secondary' };
   }
   if (order.executionStatus === 'IN_SUPPLEMENTARY' || order.executionStatus === 'SUPPLEMENTARY_CREATED') {
-    return { label: 'Đang sản xuất bổ sung', variant: 'info' };
+    return { label: 'Đang sản xuất', variant: 'info' };
   }
 
   // Fallback: find first pending stage
@@ -300,7 +301,7 @@ export const getQaOrderStatusFromStages = (order) => {
   );
 
   if (activeStage) {
-    const status = activeStage.executionStatus;
+    const status = (activeStage.status === 'PAUSED') ? 'PAUSED' : activeStage.executionStatus;
     const stageName = getStageTypeName(activeStage.stageType) || activeStage.stageType;
 
     // Status config per QA diagram
@@ -360,10 +361,10 @@ export const getQaOrderStatusFromStages = (order) => {
 
   // Handle supplementary order statuses
   if (order.executionStatus === 'READY_SUPPLEMENTARY' || order.executionStatus === 'WAITING_SUPPLEMENTARY') {
-    return { label: 'Chờ sản xuất bổ sung', variant: 'secondary' };
+    return { label: 'Chờ sản xuất', variant: 'secondary' };
   }
   if (order.executionStatus === 'IN_SUPPLEMENTARY' || order.executionStatus === 'SUPPLEMENTARY_CREATED') {
-    return { label: 'Đang sản xuất bổ sung', variant: 'info' };
+    return { label: 'Đang sản xuất', variant: 'info' };
   }
 
   // Fallback: PM started but Leader hasn't (first stage is WAITING)
@@ -477,7 +478,7 @@ export const getPMStageStatusLabel = (status, isDyeingStage = false) => {
     },
     // Đang sửa - leader bấm "tạm dừng và sửa lỗi"
     'REWORK_IN_PROGRESS': {
-      label: 'Đang sửa lỗi',
+      label: 'Đang xử lý',
       variant: 'info',
       buttons: [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
     },
@@ -523,7 +524,7 @@ export const getQaStageStatusLabel = (status) => {
     'READY': { label: 'Đang đợi', variant: 'secondary' },
     'READY_TO_PRODUCE': { label: 'Đang đợi', variant: 'secondary' },
     'IN_PROGRESS': { label: 'Đang làm', variant: 'info' },
-    'REWORK_IN_PROGRESS': { label: 'Đang sửa lỗi', variant: 'info' },
+    'REWORK_IN_PROGRESS': { label: 'Đang xử lý', variant: 'info' },
     'WAITING_QC': { label: 'Chờ kiểm tra', variant: 'warning' },
     'QC_IN_PROGRESS': { label: 'Đang kiểm tra', variant: 'warning' },
     'QC_PASSED': { label: 'Đạt', variant: 'success' },
@@ -618,7 +619,7 @@ export const getLeaderStageStatusLabel = (status, defectSeverity = null) => {
     },
     // Đang sửa - leader bấm tạm dừng và sửa lỗi
     'REWORK_IN_PROGRESS': {
-      label: 'Đang sửa lỗi',
+      label: 'Đang xử lý',
       variant: 'info',
       buttons: [{ text: 'Cập nhật tiến độ', action: 'update', variant: 'primary' }]
     },
@@ -636,24 +637,24 @@ export const getLeaderStageStatusLabel = (status, defectSeverity = null) => {
     },
     // Sản xuất bổ sung - chờ
     'READY_SUPPLEMENTARY': {
-      label: 'Chờ sản xuất bổ sung',
+      label: 'Chờ sản xuất',
       variant: 'secondary',
       buttons: [{ text: 'Bắt đầu SX bổ sung', action: 'start', variant: 'warning' }]
     },
     // Sản xuất bổ sung - chờ
     'WAITING_SUPPLEMENTARY': {
-      label: 'Chờ sản xuất bổ sung',
+      label: 'Chờ sản xuất',
       variant: 'secondary',
       buttons: [] // Đang chờ máy/công đoạn rảnh
     },
     // Sản xuất bổ sung - đang làm
     'IN_SUPPLEMENTARY': {
-      label: 'Đang sản xuất bổ sung',
+      label: 'Đang sản xuất',
       variant: 'info',
       buttons: [{ text: 'Cập nhật tiến độ', action: 'update', variant: 'primary' }]
     },
     'SUPPLEMENTARY_CREATED': {
-      label: 'Đang sản xuất bổ sung',
+      label: 'Đang sản xuất',
       variant: 'info',
       buttons: [{ text: 'Cập nhật tiến độ', action: 'update', variant: 'primary' }]
     }
@@ -661,19 +662,28 @@ export const getLeaderStageStatusLabel = (status, defectSeverity = null) => {
 
   const result = statusMap[status];
 
-  // Special handling for QC_FAILED - check defectSeverity to show 'Lỗi nhẹ' or 'Lỗi nặng'
-  if (status === 'QC_FAILED' && defectSeverity) {
+  // Special handling for defect-related statuses - check defectSeverity to show 'Lỗi nhẹ' or 'Lỗi nặng'
+  // Per diagram: defect label persists through QC_FAILED, WAITING_REWORK, REWORK_IN_PROGRESS
+  if ((status === 'WAITING_REWORK' || status === 'REWORK_IN_PROGRESS') && defectSeverity) {
     if (defectSeverity === 'MINOR') {
       return {
         label: 'Lỗi nhẹ',
         variant: 'warning',
-        buttons: [{ text: 'Xem chi tiết', action: 'detail', variant: 'outline-secondary' }]
+        buttons: status === 'REWORK_IN_PROGRESS'
+          ? [{ text: 'Cập nhật tiến độ', action: 'update', variant: 'primary' }]
+          : status === 'WAITING_REWORK'
+            ? [{ text: 'Tạm dừng và Sửa lỗi', action: 'rework', variant: 'warning' }]
+            : [{ text: 'Xem chi tiết', action: 'detail', variant: 'outline-secondary' }]
       };
     } else if (defectSeverity === 'MAJOR') {
       return {
         label: 'Lỗi nặng',
         variant: 'danger',
-        buttons: [{ text: 'Xem chi tiết', action: 'detail', variant: 'outline-secondary' }]
+        buttons: status === 'REWORK_IN_PROGRESS'
+          ? [{ text: 'Cập nhật tiến độ', action: 'update', variant: 'primary' }]
+          : status === 'WAITING_REWORK'
+            ? [{ text: 'Tạm dừng và Sửa lỗi', action: 'rework', variant: 'warning' }]
+            : [{ text: 'Xem chi tiết', action: 'detail', variant: 'outline-secondary' }]
       };
     }
   }

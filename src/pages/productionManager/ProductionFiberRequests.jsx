@@ -72,8 +72,8 @@ const ProductionFiberRequests = () => {
   // Status badge config
   const getStatusBadge = (status) => {
     const config = {
-      PENDING: { bg: 'warning', text: 'Chờ duyệt' },
-      APPROVED: { bg: 'success', text: 'Đã duyệt' },
+      PENDING: { bg: 'warning', text: 'Chờ phê duyệt' },
+      APPROVED: { bg: 'success', text: 'Đã phê duyệt' },
       REJECTED: { bg: 'danger', text: 'Từ chối' },
       COMPLETED: { bg: 'info', text: 'Hoàn thành' }
     };

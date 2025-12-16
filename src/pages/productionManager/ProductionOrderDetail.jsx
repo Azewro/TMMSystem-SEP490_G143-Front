@@ -27,7 +27,7 @@ const ProductionOrderDetail = () => {
       // Map stages with proper Vietnamese names and status labels using new function
       const stages = (data.stages || []).map(s => {
         const isDyeingStage = s.stageType === 'DYEING' || s.stageType === 'NHUOM';
-        const stageStatus = getPMStageStatusLabel(s.executionStatus || s.status, isDyeingStage);
+        const stageStatus = getPMStageStatusLabel(s.status === 'PAUSED' ? 'PAUSED' : (s.executionStatus || s.status), isDyeingStage);
 
         return {
           id: s.id,
