@@ -870,10 +870,12 @@ export const getPlanningRfqStatus = (rfq) => {
   if (!rfq) return { label: 'N/A', variant: 'secondary' };
   const status = rfq.status;
 
+  // CAPACITY_INSUFFICIENT - Planning sees "Đã gửi thông báo không đủ năng lực"
+  if (status === 'CAPACITY_INSUFFICIENT') return { label: 'Không đủ năng lực', variant: 'danger', value: 'CAPACITY_INSUFFICIENT' };
+
   if (status === 'DRAFT' || status === 'SENT' || status === 'PRELIMINARY_CHECKED' || status === 'FORWARDED_TO_PLANNING' || status === 'RECEIVED_BY_PLANNING') return { label: 'Chờ tạo', variant: 'warning', value: 'WAITING_CREATE' };
   if (status === 'QUOTED') return { label: 'Đã báo giá', variant: 'success', value: 'QUOTED' };
-  // Gộp REJECTED và CANCELED thành "Đã từ chối"
-  if (status === 'REJECTED' || status === 'CANCELED') return { label: 'Đã từ chối', variant: 'danger', value: 'REJECTED' };
+  if (status === 'REJECTED' || status === 'CANCELED') return { label: 'Đã hủy', variant: 'danger', value: 'REJECTED' };
   if (status === 'ACCEPTED' || status === 'ORDER_CREATED') return { label: 'Đã xác nhận', variant: 'success', value: 'CONFIRMED' };
 
   const label = getStatusLabel(status);
@@ -907,7 +909,13 @@ export const getProductionLotStatus = (status) => {
 
 
 // --- SALES ROLE MAPPERS ---
-export const getSalesRfqStatus = (status) => {
+export const getSalesRfqStatus = (rfq) => {
+  // Handle both rfq object and direct status string
+  const status = typeof rfq === 'string' ? rfq : rfq?.status;
+
+  // CAPACITY_INSUFFICIENT - Sales sees "Không đủ năng lực"
+  if (status === 'CAPACITY_INSUFFICIENT') return { label: 'Không đủ năng lực', variant: 'danger', value: 'CAPACITY_INSUFFICIENT' };
+
   if (status === 'DRAFT' || status === 'SENT') return { label: 'Chờ xác nhận', variant: 'info', value: 'WAITING_CONFIRMATION' };
   if (status === 'PRELIMINARY_CHECKED' || status === 'FORWARDED_TO_PLANNING' || status === 'RECEIVED_BY_PLANNING') return { label: 'Đã xác nhận', variant: 'primary', value: 'CONFIRMED' };
   if (status === 'QUOTED') return { label: 'Đã báo giá', variant: 'success', value: 'QUOTED' };
@@ -961,6 +969,8 @@ export const getCustomerRfqStatus = (status) => {
   if (status === 'PRELIMINARY_CHECKED') return { label: 'Đã xác nhận', variant: 'primary', value: 'PRELIMINARY_CHECKED' };
   if (status === 'FORWARDED_TO_PLANNING') return { label: 'Đã xác nhận', variant: 'primary', value: 'FORWARDED_TO_PLANNING' };
   if (status === 'RECEIVED_BY_PLANNING') return { label: 'Đã xác nhận', variant: 'primary', value: 'RECEIVED_BY_PLANNING' };
+  // CAPACITY_INSUFFICIENT - Customer still sees "Đã xác nhận" (internal status)
+  if (status === 'CAPACITY_INSUFFICIENT') return { label: 'Đã xác nhận', variant: 'primary', value: 'CAPACITY_INSUFFICIENT' };
 
   if (status === 'QUOTED') return { label: 'Đã có báo giá', variant: 'success', value: 'QUOTED' };
   if (status === 'REJECTED') return { label: 'Đã hủy', variant: 'danger', value: 'REJECTED' };
@@ -984,10 +994,11 @@ export const getCustomerQuoteStatus = (status) => {
 
 export const getCustomerOrderStatus = (status) => {
   if (status === 'DRAFT' || status === 'PENDING_UPLOAD') return { label: 'Chờ ký hợp đồng', variant: 'warning', value: 'WAITING_SIGNATURE' };
-  if (status === 'PENDING_APPROVAL' || status === 'APPROVED') return { label: 'Chờ sản xuất', variant: 'primary', value: 'PENDING_PROCESS' };
+  // REJECTED by director is internal - customer still sees as waiting for production
+  if (status === 'PENDING_APPROVAL' || status === 'APPROVED' || status === 'REJECTED') return { label: 'Chờ sản xuất', variant: 'primary', value: 'PENDING_PROCESS' };
   if (status === 'WAITING_PRODUCTION' || status === 'IN_PROGRESS') return { label: 'Đang sản xuất', variant: 'info', value: 'IN_PRODUCTION' };
   if (status === 'COMPLETED' || status === 'ORDER_COMPLETED') return { label: 'Sản xuất xong', variant: 'success', value: 'COMPLETED' };
-  if (status === 'REJECTED') return { label: 'Đã từ chối', variant: 'danger', value: 'REJECTED' };
+  if (status === 'CANCELED') return { label: 'Đã hủy', variant: 'danger', value: 'CANCELED' };
 
   const label = getStatusLabel(status);
   const variant = getStatusVariant(status);

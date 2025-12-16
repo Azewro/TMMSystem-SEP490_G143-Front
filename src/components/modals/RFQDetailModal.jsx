@@ -488,16 +488,27 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
     }
   };
 
+
   const handleConfirm = async () => {
     setConfirmLoading(true);
     try {
-      // Step 1: Preliminary check
-      await rfqService.confirmRfq(rfqId, 'Yêu cầu đã được sale xác nhận.');
+      // Check if this is a reconfirmation after CAPACITY_INSUFFICIENT
+      if (rfq?.status === 'CAPACITY_INSUFFICIENT') {
+        // Use the reconfirm endpoint for CAPACITY_INSUFFICIENT
+        // The delivery date should already be updated via salesEditRfq
+        const newDeliveryDate = editedRfq?.expectedDeliveryDate || rfq?.expectedDeliveryDate;
+        await rfqService.salesReconfirmAfterInsufficient(rfqId, newDeliveryDate);
+        toast.success('Yêu cầu đã được xác nhận lại và chuyển cho bộ phận Kế hoạch!');
+      } else {
+        // Regular flow: Preliminary check then forward to planning
+        // Step 1: Preliminary check
+        await rfqService.confirmRfq(rfqId, 'Yêu cầu đã được sale xác nhận.');
 
-      // Step 2: Forward to planning
-      await rfqService.forwardRfqToPlanning(rfqId);
+        // Step 2: Forward to planning
+        await rfqService.forwardRfqToPlanning(rfqId);
 
-      toast.success('Yêu cầu đã được xác nhận và chuyển cho bộ phận Kế hoạch!');
+        toast.success('Yêu cầu đã được xác nhận và chuyển cho bộ phận Kế hoạch!');
+      }
       handleClose(true); // Close modal and refresh list
     } catch (error) {
       toast.error(error.message || 'Lỗi khi xử lý yêu cầu.');
@@ -772,7 +783,7 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
           Chi tiết Yêu cầu báo giá {rfq?.rfqNumber || rfqId}
           {rfq?.status && (
             (() => {
-              const statusObj = getSalesRfqStatus(rfq.status);
+              const statusObj = getSalesRfqStatus(rfq);
               return <Badge bg={statusObj.variant} className="ms-3">{statusObj.label}</Badge>;
             })()
           )}
@@ -801,19 +812,19 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
           </>
         ) : (
           <>
-            {/* Sales can edit RFQ before preliminary check (status DRAFT or SENT) */}
-            {/* Cho phép chỉnh sửa khi status là DRAFT hoặc SENT (bao gồm cả khi được trả về từ Planning) */}
-            {(rfq?.status === 'DRAFT' || rfq?.status === 'SENT') && (
+            {/* Sales can edit RFQ before preliminary check (status DRAFT, SENT, or CAPACITY_INSUFFICIENT) */}
+            {/* Cho phép chỉnh sửa khi status là DRAFT, SENT hoặc CAPACITY_INSUFFICIENT (được trả về từ Planning) */}
+            {(rfq?.status === 'DRAFT' || rfq?.status === 'SENT' || rfq?.status === 'CAPACITY_INSUFFICIENT') && (
               <Button variant="outline-primary" onClick={() => handleEditToggle(true)}>
                 Sửa RFQ
               </Button>
             )}
-            {/* Cho phép hủy khi status là DRAFT hoặc SENT (KHÔNG hiển thị khi QUOTED) */}
-            {rfq?.status !== 'QUOTED' && (
+            {/* Cho phép hủy khi status là DRAFT, SENT hoặc CAPACITY_INSUFFICIENT */}
+            {(rfq?.status === 'DRAFT' || rfq?.status === 'SENT' || rfq?.status === 'CAPACITY_INSUFFICIENT') && (
               <Button
                 variant="danger"
                 onClick={handleCancelRfq}
-                disabled={cancelLoading || (rfq?.status !== 'DRAFT' && rfq?.status !== 'SENT')}
+                disabled={cancelLoading}
               >
                 {cancelLoading ? <Spinner as="span" animation="border" size="sm" /> : 'Hủy RFQ'}
               </Button>
@@ -831,6 +842,13 @@ const RFQDetailModal = ({ rfqId, show, handleClose }) => {
 
             {/* Sales can confirm RFQ when status is SENT (before preliminary check) */}
             {rfq?.status === 'SENT' && (
+              <Button variant="primary" onClick={handleConfirm} disabled={loading || confirmLoading}>
+                {confirmLoading ? <Spinner as="span" animation="border" size="sm" /> : 'Xác nhận và Gửi đi'}
+              </Button>
+            )}
+
+            {/* Sales can reconfirm RFQ after CAPACITY_INSUFFICIENT (after updating delivery date) */}
+            {rfq?.status === 'CAPACITY_INSUFFICIENT' && (
               <Button variant="primary" onClick={handleConfirm} disabled={loading || confirmLoading}>
                 {confirmLoading ? <Spinner as="span" animation="border" size="sm" /> : 'Xác nhận và Gửi đi'}
               </Button>

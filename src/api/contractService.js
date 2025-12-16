@@ -8,7 +8,7 @@ export const contractService = {
       if (search) params.search = search;
       if (status) params.status = status;
       if (deliveryDate) params.deliveryDate = deliveryDate;
-      
+
       const response = await apiClient.get('/v1/contracts', { params });
       // Handle PageResponse
       if (response.data && response.data.content) {
@@ -74,14 +74,14 @@ export const contractService = {
     }
   },
 
-      getDirectorPendingContracts: async (page = 0, size = 10, search, status, createdDate, deliveryDate) => {
-        try {
-          const params = { page, size };
-          if (search) params.search = search;
-          if (status) params.status = status;
-          if (createdDate) params.createdDate = createdDate;
-          if (deliveryDate) params.deliveryDate = deliveryDate;
-      
+  getDirectorPendingContracts: async (page = 0, size = 10, search, status, createdDate, deliveryDate) => {
+    try {
+      const params = { page, size };
+      if (search) params.search = search;
+      if (status) params.status = status;
+      if (createdDate) params.createdDate = createdDate;
+      if (deliveryDate) params.deliveryDate = deliveryDate;
+
       const response = await apiClient.get('/v1/contracts/director/pending', { params });
       // Handle PageResponse
       if (response.data && response.data.content) {
@@ -93,14 +93,14 @@ export const contractService = {
       throw new Error(error.response?.data?.message || 'Lỗi khi tải danh sách hợp đồng chờ duyệt');
     }
   },
-  
+
   getContractsPendingApproval: async (page = 0, size = 10, search, status, deliveryDate) => {
     try {
       const params = { page, size };
       if (search) params.search = search;
       if (status) params.status = status;
       if (deliveryDate) params.deliveryDate = deliveryDate;
-      
+
       const response = await apiClient.get('/v1/contracts/pending-approval', { params });
       // Handle PageResponse
       if (response.data && response.data.content) {
@@ -150,6 +150,19 @@ export const contractService = {
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Lỗi khi lấy URL file hợp đồng');
+    }
+  },
+
+  // Get contract order details by quotation ID
+  getContractByQuotationId: async (quotationId) => {
+    try {
+      const response = await apiClient.get(`/v1/contracts/by-quotation/${quotationId}`);
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 404) {
+        return null; // Contract not found
+      }
+      throw new Error(error.response?.data?.message || 'Lỗi khi tìm đơn hàng theo báo giá');
     }
   }
 };

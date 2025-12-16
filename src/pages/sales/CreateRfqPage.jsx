@@ -124,7 +124,7 @@ const CreateRfqForCustomer = () => {
     // Allow free input for quantity - validation will be done with regex
     newItems[index][field] = value;
     setQuoteItems(newItems);
-    
+
     // Clear error for this field when user starts typing
     if (errors.items?.[index]?.[field]) {
       const newErrors = { ...errors };
@@ -145,7 +145,7 @@ const CreateRfqForCustomer = () => {
     const item = quoteItems[index];
     const quantityStr = item.quantity ? item.quantity.toString() : '';
     const quantityValidation = validateQuantity(quantityStr);
-    
+
     if (!quantityValidation.isValid) {
       const newErrors = { ...errors };
       if (!newErrors.items) {

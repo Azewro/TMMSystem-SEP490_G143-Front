@@ -469,6 +469,7 @@ const PlanningRFQDetail = () => {
         onHide={() => setShowInsufficientModal(false)}
         onSubmit={handleInsufficientCapacitySubmit}
         loading={evaluationLoading}
+        proposedDeliveryDate={capacityReportData?.proposedNewDeliveryDate}
       />
       {/* Capacity Report Modal */}
       <Modal show={showCapacityReportModal} onHide={() => { setShowCapacityReportModal(false); setBacklogPage(1); }} size="xl" centered>
@@ -489,6 +490,9 @@ const PlanningRFQDetail = () => {
                   <p><strong>Số ngày có sẵn:</strong> {capacityReportData.availableDays?.toFixed(2) || 'N/A'} ngày ({daysToHours(capacityReportData.availableDays)})</p>
                 </Col>
                 <Col md={6}>
+                  {!capacityReportData.sufficient && capacityReportData.proposedNewDeliveryDate && (
+                    <p><strong>Ngày giao hàng đề xuất:</strong> <span className="text-warning">{new Date(capacityReportData.proposedNewDeliveryDate).toLocaleDateString('vi-VN')}</span></p>
+                  )}
                   {/* TẠM ẨN - Thuộc Scheduling, không thuộc Capacity Check
                   <p><strong>Ngày bắt đầu dự kiến:</strong> {capacityReportData.productionStartDate ? new Date(capacityReportData.productionStartDate).toLocaleDateString('vi-VN') : 'N/A'}</p>
                   <p><strong>Ngày kết thúc dự kiến:</strong> {capacityReportData.productionEndDate ? new Date(capacityReportData.productionEndDate).toLocaleDateString('vi-VN') : (capacityReportData.packagingStage?.endDate ? new Date(capacityReportData.packagingStage.endDate).toLocaleDateString('vi-VN') : 'N/A')}</p>

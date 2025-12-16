@@ -369,7 +369,7 @@ const CustomerRfqDetailModal = ({ rfqId, show, handleClose }) => {
                       onChange={(e) => handleDetailChange(index, 'quantity', e.target.value)}
                       readOnly={!isEditMode}
                       min="100"
-                      style={{ width: '80px' }}
+                      style={{ width: '120px' }}
                     />
                   </td>
                   {isEditMode && (

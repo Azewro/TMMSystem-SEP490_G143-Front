@@ -1,15 +1,35 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { authService } from '../../api/authService';
 import '../../styles/LoginPage.css';
 
 const InternalForgotPassword = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [step, setStep] = useState('request');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [countdown, setCountdown] = useState(7);
+
+  // Auto-redirect after 7 seconds when done
+  useEffect(() => {
+    if (step === 'done') {
+      const timer = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            navigate('/internal-login');
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [step, navigate]);
 
   const resetMessages = () => {
     setError('');
@@ -42,8 +62,8 @@ const InternalForgotPassword = () => {
     } catch (err) {
       const errorMessage = err.message || 'Không thể gửi yêu cầu. Vui lòng thử lại.';
       if (errorMessage.toLowerCase().includes('user not found') ||
-          errorMessage.toLowerCase().includes('không tìm thấy') ||
-          errorMessage.toLowerCase().includes('email not found')) {
+        errorMessage.toLowerCase().includes('không tìm thấy') ||
+        errorMessage.toLowerCase().includes('email not found')) {
         setError('Không tìm thấy email.');
       } else {
         setError(errorMessage);
@@ -61,6 +81,7 @@ const InternalForgotPassword = () => {
       setSuccess('Xác minh thành công. Mật khẩu mới đã được gửi tới email của bạn.');
       setStep('done');
       setCode('');
+      setCountdown(7); // Reset countdown
     } catch (err) {
       setError(err.message || 'Mã xác minh không hợp lệ hoặc đã hết hạn.');
     } finally {
@@ -121,9 +142,14 @@ const InternalForgotPassword = () => {
           )}
 
           {step === 'done' ? (
-            <Link to="/internal-login" className="login-btn" style={{ display: 'inline-block', textDecoration: 'none', textAlign: 'center' }}>
-              Quay lại đăng nhập
-            </Link>
+            <div className="redirect-message" style={{ textAlign: 'center', padding: '10px 0' }}>
+              <p style={{ marginBottom: '10px', color: '#666' }}>
+                Tự động chuyển về trang đăng nhập sau <strong>{countdown}</strong> giây...
+              </p>
+              <Link to="/internal-login" className="login-btn" style={{ display: 'inline-block', textDecoration: 'none', textAlign: 'center' }}>
+                Quay lại đăng nhập ngay
+              </Link>
+            </div>
           ) : (
             <button
               type="submit"
@@ -152,4 +178,3 @@ const InternalForgotPassword = () => {
 };
 
 export default InternalForgotPassword;
-
