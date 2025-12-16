@@ -104,7 +104,7 @@ const ProductionPlanApprovals = () => {
 
   // Search and filter state
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('PENDING_APPROVAL');
+  const [statusFilter, setStatusFilter] = useState('');
   const [createdDateFilter, setCreatedDateFilter] = useState('');
 
   // Pagination state
@@ -170,6 +170,20 @@ const ProductionPlanApprovals = () => {
             return pDate === createdDateFilter;
           });
         }
+
+        // When 'Tất cả' is selected, only show PENDING_APPROVAL, APPROVED, REJECTED (exclude DRAFT, SUPERSEDED)
+        if (!statusFilter) {
+          filtered = filtered.filter(p =>
+            p.status === 'PENDING_APPROVAL' || p.status === 'APPROVED' || p.status === 'REJECTED'
+          );
+        }
+
+        // Sort by createdAt descending (newest first) by default
+        filtered.sort((a, b) => {
+          const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0);
+          const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0);
+          return dateB - dateA; // descending
+        });
 
         // Calculate pagination
         const totalFiltered = filtered.length;
@@ -335,13 +349,12 @@ const ProductionPlanApprovals = () => {
     }
   };
 
+  // Status options for filter - only show relevant statuses for director approval
   const statusOptions = [
-    { value: 'ALL', label: 'Tất cả trạng thái' },
+    { value: '', label: 'Tất cả trạng thái' },
     { value: 'PENDING_APPROVAL', label: 'Chờ duyệt' },
     { value: 'APPROVED', label: 'Đã duyệt' },
-    { value: 'REJECTED', label: 'Đã từ chối' },
-    { value: 'DRAFT', label: 'Nháp' },
-    { value: 'SUPERSEDED', label: 'Đã thay thế' }
+    { value: 'REJECTED', label: 'Đã từ chối' }
   ];
 
   return (
