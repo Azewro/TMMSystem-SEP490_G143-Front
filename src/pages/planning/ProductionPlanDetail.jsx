@@ -661,7 +661,7 @@ const ProductionPlanDetail = () => {
                                                     locale="vi"
                                                     className="form-control"
                                                     placeholderText="dd/mm/yyyy HH:mm"
-                                                    disabled={isReadOnly}
+                                                    disabled
                                                 />
                                             </div>
                                         </Col>
@@ -677,7 +677,7 @@ const ProductionPlanDetail = () => {
                                                     locale="vi"
                                                     className="form-control"
                                                     placeholderText="dd/mm/yyyy HH:mm"
-                                                    disabled={isReadOnly}
+                                                    disabled
                                                 />
                                             </div>
                                         </Col>
