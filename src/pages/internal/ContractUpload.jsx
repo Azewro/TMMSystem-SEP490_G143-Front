@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Container, Card, Table, Button, Modal, Form, Alert, Badge, Spinner, InputGroup, Row, Col } from 'react-bootstrap';
-import { FaSearch } from 'react-icons/fa';
+import { FaSearch, FaSortUp, FaSortDown, FaSort } from 'react-icons/fa';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { contractService } from '../../api/contractService';
@@ -83,6 +83,36 @@ const ContractUpload = () => {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
+
+  // Sort state
+  const [sortColumn, setSortColumn] = useState('');
+  const [sortDirection, setSortDirection] = useState('asc');
+
+  // Handle sort click - cycles: asc → desc → default
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      if (sortDirection === 'asc') {
+        setSortDirection('desc');
+      } else {
+        // Reset to default (no sort)
+        setSortColumn('');
+        setSortDirection('asc');
+      }
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  // Get sort icon for column
+  const getSortIcon = (column) => {
+    if (sortColumn !== column) {
+      return <FaSort className="ms-1 text-muted" style={{ opacity: 0.5 }} />;
+    }
+    return sortDirection === 'asc'
+      ? <FaSortUp className="ms-1 text-primary" />
+      : <FaSortDown className="ms-1 text-primary" />;
+  };
 
   const loadContracts = async () => {
     setLoading(true);
@@ -185,11 +215,52 @@ const ContractUpload = () => {
     return filtered;
   }, [contracts, statusFilter, searchTerm, deliveryDateFilter]);
 
+  // Sort logic
+  const sortedContracts = useMemo(() => {
+    if (!sortColumn) return filteredContracts;
+
+    return [...filteredContracts].sort((a, b) => {
+      let aValue, bValue;
+
+      switch (sortColumn) {
+        case 'contractNumber':
+          aValue = a.contractNumber || '';
+          bValue = b.contractNumber || '';
+          break;
+        case 'customerName':
+          aValue = a.customer?.contactPerson || a.customer?.companyName || '';
+          bValue = b.customer?.contactPerson || b.customer?.companyName || '';
+          break;
+        case 'phone':
+          aValue = a.customer?.phoneNumber || '';
+          bValue = b.customer?.phoneNumber || '';
+          break;
+        case 'deliveryDate':
+          aValue = a.deliveryDate || '';
+          bValue = b.deliveryDate || '';
+          break;
+        case 'status':
+          aValue = a.status || '';
+          bValue = b.status || '';
+          break;
+        case 'totalAmount':
+          aValue = parseFloat(a.totalAmount) || 0;
+          bValue = parseFloat(b.totalAmount) || 0;
+          return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+        default:
+          return 0;
+      }
+
+      const comparison = String(aValue).localeCompare(String(bValue), 'vi');
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [filteredContracts, sortColumn, sortDirection]);
+
   // Pagination logic
   const indexOfLastContract = currentPage * ITEMS_PER_PAGE;
   const indexOfFirstContract = indexOfLastContract - ITEMS_PER_PAGE;
-  const currentContracts = filteredContracts.slice(indexOfFirstContract, indexOfLastContract);
-  const totalPages = Math.ceil(filteredContracts.length / ITEMS_PER_PAGE);
+  const currentContracts = sortedContracts.slice(indexOfFirstContract, indexOfLastContract);
+  const totalPages = Math.ceil(sortedContracts.length / ITEMS_PER_PAGE);
 
 
   const openViewDetailsModal = async (contract) => {
@@ -508,12 +579,42 @@ const ContractUpload = () => {
                       <thead>
                         <tr>
                           <th style={{ width: 60 }}>#</th>
-                          <th style={{ width: 180 }}>Mã đơn hàng</th>
-                          <th style={{ width: 160 }}>Tên khách hàng</th>
-                          <th style={{ width: 140 }}>Số điện thoại</th>
-                          <th style={{ width: 160 }}>Ngày giao hàng</th>
-                          <th style={{ width: 160 }}>Trạng thái</th>
-                          <th style={{ width: 160 }}>Tổng giá trị</th>
+                          <th
+                            style={{ width: 180, cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('contractNumber')}
+                          >
+                            Mã đơn hàng {getSortIcon('contractNumber')}
+                          </th>
+                          <th
+                            style={{ width: 160, cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('customerName')}
+                          >
+                            Tên khách hàng {getSortIcon('customerName')}
+                          </th>
+                          <th
+                            style={{ width: 140, cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('phone')}
+                          >
+                            Số điện thoại {getSortIcon('phone')}
+                          </th>
+                          <th
+                            style={{ width: 160, cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('deliveryDate')}
+                          >
+                            Ngày giao hàng {getSortIcon('deliveryDate')}
+                          </th>
+                          <th
+                            style={{ width: 160, cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('status')}
+                          >
+                            Trạng thái {getSortIcon('status')}
+                          </th>
+                          <th
+                            style={{ width: 160, cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('totalAmount')}
+                          >
+                            Tổng giá trị {getSortIcon('totalAmount')}
+                          </th>
                           <th style={{ width: 160 }} className="text-center">Thao tác</th>
                         </tr>
                       </thead>

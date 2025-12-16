@@ -74,10 +74,16 @@ const QuotesList = () => {
   const [sortColumn, setSortColumn] = useState('');
   const [sortDirection, setSortDirection] = useState('asc');
 
-  // Handle sort click
+  // Handle sort click - cycles: asc → desc → default
   const handleSort = (column) => {
     if (sortColumn === column) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      if (sortDirection === 'asc') {
+        setSortDirection('desc');
+      } else {
+        // Reset to default (no sort)
+        setSortColumn('');
+        setSortDirection('asc');
+      }
     } else {
       setSortColumn(column);
       setSortDirection('asc');
@@ -207,6 +213,18 @@ const QuotesList = () => {
         case 'customer':
           aValue = a.customer?.contactPerson || a.customer?.companyName || '';
           bValue = b.customer?.contactPerson || b.customer?.companyName || '';
+          break;
+        case 'creator':
+          aValue = a.creator?.name || '';
+          bValue = b.creator?.name || '';
+          break;
+        case 'totalAmount':
+          aValue = parseFloat(a.totalAmount) || 0;
+          bValue = parseFloat(b.totalAmount) || 0;
+          return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+        case 'status':
+          aValue = a.status || '';
+          bValue = b.status || '';
           break;
         default:
           return 0;
@@ -374,9 +392,24 @@ const QuotesList = () => {
                           >
                             Khách hàng {getSortIcon('customer')}
                           </th>
-                          <th>Người tạo</th>
-                          <th>Tổng tiền</th>
-                          <th>Trạng thái</th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('creator')}
+                          >
+                            Người tạo {getSortIcon('creator')}
+                          </th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('totalAmount')}
+                          >
+                            Tổng tiền {getSortIcon('totalAmount')}
+                          </th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('status')}
+                          >
+                            Trạng thái {getSortIcon('status')}
+                          </th>
                           <th style={{ width: 200 }} className="text-center">Thao tác</th>
                         </tr>
                       </thead>

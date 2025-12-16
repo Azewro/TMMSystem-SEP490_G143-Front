@@ -52,10 +52,16 @@ const OrderList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
 
-  // Handle sort click
+  // Handle sort click - cycles: asc → desc → default
   const handleSort = (column) => {
     if (sortColumn === column) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      if (sortDirection === 'asc') {
+        setSortDirection('desc');
+      } else {
+        // Reset to default (no sort)
+        setSortColumn('');
+        setSortDirection('asc');
+      }
     } else {
       setSortColumn(column);
       setSortDirection('asc');
@@ -92,7 +98,12 @@ const OrderList = () => {
               customer: customerMap.get(order.customerId),
             }));
 
-          const sortedData = orderLikeQuotes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          // Sort by quotationNumber descending (newest order number first)
+          const sortedData = orderLikeQuotes.sort((a, b) => {
+            const aNum = a.quotationNumber || '';
+            const bNum = b.quotationNumber || '';
+            return bNum.localeCompare(aNum, 'vi');
+          });
           setOrders(sortedData);
         } else {
           console.warn('API returned non-array data for quotes or customers.');
