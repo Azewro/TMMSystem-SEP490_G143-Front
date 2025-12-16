@@ -275,5 +275,40 @@ export const rfqService = {
       console.error("Error creating RFQ by sales:", error.response?.data);
       throw new Error(error.response?.data?.message || 'Failed to create RFQ for customer');
     }
+  },
+
+  /**
+   * Sales xác nhận lại sau khi không đủ năng lực (sau khi đàm phán với khách hàng)
+   * Chuyển status từ CAPACITY_INSUFFICIENT -> RECEIVED_BY_PLANNING
+   * @param {number} rfqId - ID của RFQ
+   * @param {string} newDeliveryDate - Ngày giao hàng mới (YYYY-MM-DD format, optional)
+   */
+  async salesReconfirmAfterInsufficient(rfqId, newDeliveryDate) {
+    try {
+      const userId = sessionStorage.getItem('userId');
+      if (!userId) {
+        throw new Error('User ID not found. Please log in.');
+      }
+
+      const params = {};
+      if (newDeliveryDate) {
+        params.newDeliveryDate = newDeliveryDate;
+      }
+
+      const response = await apiClient.post(`/v1/rfqs/${rfqId}/sales-reconfirm`, null, {
+        params,
+        headers: {
+          'X-User-Id': userId
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error(`Error reconfirming RFQ ${rfqId}:`, error.response?.data);
+      const errorMessage = error.response?.data?.message ||
+        error.response?.data?.error ||
+        error.message ||
+        'Lỗi khi xác nhận lại RFQ';
+      throw new Error(errorMessage);
+    }
   }
 };
