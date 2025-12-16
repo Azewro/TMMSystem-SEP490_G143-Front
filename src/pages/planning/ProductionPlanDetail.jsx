@@ -554,8 +554,18 @@ const ProductionPlanDetail = () => {
                 <div className="production-plan-main">
                     <div className="production-plan-container pt-4">
                         <div className="mb-4">
-                            <h2 className="page-title">Lập Kế Hoạch Sản Xuất - {mainDetail.lotCode}</h2>
-                            <p className="page-subtitle">{mainDetail.productName} - {mainDetail.sizeSnapshot || 'N/A'}</p>
+                            <div className="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h2 className="page-title">Lập Kế Hoạch Sản Xuất - {mainDetail.lotCode}</h2>
+                                    <p className="page-subtitle">{mainDetail.productName} - {mainDetail.sizeSnapshot || 'N/A'}</p>
+                                </div>
+                                <Button
+                                    variant="outline-secondary"
+                                    onClick={() => navigate('/planning/lots')}
+                                >
+                                    ← Quay về danh sách
+                                </Button>
+                            </div>
                         </div>
 
                         {success && <Alert variant="success">{success}</Alert>}
