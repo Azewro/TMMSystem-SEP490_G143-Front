@@ -73,6 +73,9 @@ const DirectorContractApproval = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [deliveryDateFilter, setDeliveryDateFilter] = useState('');
 
+  // Sorting state
+  const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
@@ -142,8 +145,24 @@ const DirectorContractApproval = () => {
       );
     }
 
+    // Status filter with proper mapping
+    // Backend statuses: PENDING_UPLOAD, PENDING_APPROVAL -> "Chờ duyệt"
+    // APPROVED, SIGNED, IN_PRODUCTION, COMPLETED -> "Đã duyệt"
+    // REJECTED -> "Đã từ chối"
     if (statusFilter) {
-      result = result.filter(c => c.status === statusFilter);
+      result = result.filter(c => {
+        const rawStatus = (c.status || '').toUpperCase().trim();
+        switch (statusFilter) {
+          case 'PENDING_APPROVAL':
+            return rawStatus === 'PENDING_APPROVAL' || rawStatus === 'PENDING_UPLOAD';
+          case 'APPROVED':
+            return rawStatus === 'APPROVED' || rawStatus === 'SIGNED' || rawStatus === 'IN_PRODUCTION' || rawStatus === 'COMPLETED';
+          case 'REJECTED':
+            return rawStatus === 'REJECTED' || rawStatus === 'CANCELED';
+          default:
+            return rawStatus === statusFilter.toUpperCase().trim();
+        }
+      });
     }
 
     if (deliveryDateFilter) {
@@ -158,12 +177,72 @@ const DirectorContractApproval = () => {
     setCurrentPage(1); // Reset to page 1 when filters change
   }, [searchTerm, statusFilter, deliveryDateFilter, allContracts]);
 
+  // Sorting logic
+  const statusOrder = {
+    PENDING_APPROVAL: 1,
+    APPROVED: 2,
+    SIGNED: 3,
+    IN_PRODUCTION: 4,
+    COMPLETED: 5,
+    CANCELED: 6,
+    REJECTED: 7
+  };
+
+  const sortedContracts = useMemo(() => {
+    const sorted = [...filteredContracts];
+    if (!sortConfig.key) return sorted;
+
+    sorted.sort((a, b) => {
+      const getValue = (item) => {
+        switch (sortConfig.key) {
+          case 'contractNumber':
+            return item.contractNumber || '';
+          case 'customerName':
+            return item.customerName || '';
+          case 'createdAt':
+            return item.createdAt ? new Date(item.createdAt).getTime() : 0;
+          case 'deliveryDate':
+            return item.deliveryDate ? new Date(item.deliveryDate).getTime() : 0;
+          case 'status':
+            return statusOrder[item.status] || 99;
+          case 'totalAmount':
+            return Number(item.totalAmount) || 0;
+          default:
+            return '';
+        }
+      };
+
+      const valA = getValue(a);
+      const valB = getValue(b);
+
+      if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return sorted;
+  }, [filteredContracts, sortConfig]);
+
   // Pagination Logic
-  const totalPages = Math.ceil(filteredContracts.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(sortedContracts.length / ITEMS_PER_PAGE);
   const paginatedContracts = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredContracts.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredContracts, currentPage]);
+    return sortedContracts.slice(start, start + ITEMS_PER_PAGE);
+  }, [sortedContracts, currentPage]);
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        return { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' };
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const renderSortIcon = (key) => {
+    if (sortConfig.key !== key) return '⇅';
+    return sortConfig.direction === 'asc' ? '↑' : '↓';
+  };
 
   const openContract = async (contract) => {
     setSelectedContract(contract);
@@ -419,12 +498,42 @@ const DirectorContractApproval = () => {
                       <thead>
                         <tr>
                           <th style={{ width: 60 }}>#</th>
-                          <th style={{ width: 180 }}>Mã đơn hàng</th>
-                          <th style={{ width: 160 }}>Khách hàng</th>
-                          <th style={{ width: 160 }}>Ngày tạo</th>
-                          <th style={{ width: 160 }}>Ngày giao</th>
-                          <th style={{ width: 160 }}>Trạng thái</th>
-                          <th style={{ width: 160 }}>Tổng tiền</th>
+                          <th
+                            style={{ width: 180, cursor: 'pointer' }}
+                            onClick={() => handleSort('contractNumber')}
+                          >
+                            Mã đơn hàng {renderSortIcon('contractNumber')}
+                          </th>
+                          <th
+                            style={{ width: 160, cursor: 'pointer' }}
+                            onClick={() => handleSort('customerName')}
+                          >
+                            Khách hàng {renderSortIcon('customerName')}
+                          </th>
+                          <th
+                            style={{ width: 160, cursor: 'pointer' }}
+                            onClick={() => handleSort('createdAt')}
+                          >
+                            Ngày tạo {renderSortIcon('createdAt')}
+                          </th>
+                          <th
+                            style={{ width: 160, cursor: 'pointer' }}
+                            onClick={() => handleSort('deliveryDate')}
+                          >
+                            Ngày giao {renderSortIcon('deliveryDate')}
+                          </th>
+                          <th
+                            style={{ width: 160, cursor: 'pointer' }}
+                            onClick={() => handleSort('status')}
+                          >
+                            Trạng thái {renderSortIcon('status')}
+                          </th>
+                          <th
+                            style={{ width: 160, cursor: 'pointer' }}
+                            onClick={() => handleSort('totalAmount')}
+                          >
+                            Tổng tiền {renderSortIcon('totalAmount')}
+                          </th>
                           <th style={{ width: 140 }} className="text-center">Hành động</th>
                         </tr>
                       </thead>

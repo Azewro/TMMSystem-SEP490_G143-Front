@@ -86,8 +86,9 @@ export const CartProvider = ({ children }) => {
 
   // Remove multiple items by their IDs (for partial cart submission)
   const removeMultipleFromCart = (productIds) => {
-    const idsToRemove = new Set(productIds);
-    setCartItems(prevItems => prevItems.filter(item => !idsToRemove.has(item.id)));
+    // Convert all IDs to numbers for consistent comparison
+    const idsToRemove = new Set(productIds.map(id => Number(id)));
+    setCartItems(prevItems => prevItems.filter(item => !idsToRemove.has(Number(item.id))));
   };
 
   const value = {
