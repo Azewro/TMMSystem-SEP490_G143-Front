@@ -715,20 +715,50 @@ const ContractUpload = () => {
           )}
 
           <Form.Group className="mb-3">
-            <Form.Label>File hợp đồng (PDF hoặc hình ảnh)</Form.Label>
+            <Form.Label>File hợp đồng (PDF hoặc hình ảnh) - Tối đa 10MB</Form.Label>
             <Form.Control
               type="file"
               accept=".pdf,.jpg,.jpeg,.png"
-              onChange={(event) => setFile(event.target.files?.[0] || null)}
+              onChange={(event) => {
+                const selectedFile = event.target.files?.[0];
+                if (selectedFile) {
+                  const maxSizeMB = 10;
+                  const maxSizeBytes = maxSizeMB * 1024 * 1024;
+                  if (selectedFile.size > maxSizeBytes) {
+                    toast.error(`File vượt quá dung lượng cho phép. Tối đa ${maxSizeMB}MB.`);
+                    event.target.value = ''; // Reset input
+                    setFile(null);
+                    return;
+                  }
+                  setFile(selectedFile);
+                } else {
+                  setFile(null);
+                }
+              }}
             />
           </Form.Group>
 
           <Form.Group className="mb-3">
-            <Form.Label>File báo giá (PDF hoặc hình ảnh)</Form.Label>
+            <Form.Label>File báo giá (PDF hoặc hình ảnh) - Tối đa 10MB</Form.Label>
             <Form.Control
               type="file"
               accept=".pdf,.jpg,.jpeg,.png"
-              onChange={(event) => setQuoteFile(event.target.files?.[0] || null)}
+              onChange={(event) => {
+                const selectedFile = event.target.files?.[0];
+                if (selectedFile) {
+                  const maxSizeMB = 10;
+                  const maxSizeBytes = maxSizeMB * 1024 * 1024;
+                  if (selectedFile.size > maxSizeBytes) {
+                    toast.error(`File vượt quá dung lượng cho phép. Tối đa ${maxSizeMB}MB.`);
+                    event.target.value = ''; // Reset input
+                    setQuoteFile(null);
+                    return;
+                  }
+                  setQuoteFile(selectedFile);
+                } else {
+                  setQuoteFile(null);
+                }
+              }}
             />
           </Form.Group>
 

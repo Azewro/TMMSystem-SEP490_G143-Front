@@ -119,8 +119,16 @@ const DirectorContractApproval = () => {
         })
       );
 
-      setAllContracts(enrichedContracts);
-      setFilteredContracts(enrichedContracts);
+      // Filter out contracts that are still waiting for Sales to upload (PENDING_UPLOAD)
+      // Director should only see contracts that have been uploaded and sent for approval
+      const directorVisibleContracts = enrichedContracts.filter(c => {
+        const status = (c.status || '').toUpperCase().trim();
+        // Exclude PENDING_UPLOAD - these are waiting for Sales to upload the signed contract
+        return status !== 'PENDING_UPLOAD';
+      });
+
+      setAllContracts(directorVisibleContracts);
+      setFilteredContracts(directorVisibleContracts);
     } catch (err) {
       console.error('Failed to fetch contracts', err);
       setError(err.message || 'Không thể tải danh sách hợp đồng.');
