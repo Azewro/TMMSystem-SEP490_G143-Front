@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Container, Card, Row, Col, Table, Badge, ListGroup, Button, Alert, Spinner, Modal } from 'react-bootstrap';
+import { Container, Card, Row, Col, Table, ListGroup, Button, Alert, Spinner, Modal } from 'react-bootstrap';
 import Header from '../../components/common/Header';
 import Sidebar from '../../components/common/Sidebar';
 import { contractService } from '../../api/contractService';
@@ -17,25 +17,6 @@ const getFileExtension = (url) => {
 };
 
 const isDocx = (url) => ['docx', 'doc'].includes(getFileExtension(url));
-
-const getStatusBadge = (status) => {
-  switch (status) {
-    case 'PENDING':
-      return { variant: 'secondary', text: 'Chờ xử lý' };
-    case 'APPROVED':
-      return { variant: 'info', text: 'Đã duyệt' };
-    case 'IN_PRODUCTION':
-      return { variant: 'primary', text: 'Đang sản xuất' };
-    case 'SHIPPED':
-      return { variant: 'warning', text: 'Đang giao hàng' };
-    case 'COMPLETED':
-      return { variant: 'success', text: 'Hoàn thành' };
-    case 'CANCELLED':
-      return { variant: 'danger', text: 'Đã hủy' };
-    default:
-      return { variant: 'light', text: 'Không xác định' };
-  }
-};
 
 const formatCurrency = (value) => {
   if (!value) return '0 ₫';
@@ -246,8 +227,6 @@ const CustomerOrderDetail = () => {
     return null;
   }
 
-  const statusInfo = getStatusBadge(order.status);
-
   return (
     <div>
       <Header />
@@ -269,10 +248,7 @@ const CustomerOrderDetail = () => {
               <Row>
                 <Col md={6}>
                   <p><strong>Ngày đặt hàng:</strong> {order.orderDate}</p>
-                  <p><strong>Ngày giao dự kiến:</strong> {order.expectedDeliveryDate}</p>
-                  <p className="mb-0">
-                    <strong>Trạng thái:</strong> <Badge bg={statusInfo.variant}>{statusInfo.text}</Badge>
-                  </p>
+                  <p className="mb-0"><strong>Ngày giao dự kiến:</strong> {order.expectedDeliveryDate}</p>
                 </Col>
                 <Col md={6}>
                   <p><strong>Người nhận:</strong> {order.customerInfo.contactPerson}</p>
@@ -326,6 +302,8 @@ const CustomerOrderDetail = () => {
             </Card.Body>
           </Card>
 
+          {/* Hide documents section when contract is not yet approved */}
+          {!['DRAFT', 'PENDING_APPROVAL', 'CANCELED'].includes(order.status) && (
           <Card className="mb-4">
             <Card.Header as="h5">Tài liệu đã ký</Card.Header>
             <Card.Body>
@@ -448,6 +426,7 @@ const CustomerOrderDetail = () => {
               </Row>
             </Card.Body>
           </Card>
+          )}
 
           <Card>
             <Card.Header as="h5">Lịch sử đơn hàng</Card.Header>

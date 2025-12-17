@@ -105,7 +105,7 @@ const DirectorContractApproval = () => {
               const customer = await customerService.getCustomerById(contract.customerId);
               return {
                 ...contract,
-                customerName: customer.companyName || customer.contactPerson || 'N/A'
+                customerName: customer.contactPerson || customer.companyName || 'N/A'
               };
             } catch (customerError) {
               console.error(`Failed to fetch customer for contract ${contract.id}`, customerError);
