@@ -349,7 +349,7 @@ const DirectorContractApproval = () => {
                         <InputGroup.Text><FaSearch /></InputGroup.Text>
                         <Form.Control
                           type="text"
-                          placeholder="Tìm theo tên hợp đồng, tên khách hàng..."
+                          placeholder="Tìm theo Mã đơn hàng, tên khách hàng..."
                           value={searchTerm}
                           onChange={(e) => {
                             setSearchTerm(e.target.value);
@@ -419,7 +419,7 @@ const DirectorContractApproval = () => {
                       <thead>
                         <tr>
                           <th style={{ width: 60 }}>#</th>
-                          <th style={{ width: 180 }}>Tên hợp đồng</th>
+                          <th style={{ width: 180 }}>Mã đơn hàng</th>
                           <th style={{ width: 160 }}>Khách hàng</th>
                           <th style={{ width: 160 }}>Ngày tạo</th>
                           <th style={{ width: 160 }}>Ngày giao</th>
