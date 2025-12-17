@@ -383,12 +383,33 @@ const ContractUpload = () => {
         )
       ]);
 
-      setSuccess('Upload hợp đồng và báo giá thành công. Đang chờ giám đốc phê duyệt.');
+      toast.success('Upload hợp đồng và báo giá thành công. Đang chờ giám đốc phê duyệt.');
       closeModal();
       loadContracts();
     } catch (err) {
       console.error('Upload signed files failed', err);
-      setError(err.message || 'Không thể upload file.');
+      // Get error message from API response
+      let errorMessage = err.response?.data?.message || err.message || 'Không thể upload file.';
+
+      // Translate common error messages to Vietnamese
+      const errorTranslations = {
+        'File size exceeds 25MB limit': 'File vượt quá giới hạn 25MB',
+        'Failed to upload contract file': 'Không thể upload file hợp đồng',
+        'Failed to upload quotation file': 'Không thể upload file báo giá',
+        'File is empty': 'File rỗng',
+        'Only image/PDF/Word/Excel files are allowed': 'Chỉ cho phép file hình ảnh/PDF/Word/Excel',
+        'Contract not found': 'Không tìm thấy hợp đồng',
+        'Quotation not found': 'Không tìm thấy báo giá',
+      };
+
+      // Check if message contains any known error pattern
+      for (const [eng, vie] of Object.entries(errorTranslations)) {
+        if (errorMessage.includes(eng)) {
+          errorMessage = errorMessage.replace(eng, vie);
+        }
+      }
+
+      toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }
