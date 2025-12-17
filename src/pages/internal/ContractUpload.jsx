@@ -715,14 +715,14 @@ const ContractUpload = () => {
           )}
 
           <Form.Group className="mb-3">
-            <Form.Label>File hợp đồng (PDF hoặc hình ảnh) - Tối đa 10MB</Form.Label>
+            <Form.Label>File hợp đồng (PDF hoặc hình ảnh) - Tối đa 25MB</Form.Label>
             <Form.Control
               type="file"
               accept=".pdf,.jpg,.jpeg,.png"
               onChange={(event) => {
                 const selectedFile = event.target.files?.[0];
                 if (selectedFile) {
-                  const maxSizeMB = 10;
+                  const maxSizeMB = 25;
                   const maxSizeBytes = maxSizeMB * 1024 * 1024;
                   if (selectedFile.size > maxSizeBytes) {
                     toast.error(`File vượt quá dung lượng cho phép. Tối đa ${maxSizeMB}MB.`);
@@ -739,14 +739,14 @@ const ContractUpload = () => {
           </Form.Group>
 
           <Form.Group className="mb-3">
-            <Form.Label>File báo giá (PDF hoặc hình ảnh) - Tối đa 10MB</Form.Label>
+            <Form.Label>File báo giá (PDF hoặc hình ảnh) - Tối đa 25MB</Form.Label>
             <Form.Control
               type="file"
               accept=".pdf,.jpg,.jpeg,.png"
               onChange={(event) => {
                 const selectedFile = event.target.files?.[0];
                 if (selectedFile) {
-                  const maxSizeMB = 10;
+                  const maxSizeMB = 25;
                   const maxSizeBytes = maxSizeMB * 1024 * 1024;
                   if (selectedFile.size > maxSizeBytes) {
                     toast.error(`File vượt quá dung lượng cho phép. Tối đa ${maxSizeMB}MB.`);
