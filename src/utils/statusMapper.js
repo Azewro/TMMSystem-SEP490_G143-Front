@@ -95,16 +95,29 @@ export const getProductionOrderStatusFromStages = (order) => {
     const status = (activeStage.status === 'PAUSED') ? 'PAUSED' : activeStage.executionStatus;
     const isFirstStage = activeStage.stageSequence === 1 || activeStage.stageSequence === '1';
 
-    // For WAITING/READY status - check if first stage or not
-    if (['WAITING', 'READY', 'READY_TO_PRODUCE'].includes(status)) {
-      // If blocked, show "Chờ đến lượt"
+    // NEW: Direct mapping based on executionStatus (no longer need isBlocked flag)
+    // READY_TO_PRODUCE / READY = Leader can start this lot
+    // But if any stage has been worked on, order is still "Đang làm" (not "Sẵn sàng")
+    if (status === 'READY_TO_PRODUCE' || status === 'READY') {
+      // Check if any stage has been worked on (progress > 0 or QC_PASSED)
+      const hasStarted = stages.some(s =>
+        (s.progressPercent && s.progressPercent > 0) || s.executionStatus === 'QC_PASSED'
+      );
+      if (hasStarted) {
+        return { label: 'Đang làm', variant: 'info' };  // Production ongoing
+      }
+      // FIX: Check if blocked by another lot at the same stage type
+      // Per PM diagram: "Sẵn sàng sản xuất" only if no other lot is active at first stage
       if (activeStage.isBlocked) {
         return { label: 'Chờ đến lượt', variant: 'secondary' };
       }
-      // First stage WAITING = "Sẵn sàng sản xuất"
+      return { label: 'Sẵn sàng sản xuất', variant: 'primary' };  // Ready to start first stage
+    }
+    if (status === 'WAITING') {
+      // First stage WAITING = "Chờ đến lượt" (another lot is IN_PROGRESS)
       // Later stages WAITING (after previous stage passed QC) = "Đang làm"
       if (isFirstStage) {
-        return { label: 'Sẵn sàng sản xuất', variant: 'primary' };
+        return { label: 'Chờ đến lượt', variant: 'secondary' };
       } else {
         return { label: 'Đang làm', variant: 'info' };
       }
@@ -143,8 +156,8 @@ export const getProductionOrderStatusFromStages = (order) => {
   // Fallback: use first pending stage
   const firstPendingStage = stages.find(s => s.executionStatus === 'WAITING' || s.executionStatus === 'READY' || s.executionStatus === 'READY_TO_PRODUCE');
   if (firstPendingStage) {
-    // Check isBlocked from backend - if true, show "Chờ đến lượt"
-    if (firstPendingStage.isBlocked) {
+    // Direct mapping based on executionStatus (no longer need isBlocked)
+    if (firstPendingStage.executionStatus === 'WAITING') {
       return { label: 'Chờ đến lượt', variant: 'secondary' };
     }
     return { label: 'Sẵn sàng sản xuất', variant: 'primary' };
@@ -201,8 +214,20 @@ export const getLeaderOrderStatusFromStages = (order) => {
     const stageName = getStageTypeName(activeStage.stageType) || activeStage.stageType;
 
     // Status with stage name for Leader list
+    // DYEING/NHUOM stages are outsourced/parallel - never show as "Chờ đến lượt"
+    const isDyeingStage = ['DYEING', 'NHUOM'].includes(activeStage.stageType?.toUpperCase());
+
+    // Handle WAITING status separately with DYEING exception
+    if (status === 'WAITING') {
+      if (isDyeingStage) {
+        // DYEING is parallel/outsourced - always show "Sẵn sàng sản xuất"
+        return { label: `Sẵn sàng sản xuất ${stageName}`, variant: 'primary' };
+      }
+      // Other stages: WAITING means blocked by another lot
+      return { label: `Chờ đến lượt ${stageName}`, variant: 'secondary' };
+    }
+
     const statusConfig = {
-      'WAITING': { prefix: 'Sẵn sàng sản xuất', variant: 'primary' },
       'READY': { prefix: 'Sẵn sàng sản xuất', variant: 'primary' },
       'READY_TO_PRODUCE': { prefix: 'Sẵn sàng sản xuất', variant: 'primary' },
       'IN_PROGRESS': { prefix: 'Đang làm', variant: 'info' },
@@ -222,9 +247,13 @@ export const getLeaderOrderStatusFromStages = (order) => {
         return { label: config.label, variant: config.variant };
       }
       // Handle prefix format: "Status StageName"
+      // READY_TO_PRODUCE → "Sẵn sàng sản xuất xxx" OR "Chờ đến lượt xxx" if blocked
+      // WAITING → "Chờ đến lượt xxx" (when Leader tried to start but blocked)
+      // EXCEPTION: DYEING/NHUOM is a parallel stage - never show as "Chờ đến lượt"
       if (config.prefix) {
-        // Check if blocked
-        if (activeStage.isBlocked && ['WAITING', 'READY', 'READY_TO_PRODUCE'].includes(status)) {
+        // Check isBlocked for READY_TO_PRODUCE - if blocked by another lot (including QC), show "Chờ đến lượt"
+        // EXCEPTION: DYEING/NHUOM stages are outsourced/parallel - never blocked
+        if ((status === 'READY_TO_PRODUCE' || status === 'READY') && activeStage.isBlocked && !isDyeingStage) {
           return { label: `Chờ đến lượt ${stageName}`, variant: 'secondary' };
         }
         return { label: `${config.prefix} ${stageName}`, variant: config.variant };
@@ -258,7 +287,10 @@ export const getLeaderOrderStatusFromStages = (order) => {
   );
   if (firstPendingStage) {
     const stageName = getStageTypeName(firstPendingStage.stageType) || firstPendingStage.stageType;
-    if (firstPendingStage.isBlocked) {
+    // WAITING → "Chờ đến lượt" (blocked), EXCEPTION: DYEING is parallel
+    // READY_TO_PRODUCE → "Sẵn sàng sản xuất"
+    const isPendingDyeing = ['DYEING', 'NHUOM'].includes(firstPendingStage.stageType?.toUpperCase());
+    if (firstPendingStage.executionStatus === 'WAITING' && !isPendingDyeing) {
       return { label: `Chờ đến lượt ${stageName}`, variant: 'secondary' };
     }
     return { label: `Sẵn sàng sản xuất ${stageName}`, variant: 'primary' };
@@ -569,17 +601,17 @@ export const getLeaderStageStatusLabel = (status, defectSeverity = null) => {
     'WAITING': {
       label: 'Chờ làm',
       variant: 'primary',
-      buttons: [{ text: 'Bắt đầu', action: 'start', variant: 'success' }]
+      buttons: [{ text: 'Xem chi tiết', action: 'detail', variant: 'outline-secondary' }]
     },
     'READY': {
       label: 'Chờ làm',
       variant: 'primary',
-      buttons: [{ text: 'Bắt đầu', action: 'start', variant: 'success' }]
+      buttons: [{ text: 'Xem chi tiết', action: 'detail', variant: 'outline-secondary' }]
     },
     'READY_TO_PRODUCE': {
       label: 'Chờ làm',
       variant: 'primary',
-      buttons: [{ text: 'Bắt đầu', action: 'start', variant: 'success' }]
+      buttons: [{ text: 'Xem chi tiết', action: 'detail', variant: 'outline-secondary' }]
     },
     // Đang làm - leader bấm bắt đầu
     'IN_PROGRESS': {

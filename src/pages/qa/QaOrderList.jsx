@@ -92,6 +92,7 @@ const QaOrderList = () => {
             statusLabel: statusResult.label,
             statusVariant: statusResult.variant,
             qaStage: qaStage, // Store QA stage for button logic
+            stages: order.stages || [], // FIX: Include stages for button logic
             // Get leader name from first stage
             leaderName: order.stages?.[0]?.assignedLeader?.fullName || order.stages?.[0]?.assigneeName || 'Chưa phân công'
           };
@@ -388,9 +389,16 @@ const QaOrderList = () => {
                               </td>
                               <td className="text-end">
                                 {(() => {
-                                  // Find relevant stage
-                                  const renderStage = order.qaStage || order.stages.find(s => ['WAITING_QC', 'QC_IN_PROGRESS', 'QC_FAILED', 'QC_PASSED'].includes(s.executionStatus));
+                                  // Find stage needing inspection (prioritize WAITING_QC/QC_IN_PROGRESS)
+                                  // FIX: Don't rely on qaStage (which requires qcAssigneeId match)
+                                  const renderStage = order.stages?.find(s =>
+                                    ['WAITING_QC', 'QC_IN_PROGRESS'].includes(s.executionStatus)
+                                  ) || order.qaStage || order.stages?.find(s =>
+                                    ['QC_FAILED', 'QC_PASSED'].includes(s.executionStatus));
                                   const stageStatus = renderStage ? ((renderStage.status === 'PAUSED' ? 'PAUSED' : renderStage.executionStatus) || renderStage.status) : (order.executionStatus || order.status);
+
+                                  // DEBUG LOG
+                                  console.log('QA Button Debug:', order.lotCode, 'stages:', order.stages?.map(s => s.executionStatus), 'renderStage:', renderStage?.executionStatus, 'stageStatus:', stageStatus);
 
                                   const btnConfig = getButtonForStage(stageStatus, 'kcs');
 
@@ -484,8 +492,12 @@ const QaOrderList = () => {
                               </td>
                               <td className="text-end">
                                 {(() => {
-                                  // Find relevant stage (assigned to this Q/C or default to first waiting/in-progress)
-                                  const renderStage = order.qaStage || order.stages.find(s => ['WAITING_QC', 'QC_IN_PROGRESS', 'QC_FAILED', 'QC_PASSED'].includes(s.executionStatus));
+                                  // Find stage needing inspection (prioritize WAITING_QC/QC_IN_PROGRESS)
+                                  // FIX: Don't rely on qaStage (which requires qcAssigneeId match)
+                                  const renderStage = order.stages?.find(s =>
+                                    ['WAITING_QC', 'QC_IN_PROGRESS'].includes(s.executionStatus)
+                                  ) || order.qaStage || order.stages?.find(s =>
+                                    ['QC_FAILED', 'QC_PASSED'].includes(s.executionStatus));
                                   const stageStatus = renderStage ? (renderStage.executionStatus || renderStage.status) : (order.executionStatus || order.status);
 
                                   // Get button configuration from shared helper

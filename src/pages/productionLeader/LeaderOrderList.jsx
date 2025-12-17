@@ -26,6 +26,7 @@ const LeaderOrderList = () => {
   const [activeTab, setActiveTab] = useState('main'); // Track active tab
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0); // For WebSocket-triggered refresh
   const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
 
   useEffect(() => {
@@ -112,7 +113,19 @@ const LeaderOrderList = () => {
       }
     };
     fetchOrders();
-  }, [userId]);
+  }, [userId, refreshTrigger]);
+
+  // Auto-refresh when page gains focus (user switches tabs)
+  // This ensures Leader sees latest status after QA passes on another tab
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log('[LeaderOrderList] Window focused, triggering refetch...');
+      setRefreshTrigger(prev => prev + 1);
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
 
   const filteredOrders = useMemo(() => {
     return orders.filter((o) => {
