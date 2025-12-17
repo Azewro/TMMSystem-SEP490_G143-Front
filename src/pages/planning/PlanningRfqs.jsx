@@ -368,6 +368,12 @@ const PlanningRfqs = () => {
                           >
                             Ngày tạo {getSortIcon('createdDate')}
                           </th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('assignedSalesName')}
+                          >
+                            Sales {getSortIcon('assignedSalesName')}
+                          </th>
                           <th>Trạng thái</th>
                           <th>Hành Động</th>
                         </tr>
@@ -378,6 +384,7 @@ const PlanningRfqs = () => {
                             <td>{rfq.rfqNumber}</td>
                             <td>{rfq.contactPerson || 'N/A'}</td>
                             <td>{formatRfqDate(rfq)}</td>
+                            <td>{rfq.assignedSalesName || 'Chưa gán'}</td>
                             <td>
                               {(() => {
                                 const statusObj = getPlanningRfqStatus(rfq);
