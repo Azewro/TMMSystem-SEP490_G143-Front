@@ -436,14 +436,9 @@ const MyRfqs = () => {
                             <td>{formatRfqDate(rfq)}</td>
                             <td>
                               {(() => {
-                                const statusObj = getSalesRfqStatus(rfq.status);
+                                const statusObj = getSalesRfqStatus(rfq);
                                 return (
-                                  <div className="d-flex align-items-center gap-2">
-                                    <Badge bg={statusObj.variant}>{statusObj.label}</Badge>
-                                    {rfq.capacityStatus === 'INSUFFICIENT' && (
-                                      <Badge bg="warning" text="dark">Không đủ năng lực</Badge>
-                                    )}
-                                  </div>
+                                  <Badge bg={statusObj.variant}>{statusObj.label}</Badge>
                                 );
                               })()}
                             </td>

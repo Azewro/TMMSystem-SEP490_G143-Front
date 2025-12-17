@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Container, Card, Table, Badge, Button, Alert, Spinner, Form, InputGroup, Row, Col } from 'react-bootstrap';
+import { Container, Card, Table, Badge, Button, Alert, Spinner, Form, InputGroup, Row, Col, Modal } from 'react-bootstrap';
 import { FaSearch, FaSortUp, FaSortDown, FaSort } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
@@ -8,6 +8,7 @@ import { quotationService } from '../../api/quotationService';
 import { userService } from '../../api/userService';
 import { customerService } from '../../api/customerService';
 import { orderService } from '../../api/orderService';
+import { contractService } from '../../api/contractService';
 import Pagination from '../../components/Pagination';
 import toast from 'react-hot-toast';
 import { getSalesQuoteStatus } from '../../utils/statusMapper';
@@ -39,11 +40,26 @@ const formatCurrency = (amount) => {
   }).format(amount);
 };
 
+const formatDate = (value) => {
+  if (!value) return '';
+  try {
+    return new Date(value).toLocaleDateString('vi-VN');
+  } catch (error) {
+    return value;
+  }
+};
+
 const QuotesList = () => {
   const navigate = useNavigate();
   const [allQuotes, setAllQuotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Order detail modal state
+  const [orderDetailModalOpen, setOrderDetailModalOpen] = useState(false);
+  const [orderDetailLoading, setOrderDetailLoading] = useState(false);
+  const [orderDetailData, setOrderDetailData] = useState(null);
+  const [selectedContract, setSelectedContract] = useState(null);
 
   // Search, Filter and Pagination state
   const [searchTerm, setSearchTerm] = useState('');
@@ -58,10 +74,16 @@ const QuotesList = () => {
   const [sortColumn, setSortColumn] = useState('');
   const [sortDirection, setSortDirection] = useState('asc');
 
-  // Handle sort click
+  // Handle sort click - cycles: asc → desc → default
   const handleSort = (column) => {
     if (sortColumn === column) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      if (sortDirection === 'asc') {
+        setSortDirection('desc');
+      } else {
+        // Reset to default (no sort)
+        setSortColumn('');
+        setSortDirection('asc');
+      }
     } else {
       setSortColumn(column);
       setSortDirection('asc');
@@ -192,6 +214,18 @@ const QuotesList = () => {
           aValue = a.customer?.contactPerson || a.customer?.companyName || '';
           bValue = b.customer?.contactPerson || b.customer?.companyName || '';
           break;
+        case 'creator':
+          aValue = a.creator?.name || '';
+          bValue = b.creator?.name || '';
+          break;
+        case 'totalAmount':
+          aValue = parseFloat(a.totalAmount) || 0;
+          bValue = parseFloat(b.totalAmount) || 0;
+          return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+        case 'status':
+          aValue = a.status || '';
+          bValue = b.status || '';
+          break;
         default:
           return 0;
       }
@@ -210,26 +244,41 @@ const QuotesList = () => {
   };
 
   const handleViewOrder = async (quote) => {
+    setOrderDetailModalOpen(true);
+    setOrderDetailLoading(true);
+    setOrderDetailData(null);
+    setSelectedContract(null);
+
     try {
-      // First check if quote has orderId directly
-      if (quote.orderId) {
-        navigate(`/internal/orders/${quote.orderId}`);
-        return;
-      }
+      // Directly get order details by quotation ID using new endpoint
+      const orderDetails = await contractService.getContractByQuotationId(quote.id);
 
-      // If not, try to find order by quotation ID using the new optimized endpoint
-      const orders = await orderService.getOrdersByQuotationId(quote.id);
-
-      if (orders && orders.length > 0) {
-        // Navigate to the first order found (usually 1-1 mapping)
-        navigate(`/internal/orders/${orders[0].id}`);
+      if (orderDetails) {
+        // orderDetails contains both contract info and order items
+        setSelectedContract({
+          contractNumber: orderDetails.contractNumber,
+          status: orderDetails.status,
+          deliveryDate: orderDetails.deliveryDate,
+          totalAmount: orderDetails.totalAmount
+        });
+        setOrderDetailData(orderDetails);
       } else {
         toast.error('Không tìm thấy đơn hàng cho báo giá này');
+        setOrderDetailModalOpen(false);
       }
     } catch (error) {
-      console.error('Error finding order:', error);
+      console.error('Error loading order details:', error);
       toast.error('Lỗi khi tìm đơn hàng');
+      setOrderDetailModalOpen(false);
+    } finally {
+      setOrderDetailLoading(false);
     }
+  };
+
+  const closeOrderDetailModal = () => {
+    setOrderDetailModalOpen(false);
+    setOrderDetailData(null);
+    setSelectedContract(null);
   };
 
   return (
@@ -343,9 +392,24 @@ const QuotesList = () => {
                           >
                             Khách hàng {getSortIcon('customer')}
                           </th>
-                          <th>Người tạo</th>
-                          <th>Tổng tiền</th>
-                          <th>Trạng thái</th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('creator')}
+                          >
+                            Người tạo {getSortIcon('creator')}
+                          </th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('totalAmount')}
+                          >
+                            Tổng tiền {getSortIcon('totalAmount')}
+                          </th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('status')}
+                          >
+                            Trạng thái {getSortIcon('status')}
+                          </th>
                           <th style={{ width: 200 }} className="text-center">Thao tác</th>
                         </tr>
                       </thead>
@@ -456,6 +520,103 @@ const QuotesList = () => {
           </Container>
         </div>
       </div>
+
+      {/* Order Detail Modal */}
+      <Modal
+        show={orderDetailModalOpen}
+        onHide={closeOrderDetailModal}
+        size="lg"
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Chi tiết đơn hàng</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {orderDetailLoading ? (
+            <div className="text-center py-4">
+              <Spinner animation="border" size="sm" className="me-2" /> Đang tải chi tiết đơn hàng...
+            </div>
+          ) : orderDetailData && selectedContract ? (
+            <div>
+              {/* Customer Information */}
+              <Card className="mb-3">
+                <Card.Header>
+                  <strong>Thông tin khách hàng</strong>
+                </Card.Header>
+                <Card.Body>
+                  <Row>
+                    <Col md={6}>
+                      <p className="mb-2"><strong>Tên khách hàng:</strong> {orderDetailData.customerInfo?.customerName || selectedContract.customerName || 'N/A'}</p>
+                      <p className="mb-2"><strong>Công ty:</strong> {orderDetailData.customerInfo?.companyName || 'N/A'}</p>
+                    </Col>
+                    <Col md={6}>
+                      <p className="mb-2"><strong>Số điện thoại:</strong> {orderDetailData.customerInfo?.phoneNumber || 'N/A'}</p>
+                      <p className="mb-2"><strong>Email:</strong> {orderDetailData.customerInfo?.email || 'N/A'}</p>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+
+              {/* Order Information */}
+              <Card className="mb-3">
+                <Card.Header>
+                  <strong>Thông tin đơn hàng</strong>
+                </Card.Header>
+                <Card.Body>
+                  <Row>
+                    <Col md={6}>
+                      <p className="mb-2"><strong>Mã đơn hàng:</strong> {selectedContract.contractNumber || orderDetailData.contractNumber}</p>
+                      <p className="mb-2"><strong>Ngày giao hàng:</strong> {formatDate(selectedContract.deliveryDate || orderDetailData.deliveryDate)}</p>
+                      <p className="mb-2"><strong>Tổng giá trị:</strong> <span className="text-success fw-semibold">{formatCurrency(selectedContract.totalAmount || orderDetailData.totalAmount)}</span></p>
+                    </Col>
+                    <Col md={6}>
+                      <p className="mb-2"><strong>Trạng thái:</strong>
+                        <Badge bg={selectedContract.status === 'APPROVED' ? 'success' : 'info'} className="ms-2">
+                          {selectedContract.status === 'APPROVED' ? 'Hợp đồng đã ký được phê duyệt' : selectedContract.status}
+                        </Badge>
+                      </p>
+                    </Col>
+                  </Row>
+
+                  {/* Order Items Table */}
+                  {orderDetailData.orderItems && orderDetailData.orderItems.length > 0 && (
+                    <div className="mt-3">
+                      <h6 className="mb-2">Danh sách sản phẩm:</h6>
+                      <Table size="sm" bordered>
+                        <thead className="table-light">
+                          <tr>
+                            <th>Sản phẩm</th>
+                            <th>Số lượng</th>
+                            <th>Đơn giá</th>
+                            <th>Thành tiền</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {orderDetailData.orderItems.map((item, index) => (
+                            <tr key={item.productId || index}>
+                              <td>{item.productName}</td>
+                              <td>{item.quantity?.toLocaleString('vi-VN')}</td>
+                              <td>{formatCurrency(item.unitPrice)}</td>
+                              <td>{formatCurrency(item.totalPrice)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </Table>
+                    </div>
+                  )}
+                </Card.Body>
+              </Card>
+            </div>
+          ) : (
+            <Alert variant="warning">Không tìm thấy chi tiết đơn hàng.</Alert>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={closeOrderDetailModal}>
+            Đóng
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 };

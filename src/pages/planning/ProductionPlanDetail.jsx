@@ -334,18 +334,20 @@ const ProductionPlanDetail = () => {
             setMachines(machinesArray);
 
             const usersArray = allUsers?.content || (Array.isArray(allUsers) ? allUsers : []);
+            // Filter only active users (isActive === true)
+            const activeUsers = usersArray.filter(u => u.isActive === true || u.active === true);
             const normalizeRole = (roleName) => (roleName ? roleName.toLowerCase() : '');
-            const processLeaders = usersArray.filter(u => {
+            const processLeaders = activeUsers.filter(u => {
                 const role = normalizeRole(u.roleName);
                 return PROCESS_LEADER_KEYWORDS.some(keyword => role.includes(keyword));
             });
-            const productionManagers = usersArray.filter(u => {
+            const productionManagers = activeUsers.filter(u => {
                 const role = normalizeRole(u.roleName);
                 return PM_ROLE_KEYWORDS.some(keyword => role.includes(keyword));
             });
-            setInChargeUsers(processLeaders.length ? processLeaders : usersArray);
+            setInChargeUsers(processLeaders.length ? processLeaders : activeUsers);
             setPmUsers(productionManagers.length ? productionManagers : processLeaders);
-            setQcUsers(usersArray.filter(u => normalizeRole(u.roleName) === 'quality assurance department'));
+            setQcUsers(activeUsers.filter(u => normalizeRole(u.roleName) === 'quality assurance department'));
 
         } catch (err) {
             console.error('Failed to load initial data', err);
@@ -661,7 +663,7 @@ const ProductionPlanDetail = () => {
                                                     locale="vi"
                                                     className="form-control"
                                                     placeholderText="dd/mm/yyyy HH:mm"
-                                                    disabled={isReadOnly}
+                                                    disabled
                                                 />
                                             </div>
                                         </Col>
@@ -677,7 +679,7 @@ const ProductionPlanDetail = () => {
                                                     locale="vi"
                                                     className="form-control"
                                                     placeholderText="dd/mm/yyyy HH:mm"
-                                                    disabled={isReadOnly}
+                                                    disabled
                                                 />
                                             </div>
                                         </Col>
