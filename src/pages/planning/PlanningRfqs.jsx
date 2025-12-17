@@ -325,6 +325,7 @@ const PlanningRfqs = () => {
                       >
                         <option value="">Tất cả trạng thái</option>
                         <option value="WAITING_CREATE">Chờ tạo</option>
+                        <option value="CAPACITY_INSUFFICIENT">Không đủ năng lực</option>
                         <option value="QUOTED">Đã báo giá</option>
                         <option value="REJECTED">Đã từ chối</option>
                         <option value="CONFIRMED">Đã xác nhận</option>
