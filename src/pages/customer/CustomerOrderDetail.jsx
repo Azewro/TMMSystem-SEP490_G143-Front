@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Container, Card, Row, Col, Table, Badge, ListGroup, Button, Alert, Spinner, Modal } from 'react-bootstrap';
+import { Container, Card, Row, Col, Table, ListGroup, Button, Alert, Spinner, Modal } from 'react-bootstrap';
 import Header from '../../components/common/Header';
 import Sidebar from '../../components/common/Sidebar';
 import { contractService } from '../../api/contractService';
@@ -17,25 +17,6 @@ const getFileExtension = (url) => {
 };
 
 const isDocx = (url) => ['docx', 'doc'].includes(getFileExtension(url));
-
-const getStatusBadge = (status) => {
-  switch (status) {
-    case 'PENDING':
-      return { variant: 'secondary', text: 'Chờ xử lý' };
-    case 'APPROVED':
-      return { variant: 'info', text: 'Đã duyệt' };
-    case 'IN_PRODUCTION':
-      return { variant: 'primary', text: 'Đang sản xuất' };
-    case 'SHIPPED':
-      return { variant: 'warning', text: 'Đang giao hàng' };
-    case 'COMPLETED':
-      return { variant: 'success', text: 'Hoàn thành' };
-    case 'CANCELLED':
-      return { variant: 'danger', text: 'Đã hủy' };
-    default:
-      return { variant: 'light', text: 'Không xác định' };
-  }
-};
 
 const formatCurrency = (value) => {
   if (!value) return '0 ₫';
@@ -246,8 +227,6 @@ const CustomerOrderDetail = () => {
     return null;
   }
 
-  const statusInfo = getStatusBadge(order.status);
-
   return (
     <div>
       <Header />
@@ -269,10 +248,7 @@ const CustomerOrderDetail = () => {
               <Row>
                 <Col md={6}>
                   <p><strong>Ngày đặt hàng:</strong> {order.orderDate}</p>
-                  <p><strong>Ngày giao dự kiến:</strong> {order.expectedDeliveryDate}</p>
-                  <p className="mb-0">
-                    <strong>Trạng thái:</strong> <Badge bg={statusInfo.variant}>{statusInfo.text}</Badge>
-                  </p>
+                  <p className="mb-0"><strong>Ngày giao dự kiến:</strong> {order.expectedDeliveryDate}</p>
                 </Col>
                 <Col md={6}>
                   <p><strong>Người nhận:</strong> {order.customerInfo.contactPerson}</p>
@@ -326,128 +302,132 @@ const CustomerOrderDetail = () => {
             </Card.Body>
           </Card>
 
-          <Card className="mb-4">
-            <Card.Header as="h5">Tài liệu đã ký</Card.Header>
-            <Card.Body>
-              <Row className="g-3">
-                {/* Signed Quotation */}
-                <Col md={6}>
-                  <div className="border rounded p-3">
-                    <h6 className="mb-3">Báo giá đã ký</h6>
-                    {quotationFileUrl ? (
-                      <div className="d-flex gap-2 flex-wrap">
-                        <Button
-                          variant="outline-info"
-                          size="sm"
-                          onClick={() => handleViewFile(quotationFileUrl)}
-                          disabled={isDocx(quotationFileUrl)}
-                          title={isDocx(quotationFileUrl) ? 'File DOCX cần được tải về để xem' : 'Xem file báo giá'}
-                        >
-                          👁️ Xem báo giá
-                        </Button>
-                        <Button
-                          variant="info"
-                          size="sm"
-                          href={quotationFileUrl.startsWith('http') ? quotationFileUrl : `${API_BASE_URL}${quotationFileUrl.startsWith('/') ? '' : '/'}${quotationFileUrl}`}
-                          download
-                          onClick={(e) => {
-                            // Ensure download works with authentication
-                            const token = sessionStorage.getItem('token') || sessionStorage.getItem('userToken') || localStorage.getItem('userToken');
-                            if (token && !quotationFileUrl.startsWith('http')) {
-                              e.preventDefault();
-                              const fullUrl = `${API_BASE_URL}${quotationFileUrl.startsWith('/') ? '' : '/'}${quotationFileUrl}`;
-                              fetch(fullUrl, {
-                                headers: { 'Authorization': `Bearer ${token}` }
-                              })
-                                .then(res => res.blob())
-                                .then(blob => {
-                                  const url = window.URL.createObjectURL(blob);
-                                  const a = document.createElement('a');
-                                  a.href = url;
-                                  a.download = quotationFileUrl.split('/').pop() || 'quotation.pdf';
-                                  document.body.appendChild(a);
-                                  a.click();
-                                  window.URL.revokeObjectURL(url);
-                                  document.body.removeChild(a);
+          {/* Hide documents section until director approves the signed contract */}
+          {/* Documents only visible when status is APPROVED, SIGNED, IN_PRODUCTION, WAITING_PRODUCTION, COMPLETED, etc. */}
+          {!['DRAFT', 'PENDING_APPROVAL', 'PENDING_UPLOAD', 'REJECTED', 'CANCELED'].includes(order.status) && (
+            <Card className="mb-4">
+              <Card.Header as="h5">Tài liệu đã ký</Card.Header>
+              <Card.Body>
+                <Row className="g-3">
+                  {/* Signed Quotation */}
+                  <Col md={6}>
+                    <div className="border rounded p-3">
+                      <h6 className="mb-3">Báo giá đã ký</h6>
+                      {quotationFileUrl ? (
+                        <div className="d-flex gap-2 flex-wrap">
+                          <Button
+                            variant="outline-info"
+                            size="sm"
+                            onClick={() => handleViewFile(quotationFileUrl)}
+                            disabled={isDocx(quotationFileUrl)}
+                            title={isDocx(quotationFileUrl) ? 'File DOCX cần được tải về để xem' : 'Xem file báo giá'}
+                          >
+                            👁️ Xem báo giá
+                          </Button>
+                          <Button
+                            variant="info"
+                            size="sm"
+                            href={quotationFileUrl.startsWith('http') ? quotationFileUrl : `${API_BASE_URL}${quotationFileUrl.startsWith('/') ? '' : '/'}${quotationFileUrl}`}
+                            download
+                            onClick={(e) => {
+                              // Ensure download works with authentication
+                              const token = sessionStorage.getItem('token') || sessionStorage.getItem('userToken') || localStorage.getItem('userToken');
+                              if (token && !quotationFileUrl.startsWith('http')) {
+                                e.preventDefault();
+                                const fullUrl = `${API_BASE_URL}${quotationFileUrl.startsWith('/') ? '' : '/'}${quotationFileUrl}`;
+                                fetch(fullUrl, {
+                                  headers: { 'Authorization': `Bearer ${token}` }
                                 })
-                                .catch(err => {
-                                  console.error('Download error:', err);
-                                  toast.error('Không thể tải file');
-                                });
-                            }
-                          }}
-                        >
-                          ⬇️ Tải về báo giá
-                        </Button>
-                      </div>
-                    ) : (
-                      <Alert variant="info" className="mb-0 py-2">
-                        Chưa có file báo giá đã ký
-                      </Alert>
-                    )}
-                  </div>
-                </Col>
+                                  .then(res => res.blob())
+                                  .then(blob => {
+                                    const url = window.URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = quotationFileUrl.split('/').pop() || 'quotation.pdf';
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    window.URL.revokeObjectURL(url);
+                                    document.body.removeChild(a);
+                                  })
+                                  .catch(err => {
+                                    console.error('Download error:', err);
+                                    toast.error('Không thể tải file');
+                                  });
+                              }
+                            }}
+                          >
+                            ⬇️ Tải về báo giá
+                          </Button>
+                        </div>
+                      ) : (
+                        <Alert variant="info" className="mb-0 py-2">
+                          Chưa có file báo giá đã ký
+                        </Alert>
+                      )}
+                    </div>
+                  </Col>
 
-                {/* Signed Contract */}
-                <Col md={6}>
-                  <div className="border rounded p-3">
-                    <h6 className="mb-3">Hợp đồng đã ký</h6>
-                    {contractFileUrl ? (
-                      <div className="d-flex gap-2 flex-wrap">
-                        <Button
-                          variant="outline-secondary"
-                          size="sm"
-                          onClick={() => handleViewFile(contractFileUrl)}
-                          disabled={isDocx(contractFileUrl)}
-                          title={isDocx(contractFileUrl) ? 'File DOCX cần được tải về để xem' : 'Xem file hợp đồng'}
-                        >
-                          👁️ Xem hợp đồng
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          href={contractFileUrl.startsWith('http') ? contractFileUrl : `${API_BASE_URL}${contractFileUrl.startsWith('/') ? '' : '/'}${contractFileUrl}`}
-                          download
-                          onClick={(e) => {
-                            // Ensure download works with authentication
-                            const token = sessionStorage.getItem('token') || sessionStorage.getItem('userToken') || localStorage.getItem('userToken');
-                            if (token && !contractFileUrl.startsWith('http')) {
-                              e.preventDefault();
-                              const fullUrl = `${API_BASE_URL}${contractFileUrl.startsWith('/') ? '' : '/'}${contractFileUrl}`;
-                              fetch(fullUrl, {
-                                headers: { 'Authorization': `Bearer ${token}` }
-                              })
-                                .then(res => res.blob())
-                                .then(blob => {
-                                  const url = window.URL.createObjectURL(blob);
-                                  const a = document.createElement('a');
-                                  a.href = url;
-                                  a.download = contractFileUrl.split('/').pop() || 'contract.pdf';
-                                  document.body.appendChild(a);
-                                  a.click();
-                                  window.URL.revokeObjectURL(url);
-                                  document.body.removeChild(a);
+                  {/* Signed Contract */}
+                  <Col md={6}>
+                    <div className="border rounded p-3">
+                      <h6 className="mb-3">Hợp đồng đã ký</h6>
+                      {contractFileUrl ? (
+                        <div className="d-flex gap-2 flex-wrap">
+                          <Button
+                            variant="outline-secondary"
+                            size="sm"
+                            onClick={() => handleViewFile(contractFileUrl)}
+                            disabled={isDocx(contractFileUrl)}
+                            title={isDocx(contractFileUrl) ? 'File DOCX cần được tải về để xem' : 'Xem file hợp đồng'}
+                          >
+                            👁️ Xem hợp đồng
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            href={contractFileUrl.startsWith('http') ? contractFileUrl : `${API_BASE_URL}${contractFileUrl.startsWith('/') ? '' : '/'}${contractFileUrl}`}
+                            download
+                            onClick={(e) => {
+                              // Ensure download works with authentication
+                              const token = sessionStorage.getItem('token') || sessionStorage.getItem('userToken') || localStorage.getItem('userToken');
+                              if (token && !contractFileUrl.startsWith('http')) {
+                                e.preventDefault();
+                                const fullUrl = `${API_BASE_URL}${contractFileUrl.startsWith('/') ? '' : '/'}${contractFileUrl}`;
+                                fetch(fullUrl, {
+                                  headers: { 'Authorization': `Bearer ${token}` }
                                 })
-                                .catch(err => {
-                                  console.error('Download error:', err);
-                                  toast.error('Không thể tải file');
-                                });
-                            }
-                          }}
-                        >
-                          ⬇️ Tải về hợp đồng
-                        </Button>
-                      </div>
-                    ) : (
-                      <Alert variant="info" className="mb-0 py-2">
-                        Chưa có file hợp đồng đã ký
-                      </Alert>
-                    )}
-                  </div>
-                </Col>
-              </Row>
-            </Card.Body>
-          </Card>
+                                  .then(res => res.blob())
+                                  .then(blob => {
+                                    const url = window.URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = contractFileUrl.split('/').pop() || 'contract.pdf';
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    window.URL.revokeObjectURL(url);
+                                    document.body.removeChild(a);
+                                  })
+                                  .catch(err => {
+                                    console.error('Download error:', err);
+                                    toast.error('Không thể tải file');
+                                  });
+                              }
+                            }}
+                          >
+                            ⬇️ Tải về hợp đồng
+                          </Button>
+                        </div>
+                      ) : (
+                        <Alert variant="info" className="mb-0 py-2">
+                          Chưa có file hợp đồng đã ký
+                        </Alert>
+                      )}
+                    </div>
+                  </Col>
+                </Row>
+              </Card.Body>
+            </Card>
+          )}
 
           <Card>
             <Card.Header as="h5">Lịch sử đơn hàng</Card.Header>

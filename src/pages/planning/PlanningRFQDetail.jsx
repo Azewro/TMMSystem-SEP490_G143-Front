@@ -536,7 +536,7 @@ const PlanningRFQDetail = () => {
                 </div>
               )}
 
-              {/* Chi tiết tính toán năng lực */}
+              {/* TẠM ẨN - Chi tiết tính toán năng lực
               <div className="mb-3">
                 <h6>📊 Chi tiết tính toán:</h6>
                 <Table striped bordered size="sm">
@@ -568,6 +568,7 @@ const PlanningRFQDetail = () => {
                   </tbody>
                 </Table>
               </div>
+              */}
 
               {/* Danh sách đơn đang chiếm năng lực */}
               {capacityReportData.backlogOrders && capacityReportData.backlogOrders.length > 0 && (
@@ -587,16 +588,31 @@ const PlanningRFQDetail = () => {
                     <tbody>
                       {capacityReportData.backlogOrders
                         .slice((backlogPage - 1) * backlogPageSize, backlogPage * backlogPageSize)
-                        .map((order, idx) => (
-                          <tr key={idx}>
-                            <td>{(backlogPage - 1) * backlogPageSize + idx + 1}</td>
-                            <td>{order.quotationCode || 'N/A'}</td>
-                            <td>{order.customerName || 'N/A'}</td>
-                            <td>{order.deliveryDate ? new Date(order.deliveryDate).toLocaleDateString('vi-VN') : 'N/A'}</td>
-                            <td>{order.weightKg?.toFixed(2) || '0'}</td>
-                            <td><Badge bg={order.status === 'SENT' ? 'info' : order.status === 'ACCEPTED' ? 'success' : 'primary'}>{order.status}</Badge></td>
-                          </tr>
-                        ))}
+                        .map((order, idx) => {
+                          // Map status to Vietnamese
+                          const statusMap = {
+                            'ORDER_CREATED': 'Đã tạo đơn',
+                            'SENT': 'Đã gửi',
+                            'ACCEPTED': 'Đã chấp nhận',
+                            'PENDING': 'Chờ xử lý',
+                            'READY': 'Sẵn sàng',
+                            'PENDING_UPLOAD': 'Chờ upload',
+                            'PENDING_APPROVAL': 'Chờ duyệt',
+                            'APPROVED': 'Đã duyệt',
+                          };
+                          const displayStatus = statusMap[order.status] || order.status;
+                          const badgeVariant = order.status === 'SENT' ? 'info' : order.status === 'ACCEPTED' ? 'success' : order.status === 'ORDER_CREATED' ? 'primary' : 'secondary';
+                          return (
+                            <tr key={idx}>
+                              <td>{(backlogPage - 1) * backlogPageSize + idx + 1}</td>
+                              <td>{order.quotationCode || 'N/A'}</td>
+                              <td>{order.customerName || 'N/A'}</td>
+                              <td>{order.deliveryDate ? new Date(order.deliveryDate).toLocaleDateString('vi-VN') : 'N/A'}</td>
+                              <td>{order.weightKg?.toFixed(2) || '0'}</td>
+                              <td><Badge bg={badgeVariant}>{displayStatus}</Badge></td>
+                            </tr>
+                          );
+                        })}
                       <tr className="table-warning">
                         <td colSpan={4}><strong>Tổng Backlog</strong></td>
                         <td><strong>{capacityReportData.backlogWeightKg?.toFixed(2) || '0'} kg</strong></td>

@@ -30,7 +30,7 @@ const QuoteRequest = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAuthenticated, loading: authLoading } = useAuth();
-  const { clearCart } = useCart();
+  const { removeMultipleFromCart } = useCart();
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -404,7 +404,11 @@ const QuoteRequest = () => {
 
     try {
       await rfqService.createRfq(rfqData, isAuthenticated);
-      if (isFromCart) clearCart();
+      // Only remove the submitted products from cart, not the entire cart
+      if (isFromCart) {
+        const submittedProductIds = quoteItems.map(item => parseInt(item.productId));
+        removeMultipleFromCart(submittedProductIds);
+      }
 
       // Redirect based on authentication status
       if (isAuthenticated) {

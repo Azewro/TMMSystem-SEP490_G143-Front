@@ -115,7 +115,15 @@ const ProductionLots = () => {
     }
 
     if (statusFilter) {
-      result = result.filter(lot => lot.status === statusFilter);
+      result = result.filter(lot => {
+        // READY_FOR_PLANNING is stored in lot.status (lot has no plan yet)
+        // DRAFT, PENDING_APPROVAL, APPROVED, REJECTED are stored in lot.currentPlanStatus
+        if (statusFilter === 'READY_FOR_PLANNING') {
+          return lot.status === 'READY_FOR_PLANNING';
+        }
+        // For other statuses, check currentPlanStatus
+        return lot.currentPlanStatus === statusFilter;
+      });
     }
 
     if (deliveryDateFilter) {
@@ -335,7 +343,7 @@ const ProductionLots = () => {
                                 {lot.orderNumbers && lot.orderNumbers.length > 0 ? (
                                   lot.orderNumbers.map((orderNum, idx) => (
                                     <Badge key={idx} bg="light" text="dark" className="me-1 border">
-                                      {orderNum.startsWith('ORD-') ? orderNum : `ORD-${orderNum}`}
+                                      {orderNum}
                                     </Badge>
                                   ))
                                 ) : lot.contractNumbers && lot.contractNumbers.length > 0 ? (

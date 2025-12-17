@@ -386,7 +386,7 @@ const ProductionPlanApprovals = () => {
                   </Col>
                   <Col md={3}>
                     <Form.Group>
-                      <Form.Label className="mb-1 small">Lọc theo ngày tạo</Form.Label>
+                      <Form.Label className="mb-1 small">Lọc theo ngày bắt đầu</Form.Label>
                       <div className="custom-datepicker-wrapper">
                         <DatePicker
                           selected={parseDateString(createdDateFilter)}

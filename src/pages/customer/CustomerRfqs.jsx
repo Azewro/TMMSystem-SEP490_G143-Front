@@ -141,7 +141,7 @@ const CustomerRfqs = () => {
             case 'WAITING_CONFIRMATION':
               return rawStatus === 'DRAFT' || rawStatus === 'SENT';
             case 'CONFIRMED':
-              return rawStatus === 'PRELIMINARY_CHECKED' || rawStatus === 'FORWARDED_TO_PLANNING' || rawStatus === 'RECEIVED_BY_PLANNING';
+              return rawStatus === 'PRELIMINARY_CHECKED' || rawStatus === 'FORWARDED_TO_PLANNING' || rawStatus === 'RECEIVED_BY_PLANNING' || rawStatus === 'CAPACITY_INSUFFICIENT';
             case 'QUOTED':
               return rawStatus === 'QUOTED';
             case 'CANCELED':

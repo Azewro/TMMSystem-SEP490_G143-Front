@@ -325,6 +325,7 @@ const PlanningRfqs = () => {
                       >
                         <option value="">Tất cả trạng thái</option>
                         <option value="WAITING_CREATE">Chờ tạo</option>
+                        <option value="CAPACITY_INSUFFICIENT">Không đủ năng lực</option>
                         <option value="QUOTED">Đã báo giá</option>
                         <option value="REJECTED">Đã từ chối</option>
                         <option value="CONFIRMED">Đã xác nhận</option>
@@ -367,6 +368,12 @@ const PlanningRfqs = () => {
                           >
                             Ngày tạo {getSortIcon('createdDate')}
                           </th>
+                          <th
+                            style={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleSort('assignedSalesName')}
+                          >
+                            Sales {getSortIcon('assignedSalesName')}
+                          </th>
                           <th>Trạng thái</th>
                           <th>Hành Động</th>
                         </tr>
@@ -377,6 +384,7 @@ const PlanningRfqs = () => {
                             <td>{rfq.rfqNumber}</td>
                             <td>{rfq.contactPerson || 'N/A'}</td>
                             <td>{formatRfqDate(rfq)}</td>
+                            <td>{rfq.assignedSalesName || 'Chưa gán'}</td>
                             <td>
                               {(() => {
                                 const statusObj = getPlanningRfqStatus(rfq);
