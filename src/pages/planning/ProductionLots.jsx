@@ -343,7 +343,7 @@ const ProductionLots = () => {
                                 {lot.orderNumbers && lot.orderNumbers.length > 0 ? (
                                   lot.orderNumbers.map((orderNum, idx) => (
                                     <Badge key={idx} bg="light" text="dark" className="me-1 border">
-                                      {orderNum.startsWith('ORD-') ? orderNum : `ORD-${orderNum}`}
+                                      {orderNum}
                                     </Badge>
                                   ))
                                 ) : lot.contractNumbers && lot.contractNumbers.length > 0 ? (
