@@ -12,7 +12,7 @@ import DatePicker, { registerLocale } from 'react-datepicker';
 import { vi } from 'date-fns/locale/vi';
 import 'react-datepicker/dist/react-datepicker.css';
 import { parseDateString, formatDateForBackend } from '../../utils/validators';
-import useWebSocket from '../../hooks/useWebSocket';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 registerLocale('vi', vi);
 
@@ -93,13 +93,17 @@ const ProductionOrderList = () => {
     }
   }, []);
 
-  // WebSocket for real-time updates
-  const { isConnected } = useWebSocket({
-    onOrderUpdate: useCallback(() => {
-      console.log('[ProductionOrderList] Received order update, refreshing...');
-      fetchOrders();
-    }, [fetchOrders]),
-  });
+  // WebSocket subscription for real-time updates
+  const { subscribe, connected } = useWebSocketContext();
+  useEffect(() => {
+    const unsubscribe = subscribe('/topic/updates', (update) => {
+      if (update.entity === 'PRODUCTION_ORDER' || update.entity === 'PRODUCTION_PLAN') {
+        console.log('[ProductionOrderList] Received update, refreshing...', update);
+        fetchOrders();
+      }
+    });
+    return () => unsubscribe();
+  }, [subscribe, fetchOrders]);
 
   useEffect(() => {
     fetchOrders();
@@ -245,7 +249,7 @@ const ProductionOrderList = () => {
           <Container fluid className="p-4">
             <h3 className="mb-4" style={{ fontWeight: 600 }}>
               Quản lý sản xuất
-              {isConnected && (
+              {connected && (
                 <FaWifi className="ms-2 text-success" title="Real-time updates enabled" style={{ fontSize: '0.6em' }} />
               )}
             </h3>
