@@ -13,6 +13,7 @@ import DatePicker, { registerLocale } from 'react-datepicker';
 import { vi } from 'date-fns/locale/vi';
 import 'react-datepicker/dist/react-datepicker.css';
 import { parseDateString, formatDateForBackend } from '../../utils/validators';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 registerLocale('vi', vi);
 
@@ -46,6 +47,7 @@ const CustomerQuotations = () => {
     const [quotations, setQuotations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const { subscribe } = useWebSocketContext();
 
     // Search and filter state
     const [searchTerm, setSearchTerm] = useState('');
@@ -168,6 +170,20 @@ const CustomerQuotations = () => {
     useEffect(() => {
         fetchQuotations();
     }, [fetchQuotations]);
+
+    useEffect(() => {
+        // Subscribe to quotation updates
+        const unsubscribe = subscribe('/topic/updates', (update) => {
+            if (update.entity === 'QUOTATION') {
+                console.log('Customer Quotation List refresh triggered by WebSocket');
+                fetchQuotations(); // Trigger silent refresh
+            }
+        });
+
+        return () => {
+            if (unsubscribe) unsubscribe();
+        };
+    }, [subscribe, fetchQuotations]);
 
     useEffect(() => {
         setCurrentPage(1);

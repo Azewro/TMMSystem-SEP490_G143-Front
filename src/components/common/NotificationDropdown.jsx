@@ -5,6 +5,7 @@ import { notificationService } from '../../api/notificationService';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 const NotificationDropdown = ({ userId: propUserId }) => {
   const [notifications, setNotifications] = useState([]);
@@ -13,7 +14,8 @@ const NotificationDropdown = ({ userId: propUserId }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth(); // Get user from AuthContext
-  
+  const { subscribe } = useWebSocketContext(); // Use WebSocket from context
+
   // Lấy userId từ prop hoặc context
   const userId = propUserId || user?.id;
 
@@ -36,12 +38,32 @@ const NotificationDropdown = ({ userId: propUserId }) => {
 
   useEffect(() => {
     if (userId) {
-        loadNotifications();
-        // Auto refresh mỗi 30 giây
-        const interval = setInterval(loadNotifications, 30000);
-        return () => clearInterval(interval);
+      loadNotifications();
+
+      // Subscribe to real-time notifications
+      const unsubscribe = subscribe(`/user/${userId}/queue/notifications`, (notification) => {
+        console.log('Received real-time notification:', notification);
+        setNotifications(prev => {
+          // Sắp xếp lại sau khi thêm mới
+          const updated = [notification, ...prev];
+          return updated.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        });
+        setUnreadCount(prev => prev + 1);
+
+        // Hiển thị thông báo nhanh (Toast)
+        toast.success(notification.title || 'Bạn có thông báo mới', {
+          duration: 4000,
+          position: 'top-right',
+          icon: '🔔'
+        });
+      });
+
+      // Xóa polling 30s cũ
+      return () => {
+        if (unsubscribe) unsubscribe();
+      };
     }
-  }, [userId, loadNotifications]);
+  }, [userId, loadNotifications, subscribe]);
 
   const handleMarkAsRead = async (notificationId, e) => {
     e.stopPropagation();
@@ -89,7 +111,7 @@ const NotificationDropdown = ({ userId: propUserId }) => {
           // Thêm các role khác nếu cần
           break;
         case 'QUOTATION':
-           if (role === 'customer') {
+          if (role === 'customer') {
             navigate(`/customer/quotations/${notification.referenceId}`);
           } else {
             navigate(`/sales/quotes/${notification.referenceId}`);
@@ -103,10 +125,10 @@ const NotificationDropdown = ({ userId: propUserId }) => {
           }
           break;
         case 'PRODUCTION_PLAN':
-            if (role === 'director') {
-                navigate(`/director/production-plan-approvals`);
-            }
-            break;
+          if (role === 'director') {
+            navigate(`/director/production-plan-approvals`);
+          }
+          break;
         default:
           // Không điều hướng nếu không có route tương ứng
           break;

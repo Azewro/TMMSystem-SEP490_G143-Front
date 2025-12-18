@@ -12,6 +12,7 @@ import DatePicker, { registerLocale } from 'react-datepicker';
 import { vi } from 'date-fns/locale/vi';
 import 'react-datepicker/dist/react-datepicker.css';
 import { parseDateString, formatDateForBackend } from '../../utils/validators';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 registerLocale('vi', vi);
 
@@ -39,6 +40,7 @@ const ProductionLots = () => {
   const [filteredLots, setFilteredLots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { subscribe } = useWebSocketContext();
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -101,6 +103,20 @@ const ProductionLots = () => {
   useEffect(() => {
     loadProductionLots();
   }, [loadProductionLots]);
+
+  useEffect(() => {
+    // Subscribe to lot and plan updates
+    const unsubscribe = subscribe('/topic/updates', (update) => {
+      if (update.entity === 'PRODUCTION_LOT' || update.entity === 'PRODUCTION_PLAN') {
+        console.log('Production Lots refresh triggered by WebSocket');
+        loadProductionLots(); // Silent refresh
+      }
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [subscribe, loadProductionLots]);
 
   // Client-side filtering
   useEffect(() => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Container, Card, Table, Badge, Button, Spinner, Alert, Form, InputGroup, Row, Col } from 'react-bootstrap';
 import { FaSearch, FaSort, FaSortUp, FaSortDown, FaRedo } from 'react-icons/fa';
 import toast from 'react-hot-toast';
@@ -13,6 +13,7 @@ import DatePicker, { registerLocale } from 'react-datepicker';
 import { vi } from 'date-fns/locale/vi';
 import 'react-datepicker/dist/react-datepicker.css';
 import { parseDateString, formatDateForBackend } from '../../utils/validators';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 registerLocale('vi', vi);
 
@@ -45,6 +46,7 @@ const CustomerOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { subscribe } = useWebSocketContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [createdDateFilter, setCreatedDateFilter] = useState('');
@@ -55,76 +57,90 @@ const CustomerOrders = () => {
   const [totalElements, setTotalElements] = useState(0);
   const ITEMS_PER_PAGE = 10;
 
+  const fetchOrders = useCallback(async () => {
+    if (!user?.customerId) {
+      setError('Không tìm thấy thông tin khách hàng.');
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      // Fetch all contracts to filter client-side (because of complex status mapping)
+      let allContracts = [];
+      let page = 0;
+      let hasMore = true;
+
+      while (hasMore) {
+        const response = await contractService.getAllContracts(page, ITEMS_PER_PAGE, searchTerm || undefined, undefined); // Don't send statusFilter to backend
+
+        let pageContracts = [];
+        if (response && response.content) {
+          pageContracts = response.content;
+        } else if (Array.isArray(response)) {
+          pageContracts = response;
+        }
+
+        allContracts = [...allContracts, ...pageContracts];
+
+        if (pageContracts.length < ITEMS_PER_PAGE) {
+          hasMore = false;
+        } else {
+          page++;
+        }
+      }
+
+      // Filter contracts for the current customer
+      let customerOrders = allContracts.filter(
+        (contract) => contract.customerId === parseInt(user.customerId, 10)
+      );
+
+      // Client-side Status Filter
+      if (statusFilter) {
+        customerOrders = customerOrders.filter(order => {
+          const statusObj = getCustomerOrderStatus(order.status);
+          return statusObj.value === statusFilter;
+        });
+      }
+
+      // Client-side Date Filter
+      if (createdDateFilter) {
+        customerOrders = customerOrders.filter(order => {
+          if (!order.createdAt) return false;
+          const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
+          return orderDate === createdDateFilter;
+        });
+      }
+
+      setTotalElements(customerOrders.length);
+      setTotalPages(Math.ceil(customerOrders.length / ITEMS_PER_PAGE));
+      setOrders(customerOrders);
+    } catch (e) {
+      setError(e.message || 'Không thể tải danh sách đơn hàng');
+    } finally {
+      setLoading(false);
+    }
+  }, [user, searchTerm, statusFilter, createdDateFilter]);
+
   useEffect(() => {
-    const fetchOrders = async () => {
-      if (!user?.customerId) {
-        setError('Không tìm thấy thông tin khách hàng.');
-        setLoading(false);
-        return;
-      }
-      setLoading(true);
-      setError('');
-      try {
-        // Fetch all contracts to filter client-side (because of complex status mapping)
-        let allContracts = [];
-        let page = 0;
-        let hasMore = true;
-
-        while (hasMore) {
-          const response = await contractService.getAllContracts(page, ITEMS_PER_PAGE, searchTerm || undefined, undefined); // Don't send statusFilter to backend
-
-          let pageContracts = [];
-          if (response && response.content) {
-            pageContracts = response.content;
-          } else if (Array.isArray(response)) {
-            pageContracts = response;
-          }
-
-          allContracts = [...allContracts, ...pageContracts];
-
-          if (pageContracts.length < ITEMS_PER_PAGE) {
-            hasMore = false;
-          } else {
-            page++;
-          }
-        }
-
-        // Filter contracts for the current customer
-        let customerOrders = allContracts.filter(
-          (contract) => contract.customerId === parseInt(user.customerId, 10)
-        );
-
-        // Client-side Status Filter
-        if (statusFilter) {
-          customerOrders = customerOrders.filter(order => {
-            const statusObj = getCustomerOrderStatus(order.status);
-            return statusObj.value === statusFilter;
-          });
-        }
-
-        // Client-side Date Filter
-        if (createdDateFilter) {
-          customerOrders = customerOrders.filter(order => {
-            if (!order.createdAt) return false;
-            const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
-            return orderDate === createdDateFilter;
-          });
-        }
-
-        setTotalElements(customerOrders.length);
-        setTotalPages(Math.ceil(customerOrders.length / ITEMS_PER_PAGE));
-        setOrders(customerOrders);
-      } catch (e) {
-        setError(e.message || 'Không thể tải danh sách đơn hàng');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (user) {
       fetchOrders();
     }
-  }, [user, searchTerm, statusFilter, createdDateFilter]); // Removed currentPage dependency as we handle pagination client-side now
+  }, [user, fetchOrders]);
+
+  useEffect(() => {
+    // Subscribe to contract updates
+    const unsubscribe = subscribe('/topic/updates', (update) => {
+      if (update.entity === 'CONTRACT') {
+        console.log('Customer Orders refresh triggered by WebSocket');
+        fetchOrders(); // Trigger silent refresh
+      }
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [subscribe, fetchOrders]);
 
   useEffect(() => {
     // Reset to page 1 when filters change

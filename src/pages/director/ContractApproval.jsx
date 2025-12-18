@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Container, Card, Table, Button, Modal, Form, Alert, Spinner, Badge, InputGroup, Row, Col } from 'react-bootstrap';
 import { FaSearch, FaDownload, FaEye, FaFileContract, FaFileInvoiceDollar, FaExclamationTriangle } from 'react-icons/fa';
 import Header from '../../components/common/Header';
@@ -14,6 +14,7 @@ import DatePicker, { registerLocale } from 'react-datepicker';
 import { vi } from 'date-fns/locale/vi';
 import 'react-datepicker/dist/react-datepicker.css';
 import { parseDateString, formatDateForBackend } from '../../utils/validators';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 registerLocale('vi', vi);
 
@@ -60,6 +61,7 @@ const DirectorContractApproval = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const { subscribe } = useWebSocketContext();
   const [selectedContract, setSelectedContract] = useState(null);
   const [orderDetails, setOrderDetails] = useState(null);
   const [fileUrl, setFileUrl] = useState('');
@@ -84,7 +86,7 @@ const DirectorContractApproval = () => {
   const [showFileViewer, setShowFileViewer] = useState(false);
   const [viewerUrl, setViewerUrl] = useState('');
 
-  const loadContracts = async () => {
+  const loadContracts = useCallback(async () => {
     setLoading(true);
     setError('');
 
@@ -135,11 +137,25 @@ const DirectorContractApproval = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadContracts();
-  }, []);
+  }, [loadContracts]);
+
+  useEffect(() => {
+    // Subscribe to contract updates
+    const unsubscribe = subscribe('/topic/updates', (update) => {
+      if (update.entity === 'CONTRACT') {
+        console.log('Contract List refresh triggered by WebSocket');
+        loadContracts(); // Silent refresh
+      }
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [subscribe, loadContracts]);
 
   // Frontend Filtering Logic
   useEffect(() => {

@@ -1,91 +1,98 @@
-import { useState, useEffect, useCallback } from 'react';
-import websocketService from '../api/websocketService';
+import { useRef, useEffect, useState, useCallback } from 'react';
+import { Client } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
+
+const SOCKET_URL = '/ws'; // Backend registers this endpoint
 
 /**
- * React hook for WebSocket real-time updates.
- * 
- * @param {Object} options - Options
- * @param {Function} options.onOrderUpdate - Callback when order updates
- * @param {Function} options.onStageUpdate - Callback when stage updates
- * @param {Function} options.onDefectUpdate - Callback when defect updates
- * @param {boolean} options.autoConnect - Auto connect on mount (default: true)
- * @returns {Object} { isConnected, connect, disconnect }
+ * Hook to manage a single WebSocket connection using STOMP over SockJS.
  */
-export const useWebSocket = (options = {}) => {
-    const {
-        onOrderUpdate,
-        onStageUpdate,
-        onDefectUpdate,
-        autoConnect = true,
-    } = options;
+const useWebSocket = (token) => {
+    const [connected, setConnected] = useState(false);
+    const clientRef = useRef(null);
+    const subscriptions = useRef(new Map());
 
-    const [isConnected, setIsConnected] = useState(false);
-
-    const connect = useCallback(async () => {
-        try {
-            await websocketService.connect();
-            setIsConnected(true);
-        } catch (error) {
-            console.error('[useWebSocket] Connection failed:', error);
-            setIsConnected(false);
+    const connect = useCallback(() => {
+        if (clientRef.current && clientRef.current.active) {
+            return;
         }
-    }, []);
+
+        const client = new Client({
+            webSocketFactory: () => new SockJS(SOCKET_URL),
+            connectHeaders: {
+                Authorization: `Bearer ${token}`
+            },
+            debug: (str) => {
+                // console.log('STOMP: ' + str);
+            },
+            reconnectDelay: 5000,
+            heartbeatIncoming: 4000,
+            heartbeatOutgoing: 4000,
+        });
+
+        client.onConnect = (frame) => {
+            console.log('Connected to WebSocket');
+            setConnected(true);
+
+            // Re-subscribe to existing topics on reconnect
+            subscriptions.current.forEach((callback, topic) => {
+                client.subscribe(topic, (message) => {
+                    callback(JSON.parse(message.body));
+                });
+            });
+        };
+
+        client.onStompError = (frame) => {
+            console.error('STOMP error', frame.headers['message']);
+            setConnected(false);
+        };
+
+        client.onDisconnect = () => {
+            console.log('Disconnected from WebSocket');
+            setConnected(false);
+        };
+
+        client.activate();
+        clientRef.current = client;
+    }, [token]);
 
     const disconnect = useCallback(() => {
-        websocketService.disconnect();
-        setIsConnected(false);
+        if (clientRef.current) {
+            clientRef.current.deactivate();
+            clientRef.current = null;
+            setConnected(false);
+        }
+    }, []);
+
+    const subscribe = useCallback((topic, callback) => {
+        if (!topic || !callback) return;
+
+        // Save subscription for reconnection
+        subscriptions.current.set(topic, callback);
+
+        if (clientRef.current && clientRef.current.connected) {
+            const subscription = clientRef.current.subscribe(topic, (message) => {
+                callback(JSON.parse(message.body));
+            });
+            return () => {
+                subscription.unsubscribe();
+                subscriptions.current.delete(topic);
+            };
+        }
     }, []);
 
     useEffect(() => {
-        if (autoConnect) {
+        if (token) {
             connect();
+        } else {
+            disconnect();
         }
-
-        return () => {
-            // Don't disconnect on unmount - keep connection for other components
-        };
-    }, [autoConnect, connect]);
-
-    // Subscribe to order updates
-    useEffect(() => {
-        if (!onOrderUpdate) return;
-
-        const unsubscribe = websocketService.subscribeToOrders((data) => {
-            console.log('[WebSocket] Order update received:', data);
-            onOrderUpdate(data);
-        });
-
-        return unsubscribe;
-    }, [onOrderUpdate]);
-
-    // Subscribe to stage updates
-    useEffect(() => {
-        if (!onStageUpdate) return;
-
-        const unsubscribe = websocketService.subscribeToStages((data) => {
-            console.log('[WebSocket] Stage update received:', data);
-            onStageUpdate(data);
-        });
-
-        return unsubscribe;
-    }, [onStageUpdate]);
-
-    // Subscribe to defect updates
-    useEffect(() => {
-        if (!onDefectUpdate) return;
-
-        const unsubscribe = websocketService.subscribeToDefects((data) => {
-            console.log('[WebSocket] Defect update received:', data);
-            onDefectUpdate(data);
-        });
-
-        return unsubscribe;
-    }, [onDefectUpdate]);
+        return () => disconnect();
+    }, [token, connect, disconnect]);
 
     return {
-        isConnected,
-        connect,
-        disconnect,
+        connected,
+        subscribe
     };
 };
 
