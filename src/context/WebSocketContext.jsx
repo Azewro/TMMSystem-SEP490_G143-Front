@@ -16,7 +16,7 @@ export const WebSocketProvider = ({ children }) => {
     const { user } = useAuth();
     // Use user ID or token as connection trigger. 
     // Here we use user?.id to ensure we only connect when logged in.
-    const token = sessionStorage.getItem('token');
+    const token = sessionStorage.getItem('userToken');
 
     const { connected, subscribe } = useWebSocket(token);
 
