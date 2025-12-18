@@ -284,7 +284,7 @@ const StageProgressDetail = () => {
           stageName: getStageTypeName(stage.stageType) || stage.stageType || 'N/A',
           responsiblePerson: stage.assignedLeader?.fullName ||
             stage.assigneeName ||
-            (stage.stageType === 'DYEING' || stage.stageType === 'NHUOM' ? 'Production Manager' : 'Chưa phân công'),
+            'Chưa phân công',
           plannedDurationHours: stage.plannedDurationHours ? Number(stage.plannedDurationHours) : 0,
           progressPercent: stage.progressPercent || 0,
           remainingHours: stage.remainingHours ? Number(stage.remainingHours) : 0,
@@ -647,48 +647,7 @@ const StageProgressDetail = () => {
                 </Card.Body>
               </Card>
 
-              {/* Button "Bắt đầu" for DYEING stage - Show only when PENDING or can start (WAITING, READY) */}
-              {isDyeingStage && (isDyeingPending || canStartDyeing) && (
-                <Card className="shadow-sm mb-3" style={{ borderColor: '#e7f1ff', backgroundColor: '#f5f9ff' }}>
-                  <Card.Body className="d-flex justify-content-center">
-                    <Button
-                      variant="primary"
-                      size="lg"
-                      onClick={handleStartStage}
-                      disabled={isDyeingPending || !canStartDyeing}
-                      title={isDyeingPending ? 'Chưa đến lượt, chỉ có thể xem' : (canStartDyeing ? 'Bắt đầu công đoạn' : 'Công đoạn đang trong tiến trình khác')}
-                    >
-                      Bắt đầu công đoạn
-                    </Button>
-                  </Card.Body>
-                </Card>
-              )}
 
-              {/* Update progress section for DYEING stage */}
-              {canUpdateProgress && (
-                <Card className="shadow-sm mb-3" style={{ borderColor: '#e7f1ff', backgroundColor: '#f5f9ff' }}>
-                  <Card.Body>
-                    <div className="d-flex justify-content-between align-items-center mb-3">
-                      <strong>Cập nhật tiến độ (công đoạn Nhuộm)</strong>
-                      <small className="text-muted">Nhập tiến độ từ 0 đến 100</small>
-                    </div>
-                    <div className="d-flex align-items-center gap-3 flex-wrap">
-                      <Form.Control
-                        type="number"
-                        min={0}
-                        max={100}
-                        placeholder="Tiến độ (%)"
-                        value={progressInput}
-                        onChange={(e) => setProgressInput(e.target.value)}
-                        style={{ maxWidth: 200 }}
-                      />
-                      <Button variant="dark" className="btn-pill-primary" onClick={handleUpdateProgress}>
-                        Cập nhật
-                      </Button>
-                    </div>
-                  </Card.Body>
-                </Card>
-              )}
 
               <Card className="shadow-sm mb-3">
                 <Card.Body className="p-0">

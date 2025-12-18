@@ -30,7 +30,7 @@ const statusConfig = {
   PROCESSED: { label: 'Sẵn sàng sửa lỗi', variant: 'primary', priority: 1 },
   WAITING: { label: 'Chờ đến lượt sửa lỗi', variant: 'secondary', priority: 2 },
   IN_PROGRESS: { label: 'Đang xử lý', variant: 'info', priority: 3 },
-  RESOLVED: { label: 'Đã xử lý', variant: 'success', priority: 4 },
+  RESOLVED: { label: 'Hoàn thành', variant: 'success', priority: 4 },
 };
 
 
@@ -211,9 +211,10 @@ const LeaderDefectList = () => {
 
       toast.success('Đã bắt đầu sửa lỗi');
 
-      // Navigate to progress page
+      // Navigate to progress page with stageId
       navigate(`/leader/orders/${defect.orderId}/progress`, {
         state: {
+          stageId: defect.stageId,
           defectId: defect.id,
           severity: defect.severity
         }
@@ -396,15 +397,23 @@ const LeaderDefectList = () => {
                                 <Button
                                   size="sm"
                                   variant="outline-info"
-                                  onClick={() => navigate(`/leader/orders/${defect.orderId}/progress`)}
+                                  onClick={() => navigate(`/leader/orders/${defect.orderId}/progress`, { state: { stageId: defect.stageId } })}
                                 >
                                   Cập nhật tiến độ
+                                </Button>
+                              ) : defect.status === 'RESOLVED' ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline-success"
+                                  onClick={() => navigate(`/leader/orders/${defect.orderId}`, { state: { stageId: defect.stageId } })}
+                                >
+                                  Xem chi tiết
                                 </Button>
                               ) : (
                                 <Button
                                   size="sm"
                                   variant="outline-danger"
-                                  disabled={processingDefectId === defect.id || defect.status === 'RESOLVED'}
+                                  disabled={processingDefectId === defect.id}
                                   onClick={() => handleStartRework(defect)}
                                 >
                                   {processingDefectId === defect.id ? (

@@ -1,9 +1,9 @@
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
 
-// Get the WebSocket URL from the API base URL
+// Get the WebSocket URL from environment variable with fallback to production
 const getWsUrl = () => {
-    const apiUrl = 'https://tmmsystem-sep490g143-production.up.railway.app';
+    const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://tmmsystem-sep490g143-production.up.railway.app';
     return `${apiUrl}/ws`;
 };
 

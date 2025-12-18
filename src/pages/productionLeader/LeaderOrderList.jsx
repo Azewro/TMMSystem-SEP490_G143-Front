@@ -6,6 +6,7 @@ import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import Pagination from '../../components/Pagination';
 import { productionService } from '../../api/productionService';
+import { executionService } from '../../api/executionService';
 import { orderService } from '../../api/orderService';
 import { getLeaderStageStatusLabel, getLeaderOrderStatusFromStages, getStageTypeName } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
@@ -274,15 +275,13 @@ const LeaderOrderList = () => {
               <Tab eventKey="main" title="Lô sản xuất chính">
                 <OrderTable
                   orders={mainOrders}
-                  handleStart={handleStart}
-                  handleViewDetail={handleViewDetail}
+                  navigate={navigate}
                 />
               </Tab>
               <Tab eventKey="rework" title="Lô bổ sung (Sửa lỗi)">
                 <OrderTable
                   orders={reworkOrders}
-                  handleStart={handleStart}
-                  handleViewDetail={handleViewDetail}
+                  navigate={navigate}
                   isRework={true}
                 />
               </Tab>
@@ -294,7 +293,7 @@ const LeaderOrderList = () => {
   );
 };
 
-const OrderTable = ({ orders, handleStart, handleViewDetail, isRework = false }) => {
+const OrderTable = ({ orders, navigate, isRework = false }) => {
   // Sort state
   const [sortColumn, setSortColumn] = useState('');
   const [sortDirection, setSortDirection] = useState('asc');
@@ -491,9 +490,69 @@ const OrderTable = ({ orders, handleStart, handleViewDetail, isRework = false })
                       {(() => {
                         // Filter buttons - hide 'start' action when waiting for turn (another lot using the machine)
                         const isWaitingForTurn = statusLabel.includes('Chờ đến lượt');
-                        const filteredButtons = isWaitingForTurn
+                        let filteredButtons = isWaitingForTurn
                           ? buttons.filter(btn => btn.action !== 'start')
                           : buttons;
+
+                        // For IN_PROGRESS status, show both "Xem chi tiết" and "Cập nhật tiến độ" buttons
+                        const isInProgress = stage && ['IN_PROGRESS', 'REWORK_IN_PROGRESS'].includes(stage.status);
+                        if (isInProgress) {
+                          return (
+                            <div className="d-flex gap-1 justify-content-end flex-wrap">
+                              <Button
+                                size="sm"
+                                variant="outline-secondary"
+                                onClick={() => navigate(`/leader/orders/${order.id}`)}
+                              >
+                                Xem chi tiết
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="primary"
+                                onClick={() => navigate(`/leader/orders/${order.id}/progress`, { state: { stageId: stage.id } })}
+                              >
+                                Cập nhật tiến độ
+                              </Button>
+                            </div>
+                          );
+                        }
+
+                        // For READY_TO_PRODUCE status, show "Xem chi tiết" and "Bắt đầu" buttons
+                        const isReadyToStart = stage && ['READY_TO_PRODUCE', 'READY', 'WAITING'].includes(stage.status) && !isWaitingForTurn;
+                        if (isReadyToStart) {
+                          const handleStartStage = async () => {
+                            try {
+                              await executionService.startStage(stage.id, sessionStorage.getItem('userId') || localStorage.getItem('userId'));
+                              toast.success('Đã bắt đầu công đoạn');
+                              navigate(`/leader/orders/${order.id}/progress`, { state: { stageId: stage.id } });
+                            } catch (error) {
+                              const msg = error.response?.data?.message || error.message || 'Lỗi khi bắt đầu công đoạn';
+                              if (msg.includes('BLOCKING')) {
+                                toast.error(msg.replace('java.lang.RuntimeException: BLOCKING: ', ''));
+                              } else {
+                                toast.error(msg);
+                              }
+                            }
+                          };
+                          return (
+                            <div className="d-flex gap-1 justify-content-end flex-wrap">
+                              <Button
+                                size="sm"
+                                variant="outline-secondary"
+                                onClick={() => navigate(`/leader/orders/${order.id}`)}
+                              >
+                                Xem chi tiết
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="success"
+                                onClick={handleStartStage}
+                              >
+                                Bắt đầu
+                              </Button>
+                            </div>
+                          );
+                        }
 
                         return !orderLocked && filteredButtons.length > 0 ? (
                           filteredButtons.map((btn, idx) => (
@@ -503,10 +562,12 @@ const OrderTable = ({ orders, handleStart, handleViewDetail, isRework = false })
                               variant={btn.variant}
                               className="me-1"
                               onClick={() => {
-                                if (btn.action === 'start' || btn.action === 'update' || btn.action === 'rework') {
-                                  handleStart(order);
+                                if (btn.action === 'update' || btn.action === 'rework') {
+                                  navigate(`/leader/orders/${order.id}/progress`, { state: { stageId: stage?.id } });
+                                } else if (btn.action === 'start') {
+                                  navigate(`/leader/orders/${order.id}`);
                                 } else {
-                                  handleViewDetail(order);
+                                  navigate(`/leader/orders/${order.id}`);
                                 }
                               }}
                             >
@@ -517,7 +578,7 @@ const OrderTable = ({ orders, handleStart, handleViewDetail, isRework = false })
                           <Button
                             size="sm"
                             variant="outline-secondary"
-                            onClick={() => handleViewDetail(order)}
+                            onClick={() => navigate(`/leader/orders/${order.id}`)}
                           >
                             Xem chi tiết
                           </Button>

@@ -402,11 +402,22 @@ const QaOrderList = () => {
 
                                   const btnConfig = getButtonForStage(stageStatus, 'kcs');
 
+                                  // Navigate to check page directly for QC_IN_PROGRESS, otherwise to order detail
+                                  const handleClick = () => {
+                                    if (['WAITING_QC', 'QC_IN_PROGRESS'].includes(stageStatus) && renderStage?.stageType) {
+                                      // Navigate directly to check page for inspection
+                                      navigate(`/qa/orders/${order.id}/stages/${renderStage.stageType}/check`);
+                                    } else {
+                                      // Default: go to order detail
+                                      navigate(`/qa/orders/${order.id}`);
+                                    }
+                                  };
+
                                   return (
                                     <Button
                                       size="sm"
                                       variant={btnConfig.variant}
-                                      onClick={() => handleInspect(order)}
+                                      onClick={handleClick}
                                     >
                                       {btnConfig.text}
                                     </Button>
@@ -504,17 +515,22 @@ const QaOrderList = () => {
                                   // 'kcs' role triggers QA/KCS specific button logic (Inspect/Detail)
                                   const btnConfig = getButtonForStage(stageStatus, 'kcs');
 
+                                  // Navigate to check page directly for QC_IN_PROGRESS, otherwise to order detail
+                                  const handleClick = () => {
+                                    if (['WAITING_QC', 'QC_IN_PROGRESS'].includes(stageStatus) && renderStage?.stageType) {
+                                      // Navigate directly to check page for inspection
+                                      navigate(`/qa/orders/${order.id}/stages/${renderStage.stageType}/check`);
+                                    } else {
+                                      // Default: go to order detail
+                                      navigate(`/qa/orders/${order.id}`);
+                                    }
+                                  };
+
                                   return (
                                     <Button
                                       size="sm"
                                       variant={btnConfig.variant}
-                                      onClick={() => {
-                                        if (btnConfig.action === 'inspect') {
-                                          handleInspect(order);
-                                        } else {
-                                          handleInspect(order); // Both detail and inspect go to same page currently
-                                        }
-                                      }}
+                                      onClick={handleClick}
                                     >
                                       {btnConfig.text}
                                     </Button>

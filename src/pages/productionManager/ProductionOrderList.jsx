@@ -69,7 +69,7 @@ const ProductionOrderList = () => {
 
         return {
           id: order.id,
-          lotCode: order.lotCode || order.poNumber,
+          lotCode: (order.poNumber || "").replace('PO-', 'LOT-'),
           productName: order.productName || order.contract?.contractNumber || 'N/A',
           size: order.size || '-',
           quantity: order.totalQuantity || 0,

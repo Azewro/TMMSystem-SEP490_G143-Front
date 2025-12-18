@@ -35,14 +35,12 @@ const ProductionOrderDetail = () => {
           name: getStageTypeName(s.stageType) || s.stageType,
           assignee: s.assignedLeader?.fullName ||
             s.assigneeName ||
-            (isDyeingStage ? 'Production Manager' : 'Chưa phân công'),
+            'Chưa phân công',
           status: s.executionStatus || s.status,
           statusLabel: stageStatus.label,
           statusVariant: stageStatus.variant,
-          // Always include at least Chi tiết button - for Dyeing, only keep non-start/update buttons
-          buttons: isDyeingStage
-            ? (stageStatus.buttons || []).filter(btn => btn.action === 'detail')
-            : stageStatus.buttons,
+          // Always include at least Chi tiết button
+          buttons: stageStatus.buttons,
           progress: s.progressPercent || 0,
           isDyeingStage: isDyeingStage
         };
