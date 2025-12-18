@@ -75,8 +75,8 @@ const CreateCustomerModal = ({ show, onHide, onSave, customer = null, mode = 'cr
 
   const validateTaxCode = (taxCode) => {
     if (!taxCode) return true; // Optional field
-    // Mã số thuế thường có 10 hoặc 13 chữ số
-    return /^[0-9]{10,13}$/.test(taxCode);
+    // Vietnam tax code: exactly 10 digits OR exactly 13 digits
+    return /^[0-9]{10}$|^[0-9]{13}$/.test(taxCode);
   };
 
   const validateContactPerson = (name) => {
@@ -112,7 +112,7 @@ const CreateCustomerModal = ({ show, onHide, onSave, customer = null, mode = 'cr
     }
 
     if (formData.taxCode && !validateTaxCode(formData.taxCode)) {
-      newErrors.taxCode = 'Mã số thuế không hợp lệ.';
+      newErrors.taxCode = 'Mã số thuế phải là 10 hoặc 13 chữ số.';
     }
 
     setErrors(newErrors);
