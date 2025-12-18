@@ -13,6 +13,7 @@ import DatePicker, { registerLocale } from 'react-datepicker';
 import { vi } from 'date-fns/locale/vi';
 import 'react-datepicker/dist/react-datepicker.css';
 import { parseDateString, formatDateForBackend } from '../../utils/validators';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 registerLocale('vi', vi);
 
@@ -46,6 +47,7 @@ const CustomerQuotations = () => {
     const [quotations, setQuotations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const { subscribe } = useWebSocketContext();
 
     // Search and filter state
     const [searchTerm, setSearchTerm] = useState('');
@@ -170,6 +172,20 @@ const CustomerQuotations = () => {
     }, [fetchQuotations]);
 
     useEffect(() => {
+        // Subscribe to quotation updates
+        const unsubscribe = subscribe('/topic/updates', (update) => {
+            if (update.entity === 'QUOTATION') {
+                console.log('Customer Quotation List refresh triggered by WebSocket');
+                fetchQuotations(); // Trigger silent refresh
+            }
+        });
+
+        return () => {
+            if (unsubscribe) unsubscribe();
+        };
+    }, [subscribe, fetchQuotations]);
+
+    useEffect(() => {
         setCurrentPage(1);
     }, [debouncedSearchTerm, statusFilter, createdDateFilter]);
 
@@ -202,9 +218,21 @@ const CustomerQuotations = () => {
         navigate(`/customer/quotations/${id}`);
     };
 
-    const handleViewOrder = (quotation) => {
-        // Navigate to order list or detail if orderId exists
-        navigate(`/customer/orders`);
+    const handleViewOrder = async (quotation) => {
+        try {
+            // Fetch contract by quotation ID to get the contract ID
+            const { contractService } = await import('../../api/contractService');
+            const contract = await contractService.getContractByQuotationId(quotation.id);
+            const contractId = contract?.contractId || contract?.id;
+            if (contractId) {
+                navigate(`/customer/orders/${contractId}`);
+            } else {
+                toast.error('Không tìm thấy đơn hàng cho báo giá này.');
+            }
+        } catch (err) {
+            console.error('Error fetching contract:', err);
+            toast.error('Không thể tải thông tin đơn hàng.');
+        }
     };
 
     return (

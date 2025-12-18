@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Container, Card, Table, Button, Modal, Form, Alert, Badge, Spinner, InputGroup, Row, Col } from 'react-bootstrap';
 import { FaSearch, FaSortUp, FaSortDown, FaSort } from 'react-icons/fa';
 import Header from '../../components/common/Header';
@@ -15,6 +15,7 @@ import DatePicker, { registerLocale } from 'react-datepicker';
 import { vi } from 'date-fns/locale/vi';
 import 'react-datepicker/dist/react-datepicker.css';
 import { parseDateString, formatDateForBackend } from '../../utils/validators';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 registerLocale('vi', vi);
 
@@ -54,6 +55,7 @@ const ContractUpload = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const { subscribe } = useWebSocketContext();
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedContract, setSelectedContract] = useState(null);
   const [orderDetails, setOrderDetails] = useState(null);
@@ -114,7 +116,7 @@ const ContractUpload = () => {
       : <FaSortDown className="ms-1 text-primary" />;
   };
 
-  const loadContracts = async () => {
+  const loadContracts = useCallback(async () => {
     setLoading(true);
     setError('');
 
@@ -173,11 +175,25 @@ const ContractUpload = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadContracts();
-  }, []);
+  }, [loadContracts]);
+
+  useEffect(() => {
+    // Subscribe to contract updates
+    const unsubscribe = subscribe('/topic/updates', (update) => {
+      if (update.entity === 'CONTRACT') {
+        console.log('Contract List refresh triggered by WebSocket');
+        loadContracts(); // Silent refresh
+      }
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [subscribe, loadContracts]);
 
   // Filtering logic
   const filteredContracts = useMemo(() => {

@@ -15,6 +15,7 @@ import DatePicker, { registerLocale } from 'react-datepicker';
 import { vi } from 'date-fns/locale/vi';
 import 'react-datepicker/dist/react-datepicker.css';
 import { parseDateString, formatDateForBackend } from '../../utils/validators';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 registerLocale('vi', vi);
 
@@ -48,6 +49,7 @@ const PlanningRfqs = () => {
   const [allRfqs, setAllRfqs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { subscribe } = useWebSocketContext();
 
   // Search and Filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -197,6 +199,20 @@ const PlanningRfqs = () => {
   useEffect(() => {
     fetchPlanningRfqs();
   }, [fetchPlanningRfqs]);
+
+  useEffect(() => {
+    // Subscribe to RFQ updates
+    const unsubscribe = subscribe('/topic/updates', (update) => {
+      if (update.entity === 'RFQ') {
+        console.log('Planning RFQ List refresh triggered by WebSocket');
+        fetchPlanningRfqs(); // Trigger silent refresh
+      }
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [subscribe, fetchPlanningRfqs]);
 
   useEffect(() => {
     // Reset to page 1 when filters change

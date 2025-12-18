@@ -36,6 +36,12 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
         },
       },
+      // Add WebSocket proxy for real-time updates
+      '/ws': {
+        target: 'https://tmmsystem-sep490g143-production.up.railway.app',
+        changeOrigin: true,
+        ws: true, // Enable WebSocket proxying
+      },
     },
   }
 })

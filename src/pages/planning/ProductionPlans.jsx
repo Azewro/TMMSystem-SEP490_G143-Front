@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Container, Card, Table, Badge, Button, Alert, Form, Spinner } from 'react-bootstrap';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
@@ -7,6 +7,7 @@ import Pagination from '../../components/Pagination';
 import '../../styles/QuoteRequests.css';
 import { useNavigate } from 'react-router-dom';
 import { getPlanningPlanStatus } from '../../utils/statusMapper';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 const filterOptions = [
   { value: 'ALL', label: 'Tất cả trạng thái' },
@@ -38,7 +39,7 @@ const ProductionPlans = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
 
-  const loadPlans = async () => {
+  const loadPlans = useCallback(async () => {
     setLoading(true);
     setError('');
 
@@ -54,11 +55,23 @@ const ProductionPlans = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadPlans();
-  }, []);
+  }, [loadPlans]);
+
+  // WebSocket subscription for real-time updates
+  const { subscribe } = useWebSocketContext();
+  useEffect(() => {
+    const unsubscribe = subscribe('/topic/updates', (update) => {
+      if (update.entity === 'PRODUCTION_PLAN') {
+        console.log('Production Plans list refresh triggered by WebSocket');
+        loadPlans();
+      }
+    });
+    return () => unsubscribe();
+  }, [subscribe, loadPlans]);
 
   const filteredPlans = useMemo(() => {
     if (statusFilter === 'ALL') return plans;

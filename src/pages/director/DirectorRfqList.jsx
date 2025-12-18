@@ -12,6 +12,7 @@ import DatePicker, { registerLocale } from 'react-datepicker';
 import { vi } from 'date-fns/locale/vi';
 import 'react-datepicker/dist/react-datepicker.css';
 import { parseDateString, formatDateForBackend } from '../../utils/validators';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 registerLocale('vi', vi);
 
@@ -43,6 +44,7 @@ const DirectorRfqList = () => {
   const [allRfqs, setAllRfqs] = useState([]); // Holds all RFQs
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { subscribe } = useWebSocketContext();
 
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedRfqId, setSelectedRfqId] = useState(null);
@@ -82,7 +84,7 @@ const DirectorRfqList = () => {
       : <FaSortDown className="ms-1 text-primary" />;
   };
 
-  const fetchRfqs = async () => {
+  const fetchRfqs = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -181,11 +183,25 @@ const DirectorRfqList = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchTerm, createdDateFilter]); // Added dependencies to fetchRfqs
 
   useEffect(() => {
     fetchRfqs();
-  }, [searchTerm, createdDateFilter]); // Removed currentPage and statusFilter
+  }, [fetchRfqs]);
+
+  useEffect(() => {
+    // Subscribe to RFQ updates
+    const unsubscribe = subscribe('/topic/updates', (update) => {
+      if (update.entity === 'RFQ') {
+        console.log('RFQ List refresh triggered by WebSocket');
+        fetchRfqs(); // Trigger silent refresh (loading state is managed inside fetchRfqs)
+      }
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [subscribe, fetchRfqs]);
 
   useEffect(() => {
     // Reset to page 1 when filters change

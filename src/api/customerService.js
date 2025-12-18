@@ -1,5 +1,23 @@
 import apiClient from './apiConfig';
 
+// Helper function to extract error message from response
+const extractErrorMessage = (error, fallbackMessage) => {
+  const data = error.response?.data;
+  if (!data) return fallbackMessage;
+
+  // If response has 'message' field, use it
+  if (data.message) return data.message;
+
+  // If response is validation errors object {fieldName: errorMessage}
+  // Extract all error messages and join them
+  if (typeof data === 'object') {
+    const errorMessages = Object.values(data).filter(v => typeof v === 'string');
+    if (errorMessages.length > 0) return errorMessages.join('. ');
+  }
+
+  return fallbackMessage;
+};
+
 export const customerService = {
   // Get all customers (with pagination and filters)
   // If no pagination params provided, gets all customers (for backward compatibility)
@@ -14,12 +32,12 @@ export const customerService = {
         }
         return Array.isArray(response.data) ? response.data : [];
       }
-      
+
       // With pagination
       const params = { page, size: size || 10 };
       if (search) params.search = search;
       if (isActive !== undefined) params.isActive = isActive;
-      
+
       const response = await apiClient.get('/v1/customers', { params });
       // Handle PageResponse
       if (response.data && response.data.content) {
@@ -29,7 +47,7 @@ export const customerService = {
       return Array.isArray(response.data) ? response.data : [];
     } catch (error) {
       console.error("Error fetching customers:", error.response?.data);
-      throw new Error(error.response?.data?.message || 'Failed to fetch customers');
+      throw new Error(extractErrorMessage(error, 'Failed to fetch customers'));
     }
   },
 
@@ -46,7 +64,7 @@ export const customerService = {
       return response.data;
     } catch (error) {
       console.error("Error creating customer:", error.response?.data);
-      throw new Error(error.response?.data?.message || 'Failed to create customer');
+      throw new Error(extractErrorMessage(error, 'Failed to create customer'));
     }
   },
 
@@ -57,7 +75,7 @@ export const customerService = {
       return response.data;
     } catch (error) {
       console.error("Error updating customer:", error.response?.data);
-      throw new Error(error.response?.data?.message || 'Failed to update customer');
+      throw new Error(extractErrorMessage(error, 'Failed to update customer'));
     }
   },
 
@@ -67,7 +85,7 @@ export const customerService = {
       await apiClient.delete(`/v1/customers/${id}`);
     } catch (error) {
       console.error("Error deleting customer:", error.response?.data);
-      throw new Error(error.response?.data?.message || 'Failed to delete customer');
+      throw new Error(extractErrorMessage(error, 'Failed to delete customer'));
     }
   },
 
@@ -79,7 +97,7 @@ export const customerService = {
       });
     } catch (error) {
       console.error("Error setting customer active status:", error.response?.data);
-      throw new Error(error.response?.data?.message || 'Failed to update customer status');
+      throw new Error(extractErrorMessage(error, 'Failed to update customer status'));
     }
   }
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Container, Row, Col, Card, Spinner, Alert, Badge, ProgressBar } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -15,28 +15,43 @@ import {
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { dashboardService } from '../../api/dashboardService';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 const DirectorDashboard = () => {
     const navigate = useNavigate();
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const { subscribe } = useWebSocketContext();
+
+    const fetchData = useCallback(async (isRefresh = false) => {
+        try {
+            if (!isRefresh) setLoading(true);
+            const dashboardData = await dashboardService.getDirectorDashboard();
+            setData(dashboardData);
+        } catch (err) {
+            console.error('Error fetching director dashboard:', err);
+            setError(err.message || 'Không thể tải dữ liệu dashboard');
+        } finally {
+            if (!isRefresh) setLoading(false);
+        }
+    }, []);
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setLoading(true);
-                const dashboardData = await dashboardService.getDirectorDashboard();
-                setData(dashboardData);
-            } catch (err) {
-                console.error('Error fetching director dashboard:', err);
-                setError(err.message || 'Không thể tải dữ liệu dashboard');
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchData();
-    }, []);
+    }, [fetchData]);
+
+    useEffect(() => {
+        // Subscribe to any updates to refresh the dashboard
+        const unsubscribe = subscribe('/topic/updates', (update) => {
+            console.log('Dashboard refresh triggered by:', update.entity);
+            fetchData(true); // Silent refresh
+        });
+
+        return () => {
+            if (unsubscribe) unsubscribe();
+        };
+    }, [subscribe, fetchData]);
 
     const formatCurrency = (value) => {
         if (!value) return '0 đ';

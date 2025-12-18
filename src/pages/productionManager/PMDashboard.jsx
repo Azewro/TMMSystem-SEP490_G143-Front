@@ -260,7 +260,7 @@ const PMDashboard = () => {
                                                                         <Badge bg="primary" pill>{counts.inProgress || 0}</Badge>
                                                                     </td>
                                                                     <td className="text-center">
-                                                                        <Badge bg="warning" text="dark" pill>{counts.waitingQc || 0}</Badge>
+                                                                        <Badge bg="warning" text="dark" pill>{counts.waitingQC || 0}</Badge>
                                                                     </td>
                                                                     <td className="text-center">
                                                                         <Badge bg="success" pill>{counts.completed || 0}</Badge>
@@ -404,28 +404,39 @@ const PMDashboard = () => {
                                             <Card.Body style={{ maxHeight: 300, overflowY: 'auto' }}>
                                                 {data.todaySchedule && data.todaySchedule.length > 0 ? (
                                                     <div>
-                                                        {data.todaySchedule.map((item, index) => (
-                                                            <div
-                                                                key={index}
-                                                                className="d-flex align-items-start py-2 border-bottom"
-                                                            >
-                                                                <div className="text-muted small me-3" style={{ minWidth: 50 }}>
-                                                                    {item.time || '--:--'}
-                                                                </div>
-                                                                <div className="flex-grow-1">
-                                                                    <div className="fw-medium">{stageTypeNames[item.stageType] || item.stageName || item.stageType}</div>
-                                                                    <div className="text-muted small">
-                                                                        {item.orderCode} • {item.leader || 'Chưa phân công'}
-                                                                    </div>
-                                                                </div>
-                                                                <Badge
-                                                                    bg={item.status === 'completed' ? 'success' : item.status === 'in_progress' ? 'primary' : 'secondary'}
-                                                                    className="ms-2"
+                                                        {data.todaySchedule.map((item, index) => {
+                                                            // Format time from plannedStartAt (Instant)
+                                                            const time = item.plannedStartAt
+                                                                ? new Date(item.plannedStartAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+                                                                : '--:--';
+                                                            // Match backend field names
+                                                            const orderCode = item.poNumber || '';
+                                                            const leader = item.leaderName || 'Chưa phân công';
+                                                            const status = item.status || '';
+
+                                                            return (
+                                                                <div
+                                                                    key={index}
+                                                                    className="d-flex align-items-start py-2 border-bottom"
                                                                 >
-                                                                    {item.status === 'completed' ? 'Xong' : item.status === 'in_progress' ? 'Đang chạy' : 'Chờ'}
-                                                                </Badge>
-                                                            </div>
-                                                        ))}
+                                                                    <div className="text-muted small me-3" style={{ minWidth: 50 }}>
+                                                                        {time}
+                                                                    </div>
+                                                                    <div className="flex-grow-1">
+                                                                        <div className="fw-medium">{stageTypeNames[item.stageType] || item.stageTypeName || item.stageType}</div>
+                                                                        <div className="text-muted small">
+                                                                            {orderCode} • {leader}
+                                                                        </div>
+                                                                    </div>
+                                                                    <Badge
+                                                                        bg={status === 'COMPLETED' ? 'success' : status === 'IN_PROGRESS' ? 'primary' : 'secondary'}
+                                                                        className="ms-2"
+                                                                    >
+                                                                        {status === 'COMPLETED' ? 'Xong' : status === 'IN_PROGRESS' ? 'Đang chạy' : 'Chờ'}
+                                                                    </Badge>
+                                                                </div>
+                                                            );
+                                                        })}
                                                     </div>
                                                 ) : (
                                                     <div className="text-center text-muted py-4">

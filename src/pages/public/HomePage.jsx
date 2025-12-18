@@ -47,6 +47,8 @@ const HomePage = () => {
     const [error, setError] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [searchTerm, setSearchTerm] = useState('');
+    const [categoryFilter, setCategoryFilter] = useState('');
+    const [sizeFilter, setSizeFilter] = useState('');
 
     const isMobile = useIsMobile();
     const isTablet = useIsTablet();
@@ -90,18 +92,43 @@ const HomePage = () => {
         { name: "Hải Tiến Resort", logo: "/logo_doi_tac/hai_tien_resort.png" }
     ];
 
-    // Filter products by search term (search by key words in product name)
-    const filteredProducts = useMemo(() => {
-        if (!searchTerm.trim()) return products;
-        const searchLower = searchTerm.toLowerCase().trim();
-        const searchWords = searchLower.split(/\s+/).filter(word => word.length > 0);
+    // Extract unique categories and sizes from products
+    const categories = useMemo(() => {
+        const uniqueCategories = [...new Set(products.map(p => p.categoryName).filter(Boolean))];
+        return uniqueCategories.sort();
+    }, [products]);
 
-        return products.filter(product => {
-            const productNameLower = (product.name || '').toLowerCase();
-            // Check if all search words are found in product name
-            return searchWords.every(word => productNameLower.includes(word));
-        });
-    }, [products, searchTerm]);
+    const sizes = useMemo(() => {
+        const uniqueSizes = [...new Set(products.map(p => p.standardDimensions).filter(Boolean))];
+        return uniqueSizes.sort();
+    }, [products]);
+
+    // Filter products by search term, category, and size
+    const filteredProducts = useMemo(() => {
+        let filtered = products;
+
+        // Filter by search term
+        if (searchTerm.trim()) {
+            const searchLower = searchTerm.toLowerCase().trim();
+            const searchWords = searchLower.split(/\s+/).filter(word => word.length > 0);
+            filtered = filtered.filter(product => {
+                const productNameLower = (product.name || '').toLowerCase();
+                return searchWords.every(word => productNameLower.includes(word));
+            });
+        }
+
+        // Filter by category
+        if (categoryFilter) {
+            filtered = filtered.filter(product => product.categoryName === categoryFilter);
+        }
+
+        // Filter by size
+        if (sizeFilter) {
+            filtered = filtered.filter(product => product.standardDimensions === sizeFilter);
+        }
+
+        return filtered;
+    }, [products, searchTerm, categoryFilter, sizeFilter]);
 
     const indexOfLastProduct = currentPage * productsPerPage;
     const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
@@ -115,7 +142,17 @@ const HomePage = () => {
     const handleSearchChange = (e) => {
         const value = e.target.value;
         setSearchTerm(value);
-        setCurrentPage(1); // Reset to first page when searching
+        setCurrentPage(1);
+    };
+
+    const handleCategoryChange = (e) => {
+        setCategoryFilter(e.target.value);
+        setCurrentPage(1);
+    };
+
+    const handleSizeChange = (e) => {
+        setSizeFilter(e.target.value);
+        setCurrentPage(1);
     };
 
     return (
@@ -171,10 +208,10 @@ const HomePage = () => {
                                     <p className="section-subtitle">Chất lượng tạo nên thương hiệu. Chọn sản phẩm và yêu cầu báo giá để nhận được ưu đãi tốt nhất.</p>
                                 </div>
 
-                                {/* Search Bar */}
+                                {/* Search Bar and Filters */}
                                 <div className="mb-4">
-                                    <Row className="justify-content-center">
-                                        <Col md={6}>
+                                    <Row className="justify-content-center g-3">
+                                        <Col md={4}>
                                             <InputGroup>
                                                 <InputGroup.Text><FaSearch /></InputGroup.Text>
                                                 <Form.Control
@@ -184,6 +221,30 @@ const HomePage = () => {
                                                     onChange={handleSearchChange}
                                                 />
                                             </InputGroup>
+                                        </Col>
+                                        <Col md={3}>
+                                            <Form.Select
+                                                value={categoryFilter}
+                                                onChange={handleCategoryChange}
+                                                className="h-100"
+                                            >
+                                                <option value="">Tất cả danh mục</option>
+                                                {categories.map(category => (
+                                                    <option key={category} value={category}>{category}</option>
+                                                ))}
+                                            </Form.Select>
+                                        </Col>
+                                        <Col md={3}>
+                                            <Form.Select
+                                                value={sizeFilter}
+                                                onChange={handleSizeChange}
+                                                className="h-100"
+                                            >
+                                                <option value="">Tất cả kích thước</option>
+                                                {sizes.map(size => (
+                                                    <option key={size} value={size}>{size}</option>
+                                                ))}
+                                            </Form.Select>
                                         </Col>
                                     </Row>
                                 </div>

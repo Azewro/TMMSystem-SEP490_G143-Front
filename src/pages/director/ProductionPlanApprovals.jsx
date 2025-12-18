@@ -12,6 +12,7 @@ import DatePicker, { registerLocale } from 'react-datepicker';
 import { vi } from 'date-fns/locale/vi';
 import 'react-datepicker/dist/react-datepicker.css';
 import { parseDateString, formatDateForBackend } from '../../utils/validators';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 registerLocale('vi', vi);
 
@@ -226,6 +227,18 @@ const ProductionPlanApprovals = () => {
   useEffect(() => {
     fetchPlans();
   }, [fetchPlans]);
+
+  // WebSocket subscription for real-time updates
+  const { subscribe } = useWebSocketContext();
+  useEffect(() => {
+    const unsubscribe = subscribe('/topic/updates', (update) => {
+      if (update.entity === 'PRODUCTION_PLAN') {
+        console.log('Production Plan Approvals refresh triggered by WebSocket');
+        fetchPlans();
+      }
+    });
+    return () => unsubscribe();
+  }, [subscribe, fetchPlans]);
 
   useEffect(() => {
     setCurrentPage(1);
