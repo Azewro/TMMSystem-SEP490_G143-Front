@@ -202,9 +202,21 @@ const CustomerQuotations = () => {
         navigate(`/customer/quotations/${id}`);
     };
 
-    const handleViewOrder = (quotation) => {
-        // Navigate to order list or detail if orderId exists
-        navigate(`/customer/orders`);
+    const handleViewOrder = async (quotation) => {
+        try {
+            // Fetch contract by quotation ID to get the contract ID
+            const { contractService } = await import('../../api/contractService');
+            const contract = await contractService.getContractByQuotationId(quotation.id);
+            const contractId = contract?.contractId || contract?.id;
+            if (contractId) {
+                navigate(`/customer/orders/${contractId}`);
+            } else {
+                toast.error('Không tìm thấy đơn hàng cho báo giá này.');
+            }
+        } catch (err) {
+            console.error('Error fetching contract:', err);
+            toast.error('Không thể tải thông tin đơn hàng.');
+        }
     };
 
     return (
