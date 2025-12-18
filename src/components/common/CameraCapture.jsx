@@ -73,6 +73,22 @@ const CameraCapture = ({ show, onHide, onCapture }) => {
 
     const retakePhoto = () => {
         setCapturedImage(null);
+        setIsCameraReady(false);
+
+        // Try to re-attach existing stream first
+        if (stream && videoRef.current) {
+            // Check if stream is still active
+            const tracks = stream.getTracks();
+            const allTracksActive = tracks.every(track => track.readyState === 'live');
+
+            if (allTracksActive) {
+                videoRef.current.srcObject = stream;
+                return;
+            }
+        }
+
+        // Fallback: restart camera if stream is not available
+        startCamera();
     };
 
     const confirmPhoto = () => {

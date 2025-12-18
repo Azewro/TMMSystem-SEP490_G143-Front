@@ -4,7 +4,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { orderService } from '../../api/orderService';
-import { getStatusLabel, getStageTypeName, getButtonForStage, getStatusVariant, getQaOrderStatusFromStages } from '../../utils/statusMapper';
+import { getStatusLabel, getStageTypeName, getButtonForStage, getStatusVariant, getQaOrderStatusFromStages, getQaStageStatusLabel } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
 
 const QaOrderDetail = () => {
@@ -34,52 +34,9 @@ const QaOrderDetail = () => {
           .map(stage => {
             // Simple status mapping for QA "Xem kế hoạch" page
             const execStatus = (stage.status === 'PAUSED') ? 'PAUSED' : (stage.executionStatus || stage.status);
-            let statusLabel = 'Đang đợi';
-            let statusVariant = 'secondary';
-
-            switch (execStatus) {
-              case 'PENDING':
-                statusLabel = 'Đang đợi';
-                statusVariant = 'secondary';
-                break;
-              case 'WAITING':
-              case 'READY':
-              case 'READY_TO_PRODUCE':
-                // Per KCS diagram: before Leader starts, show "Đang đợi"
-                statusLabel = 'Đang đợi';
-                statusVariant = 'secondary';
-                break;
-              case 'IN_PROGRESS':
-              case 'REWORK_IN_PROGRESS':
-                statusLabel = 'Đang làm';
-                statusVariant = 'info';
-                break;
-              case 'WAITING_QC':
-                statusLabel = 'Chờ kiểm tra';
-                statusVariant = 'warning';
-                break;
-              case 'QC_IN_PROGRESS':
-                statusLabel = 'Đang kiểm tra';
-                statusVariant = 'warning';
-                break;
-              case 'QC_PASSED':
-              case 'COMPLETED':
-                statusLabel = 'Đạt';
-                statusVariant = 'success';
-                break;
-              case 'QC_FAILED':
-              case 'WAITING_REWORK':
-                statusLabel = 'Không đạt';
-                statusVariant = 'danger';
-                break;
-              case 'PAUSED':
-                statusLabel = 'Tạm dừng';
-                statusVariant = 'danger';
-                break;
-              default:
-                statusLabel = getStatusLabel(execStatus);
-                statusVariant = getStatusVariant(execStatus);
-            }
+            const statusInfo = getQaStageStatusLabel(execStatus);
+            const statusLabel = statusInfo.label;
+            const statusVariant = statusInfo.variant;
 
             return {
               id: stage.id,

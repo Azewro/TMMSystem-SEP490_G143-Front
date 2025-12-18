@@ -1,0 +1,71 @@
+<mxfile host="app.diagrams.net" version="29.2.4">
+  <diagram name="Deployment Architecture" id="deployment-arch">
+    <mxGraphModel dx="2000" dy="1500" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <!-- Title -->
+        <mxCell id="title" value="TMMS Deployment Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=24;fontStyle=1" vertex="1" parent="1"><mxGeometry x="550" y="20" width="400" height="40" as="geometry"/></mxCell>
+        <!-- USERS -->
+        <mxCell id="users_group" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;dashPattern=8 8" vertex="1" parent="1"><mxGeometry x="50" y="100" width="200" height="280" as="geometry"/></mxCell>
+        <mxCell id="users_label" value="Users" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontStyle=1;fontSize=14" vertex="1" parent="1"><mxGeometry x="120" y="110" width="60" height="20" as="geometry"/></mxCell>
+        <mxCell id="browser" value="Browser&#xa;(Chrome/Firefox)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12" vertex="1" parent="1"><mxGeometry x="80" y="150" width="140" height="60" as="geometry"/></mxCell>
+        <mxCell id="mobile" value="Mobile Browser" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12" vertex="1" parent="1"><mxGeometry x="80" y="230" width="140" height="60" as="geometry"/></mxCell>
+        <mxCell id="users_note" value="Internal Staff&#xa;Sales, Planning,&#xa;Production, QA" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10" vertex="1" parent="1"><mxGeometry x="80" y="310" width="140" height="50" as="geometry"/></mxCell>
+        <!-- RAILWAY CLOUD -->
+        <mxCell id="railway_cloud" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;dashed=1;dashPattern=8 8" vertex="1" parent="1"><mxGeometry x="350" y="80" width="700" height="500" as="geometry"/></mxCell>
+        <mxCell id="railway_label" value="Railway Cloud Platform" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontStyle=1;fontSize=16" vertex="1" parent="1"><mxGeometry x="370" y="90" width="250" height="30" as="geometry"/></mxCell>
+        <!-- FRONTEND -->
+        <mxCell id="frontend_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366" vertex="1" parent="1"><mxGeometry x="380" y="140" width="250" height="180" as="geometry"/></mxCell>
+        <mxCell id="frontend_label" value="Frontend Service" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontStyle=1;fontSize=14" vertex="1" parent="1"><mxGeometry x="430" y="150" width="150" height="20" as="geometry"/></mxCell>
+        <mxCell id="frontend_app" value="React + Vite&#xa;(JavaScript)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#82b366;fontSize=12" vertex="1" parent="1"><mxGeometry x="410" y="185" width="190" height="50" as="geometry"/></mxCell>
+        <mxCell id="frontend_url" value="tmmsystem-sep490g143-front-&#xa;production.up.railway.app" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#666666" vertex="1" parent="1"><mxGeometry x="390" y="245" width="230" height="30" as="geometry"/></mxCell>
+        <mxCell id="frontend_port" value="Port: 443 (HTTPS)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#666666" vertex="1" parent="1"><mxGeometry x="420" y="280" width="170" height="20" as="geometry"/></mxCell>
+        <!-- BACKEND -->
+        <mxCell id="backend_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00" vertex="1" parent="1"><mxGeometry x="680" y="140" width="250" height="180" as="geometry"/></mxCell>
+        <mxCell id="backend_label" value="Backend Service" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontStyle=1;fontSize=14" vertex="1" parent="1"><mxGeometry x="730" y="150" width="150" height="20" as="geometry"/></mxCell>
+        <mxCell id="backend_app" value="Spring Boot&#xa;(Java 17 + Maven)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#d79b00;fontSize=12" vertex="1" parent="1"><mxGeometry x="710" y="185" width="190" height="50" as="geometry"/></mxCell>
+        <mxCell id="backend_url" value="tmmsystem-sep490g143-&#xa;production.up.railway.app" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#666666" vertex="1" parent="1"><mxGeometry x="700" y="245" width="210" height="30" as="geometry"/></mxCell>
+        <mxCell id="backend_port" value="Port: 443 (HTTPS)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#666666" vertex="1" parent="1"><mxGeometry x="720" y="280" width="170" height="20" as="geometry"/></mxCell>
+        <!-- DATABASE -->
+        <mxCell id="db_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450" vertex="1" parent="1"><mxGeometry x="530" y="380" width="250" height="160" as="geometry"/></mxCell>
+        <mxCell id="db_label" value="Database Service" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontStyle=1;fontSize=14" vertex="1" parent="1"><mxGeometry x="580" y="390" width="150" height="20" as="geometry"/></mxCell>
+        <mxCell id="db_icon" value="MySQL 8.0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#b85450;fontSize=12" vertex="1" parent="1"><mxGeometry x="560" y="425" width="190" height="50" as="geometry"/></mxCell>
+        <mxCell id="db_note" value="Railway MySQL&#xa;Auto-managed" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#666666" vertex="1" parent="1"><mxGeometry x="580" y="485" width="150" height="30" as="geometry"/></mxCell>
+        <!-- EXTERNAL SERVICES -->
+        <mxCell id="external_group" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;dashed=1;dashPattern=8 8" vertex="1" parent="1"><mxGeometry x="1100" y="100" width="200" height="450" as="geometry"/></mxCell>
+        <mxCell id="external_label" value="External Services" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontStyle=1;fontSize=14" vertex="1" parent="1"><mxGeometry x="1140" y="110" width="120" height="20" as="geometry"/></mxCell>
+        <mxCell id="gmail" value="Gmail SMTP&#xa;(Email Service)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#d6b656;fontSize=12" vertex="1" parent="1"><mxGeometry x="1120" y="150" width="160" height="60" as="geometry"/></mxCell>
+        <mxCell id="gmail_note" value="smtp.gmail.com:587" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#666666" vertex="1" parent="1"><mxGeometry x="1130" y="210" width="140" height="20" as="geometry"/></mxCell>
+        <mxCell id="address_api" value="Vietnam Provinces API&#xa;(Address Lookup)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#d6b656;fontSize=12" vertex="1" parent="1"><mxGeometry x="1120" y="260" width="160" height="60" as="geometry"/></mxCell>
+        <mxCell id="address_note" value="provinces.open-api.vn" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#666666" vertex="1" parent="1"><mxGeometry x="1130" y="320" width="140" height="20" as="geometry"/></mxCell>
+        <mxCell id="file_storage" value="File Storage&#xa;(Railway Volume)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#d6b656;fontSize=12" vertex="1" parent="1"><mxGeometry x="1120" y="370" width="160" height="60" as="geometry"/></mxCell>
+        <mxCell id="file_note" value="/data directory" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#666666" vertex="1" parent="1"><mxGeometry x="1130" y="430" width="140" height="20" as="geometry"/></mxCell>
+        <mxCell id="swagger" value="Swagger UI&#xa;(API Docs)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#d6b656;fontSize=12" vertex="1" parent="1"><mxGeometry x="1120" y="470" width="160" height="60" as="geometry"/></mxCell>
+        <!-- ARROWS -->
+        <mxCell id="arrow1" style="endArrow=classic;startArrow=classic;html=1;strokeWidth=2;strokeColor=#6c8ebf" edge="1" parent="1" source="browser" target="frontend_app"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="arrow1_label" value="HTTPS" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10" vertex="1" parent="1"><mxGeometry x="280" y="180" width="50" height="20" as="geometry"/></mxCell>
+        <mxCell id="arrow2" style="endArrow=classic;startArrow=classic;html=1;strokeWidth=2;strokeColor=#82b366" edge="1" parent="1" source="browser" target="backend_app"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="150" y="70"/><mxPoint x="805" y="70"/></Array></mxGeometry></mxCell>
+        <mxCell id="arrow2_label" value="REST API&#xa;/api/*" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10" vertex="1" parent="1"><mxGeometry x="475" y="50" width="60" height="30" as="geometry"/></mxCell>
+        <mxCell id="arrow3" style="endArrow=classic;startArrow=classic;html=1;strokeWidth=2;strokeColor=#b85450" edge="1" parent="1" source="backend_app" target="db_icon"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="805" y="350"/><mxPoint x="655" y="350"/></Array></mxGeometry></mxCell>
+        <mxCell id="arrow3_label" value="JDBC" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10" vertex="1" parent="1"><mxGeometry x="720" y="330" width="40" height="20" as="geometry"/></mxCell>
+        <mxCell id="arrow4" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d6b656" edge="1" parent="1" source="backend_app" target="gmail"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="arrow4_label" value="SMTP" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10" vertex="1" parent="1"><mxGeometry x="1000" y="150" width="40" height="20" as="geometry"/></mxCell>
+        <mxCell id="arrow5" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d6b656;dashed=1" edge="1" parent="1" source="frontend_app" target="address_api"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="505" y="350"/><mxPoint x="370" y="350"/><mxPoint x="370" y="600"/><mxPoint x="1200" y="600"/></Array></mxGeometry></mxCell>
+        <!-- LEGEND -->
+        <mxCell id="legend_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666" vertex="1" parent="1"><mxGeometry x="50" y="430" width="250" height="150" as="geometry"/></mxCell>
+        <mxCell id="legend_title" value="Legend" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontStyle=1;fontSize=12" vertex="1" parent="1"><mxGeometry x="60" y="440" width="60" height="20" as="geometry"/></mxCell>
+        <mxCell id="leg1" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366" vertex="1" parent="1"><mxGeometry x="70" y="470" width="20" height="15" as="geometry"/></mxCell>
+        <mxCell id="leg1_t" value="Frontend" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10" vertex="1" parent="1"><mxGeometry x="100" y="465" width="60" height="20" as="geometry"/></mxCell>
+        <mxCell id="leg2" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00" vertex="1" parent="1"><mxGeometry x="70" y="495" width="20" height="15" as="geometry"/></mxCell>
+        <mxCell id="leg2_t" value="Backend" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10" vertex="1" parent="1"><mxGeometry x="100" y="490" width="60" height="20" as="geometry"/></mxCell>
+        <mxCell id="leg3" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450" vertex="1" parent="1"><mxGeometry x="70" y="520" width="20" height="15" as="geometry"/></mxCell>
+        <mxCell id="leg3_t" value="Database" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10" vertex="1" parent="1"><mxGeometry x="100" y="515" width="60" height="20" as="geometry"/></mxCell>
+        <mxCell id="leg4" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656" vertex="1" parent="1"><mxGeometry x="70" y="545" width="20" height="15" as="geometry"/></mxCell>
+        <mxCell id="leg4_t" value="External Services" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10" vertex="1" parent="1"><mxGeometry x="100" y="540" width="100" height="20" as="geometry"/></mxCell>
+        <mxCell id="leg5" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6" vertex="1" parent="1"><mxGeometry x="180" y="470" width="20" height="15" as="geometry"/></mxCell>
+        <mxCell id="leg5_t" value="Railway Cloud" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10" vertex="1" parent="1"><mxGeometry x="210" y="465" width="80" height="20" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

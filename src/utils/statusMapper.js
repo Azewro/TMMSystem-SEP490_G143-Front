@@ -17,7 +17,7 @@ export const getStatusLabel = (status) => {
     'HOAN_THANH': 'Hoàn thành',
 
     // ProductionStage statuses - ALL CAPITALIZED
-    'PENDING': 'Đang đợi',
+    'PENDING': 'Chưa đến lượt',
     'WAITING': 'Sẵn sàng',
     'READY': 'Sẵn sàng',
     'READY_TO_PRODUCE': 'Sẵn sàng',
@@ -141,16 +141,16 @@ export const getProductionOrderStatusFromStages = (order) => {
 
   // NOW handle supplementary/rework order statuses (fallback when no active stage found)
   if (order.executionStatus === 'READY_SUPPLEMENTARY') {
-    return { label: 'Chờ sản xuất', variant: 'secondary' };
+    return { label: 'Chờ sản xuất bổ sung', variant: 'secondary' };
   }
   if (order.executionStatus === 'WAITING_SUPPLEMENTARY') {
-    return { label: 'Chờ sản xuất', variant: 'secondary' };
+    return { label: 'Chờ sản xuất bổ sung', variant: 'secondary' };
   }
   if (order.executionStatus === 'IN_SUPPLEMENTARY') {
-    return { label: 'Đang sản xuất', variant: 'info' };
+    return { label: 'Đang sản xuất bổ sung', variant: 'info' };
   }
   if (order.executionStatus === 'SUPPLEMENTARY_CREATED') {
-    return { label: 'Đang sản xuất', variant: 'info' };
+    return { label: 'Đang sản xuất bổ sung', variant: 'info' };
   }
 
   // Fallback: use first pending stage
@@ -217,14 +217,18 @@ export const getLeaderOrderStatusFromStages = (order) => {
     // DYEING/NHUOM stages are outsourced/parallel - never show as "Chờ đến lượt"
     const isDyeingStage = ['DYEING', 'NHUOM'].includes(activeStage.stageType?.toUpperCase());
 
-    // Handle WAITING status separately with DYEING exception
+    // Handle WAITING status separately with DYEING exception and isBlocked flag
     if (status === 'WAITING') {
       if (isDyeingStage) {
         // DYEING is parallel/outsourced - always show "Sẵn sàng sản xuất"
         return { label: `Sẵn sàng sản xuất ${stageName}`, variant: 'primary' };
       }
-      // Other stages: WAITING means blocked by another lot
-      return { label: `Chờ đến lượt ${stageName}`, variant: 'secondary' };
+      // FIX: Check isBlocked flag from backend - if not blocked, show "Sẵn sàng sản xuất"
+      // Backend calculates isBlocked based on IN_PROGRESS/REWORK_IN_PROGRESS only
+      if (activeStage.isBlocked) {
+        return { label: `Chờ đến lượt ${stageName}`, variant: 'secondary' };
+      }
+      return { label: `Sẵn sàng sản xuất ${stageName}`, variant: 'primary' };
     }
 
     const statusConfig = {
@@ -432,7 +436,7 @@ export const getQaOrderStatusFromStages = (order) => {
  * @param {boolean} isDyeingStage - True if this is DYEING/NHUOM stage (managed by PM)
  * @returns {{ label: string, variant: string, buttons: Array<{text: string, action: string, variant: string, disabled?: boolean}> }}
  */
-export const getPMStageStatusLabel = (status, isDyeingStage = false) => {
+export const getPMStageStatusLabel = (status) => {
   const statusMap = {
     // Đang đợi - công đoạn trước chưa hoàn thành
     'PENDING': {
@@ -445,35 +449,23 @@ export const getPMStageStatusLabel = (status, isDyeingStage = false) => {
     'WAITING': {
       label: 'Đang đợi',
       variant: 'secondary',
-      buttons: isDyeingStage
-        ? [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' },
-        { text: 'Bắt đầu', action: 'start', variant: 'dark' }]
-        : [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
+      buttons: [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
     },
     'READY': {
       label: 'Đang đợi',
       variant: 'secondary',
-      buttons: isDyeingStage
-        ? [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' },
-        { text: 'Bắt đầu', action: 'start', variant: 'dark' }]
-        : [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
+      buttons: [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
     },
     'READY_TO_PRODUCE': {
       label: 'Đang đợi',
       variant: 'secondary',
-      buttons: isDyeingStage
-        ? [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' },
-        { text: 'Bắt đầu', action: 'start', variant: 'dark' }]
-        : [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
+      buttons: [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
     },
     // Đang làm - leader bấm bắt đầu
     'IN_PROGRESS': {
       label: 'Đang làm',
       variant: 'info',
-      buttons: isDyeingStage
-        ? [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' },
-        { text: 'Cập nhật tiến độ', action: 'update', variant: 'dark' }]
-        : [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
+      buttons: [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
     },
     // Chờ kiểm tra - progress = 100%
     'WAITING_QC': {
@@ -500,17 +492,15 @@ export const getPMStageStatusLabel = (status, isDyeingStage = false) => {
       buttons: [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
     },
     // Chờ sửa - kỹ thuật gửi yêu cầu làm lại || PM phê duyệt yêu cầu cấp sợi
+    // Merged into 'Không đạt' per user request
     'WAITING_REWORK': {
-      label: 'Chờ sửa',
-      variant: 'warning',
-      buttons: isDyeingStage
-        ? [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' },
-        { text: 'Tạm dừng và Sửa lỗi', action: 'rework', variant: 'dark' }]
-        : [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
+      label: 'Không đạt',
+      variant: 'danger',
+      buttons: [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
     },
     // Đang sửa - leader bấm "tạm dừng và sửa lỗi"
     'REWORK_IN_PROGRESS': {
-      label: 'Đang xử lý',
+      label: 'Đang sửa lỗi',
       variant: 'info',
       buttons: [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
     },
@@ -519,13 +509,8 @@ export const getPMStageStatusLabel = (status, isDyeingStage = false) => {
       label: 'Tạm dừng',
       variant: 'danger',
       buttons: [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
-    },
-    // Hoàn thành
-    'COMPLETED': {
-      label: 'Hoàn thành',
-      variant: 'success',
-      buttons: [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
     }
+    // NOTE: COMPLETED removed - backend only sets COMPLETED on orders, not stages
   };
 
   const result = statusMap[status];
@@ -551,19 +536,18 @@ export const getPMStageStatusLabel = (status, isDyeingStage = false) => {
  */
 export const getQaStageStatusLabel = (status) => {
   const statusMap = {
-    'PENDING': { label: 'Đang đợi', variant: 'secondary' },
+    'PENDING': { label: 'Chưa đến lượt', variant: 'secondary' },
     'WAITING': { label: 'Đang đợi', variant: 'secondary' },  // Per KCS diagram: before Leader starts
     'READY': { label: 'Đang đợi', variant: 'secondary' },
     'READY_TO_PRODUCE': { label: 'Đang đợi', variant: 'secondary' },
     'IN_PROGRESS': { label: 'Đang làm', variant: 'info' },
-    'REWORK_IN_PROGRESS': { label: 'Đang xử lý', variant: 'info' },
+    'REWORK_IN_PROGRESS': { label: 'Đang sửa lỗi', variant: 'info' },
     'WAITING_QC': { label: 'Chờ kiểm tra', variant: 'warning' },
     'QC_IN_PROGRESS': { label: 'Đang kiểm tra', variant: 'warning' },
     'QC_PASSED': { label: 'Đạt', variant: 'success' },
     'QC_FAILED': { label: 'Không đạt', variant: 'danger' },
-    'WAITING_REWORK': { label: 'Chờ sửa lỗi', variant: 'warning' },
-    'PAUSED': { label: 'Tạm dừng', variant: 'danger' },
-    'COMPLETED': { label: 'Hoàn thành', variant: 'success' }
+    'WAITING_REWORK': { label: 'Không đạt', variant: 'danger' },
+    'PAUSED': { label: 'Tạm dừng', variant: 'danger' }
   };
 
   return statusMap[status] || { label: status || 'N/A', variant: 'secondary' };
@@ -644,14 +628,15 @@ export const getLeaderStageStatusLabel = (status, defectSeverity = null) => {
       buttons: [{ text: 'Xem chi tiết', action: 'detail', variant: 'outline-secondary' }]
     },
     // Chờ sửa - kỹ thuật gửi yêu cầu làm lại
+    // Merged into 'Không đạt' per user request (same as PM page)
     'WAITING_REWORK': {
-      label: 'Chờ sửa lỗi',
-      variant: 'warning',
+      label: 'Không đạt',
+      variant: 'danger',
       buttons: [{ text: 'Tạm dừng và Sửa lỗi', action: 'rework', variant: 'warning' }]
     },
     // Đang sửa - leader bấm tạm dừng và sửa lỗi
     'REWORK_IN_PROGRESS': {
-      label: 'Đang xử lý',
+      label: 'Đang sửa lỗi',
       variant: 'info',
       buttons: [{ text: 'Cập nhật tiến độ', action: 'update', variant: 'primary' }]
     },
@@ -660,36 +645,9 @@ export const getLeaderStageStatusLabel = (status, defectSeverity = null) => {
       label: 'Tạm dừng',
       variant: 'danger',
       buttons: [] // Không có button
-    },
-    // Hoàn thành
-    'COMPLETED': {
-      label: 'Hoàn thành',
-      variant: 'success',
-      buttons: [{ text: 'Xem chi tiết', action: 'detail', variant: 'outline-secondary' }]
-    },
-    // Sản xuất bổ sung - chờ
-    'READY_SUPPLEMENTARY': {
-      label: 'Chờ sản xuất',
-      variant: 'secondary',
-      buttons: [{ text: 'Bắt đầu SX bổ sung', action: 'start', variant: 'warning' }]
-    },
-    // Sản xuất bổ sung - chờ
-    'WAITING_SUPPLEMENTARY': {
-      label: 'Chờ sản xuất',
-      variant: 'secondary',
-      buttons: [] // Đang chờ máy/công đoạn rảnh
-    },
-    // Sản xuất bổ sung - đang làm
-    'IN_SUPPLEMENTARY': {
-      label: 'Đang sản xuất',
-      variant: 'info',
-      buttons: [{ text: 'Cập nhật tiến độ', action: 'update', variant: 'primary' }]
-    },
-    'SUPPLEMENTARY_CREATED': {
-      label: 'Đang sản xuất',
-      variant: 'info',
-      buttons: [{ text: 'Cập nhật tiến độ', action: 'update', variant: 'primary' }]
     }
+    // NOTE: COMPLETED, READY_SUPPLEMENTARY, WAITING_SUPPLEMENTARY, IN_SUPPLEMENTARY, SUPPLEMENTARY_CREATED
+    // removed - backend only sets these on orders, not stages
   };
 
   const result = statusMap[status];
@@ -802,23 +760,6 @@ export const getButtonForStage = (status, userRole) => {
   }
 
   if (userRole === 'production' || userRole === 'pm') {
-    // For dyeing stage (NHUOM) managed by PM
-    if (status === 'PENDING') {
-      return { text: '', action: 'none', variant: 'secondary', disabled: true };
-    }
-    if (status === 'WAITING' || status === 'READY' || status === 'READY_TO_PRODUCE') {
-      return { text: 'Bắt đầu', action: 'start', variant: 'success' };
-    }
-    if (status === 'IN_PROGRESS') {
-      return { text: 'Cập nhật tiến độ', action: 'update', variant: 'primary' };
-    }
-    if (status === 'WAITING_REWORK') {
-      return { text: 'Bắt đầu', action: 'start', variant: 'warning' };
-    }
-    if (status === 'REWORK_IN_PROGRESS') {
-      return { text: 'Cập nhật tiến độ', action: 'update', variant: 'primary' };
-    }
-    // Default fallback
     return { text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' };
   }
 
