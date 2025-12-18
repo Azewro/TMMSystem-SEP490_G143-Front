@@ -34,9 +34,9 @@ const Footer = () => {
           <Col lg={3} md={12}>
             <h5>Liên hệ</h5>
             <p>
-              <strong>Địa chỉ:</strong> Lô CN2, Cụm công nghiệp, Ba Hàng, Phổ Yên, Thái Nguyên<br />
+              <strong>Địa chỉ:</strong> Đội 3 - Thôn Thượng - Xã Phùng Xá - Huyện Mỹ Đức - TP Hà Nội, Hà Nội, Việt Nam<br />
               <strong>Email:</strong> support@tmmsystem.com<br />
-              <strong>Điện thoại:</strong> 0904.862.166 / 098.172.5788
+              <strong>Điện thoại:</strong> 0904.862.166 + 098.172.5788
             </p>
           </Col>
         </Row>
