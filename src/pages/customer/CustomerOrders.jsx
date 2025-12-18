@@ -21,7 +21,6 @@ const statusOptions = [
   { value: 'WAITING_SIGNATURE', label: 'Chờ ký hợp đồng' },
   { value: 'PENDING_PROCESS', label: 'Chờ sản xuất' },
   { value: 'IN_PRODUCTION', label: 'Đang sản xuất' },
-  { value: 'IN_PRODUCTION', label: 'Đang sản xuất' },
   { value: 'COMPLETED', label: 'Sản xuất xong' },
 ];
 

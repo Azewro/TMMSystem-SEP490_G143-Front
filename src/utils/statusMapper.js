@@ -1026,10 +1026,14 @@ export const getCustomerQuoteStatus = (status) => {
 
 export const getCustomerOrderStatus = (status) => {
   if (status === 'DRAFT' || status === 'PENDING_UPLOAD') return { label: 'Chờ ký hợp đồng', variant: 'warning', value: 'WAITING_SIGNATURE' };
+  // SIGNED contract waiting for production to start
+  if (status === 'SIGNED') return { label: 'Chờ sản xuất', variant: 'primary', value: 'PENDING_PROCESS' };
   // REJECTED by director is internal - customer still sees as waiting for production
   if (status === 'PENDING_APPROVAL' || status === 'APPROVED' || status === 'REJECTED') return { label: 'Chờ sản xuất', variant: 'primary', value: 'PENDING_PROCESS' };
-  if (status === 'WAITING_PRODUCTION' || status === 'IN_PROGRESS') return { label: 'Đang sản xuất', variant: 'info', value: 'IN_PRODUCTION' };
-  if (status === 'COMPLETED' || status === 'ORDER_COMPLETED') return { label: 'Sản xuất xong', variant: 'success', value: 'COMPLETED' };
+  // Contract is in production (plan approved)
+  if (status === 'IN_PRODUCTION' || status === 'WAITING_PRODUCTION' || status === 'IN_PROGRESS') return { label: 'Đang sản xuất', variant: 'info', value: 'IN_PRODUCTION' };
+  // Production completed (all lots finished)
+  if (status === 'PRODUCTION_COMPLETED' || status === 'COMPLETED' || status === 'ORDER_COMPLETED') return { label: 'Sản xuất xong', variant: 'success', value: 'COMPLETED' };
   if (status === 'CANCELED') return { label: 'Đã hủy', variant: 'danger', value: 'CANCELED' };
 
   const label = getStatusLabel(status);
