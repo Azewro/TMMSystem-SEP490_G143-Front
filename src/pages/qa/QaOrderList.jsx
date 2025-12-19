@@ -214,6 +214,9 @@ const QaOrderList = () => {
         const comparison = String(aValue).localeCompare(String(bValue), 'vi');
         return sortDirection === 'asc' ? comparison : -comparison;
       });
+    } else {
+      // Default: sort by ID descending (newest first)
+      sorted.sort((a, b) => (b.id || 0) - (a.id || 0));
     }
 
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
