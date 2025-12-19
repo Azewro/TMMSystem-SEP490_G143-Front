@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Container, Card, Table, Button, Badge, Form, InputGroup, Spinner, Tab, Tabs, Row, Col } from 'react-bootstrap';
+import { Container, Card, Table, Button, Badge, Form, InputGroup, Spinner, Tab, Tabs, Row, Col, Modal } from 'react-bootstrap';
 import { FaSearch, FaSortUp, FaSortDown, FaSort } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
@@ -30,6 +30,12 @@ const LeaderOrderList = () => {
   const [loading, setLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0); // For WebSocket-triggered refresh
   const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
+
+  // Rework confirmation modal state (for supplementary orders)
+  const [showReworkConfirmModal, setShowReworkConfirmModal] = useState(false);
+  const [pendingReworkStage, setPendingReworkStage] = useState(null);
+  const [pendingReworkOrder, setPendingReworkOrder] = useState(null);
+  const [activeStagesInfo, setActiveStagesInfo] = useState(null);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -531,25 +537,22 @@ const OrderTable = ({ orders, navigate, isRework = false }) => {
                             // Rework order - show "Tạm dừng và Sửa lỗi" button
                             const handleStartRework = async () => {
                               try {
-                                const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
-                                await apiClient.post(`/v1/production/stages/${stage.id}/start-rework?leaderUserId=${userId}&forceStop=true`);
-                                toast.success('Đã bắt đầu sửa lỗi - Các lô khác đã tạm dừng');
-                                // Navigate with defect info like LeaderDefectList
-                                navigate(`/leader/orders/${order.id}/progress`, {
-                                  state: {
-                                    stageId: stage.id,
-                                    defectId: stage.defectId, // Add defect ID if available
-                                    severity: stage.defectLevel || stage.defectSeverity, // Add severity
-                                    isRework: true
-                                  }
-                                });
-                              } catch (error) {
-                                const msg = error.response?.data?.message || error.message || 'Lỗi khi bắt đầu sửa lỗi';
-                                if (msg.includes('BLOCKING')) {
-                                  toast.error(msg.replace('java.lang.RuntimeException: BLOCKING: ', ''));
+                                // First check if there are active stages that need to be stopped
+                                const checkResult = await apiClient.get(`/v1/production/stages/${stage.id}/check-rework`);
+
+                                if (checkResult.data.hasActiveStages) {
+                                  // Store pending info and show confirmation modal
+                                  setPendingReworkStage(stage);
+                                  setPendingReworkOrder(order);
+                                  setActiveStagesInfo(checkResult.data);
+                                  setShowReworkConfirmModal(true);
                                 } else {
-                                  toast.error(msg);
+                                  // No active stages - start rework directly
+                                  await executeStartRework(stage, order, false);
                                 }
+                              } catch (error) {
+                                const msg = error.response?.data?.message || error.message || 'Lỗi khi kiểm tra trạng thái';
+                                toast.error(msg);
                               }
                             };
                             return (

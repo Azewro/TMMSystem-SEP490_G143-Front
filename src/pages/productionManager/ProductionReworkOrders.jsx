@@ -17,12 +17,12 @@ registerLocale('vi', vi);
 const ITEMS_PER_PAGE = 10;
 
 const statusConfig = {
-  READY_SUPPLEMENTARY: { label: 'Chờ sản xuất', variant: 'secondary' },
-  WAITING_SUPPLEMENTARY: { label: 'Chờ sản xuất', variant: 'secondary' },
-  IN_SUPPLEMENTARY: { label: 'Đang sản xuất', variant: 'primary' },
-  SUPPLEMENTARY_CREATED: { label: 'Đang sản xuất', variant: 'primary' },
-  WAITING_PRODUCTION: { label: 'Chờ sản xuất', variant: 'secondary' },
-  IN_PROGRESS: { label: 'Đang sản xuất', variant: 'primary' },
+  READY_SUPPLEMENTARY: { label: 'Chờ sản xuất bổ sung', variant: 'secondary' },
+  WAITING_SUPPLEMENTARY: { label: 'Chờ sản xuất bổ sung', variant: 'secondary' },
+  IN_SUPPLEMENTARY: { label: 'Đang sản xuất bổ sung', variant: 'primary' },
+  SUPPLEMENTARY_CREATED: { label: 'Chờ sản xuất bổ sung', variant: 'secondary' },
+  WAITING_PRODUCTION: { label: 'Chờ sản xuất bổ sung', variant: 'secondary' },
+  IN_PROGRESS: { label: 'Đang sản xuất bổ sung', variant: 'primary' },
   COMPLETED: { label: 'Hoàn thành', variant: 'success' },
   PENDING: { label: 'Chờ xử lý', variant: 'warning' },
   APPROVED: { label: 'Đã phê duyệt', variant: 'success' },

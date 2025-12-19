@@ -32,10 +32,10 @@ export const getStatusLabel = (status) => {
     'WAITING_MATERIAL': 'Chờ phê duyệt cấp sợi',
 
     // Supplementary/Rework order statuses
-    'READY_SUPPLEMENTARY': 'Chờ sản xuất',
-    'WAITING_SUPPLEMENTARY': 'Chờ sản xuất',
-    'IN_SUPPLEMENTARY': 'Đang sản xuất',
-    'SUPPLEMENTARY_CREATED': 'Đang sản xuất',
+    'READY_SUPPLEMENTARY': 'Chờ sản xuất bổ sung',
+    'WAITING_SUPPLEMENTARY': 'Chờ sản xuất bổ sung',
+    'IN_SUPPLEMENTARY': 'Đang sản xuất bổ sung',
+    'SUPPLEMENTARY_CREATED': 'Chờ sản xuất bổ sung',
   };
   return statusMap[status] || status;
 };
@@ -68,8 +68,10 @@ export const getStageTypeName = (stageType) => {
  * @returns {{ label: string, variant: string }} Status label and Bootstrap variant
  */
 export const getProductionOrderStatusFromStages = (order) => {
-  // PRIORITY CHECK: If order already has SUPPLEMENTARY_CREATED, show that status first
-  // (material was approved and rework order was created)
+  // PRIORITY CHECK: Handle supplementary order statuses first
+  if (order.executionStatus === 'IN_SUPPLEMENTARY') {
+    return { label: 'Đang sản xuất bổ sung', variant: 'info' };
+  }
   if (order.executionStatus === 'SUPPLEMENTARY_CREATED') {
     return { label: 'Chờ sản xuất bổ sung', variant: 'info' };
   }
@@ -164,7 +166,7 @@ export const getProductionOrderStatusFromStages = (order) => {
     return { label: 'Đang sản xuất bổ sung', variant: 'info' };
   }
   if (order.executionStatus === 'SUPPLEMENTARY_CREATED') {
-    return { label: 'Đang sản xuất bổ sung', variant: 'info' };
+    return { label: 'Chờ sản xuất bổ sung', variant: 'info' };
   }
 
   // Fallback: use first pending stage
