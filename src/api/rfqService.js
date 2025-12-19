@@ -136,9 +136,13 @@ export const rfqService = {
       const config = {
         params: params,
         headers: {
-          'X-User-Id': userId.toString()
+          'X-User-Id': userId.toString(),
+          'Cache-Control': 'no-cache'
         }
       };
+
+      // Add cache-busting timestamp to force fresh data
+      config.params._t = Date.now();
 
       const response = await apiClient.get('/v1/rfqs/for-sales', config);
       return response.data;

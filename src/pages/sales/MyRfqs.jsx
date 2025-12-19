@@ -277,6 +277,13 @@ const MyRfqs = () => {
         const comparison = aValue.localeCompare(bValue, 'vi');
         return sortDirection === 'asc' ? comparison : -comparison;
       });
+    } else {
+      // Default sort: newest RFQs first (by rfqNumber descending)
+      sorted.sort((a, b) => {
+        const aNum = a.rfqNumber || '';
+        const bNum = b.rfqNumber || '';
+        return bNum.localeCompare(aNum, 'vi'); // Descending order
+      });
     }
 
     // Then, apply pagination

@@ -68,15 +68,22 @@ export const getStageTypeName = (stageType) => {
  * @returns {{ label: string, variant: string }} Status label and Bootstrap variant
  */
 export const getProductionOrderStatusFromStages = (order) => {
+  // PRIORITY CHECK: If order already has SUPPLEMENTARY_CREATED, show that status first
+  // (material was approved and rework order was created)
+  if (order.executionStatus === 'SUPPLEMENTARY_CREATED') {
+    return { label: 'Chờ sản xuất bổ sung', variant: 'info' };
+  }
+
   // Handle special status: Chờ phê duyệt cấp sợi (check both order and stage level)
   // Backend sets stage.executionStatus = 'WAITING_MATERIAL' when Tech sends material request
   if (order.pendingMaterialRequestId && order.executionStatus === 'WAITING_MATERIAL_APPROVAL') {
     return { label: 'Chờ phê duyệt cấp sợi', variant: 'warning' };
   }
   // FIX: Also check if any stage has WAITING_MATERIAL status
+  // BUT only if order itself is not already SUPPLEMENTARY_CREATED
   const stages = order.stages || [];
   const materialWaitingStage = stages.find(s => s.executionStatus === 'WAITING_MATERIAL');
-  if (materialWaitingStage) {
+  if (materialWaitingStage && order.executionStatus !== 'SUPPLEMENTARY_CREATED') {
     return { label: 'Chờ phê duyệt cấp sợi', variant: 'warning' };
   }
 

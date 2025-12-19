@@ -191,7 +191,14 @@ const CustomerQuotations = () => {
 
     // Sort quotations based on sortColumn and sortDirection
     const sortedQuotations = useMemo(() => {
-        if (!sortColumn) return quotations;
+        if (!sortColumn) {
+            // Default sort: newest quotations first (by quotationNumber descending)
+            return [...quotations].sort((a, b) => {
+                const aNum = a.quotationNumber || '';
+                const bNum = b.quotationNumber || '';
+                return bNum.localeCompare(aNum, 'vi'); // Descending order
+            });
+        }
 
         return [...quotations].sort((a, b) => {
             let aValue, bValue;

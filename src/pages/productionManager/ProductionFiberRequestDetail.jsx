@@ -55,6 +55,7 @@ const ProductionFiberRequestDetail = () => {
   }, [id]);
 
   const calculateDays = () => {
+    // Capacity per stage (kg/day)
     const capacities = {
       'WARPING': 2000, 'CUONG_MAC': 2000,
       'WEAVING': 500, 'DET': 500,
@@ -63,10 +64,63 @@ const ProductionFiberRequestDetail = () => {
       'HEMMING': 1500, 'MAY': 1500,
       'PACKAGING': 3000, 'DONG_GOI': 3000
     };
-    const stageType = request?.productionStage?.stageType?.toUpperCase() || 'UNKNOWN';
-    const capacity = capacities[stageType] || 1000;
-    const days = approvedQuantity / capacity;
-    return Math.ceil(days * 2) / 2.0;
+
+    // Wait times between stages (days) - from backend SequentialCapacityCalculator
+    const waitTimes = {
+      'WARPING': 0.5,     // Warping -> Weaving
+      'CUONG_MAC': 0.5,
+      'WEAVING': 0.5,     // Weaving -> Dyeing
+      'DET': 0.5,
+      'DYEING': 1.0,      // Dyeing -> Cutting
+      'NHUOM': 1.0,
+      'CUTTING': 0.2,     // Cutting -> Hemming
+      'CAT': 0.2,
+      'HEMMING': 0.3,     // Hemming -> Packaging
+      'MAY': 0.3,
+      'PACKAGING': 0.2,   // Packaging buffer
+      'DONG_GOI': 0.2
+    };
+
+    // Stage order for rework - remaining stages after current one
+    const stageOrder = ['WARPING', 'WEAVING', 'DYEING', 'CUTTING', 'HEMMING', 'PACKAGING'];
+    const stageAliases = {
+      'CUONG_MAC': 'WARPING',
+      'DET': 'WEAVING',
+      'NHUOM': 'DYEING',
+      'CAT': 'CUTTING',
+      'MAY': 'HEMMING',
+      'DONG_GOI': 'PACKAGING'
+    };
+
+    const currentStageType = request?.productionStage?.stageType?.toUpperCase() || 'WARPING';
+    const normalizedStage = stageAliases[currentStageType] || currentStageType;
+
+    // Find index of current stage
+    const currentIndex = stageOrder.indexOf(normalizedStage);
+    if (currentIndex === -1) {
+      // Fallback: just calculate for single stage
+      const capacity = capacities[currentStageType] || 1000;
+      return Math.ceil((approvedQuantity / capacity) * 2) / 2.0;
+    }
+
+    // Calculate total time for remaining stages (including current)
+    let totalDays = 0;
+    let totalWaitTime = 0;
+
+    for (let i = currentIndex; i < stageOrder.length; i++) {
+      const stage = stageOrder[i];
+      const capacity = capacities[stage] || 1000;
+      const processingDays = approvedQuantity / capacity;
+      totalDays += processingDays;
+
+      // Add wait time (except for last stage which has buffer)
+      if (waitTimes[stage]) {
+        totalWaitTime += waitTimes[stage];
+      }
+    }
+
+    const grandTotal = totalDays + totalWaitTime;
+    return Math.ceil(grandTotal * 2) / 2.0; // Round to nearest 0.5
   };
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);

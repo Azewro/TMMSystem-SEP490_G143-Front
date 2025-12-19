@@ -156,7 +156,14 @@ const DirectorOrderList = () => {
 
     // Sort contracts based on sortColumn and sortDirection
     const sortedContracts = useMemo(() => {
-        if (!sortColumn) return contracts;
+        if (!sortColumn) {
+            // Default sort: newest contracts first (by contractNumber descending)
+            return [...contracts].sort((a, b) => {
+                const aNum = a.contractNumber || '';
+                const bNum = b.contractNumber || '';
+                return bNum.localeCompare(aNum, 'vi'); // Descending order
+            });
+        }
 
         return [...contracts].sort((a, b) => {
             let aValue, bValue;

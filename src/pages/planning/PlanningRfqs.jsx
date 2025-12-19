@@ -221,7 +221,14 @@ const PlanningRfqs = () => {
 
   // Sort the RFQs based on sortColumn and sortDirection
   const sortedRfqs = useMemo(() => {
-    if (!sortColumn) return allRfqs;
+    if (!sortColumn) {
+      // Default sort: newest RFQs first (by rfqNumber descending)
+      return [...allRfqs].sort((a, b) => {
+        const aNum = a.rfqNumber || '';
+        const bNum = b.rfqNumber || '';
+        return bNum.localeCompare(aNum, 'vi'); // Descending order
+      });
+    }
 
     return [...allRfqs].sort((a, b) => {
       let aValue, bValue;

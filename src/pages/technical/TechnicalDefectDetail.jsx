@@ -180,6 +180,23 @@ const TechnicalDefectDetail = () => {
   }, [defectId]);
 
   const handleQuantityChange = (materialId, value) => {
+    // Allow empty value (clearing input)
+    if (value === '') {
+      setQuantities(prev => ({
+        ...prev,
+        [materialId]: ''
+      }));
+      return;
+    }
+
+    // Validate: only allow valid positive numbers
+    const numValue = parseFloat(value);
+    if (isNaN(numValue) || numValue < 0) {
+      // Don't update if invalid or negative
+      toast.error('Số lượng phải là số dương hợp lệ');
+      return;
+    }
+
     setQuantities(prev => ({
       ...prev,
       [materialId]: value

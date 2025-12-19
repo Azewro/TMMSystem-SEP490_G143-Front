@@ -172,6 +172,13 @@ const LeaderDefectList = () => {
         const comparison = String(aValue).localeCompare(String(bValue), 'vi');
         return sortDirection === 'asc' ? comparison : -comparison;
       });
+    } else {
+      // Default sort: newest defects first (by createdAt descending)
+      sorted.sort((a, b) => {
+        const aDate = a.createdAt || '';
+        const bDate = b.createdAt || '';
+        return bDate.localeCompare(aDate); // Descending order
+      });
     }
 
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
