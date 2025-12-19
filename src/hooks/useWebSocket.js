@@ -1,8 +1,16 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import { API_BASE_URL } from '../utils/constants';
 
-const SOCKET_URL = '/ws'; // Backend registers this endpoint
+// Construct WebSocket URL from API base URL (works for both local and production)
+const getSocketUrl = () => {
+    // Remove trailing slash if present
+    const baseUrl = API_BASE_URL.replace(/\/$/, '');
+    return `${baseUrl}/ws`;
+};
+
+const SOCKET_URL = getSocketUrl();
 
 /**
  * Hook to manage a single WebSocket connection using STOMP over SockJS.
