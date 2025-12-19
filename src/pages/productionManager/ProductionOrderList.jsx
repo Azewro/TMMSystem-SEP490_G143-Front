@@ -105,6 +105,16 @@ const ProductionOrderList = () => {
     return () => unsubscribe();
   }, [subscribe, fetchOrders]);
 
+  // Window focus refetch - refresh when user switches back to tab
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log('[ProductionOrderList] Window focused, refreshing...');
+      fetchOrders();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [fetchOrders]);
+
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);

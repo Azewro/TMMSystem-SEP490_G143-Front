@@ -24,7 +24,7 @@ const ProductionReworkOrderDetail = () => {
         setOrder(data);
       } catch (error) {
         console.error('Error fetching order:', error);
-        toast.error('Không thể tải thông tin đơn hàng');
+        // Silent fail - already logged to console
       } finally {
         setLoading(false);
       }
@@ -43,6 +43,16 @@ const ProductionReworkOrderDetail = () => {
     });
     return () => unsubscribe();
   }, [subscribe, orderId]);
+
+  // Window focus refetch - refresh when user switches back to tab
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log('[ProductionReworkOrderDetail] Window focused, refreshing...');
+      orderService.getOrderById(orderId).then(setOrder).catch(console.error);
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [orderId]);
 
   const handleViewStage = (stageId) => {
     navigate(`/production/stage-progress/${stageId}`);

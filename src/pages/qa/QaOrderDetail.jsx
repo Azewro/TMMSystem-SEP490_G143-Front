@@ -80,10 +80,7 @@ const QaOrderDetail = () => {
       setOrder(mappedOrder);
     } catch (error) {
       console.error('Error fetching order:', error);
-      // Only show error toast if component is still mounted
-      if (isMountedRef.current) {
-        toast.error('Không thể tải thông tin đơn hàng');
-      }
+      // Silent fail - already logged to console
     } finally {
       if (isMountedRef.current) {
         setLoading(false);
@@ -102,6 +99,16 @@ const QaOrderDetail = () => {
     });
     return () => unsubscribe();
   }, [subscribe, fetchOrder]);
+
+  // Window focus refetch - refresh when user switches back to tab
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log('[QaOrderDetail] Window focused, refreshing...');
+      fetchOrder();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [fetchOrder]);
 
   // Initial fetch and cleanup on unmount
   useEffect(() => {

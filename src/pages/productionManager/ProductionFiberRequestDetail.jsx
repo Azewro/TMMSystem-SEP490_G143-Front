@@ -67,6 +67,16 @@ const ProductionFiberRequestDetail = () => {
     return () => unsubscribe();
   }, [subscribe, id]);
 
+  // Window focus refetch - refresh when user switches back to tab
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log('[ProductionFiberRequestDetail] Window focused, refreshing...');
+      productionService.getMaterialRequest(id).then(setRequest).catch(console.error);
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [id]);
+
   const calculateDays = () => {
     // Capacity per stage (kg/day)
     const capacities = {

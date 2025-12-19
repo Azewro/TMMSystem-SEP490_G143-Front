@@ -108,10 +108,7 @@ const LeaderOrderDetail = () => {
         setOrder(mappedOrder);
       } catch (error) {
         console.error('Error fetching order:', error);
-        // Only show error toast if component is still mounted
-        if (isMountedRef.current) {
-          toast.error('Không thể tải thông tin đơn hàng');
-        }
+        // Silent fail - already logged to console
       } finally {
         if (isMountedRef.current) {
           setLoading(false);
@@ -145,6 +142,21 @@ const LeaderOrderDetail = () => {
     });
     return () => unsubscribe();
   }, [subscribe, orderId, userId]);
+
+  // Window focus refetch - refresh when user switches back to tab
+  useEffect(() => {
+    const handleFocus = async () => {
+      console.log('[LeaderOrderDetail] Window focused, refreshing...');
+      try {
+        const data = await productionService.getLeaderOrderDetail(orderId, userId);
+        setOrder(prev => prev ? { ...prev, ...data } : null);
+      } catch (err) {
+        console.error('Window focus refresh error:', err);
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [orderId, userId]);
 
   const handleBack = () => {
     navigate('/leader/orders');
