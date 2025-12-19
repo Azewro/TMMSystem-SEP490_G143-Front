@@ -413,7 +413,7 @@ const LeaderDefectList = () => {
                                 <Button
                                   size="sm"
                                   variant="outline-success"
-                                  onClick={() => navigate(`/leader/orders/${defect.orderId}`, { state: { stageId: defect.stageId } })}
+                                  onClick={() => navigate(`/leader/orders/${defect.orderId}/progress`, { state: { stageId: defect.stageId } })}
                                 >
                                   Xem chi tiết
                                 </Button>

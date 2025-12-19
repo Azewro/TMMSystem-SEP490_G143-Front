@@ -230,9 +230,11 @@ const LeaderStageProgress = () => {
   useEffect(() => {
     const checkBlocking = async () => {
       if (!stage?.id) return;
-      // Only check for stages that can potentially start
+      // Only check for stages that can potentially start (not completed or already in progress)
       const canPotentiallyStart = ['READY', 'WAITING', 'READY_TO_PRODUCE', 'WAITING_REWORK'].includes(stage?.executionStatus);
-      if (!canPotentiallyStart) {
+      // Skip blocking check for completed stages (including resolved rework)
+      const isCompleted = ['COMPLETED', 'QC_PASSED', 'REWORK_COMPLETED', 'DONE'].includes(stage?.executionStatus);
+      if (!canPotentiallyStart || isCompleted) {
         setBlockingInfo(null);
         return;
       }
