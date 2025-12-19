@@ -157,7 +157,7 @@ const ProductionFiberRequestDetail = () => {
 
   const handleConfirmApprove = async (force = false) => {
     if (!userId) {
-      toast.error('Không tìm thấy thông tin người dùng');
+      console.warn('[ProductionFiberRequestDetail] User ID not found');
       return;
     }
     try {

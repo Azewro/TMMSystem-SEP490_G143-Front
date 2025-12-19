@@ -223,7 +223,7 @@ const TechnicalDefectDetail = () => {
     try {
       const userId = parseInt(localStorage.getItem('userId') || sessionStorage.getItem('userId'));
       if (!userId) {
-        toast.error("Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.");
+        console.warn('[TechnicalDefectDetail] User ID not found');
         return;
       }
 

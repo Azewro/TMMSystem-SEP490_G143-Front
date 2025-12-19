@@ -95,6 +95,16 @@ const LeaderDefectList = () => {
     return () => unsubscribe();
   }, [subscribe]);
 
+  // Window focus refetch - refresh when user switches back to tab
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log('[LeaderDefectList] Window focused, refreshing...');
+      fetchDefects();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
+
   const fetchDefects = async () => {
     try {
       setLoading(true);
