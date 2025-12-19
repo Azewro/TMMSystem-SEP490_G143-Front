@@ -482,6 +482,14 @@ const QaStageQualityCheck = () => {
       );
 
       toast.success('Đã gửi kết quả kiểm tra');
+
+      // Special toast for PACKAGING stage passing QC
+      if (overallResult === 'PASS' && (stage?.stageType === 'PACKAGING' || stage?.stageType === 'DONG_GOI')) {
+        setTimeout(() => {
+          toast.success('Công đoạn đóng gói đạt. Thông báo kho đến tiếp nhận.', { duration: 5000 });
+        }, 500);
+      }
+
       setTimeout(() => handleBack(), 1500);
     } catch (error) {
       toast.error(error.message || 'Lỗi khi gửi kết quả');

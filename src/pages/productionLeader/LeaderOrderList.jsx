@@ -188,6 +188,37 @@ const LeaderOrderList = () => {
     navigate(`/leader/orders/${order.id}`);
   };
 
+  // Helper function to start rework process
+  const executeStartRework = async (stage, order, forceStop) => {
+    try {
+      const leaderUserId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
+      await apiClient.post(`/v1/production/stages/${stage.id}/start-rework?leaderUserId=${leaderUserId}&forceStop=${forceStop}`);
+      toast.success('Đã bắt đầu sửa lỗi');
+      navigate(`/leader/orders/${order.id}/progress`, { state: { stageId: stage.id } });
+    } catch (error) {
+      const msg = error.response?.data?.message || error.message || 'Lỗi khi bắt đầu sửa lỗi';
+      toast.error(msg);
+    }
+  };
+
+  // Modal handlers for rework confirmation
+  const handleConfirmForceStop = async () => {
+    setShowReworkConfirmModal(false);
+    if (pendingReworkStage && pendingReworkOrder) {
+      await executeStartRework(pendingReworkStage, pendingReworkOrder, true);
+    }
+    setPendingReworkStage(null);
+    setPendingReworkOrder(null);
+    setActiveStagesInfo(null);
+  };
+
+  const handleCancelForceStop = () => {
+    setShowReworkConfirmModal(false);
+    setPendingReworkStage(null);
+    setPendingReworkOrder(null);
+    setActiveStagesInfo(null);
+  };
+
   if (loading) {
     return (
       <div className="d-flex justify-content-center align-items-center vh-100">
@@ -296,6 +327,30 @@ const LeaderOrderList = () => {
                 />
               </Tab>
             </Tabs>
+
+            {/* Rework Confirmation Modal */}
+            <Modal show={showReworkConfirmModal} onHide={handleCancelForceStop} centered>
+              <Modal.Header closeButton>
+                <Modal.Title>Xác nhận tạm dừng công đoạn</Modal.Title>
+              </Modal.Header>
+              <Modal.Body>
+                <p className="fw-bold text-danger">Cảnh báo: Có công đoạn đang chạy sẽ bị tạm dừng!</p>
+                {activeStagesInfo?.activeStages && activeStagesInfo.activeStages.length > 0 && (
+                  <ul className="mb-3">
+                    {activeStagesInfo.activeStages.map((s, i) => (
+                      <li key={i}>
+                        <strong>{getStageTypeName(s.stageType)}</strong> - {s.status} ({s.progressPercent || 0}%)
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <p>Bạn có chắc chắn muốn tạm dừng các công đoạn này để bắt đầu sửa lỗi không?</p>
+              </Modal.Body>
+              <Modal.Footer>
+                <Button variant="secondary" onClick={handleCancelForceStop}>Hủy</Button>
+                <Button variant="danger" onClick={handleConfirmForceStop}>Xác nhận tạm dừng</Button>
+              </Modal.Footer>
+            </Modal>
           </Container>
         </div>
       </div>
