@@ -11,6 +11,7 @@ import { authService } from '../../api/authService';
 import { useAuth } from '../../context/AuthContext';
 import ConfirmOrderProfileModal from '../../components/modals/ConfirmOrderProfileModal';
 import toast from 'react-hot-toast';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 const formatCurrency = (v) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v || 0);
 const formatDate = (iso) => iso ? new Date(iso).toLocaleDateString('vi-VN') : 'N/A';
@@ -228,6 +229,18 @@ const CustomerQuotationDetail = () => {
       fetchDetails();
     }
   }, [id, user]);
+
+  // WebSocket subscription for real-time updates
+  const { subscribe } = useWebSocketContext();
+  useEffect(() => {
+    const unsubscribe = subscribe('/topic/updates', (update) => {
+      if (update.entity === 'QUOTATION' && update.id === parseInt(id, 10)) {
+        console.log('Customer Quotation Detail refresh triggered by WebSocket');
+        window.location.reload();
+      }
+    });
+    return () => { if (unsubscribe) unsubscribe(); };
+  }, [subscribe, id]);
 
   const onConfirm = async (type) => {
     if (!quote?.id) return;

@@ -10,6 +10,7 @@ import { contractService } from '../../api/contractService';
 import { machineService } from '../../api/machineService';
 import { FaPaperPlane, FaTimes } from 'react-icons/fa';
 import toast from 'react-hot-toast';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import { vi } from 'date-fns/locale/vi';
 import 'react-datepicker/dist/react-datepicker.css';

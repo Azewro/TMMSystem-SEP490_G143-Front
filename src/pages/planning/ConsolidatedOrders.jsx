@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Container, Card, Table, Button, Spinner, Alert, Badge } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
@@ -6,6 +6,7 @@ import InternalSidebar from '../../components/common/InternalSidebar';
 import Pagination from '../../components/Pagination';
 import { productionPlanService } from '../../api/productionPlanService'; // Assuming a new service function here
 import '../../styles/QuoteRequests.css'; // Reusing existing styles
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 const STATUS_LABELS = {
   PENDING_PLANNING: { text: 'Chờ lập kế hoạch', variant: 'info' },
@@ -51,9 +52,23 @@ const ConsolidatedOrders = () => {
     }
   };
 
+  // WebSocket for real-time updates
+  const { subscribe } = useWebSocketContext();
+
   useEffect(() => {
     loadConsolidatedOrders();
   }, []);
+
+  // WebSocket subscription
+  useEffect(() => {
+    const unsubscribe = subscribe('/topic/updates', (update) => {
+      if (update.entity === 'PRODUCTION_LOT' || update.entity === 'PRODUCTION_PLAN' || update.entity === 'ORDER') {
+        console.log('Consolidated Orders refresh triggered by WebSocket');
+        loadConsolidatedOrders();
+      }
+    });
+    return () => { if (unsubscribe) unsubscribe(); };
+  }, [subscribe]);
 
   // Pagination logic
   const indexOfLastOrder = currentPage * ITEMS_PER_PAGE;

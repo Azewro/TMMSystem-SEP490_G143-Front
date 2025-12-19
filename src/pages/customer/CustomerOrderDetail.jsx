@@ -7,6 +7,7 @@ import { contractService } from '../../api/contractService';
 import { quotationService } from '../../api/quotationService';
 import { API_BASE_URL } from '../../utils/constants';
 import toast from 'react-hot-toast';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 // Helper functions for file handling
 const getFileExtension = (url) => {
@@ -133,6 +134,18 @@ const CustomerOrderDetail = () => {
 
     fetchOrderData();
   }, [id]);
+
+  // WebSocket subscription for real-time updates
+  const { subscribe } = useWebSocketContext();
+  useEffect(() => {
+    const unsubscribe = subscribe('/topic/updates', (update) => {
+      if ((update.entity === 'CONTRACT' || update.entity === 'ORDER') && update.id === parseInt(id, 10)) {
+        console.log('Customer Order Detail refresh triggered by WebSocket');
+        window.location.reload();
+      }
+    });
+    return () => { if (unsubscribe) unsubscribe(); };
+  }, [subscribe, id]);
 
   const handleViewFile = async (url) => {
     if (!url || isDocx(url)) {

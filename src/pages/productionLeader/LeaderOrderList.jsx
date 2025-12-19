@@ -534,7 +534,15 @@ const OrderTable = ({ orders, navigate, isRework = false }) => {
                                 const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
                                 await apiClient.post(`/v1/production/stages/${stage.id}/start-rework?leaderUserId=${userId}&forceStop=true`);
                                 toast.success('Đã bắt đầu sửa lỗi - Các lô khác đã tạm dừng');
-                                navigate(`/leader/orders/${order.id}/progress`, { state: { stageId: stage.id } });
+                                // Navigate with defect info like LeaderDefectList
+                                navigate(`/leader/orders/${order.id}/progress`, {
+                                  state: {
+                                    stageId: stage.id,
+                                    defectId: stage.defectId, // Add defect ID if available
+                                    severity: stage.defectLevel || stage.defectSeverity, // Add severity
+                                    isRework: true
+                                  }
+                                });
                               } catch (error) {
                                 const msg = error.response?.data?.message || error.message || 'Lỗi khi bắt đầu sửa lỗi';
                                 if (msg.includes('BLOCKING')) {

@@ -10,6 +10,7 @@ import { productService } from '../../api/productService';
 import { getPlanningRfqStatus } from '../../utils/statusMapper';
 import InsufficientCapacityModal from '../../components/modals/InsufficientCapacityModal';
 import toast from 'react-hot-toast';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 const PlanningRFQDetail = () => {
   const { id } = useParams();
@@ -66,6 +67,18 @@ const PlanningRFQDetail = () => {
   useEffect(() => {
     loadRFQ();
   }, [loadRFQ]);
+
+  // WebSocket subscription for real-time updates
+  const { subscribe } = useWebSocketContext();
+  useEffect(() => {
+    const unsubscribe = subscribe('/topic/updates', (update) => {
+      if (update.entity === 'RFQ' && update.id === parseInt(id)) {
+        console.log('Planning RFQ Detail refresh triggered by WebSocket');
+        loadRFQ();
+      }
+    });
+    return () => { if (unsubscribe) unsubscribe(); };
+  }, [subscribe, id, loadRFQ]);
 
   const handleReceive = async () => {
     if (!id) return;

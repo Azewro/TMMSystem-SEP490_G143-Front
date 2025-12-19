@@ -6,6 +6,7 @@ import Header from '../../components/common/Header';
 import Sidebar from '../../components/common/Sidebar';
 import { rfqService } from '../../api/rfqService';
 import { productService } from '../../api/productService';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 const formatDate = (iso) => iso ? new Date(iso).toLocaleDateString('vi-VN') : 'N/A';
 
@@ -24,20 +25,20 @@ const CustomerRfqDetail = () => {
       setError('');
       try {
         const rfqData = await rfqService.getRfqById(parseInt(id, 10));
-        
+
         if (rfqData.details && rfqData.details.length > 0) {
-          const productPromises = rfqData.details.map(item => 
+          const productPromises = rfqData.details.map(item =>
             productService.getProductById(item.productId)
           );
           const products = await Promise.all(productPromises);
-          
+
           const productsMap = products.reduce((acc, product) => {
             acc[product.id] = product;
             return acc;
           }, {});
           setProductDetails(productsMap);
         }
-        
+
         setRfq(rfqData);
 
       } catch (e) {
@@ -49,8 +50,20 @@ const CustomerRfqDetail = () => {
     fetchDetails();
   }, [id]);
 
+  // WebSocket subscription for real-time updates
+  const { subscribe } = useWebSocketContext();
+  useEffect(() => {
+    const unsubscribe = subscribe('/topic/updates', (update) => {
+      if (update.entity === 'RFQ' && update.id === parseInt(id, 10)) {
+        console.log('Customer RFQ Detail refresh triggered by WebSocket');
+        window.location.reload(); // Simple reload for detail pages
+      }
+    });
+    return () => { if (unsubscribe) unsubscribe(); };
+  }, [subscribe, id]);
+
   const getStatusBadge = (status) => {
-    switch(status) {
+    switch (status) {
       case 'DRAFT': return { text: 'Bản nháp', bg: 'secondary' };
       case 'SENT': return { text: 'Đã gửi', bg: 'primary' };
       case 'PROCESSING': return { text: 'Đang xử lý', bg: 'info' };
@@ -71,7 +84,7 @@ const CustomerRfqDetail = () => {
               <FaArrowLeft className="me-2" /> Quay lại danh sách
             </Button>
 
-            {error && <Alert variant="danger" onClose={()=>setError('')} dismissible>{error}</Alert>}
+            {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
 
             {loading ? (
               <div className="text-center py-5"><Spinner animation="border" /></div>
@@ -83,9 +96,9 @@ const CustomerRfqDetail = () => {
                 </Card.Header>
                 <Card.Body className="p-4">
                   <div className="mb-4">
-                      <p><strong>Ngày tạo:</strong> {formatDate(rfq.createdAt)}</p>
-                      <p><strong>Ngày giao hàng mong muốn:</strong> {formatDate(rfq.expectedDeliveryDate)}</p>
-                      {rfq.notes && <p><strong>Ghi chú của khách hàng:</strong> {rfq.notes}</p>}
+                    <p><strong>Ngày tạo:</strong> {formatDate(rfq.createdAt)}</p>
+                    <p><strong>Ngày giao hàng mong muốn:</strong> {formatDate(rfq.expectedDeliveryDate)}</p>
+                    {rfq.notes && <p><strong>Ghi chú của khách hàng:</strong> {rfq.notes}</p>}
                   </div>
 
                   <h5 className="mb-3">Sản phẩm yêu cầu</h5>
@@ -118,7 +131,7 @@ const CustomerRfqDetail = () => {
             ) : (
               <div className="text-center py-5 text-muted">Không tìm thấy yêu cầu báo giá.</div>
             )}
-            
+
           </Container>
         </div>
       </div>

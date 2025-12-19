@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Container, Card, Table, Button, Modal, Form, Alert, Badge, Spinner, InputGroup, Row, Col } from 'react-bootstrap';
 import { FaSearch, FaSortUp, FaSortDown, FaSort } from 'react-icons/fa';
 import Header from '../../components/common/Header';
@@ -12,6 +12,7 @@ import DatePicker, { registerLocale } from 'react-datepicker';
 import { vi } from 'date-fns/locale/vi';
 import 'react-datepicker/dist/react-datepicker.css';
 import { parseDateString, formatDateForBackend } from '../../utils/validators';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 registerLocale('vi', vi);
 
@@ -60,6 +61,9 @@ const DirectorOrderList = () => {
     // Sort state
     const [sortColumn, setSortColumn] = useState('');
     const [sortDirection, setSortDirection] = useState('asc');
+
+    // WebSocket for real-time updates
+    const { subscribe } = useWebSocketContext();
 
     // Handle sort click
     const handleSort = (column) => {
@@ -138,6 +142,17 @@ const DirectorOrderList = () => {
     useEffect(() => {
         loadContracts();
     }, [currentPage, searchTerm, statusFilter, deliveryDateFilter]);
+
+    // WebSocket subscription for real-time updates
+    useEffect(() => {
+        const unsubscribe = subscribe('/topic/updates', (update) => {
+            if (update.entity === 'CONTRACT' || update.entity === 'ORDER') {
+                console.log('Director Order List refresh triggered by WebSocket');
+                loadContracts();
+            }
+        });
+        return () => { if (unsubscribe) unsubscribe(); };
+    }, [subscribe]);
 
     // Sort contracts based on sortColumn and sortDirection
     const sortedContracts = useMemo(() => {
