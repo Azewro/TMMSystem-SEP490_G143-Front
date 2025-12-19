@@ -931,8 +931,12 @@ export const getSalesOrderStatus = (status) => {
   if (status === 'PENDING_APPROVAL') return { label: 'Chờ phê duyệt hợp đồng đã ký', variant: 'warning', value: 'PENDING_APPROVAL' };
   if (status === 'REJECTED') return { label: 'Hợp đồng đã ký bị từ chối', variant: 'danger', value: 'REJECTED' };
   if (status === 'APPROVED') return { label: 'Hợp đồng đã ký được phê duyệt', variant: 'success', value: 'APPROVED' };
-  if (status === 'WAITING_PRODUCTION' || status === 'IN_PROGRESS') return { label: 'Đang sản xuất', variant: 'info', value: 'IN_PRODUCTION' };
-  if (status === 'COMPLETED') return { label: 'Sản xuất xong', variant: 'success', value: 'COMPLETED' };
+  // FIX: Added IN_PRODUCTION status mapping
+  if (status === 'WAITING_PRODUCTION' || status === 'IN_PROGRESS' || status === 'IN_PRODUCTION') return { label: 'Đang sản xuất', variant: 'primary', value: 'IN_PRODUCTION' };
+  // FIX: Added PRODUCTION_COMPLETED status mapping
+  if (status === 'PRODUCTION_COMPLETED') return { label: 'Sản xuất xong', variant: 'info', value: 'PRODUCTION_COMPLETED' };
+  if (status === 'COMPLETED') return { label: 'Hoàn thành', variant: 'success', value: 'COMPLETED' };
+  if (status === 'DELIVERED') return { label: 'Đã giao hàng', variant: 'success', value: 'DELIVERED' };
 
   const label = getStatusLabel(status);
   const variant = getStatusVariant(status);

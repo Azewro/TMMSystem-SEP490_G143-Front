@@ -32,7 +32,11 @@ const isDocx = (url) => ['docx', 'doc'].includes(getFileExtension(url));
 const STATUS_LABELS = {
   PENDING_APPROVAL: { text: 'Chờ duyệt', variant: 'warning' },
   APPROVED: { text: 'Đã duyệt', variant: 'success' },
-  REJECTED: { text: 'Đã từ chối', variant: 'danger' }
+  REJECTED: { text: 'Đã từ chối', variant: 'danger' },
+  IN_PRODUCTION: { text: 'Đang sản xuất', variant: 'primary' },
+  PRODUCTION_COMPLETED: { text: 'Sản xuất xong', variant: 'info' },
+  DELIVERED: { text: 'Đã giao hàng', variant: 'success' },
+  COMPLETED: { text: 'Hoàn thành', variant: 'success' }
 };
 
 const formatCurrency = (value) => {
@@ -430,6 +434,8 @@ const DirectorContractApproval = () => {
     { value: 'PENDING_APPROVAL', label: 'Chờ duyệt' },
     { value: 'APPROVED', label: 'Đã duyệt' },
     { value: 'REJECTED', label: 'Đã từ chối' },
+    { value: 'IN_PRODUCTION', label: 'Đang sản xuất' },
+    { value: 'PRODUCTION_COMPLETED', label: 'Sản xuất xong' },
   ];
 
   return (
