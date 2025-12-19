@@ -68,8 +68,15 @@ export const getStageTypeName = (stageType) => {
  * @returns {{ label: string, variant: string }} Status label and Bootstrap variant
  */
 export const getProductionOrderStatusFromStages = (order) => {
-  // Handle special status: Chờ phê duyệt cấp sợi (only if still pending)
+  // Handle special status: Chờ phê duyệt cấp sợi (check both order and stage level)
+  // Backend sets stage.executionStatus = 'WAITING_MATERIAL' when Tech sends material request
   if (order.pendingMaterialRequestId && order.executionStatus === 'WAITING_MATERIAL_APPROVAL') {
+    return { label: 'Chờ phê duyệt cấp sợi', variant: 'warning' };
+  }
+  // FIX: Also check if any stage has WAITING_MATERIAL status
+  const stages = order.stages || [];
+  const materialWaitingStage = stages.find(s => s.executionStatus === 'WAITING_MATERIAL');
+  if (materialWaitingStage) {
     return { label: 'Chờ phê duyệt cấp sợi', variant: 'warning' };
   }
 
@@ -82,7 +89,7 @@ export const getProductionOrderStatusFromStages = (order) => {
   }
 
   // Find active stage FIRST (not PENDING and not COMPLETED) - for both normal and supplementary orders
-  const stages = order.stages || [];
+  // (stages already declared above)
   const activeStage = stages.find(s =>
     s.executionStatus &&
     s.executionStatus !== 'PENDING' &&
@@ -721,9 +728,9 @@ export const getButtonForStage = (status, userRole) => {
     if (status === 'QC_FAILED') {
       return { text: 'Xem chi tiết', action: 'detail', variant: 'outline-secondary', disabled: false };
     }
-    // WAITING_REWORK: chờ sửa - button "Bắt đầu"
+    // WAITING_REWORK: chờ sửa - button "Tạm dừng và Sửa lỗi" (will pause other lots)
     if (status === 'WAITING_REWORK') {
-      return { text: 'Bắt đầu', action: 'start', variant: 'warning', disabled: false };
+      return { text: 'Tạm dừng và Sửa lỗi', action: 'start', variant: 'danger', disabled: false };
     }
     // REWORK_IN_PROGRESS: đang sửa - button "Cập nhật tiến độ"
     if (status === 'REWORK_IN_PROGRESS') {

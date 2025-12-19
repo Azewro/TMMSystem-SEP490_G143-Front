@@ -417,13 +417,20 @@ const LeaderOrderDetail = () => {
                               };
 
                               if (buttonConfig.action === 'start' || buttonConfig.action === 'update') {
+                                // Override button text for rework stages (including supplementary orders)
+                                const buttonText = (isReworkStage && buttonConfig.action === 'start')
+                                  ? 'Tạm dừng và Sửa lỗi'
+                                  : buttonConfig.text;
+                                const buttonVariant = (isReworkStage && buttonConfig.action === 'start')
+                                  ? 'danger'
+                                  : buttonConfig.variant;
                                 return (
                                   <Button
                                     size="sm"
-                                    variant={buttonConfig.variant}
+                                    variant={buttonVariant}
                                     onClick={handleAction}
                                   >
-                                    {buttonConfig.text}
+                                    {buttonText}
                                   </Button>
                                 );
                               }

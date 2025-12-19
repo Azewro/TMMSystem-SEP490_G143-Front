@@ -8,6 +8,7 @@ import Pagination from '../../components/Pagination';
 import { productionService } from '../../api/productionService';
 import { executionService } from '../../api/executionService';
 import { orderService } from '../../api/orderService';
+import apiClient from '../../api/apiConfig';
 import { getLeaderStageStatusLabel, getLeaderOrderStatusFromStages, getStageTypeName } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
 import DatePicker, { registerLocale } from 'react-datepicker';
@@ -92,8 +93,11 @@ const LeaderOrderList = () => {
                   statusLabel: stageStatus?.label || 'N/A',
                   statusVariant: stageStatus?.variant || 'secondary',
                   buttons: stageStatus?.buttons || [],
-                  progress: leaderStage.progressPercent || 0
-                } : null
+                  progress: leaderStage.progressPercent || 0,
+                  isRework: leaderStage.isRework || false // Add isRework flag for rework button logic
+                } : null,
+                // Also check if order is a rework order (poNumber contains -REWORK)
+                isReworkOrder: order.poNumber?.includes('-REWORK') || false
               };
             } catch (err) {
               console.warn(`Could not fetch detail for order ${order.id}:`, err);
@@ -517,41 +521,82 @@ const OrderTable = ({ orders, navigate, isRework = false }) => {
                           );
                         }
 
-                        // For READY_TO_PRODUCE status, show "Xem chi tiết" and "Bắt đầu" buttons
+                        // For READY_TO_PRODUCE status, show "Xem chi tiết" and "Bắt đầu"/"Tạm dừng và Sửa lỗi" buttons
                         const isReadyToStart = stage && ['READY_TO_PRODUCE', 'READY', 'WAITING'].includes(stage.status) && !isWaitingForTurn;
+                        // Check if this is a rework order - use different button/API
+                        const isReworkStage = stage?.isRework || order.isReworkOrder || isRework;
+
                         if (isReadyToStart) {
-                          const handleStartStage = async () => {
-                            try {
-                              await executionService.startStage(stage.id, sessionStorage.getItem('userId') || localStorage.getItem('userId'));
-                              toast.success('Đã bắt đầu công đoạn');
-                              navigate(`/leader/orders/${order.id}/progress`, { state: { stageId: stage.id } });
-                            } catch (error) {
-                              const msg = error.response?.data?.message || error.message || 'Lỗi khi bắt đầu công đoạn';
-                              if (msg.includes('BLOCKING')) {
-                                toast.error(msg.replace('java.lang.RuntimeException: BLOCKING: ', ''));
-                              } else {
-                                toast.error(msg);
+                          if (isReworkStage) {
+                            // Rework order - show "Tạm dừng và Sửa lỗi" button
+                            const handleStartRework = async () => {
+                              try {
+                                const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
+                                await apiClient.post(`/v1/production/stages/${stage.id}/start-rework?leaderUserId=${userId}&forceStop=true`);
+                                toast.success('Đã bắt đầu sửa lỗi - Các lô khác đã tạm dừng');
+                                navigate(`/leader/orders/${order.id}/progress`, { state: { stageId: stage.id } });
+                              } catch (error) {
+                                const msg = error.response?.data?.message || error.message || 'Lỗi khi bắt đầu sửa lỗi';
+                                if (msg.includes('BLOCKING')) {
+                                  toast.error(msg.replace('java.lang.RuntimeException: BLOCKING: ', ''));
+                                } else {
+                                  toast.error(msg);
+                                }
                               }
-                            }
-                          };
-                          return (
-                            <div className="d-flex gap-1 justify-content-end flex-wrap">
-                              <Button
-                                size="sm"
-                                variant="outline-secondary"
-                                onClick={() => navigate(`/leader/orders/${order.id}`)}
-                              >
-                                Xem chi tiết
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="success"
-                                onClick={handleStartStage}
-                              >
-                                Bắt đầu
-                              </Button>
-                            </div>
-                          );
+                            };
+                            return (
+                              <div className="d-flex gap-1 justify-content-end flex-wrap">
+                                <Button
+                                  size="sm"
+                                  variant="outline-secondary"
+                                  onClick={() => navigate(`/leader/orders/${order.id}`)}
+                                >
+                                  Xem chi tiết
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="danger"
+                                  onClick={handleStartRework}
+                                >
+                                  Tạm dừng và Sửa lỗi
+                                </Button>
+                              </div>
+                            );
+                          } else {
+                            // Normal order - show "Bắt đầu" button
+                            const handleStartStage = async () => {
+                              try {
+                                await executionService.startStage(stage.id, sessionStorage.getItem('userId') || localStorage.getItem('userId'));
+                                toast.success('Đã bắt đầu công đoạn');
+                                navigate(`/leader/orders/${order.id}/progress`, { state: { stageId: stage.id } });
+                              } catch (error) {
+                                const msg = error.response?.data?.message || error.message || 'Lỗi khi bắt đầu công đoạn';
+                                if (msg.includes('BLOCKING')) {
+                                  toast.error(msg.replace('java.lang.RuntimeException: BLOCKING: ', ''));
+                                } else {
+                                  toast.error(msg);
+                                }
+                              }
+                            };
+                            return (
+                              <div className="d-flex gap-1 justify-content-end flex-wrap">
+                                <Button
+                                  size="sm"
+                                  variant="outline-secondary"
+                                  onClick={() => navigate(`/leader/orders/${order.id}`)}
+                                >
+                                  Xem chi tiết
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="success"
+                                  onClick={handleStartStage}
+                                >
+                                  Bắt đầu
+                                </Button>
+                              </div>
+                            );
+                          }
                         }
 
                         return !orderLocked && filteredButtons.length > 0 ? (

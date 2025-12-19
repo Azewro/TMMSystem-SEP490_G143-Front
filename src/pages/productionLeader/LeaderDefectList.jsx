@@ -29,8 +29,9 @@ const statusConfig = {
   PENDING: { label: 'Chờ xử lý', variant: 'secondary', priority: 0 },
   PROCESSED: { label: 'Sẵn sàng sửa lỗi', variant: 'primary', priority: 1 },
   WAITING: { label: 'Chờ đến lượt sửa lỗi', variant: 'secondary', priority: 2 },
+  PAUSED: { label: 'Chờ đến lượt sửa lỗi', variant: 'warning', priority: 2 }, // Stage paused by another rework
   IN_PROGRESS: { label: 'Đang xử lý', variant: 'info', priority: 3 },
-  RESOLVED: { label: 'Hoàn thành', variant: 'success', priority: 4 },
+  RESOLVED: { label: 'Đã xử lý', variant: 'success', priority: 4 }, // Changed from 'Hoàn thành' per diagram
 };
 
 
@@ -103,6 +104,10 @@ const LeaderDefectList = () => {
   // Filter defects
   const filteredDefects = useMemo(() => {
     return allDefects.filter((defect) => {
+      // MAJOR defects should appear in "Lô bổ sung" tab (/leader/orders), not here
+      // Per diagram: Only MINOR defects show in /leader/defects
+      if (defect.severity === 'MAJOR') return false;
+
       const matchesSearch = !searchTerm ||
         (defect.batchNumber && defect.batchNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (defect.poNumber && defect.poNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -378,7 +383,10 @@ const LeaderDefectList = () => {
                     ) : (
                       paginatedDefects.map((defect, index) => {
                         const severity = severityConfig[defect.severity] || { label: defect.severity, variant: 'secondary' };
-                        const status = statusConfig[defect.status] || { label: defect.status, variant: 'secondary' };
+                        // FIX: If stage is PAUSED, show "Chờ đến lượt sửa lỗi" regardless of QualityIssue status
+                        const status = defect.stageStatus === 'PAUSED'
+                          ? statusConfig.PAUSED
+                          : (statusConfig[defect.status] || { label: defect.status, variant: 'secondary' });
                         return (
                           <tr key={defect.id}>
                             <td>{getRowNumber(index)}</td>
@@ -408,6 +416,15 @@ const LeaderDefectList = () => {
                                   onClick={() => navigate(`/leader/orders/${defect.orderId}`, { state: { stageId: defect.stageId } })}
                                 >
                                   Xem chi tiết
+                                </Button>
+                              ) : defect.status === 'PAUSED' || defect.stageStatus === 'PAUSED' ? (
+                                // Stage is paused by another rework - show disabled button
+                                <Button
+                                  size="sm"
+                                  variant="outline-secondary"
+                                  disabled
+                                >
+                                  Chờ đến lượt sửa lỗi
                                 </Button>
                               ) : (
                                 <Button
