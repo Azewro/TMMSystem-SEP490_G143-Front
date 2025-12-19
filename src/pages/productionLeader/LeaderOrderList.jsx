@@ -317,6 +317,11 @@ const LeaderOrderList = () => {
                 <OrderTable
                   orders={mainOrders}
                   navigate={navigate}
+                  executeStartRework={executeStartRework}
+                  setPendingReworkStage={setPendingReworkStage}
+                  setPendingReworkOrder={setPendingReworkOrder}
+                  setActiveStagesInfo={setActiveStagesInfo}
+                  setShowReworkConfirmModal={setShowReworkConfirmModal}
                 />
               </Tab>
               <Tab eventKey="rework" title="Lô bổ sung (Sửa lỗi)">
@@ -324,6 +329,11 @@ const LeaderOrderList = () => {
                   orders={reworkOrders}
                   navigate={navigate}
                   isRework={true}
+                  executeStartRework={executeStartRework}
+                  setPendingReworkStage={setPendingReworkStage}
+                  setPendingReworkOrder={setPendingReworkOrder}
+                  setActiveStagesInfo={setActiveStagesInfo}
+                  setShowReworkConfirmModal={setShowReworkConfirmModal}
                 />
               </Tab>
             </Tabs>
@@ -358,7 +368,7 @@ const LeaderOrderList = () => {
   );
 };
 
-const OrderTable = ({ orders, navigate, isRework = false }) => {
+const OrderTable = ({ orders, navigate, isRework = false, executeStartRework, setPendingReworkStage, setPendingReworkOrder, setActiveStagesInfo, setShowReworkConfirmModal }) => {
   // Sort state
   const [sortColumn, setSortColumn] = useState('');
   const [sortDirection, setSortDirection] = useState('asc');

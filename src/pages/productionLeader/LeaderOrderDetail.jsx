@@ -325,7 +325,7 @@ const LeaderOrderDetail = () => {
 
                               // Show buttons for rework orders that can start
                               if (isReworkOrder) {
-                                if (canStartReworkStage || stage.status === 'IN_PROGRESS' || stage.executionStatus === 'IN_PROGRESS') {
+                                if (canStartReworkStage || stage.status === 'IN_PROGRESS' || stage.executionStatus === 'IN_PROGRESS' || stage.status === 'REWORK_IN_PROGRESS' || stage.executionStatus === 'REWORK_IN_PROGRESS') {
                                   // Continue to normal button rendering below
                                 } else if (stage.status === 'COMPLETED' || stage.status === 'QC_PASSED' || stage.progress >= 100) {
                                   return (
