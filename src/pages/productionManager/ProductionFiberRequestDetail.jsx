@@ -6,6 +6,7 @@ import InternalSidebar from '../../components/common/InternalSidebar';
 import { productionService } from '../../api/productionService';
 import { getStageTypeName } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 const severityConfig = {
   minor: { label: 'Lỗi nhẹ', variant: 'warning' },
@@ -53,6 +54,18 @@ const ProductionFiberRequestDetail = () => {
     };
     fetchRequest();
   }, [id]);
+
+  // WebSocket subscription for real-time updates
+  const { subscribe } = useWebSocketContext();
+  useEffect(() => {
+    const unsubscribe = subscribe('/topic/updates', (update) => {
+      if (update.entity === 'MATERIAL_REQUEST') {
+        console.log('[ProductionFiberRequestDetail] Received update, refreshing...', update);
+        productionService.getMaterialRequest(id).then(setRequest).catch(console.error);
+      }
+    });
+    return () => unsubscribe();
+  }, [subscribe, id]);
 
   const calculateDays = () => {
     // Capacity per stage (kg/day)

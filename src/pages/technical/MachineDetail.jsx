@@ -15,6 +15,7 @@ import {
 import { FaArrowLeft } from 'react-icons/fa';
 import { format } from 'date-fns';
 import { machineService } from '../../api/machineService';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 const MachineDetail = () => {
     const { id } = useParams();
@@ -60,6 +61,21 @@ const MachineDetail = () => {
             fetchData();
         }
     }, [id, currentPage]);
+
+    // WebSocket subscription for real-time updates
+    const { subscribe } = useWebSocketContext();
+    useEffect(() => {
+        const unsubscribe = subscribe('/topic/updates', (update) => {
+            if (update.entity === 'MACHINE') {
+                console.log('[MachineDetail] Received update, refreshing...', update);
+                // Re-fetch machine data
+                machineService.getMachine(id)
+                    .then(data => setMachine(data))
+                    .catch(err => console.error('WebSocket refresh error:', err));
+            }
+        });
+        return () => unsubscribe();
+    }, [subscribe, id]);
 
     if (loading && !machine) {
         return (

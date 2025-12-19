@@ -11,6 +11,7 @@ import { materialStockService } from '../../api/materialStockService';
 import MaterialStockModal from '../../components/modals/MaterialStockModal';
 import Pagination from '../../components/Pagination';
 import toast from 'react-hot-toast';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 registerLocale('vi', vi);
 
@@ -113,6 +114,18 @@ const MaterialStockManagement = () => {
   useEffect(() => {
     fetchMaterialStocks();
   }, [fetchMaterialStocks]);
+
+  // WebSocket subscription for real-time updates
+  const { subscribe } = useWebSocketContext();
+  useEffect(() => {
+    const unsubscribe = subscribe('/topic/updates', (update) => {
+      if (update.entity === 'MATERIAL') {
+        console.log('[MaterialStockManagement] Received update, refreshing...', update);
+        fetchMaterialStocks();
+      }
+    });
+    return () => unsubscribe();
+  }, [subscribe, fetchMaterialStocks]);
 
   useEffect(() => {
     // Reset to page 1 when filters change

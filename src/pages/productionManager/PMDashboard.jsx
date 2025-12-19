@@ -16,6 +16,7 @@ import {
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { dashboardService } from '../../api/dashboardService';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 const PMDashboard = () => {
     const navigate = useNavigate();
@@ -38,6 +39,18 @@ const PMDashboard = () => {
         };
         fetchData();
     }, []);
+
+    // WebSocket subscription for real-time updates
+    const { subscribe } = useWebSocketContext();
+    useEffect(() => {
+        const unsubscribe = subscribe('/topic/updates', (update) => {
+            if (['PRODUCTION_ORDER', 'PRODUCTION_STAGE', 'QUALITY_ISSUE', 'MATERIAL_REQUEST'].includes(update.entity)) {
+                console.log('[PMDashboard] Received update, refreshing...', update);
+                dashboardService.getPMDashboard().then(setData).catch(console.error);
+            }
+        });
+        return () => unsubscribe();
+    }, [subscribe]);
 
     // Stage type Vietnamese mapping
     const stageTypeNames = {

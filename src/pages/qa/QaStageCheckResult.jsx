@@ -9,6 +9,7 @@ import { qcService } from '../../api/qcService';
 import toast from 'react-hot-toast';
 import { API_BASE_URL } from '../../utils/constants';
 import { getStageTypeName } from '../../utils/statusMapper';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 // Mapping checkpoint names from English to Vietnamese
 const CHECKPOINT_NAME_MAP = {
@@ -218,6 +219,19 @@ const QaStageCheckResult = () => {
     };
     if (orderId && stageCode) fetchStageResult();
   }, [orderId, stageCode]);
+
+  // WebSocket subscription for real-time updates
+  const { subscribe } = useWebSocketContext();
+  useEffect(() => {
+    const unsubscribe = subscribe('/topic/updates', (update) => {
+      if (['QUALITY_ISSUE', 'PRODUCTION_STAGE'].includes(update.entity)) {
+        console.log('[QaStageCheckResult] Received update, refreshing...', update);
+        // Trigger re-fetch by setting loading (simplified approach)
+        setLoading(true);
+      }
+    });
+    return () => unsubscribe();
+  }, [subscribe]);
 
   if (loading) {
     return (

@@ -8,6 +8,7 @@ import { executionService } from '../../api/executionService';
 import toast from 'react-hot-toast';
 import { getStatusLabel, getStageTypeName, getLeaderStageStatusLabel } from '../../utils/statusMapper';
 import { API_BASE_URL } from '../../utils/constants';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 const getCleanImageUrl = (url) => {
   if (!url || url === 'null') return null;
@@ -248,6 +249,18 @@ const LeaderStageProgress = () => {
     };
     checkBlocking();
   }, [stage?.id, stage?.executionStatus, refreshKey]);
+
+  // WebSocket subscription for real-time updates
+  const { subscribe } = useWebSocketContext();
+  useEffect(() => {
+    const unsubscribe = subscribe('/topic/updates', (update) => {
+      if (['PRODUCTION_STAGE', 'QUALITY_ISSUE'].includes(update.entity)) {
+        console.log('[LeaderStageProgress] Received update, refreshing...', update);
+        setRefreshKey(prev => prev + 1);
+      }
+    });
+    return () => unsubscribe();
+  }, [subscribe]);
 
   const handleBack = () => {
     navigate(`/leader/orders/${orderId}`);

@@ -12,6 +12,7 @@ import DatePicker, { registerLocale } from 'react-datepicker';
 import { vi } from 'date-fns/locale/vi';
 import 'react-datepicker/dist/react-datepicker.css';
 import { parseDateString, formatDateForBackend } from '../../utils/validators';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 registerLocale('vi', vi);
 
@@ -98,6 +99,18 @@ const TechnicalDefectList = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // WebSocket subscription for real-time updates
+  const { subscribe } = useWebSocketContext();
+  useEffect(() => {
+    const unsubscribe = subscribe('/topic/updates', (update) => {
+      if (['QUALITY_ISSUE', 'PRODUCTION_STAGE'].includes(update.entity)) {
+        console.log('[TechnicalDefectList] Received update, refreshing...', update);
+        fetchData();
+      }
+    });
+    return () => unsubscribe();
+  }, [subscribe]);
 
   // Reset page when filters change
   useEffect(() => {
