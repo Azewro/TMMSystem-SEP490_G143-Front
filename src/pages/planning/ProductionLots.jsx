@@ -40,7 +40,7 @@ const ProductionLots = () => {
   const [filteredLots, setFilteredLots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const { subscribe } = useWebSocketContext();
+  const { subscribe, connected } = useWebSocketContext();
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -218,10 +218,13 @@ const ProductionLots = () => {
                 <h2 className="mb-2">Danh sách Lô sản xuất (Gộp tự động)</h2>
                 <p className="text-muted mb-0">Hệ thống tự động gộp các đơn hàng có cùng sản phẩm, ngày giao và ngày ký (chênh lệch ±1 ngày) để tối ưu hóa kế hoạch sản xuất.</p>
               </div>
-              <Button variant="outline-primary" onClick={loadProductionLots} disabled={loading}>
-                <FaSync className={loading ? 'fa-spin' : ''} />
-                <span className="ms-2">Làm mới</span>
-              </Button>
+              {/* Only show refresh button when WebSocket is disconnected */}
+              {!connected && (
+                <Button variant="outline-primary" onClick={loadProductionLots} disabled={loading}>
+                  <FaSync className={loading ? 'fa-spin' : ''} />
+                  <span className="ms-2">Làm mới</span>
+                </Button>
+              )}
             </div>
 
             {/* Search and Filter Section */}

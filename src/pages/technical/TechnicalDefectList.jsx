@@ -174,6 +174,22 @@ const TechnicalDefectList = () => {
         const comparison = String(aValue).localeCompare(String(bValue), 'vi');
         return sortDirection === 'asc' ? comparison : -comparison;
       });
+    } else {
+      // DEFAULT SORT: PENDING first (Chờ xử lý), then by createdAt oldest first
+      sorted.sort((a, b) => {
+        // Status priority: PENDING = 0 (first), others = 1
+        const aStatusPriority = a.status === 'PENDING' ? 0 : 1;
+        const bStatusPriority = b.status === 'PENDING' ? 0 : 1;
+
+        if (aStatusPriority !== bStatusPriority) {
+          return aStatusPriority - bStatusPriority; // PENDING first
+        }
+
+        // Same status: sort by createdAt ascending (oldest first)
+        const aDate = a.createdAt || '';
+        const bDate = b.createdAt || '';
+        return aDate.localeCompare(bDate);
+      });
     }
 
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
