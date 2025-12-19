@@ -216,11 +216,10 @@ export const getLeaderOrderStatusFromStages = (order) => {
     return { label: 'Hoàn thành', variant: 'success' };
   }
 
-  // Find active stage
+  // Find active stage (including PENDING for demoted stages, excluding only COMPLETED and QC_PASSED)
   const stages = order.stages || [];
   const activeStage = stages.find(s =>
     s.executionStatus &&
-    s.executionStatus !== 'PENDING' &&
     s.executionStatus !== 'COMPLETED' &&
     s.executionStatus !== 'QC_PASSED'
   );
@@ -250,6 +249,7 @@ export const getLeaderOrderStatusFromStages = (order) => {
     const statusConfig = {
       'READY': { prefix: 'Sẵn sàng sản xuất', variant: 'primary' },
       'READY_TO_PRODUCE': { prefix: 'Sẵn sàng sản xuất', variant: 'primary' },
+      'PENDING': { prefix: 'Chờ đến lượt', variant: 'secondary' }, // Demoted from READY_TO_PRODUCE
       'IN_PROGRESS': { prefix: 'Đang làm', variant: 'info' },
       'WAITING_QC': { prefix: 'Chờ kiểm tra', variant: 'warning' },
       'QC_IN_PROGRESS': { prefix: 'Đang kiểm tra', variant: 'warning' },
@@ -343,11 +343,10 @@ export const getQaOrderStatusFromStages = (order) => {
     return { label: 'Hoàn thành', variant: 'success' };
   }
 
-  // Find active stage
+  // Find active stage (including PENDING for demoted stages per LOGIC_SPECS.md)
   const stages = order.stages || [];
   const activeStage = stages.find(s =>
     s.executionStatus &&
-    s.executionStatus !== 'PENDING' &&
     s.executionStatus !== 'COMPLETED' &&
     s.executionStatus !== 'QC_PASSED'
   );
@@ -356,21 +355,27 @@ export const getQaOrderStatusFromStages = (order) => {
     const status = (activeStage.status === 'PAUSED') ? 'PAUSED' : activeStage.executionStatus;
     const stageName = getStageTypeName(activeStage.stageType) || activeStage.stageType;
 
-    // Status config per QA diagram
     switch (status) {
       // PM started but Leader hasn't started first stage - "Chuẩn bị làm"
       // After QC pass on non-final stage, next stage is WAITING but should show "Đang làm"
       case 'WAITING':
       case 'READY':
-      case 'READY_TO_PRODUCE': {
-        // Only show "Chuẩn bị làm" if this is the FIRST stage (stageSequence=1)
-        // After QC pass on previous stage, the next stage becomes WAITING but order should show "Đang làm"
-        const isFirstStage = activeStage.stageSequence === 1 || activeStage.stageSequence === '1';
-        if (isFirstStage) {
-          return { label: 'Chuẩn bị làm', variant: 'secondary' };
+      case 'READY_TO_PRODUCE':
+      case 'PENDING': {
+        // Check if any previous stage has QC_PASSED - if so, order is already "Đang làm"
+        const stages = order.stages || [];
+        const hasPreviousQcPassed = stages.some(s =>
+          s.stageSequence < activeStage.stageSequence &&
+          s.executionStatus === 'QC_PASSED'
+        );
+
+        // If any previous stage passed QC, order is in production → "Đang làm"
+        if (hasPreviousQcPassed) {
+          return { label: 'Đang làm', variant: 'info' };
         }
-        // Non-first stage in WAITING means previous stage passed QC → "Đang làm"
-        return { label: 'Đang làm', variant: 'info' };
+
+        // First stage and no previous QC passed → "Chuẩn bị làm"
+        return { label: 'Chuẩn bị làm', variant: 'secondary' };
       }
 
       // Leader in progress - "Đang làm"
@@ -525,6 +530,22 @@ export const getPMStageStatusLabel = (status) => {
       label: 'Tạm dừng',
       variant: 'danger',
       buttons: [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
+    },
+    // Supplementary order statuses
+    'IN_SUPPLEMENTARY': {
+      label: 'Đang sản xuất bổ sung',
+      variant: 'info',
+      buttons: [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
+    },
+    'READY_SUPPLEMENTARY': {
+      label: 'Chờ sản xuất bổ sung',
+      variant: 'secondary',
+      buttons: [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
+    },
+    'WAITING_SUPPLEMENTARY': {
+      label: 'Chờ sản xuất bổ sung',
+      variant: 'secondary',
+      buttons: [{ text: 'Chi tiết', action: 'detail', variant: 'outline-secondary' }]
     }
     // NOTE: COMPLETED removed - backend only sets COMPLETED on orders, not stages
   };
@@ -563,7 +584,12 @@ export const getQaStageStatusLabel = (status) => {
     'QC_PASSED': { label: 'Đạt', variant: 'success' },
     'QC_FAILED': { label: 'Không đạt', variant: 'danger' },
     'WAITING_REWORK': { label: 'Không đạt', variant: 'danger' },
-    'PAUSED': { label: 'Tạm dừng', variant: 'danger' }
+    'PAUSED': { label: 'Tạm dừng', variant: 'danger' },
+    // Supplementary order statuses
+    'IN_SUPPLEMENTARY': { label: 'Đang sản xuất bổ sung', variant: 'info' },
+    'READY_SUPPLEMENTARY': { label: 'Chờ sản xuất bổ sung', variant: 'secondary' },
+    'WAITING_SUPPLEMENTARY': { label: 'Chờ sản xuất bổ sung', variant: 'secondary' },
+    'SUPPLEMENTARY_CREATED': { label: 'Đang sản xuất bổ sung', variant: 'info' }
   };
 
   return statusMap[status] || { label: status || 'N/A', variant: 'secondary' };
@@ -661,9 +687,23 @@ export const getLeaderStageStatusLabel = (status, defectSeverity = null) => {
       label: 'Tạm dừng',
       variant: 'danger',
       buttons: [] // Không có button
+    },
+    // Supplementary order statuses (can appear on stages)
+    'IN_SUPPLEMENTARY': {
+      label: 'Đang sản xuất bổ sung',
+      variant: 'info',
+      buttons: [{ text: 'Cập nhật tiến độ', action: 'update', variant: 'primary' }]
+    },
+    'READY_SUPPLEMENTARY': {
+      label: 'Chờ sản xuất bổ sung',
+      variant: 'secondary',
+      buttons: [{ text: 'Bắt đầu', action: 'start', variant: 'success' }]
+    },
+    'WAITING_SUPPLEMENTARY': {
+      label: 'Chờ sản xuất bổ sung',
+      variant: 'secondary',
+      buttons: [{ text: 'Bắt đầu', action: 'start', variant: 'success' }]
     }
-    // NOTE: COMPLETED, READY_SUPPLEMENTARY, WAITING_SUPPLEMENTARY, IN_SUPPLEMENTARY, SUPPLEMENTARY_CREATED
-    // removed - backend only sets these on orders, not stages
   };
 
   const result = statusMap[status];

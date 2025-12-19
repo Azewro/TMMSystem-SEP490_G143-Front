@@ -61,7 +61,7 @@ const LeaderOrderList = () => {
                 )
                 .sort((a, b) => (a.stageSequence || 0) - (b.stageSequence || 0));
 
-              const activeStatuses = ['IN_PROGRESS', 'REWORK_IN_PROGRESS', 'READY_TO_PRODUCE', 'READY', 'WAITING', 'WAITING_QC', 'QC_IN_PROGRESS', 'WAITING_REWORK', 'QC_FAILED'];
+              const activeStatuses = ['IN_PROGRESS', 'REWORK_IN_PROGRESS', 'READY_TO_PRODUCE', 'READY', 'WAITING', 'WAITING_QC', 'QC_IN_PROGRESS', 'WAITING_REWORK', 'QC_FAILED', 'PENDING', 'PAUSED'];
               const leaderStage =
                 leaderStagesAll.find(s => activeStatuses.includes(s.executionStatus || s.status)) ||
                 leaderStagesAll.find(s => (s.progressPercent ?? 0) < 100) ||
@@ -140,12 +140,32 @@ const LeaderOrderList = () => {
 
   const filteredOrders = useMemo(() => {
     return orders.filter((o) => {
-      // Filter out orders where Leader's assigned stage is PENDING (previous stages not completed)
-      // These orders should not appear on Leader list per diagram
+      // Filter out orders where Leader's assigned stage is PENDING because previous stages not completed
+      // But DO NOT filter out if it's a demoted stage (previous stage is QC_PASSED)
+      // Demoted stages should show "Chờ đến lượt [Stage]" per LOGIC_SPECS.md
+
       const leaderStageStatus = o.leaderStage?.status;
-      // Filter out PENDING stages (previous stages not completed)
+      const leaderStageSequence = o.leaderStage?.stageSequence || 1;
+
       if (leaderStageStatus === 'PENDING') {
-        return false;
+        // Check if this is a demoted stage or a stage waiting for previous to complete
+        // If stageSequence > 1, check if any previous stage is QC_PASSED
+        // If previous stage is QC_PASSED, this is a demoted stage -> SHOW IT
+        const stages = o.stages || [];
+        const previousStagesPassed = stages.some(s =>
+          s.stageSequence < leaderStageSequence &&
+          s.executionStatus === 'QC_PASSED'
+        );
+
+        // If first stage is PENDING, it was definitely demoted (PM already started work order)
+        // If previous stages passed QC, it was demoted
+        // Only hide if truly waiting for previous stage to complete
+        if (leaderStageSequence === 1 || previousStagesPassed) {
+          // This is a demoted stage - SHOW IT with "Chờ đến lượt" status
+        } else {
+          // This is waiting for previous stage to complete - hide it
+          return false;
+        }
       }
 
       // Filter out orders that PM hasn't started yet
@@ -597,11 +617,20 @@ const OrderTable = ({ orders, navigate, isRework = false, executeStartRework, se
                         // Check if this is a rework order - use different button/API
                         const isReworkStage = stage?.isRework || order.isReworkOrder || isRework;
 
+                        // EXCEPTION: DYEING/NHUOM is parallel - no pause needed, just "Sửa lỗi"
+                        const isDyeingStage = ['DYEING', 'NHUOM'].includes(stage?.stageType?.toUpperCase());
+
                         if (isReadyToStart) {
                           if (isReworkStage) {
-                            // Rework order - show "Tạm dừng và Sửa lỗi" button
+                            // Rework order - show "Tạm dừng và Sửa lỗi" or "Sửa lỗi" for DYEING
                             const handleStartRework = async () => {
                               try {
+                                // DYEING is parallel - skip confirmation modal, start directly
+                                if (isDyeingStage) {
+                                  await executeStartRework(stage, order, false);
+                                  return;
+                                }
+
                                 // First check if there are active stages that need to be stopped
                                 const checkResult = await apiClient.get(`/v1/production/stages/${stage.id}/check-rework`);
 
@@ -631,10 +660,10 @@ const OrderTable = ({ orders, navigate, isRework = false, executeStartRework, se
                                 </Button>
                                 <Button
                                   size="sm"
-                                  variant="danger"
+                                  variant={isDyeingStage ? "warning" : "danger"}
                                   onClick={handleStartRework}
                                 >
-                                  Tạm dừng và Sửa lỗi
+                                  {isDyeingStage ? "Sửa lỗi" : "Tạm dừng và Sửa lỗi"}
                                 </Button>
                               </div>
                             );

@@ -417,13 +417,18 @@ const LeaderOrderDetail = () => {
                               };
 
                               if (buttonConfig.action === 'start' || buttonConfig.action === 'update') {
+                                // EXCEPTION: DYEING/NHUOM is parallel - no pause needed, just "Sửa lỗi"
+                                const isDyeingStage = ['DYEING', 'NHUOM'].includes(stage.stageType?.toUpperCase());
+
                                 // Override button text for rework stages (including supplementary orders)
-                                const buttonText = (isReworkStage && buttonConfig.action === 'start')
-                                  ? 'Tạm dừng và Sửa lỗi'
-                                  : buttonConfig.text;
-                                const buttonVariant = (isReworkStage && buttonConfig.action === 'start')
-                                  ? 'danger'
-                                  : buttonConfig.variant;
+                                let buttonText = buttonConfig.text;
+                                let buttonVariant = buttonConfig.variant;
+
+                                if (isReworkStage && buttonConfig.action === 'start') {
+                                  buttonText = isDyeingStage ? 'Sửa lỗi' : 'Tạm dừng và Sửa lỗi';
+                                  buttonVariant = isDyeingStage ? 'warning' : 'danger';
+                                }
+
                                 return (
                                   <Button
                                     size="sm"
