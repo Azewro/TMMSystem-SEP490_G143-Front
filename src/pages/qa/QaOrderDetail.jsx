@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Container, Card, Table, Button, Badge, Spinner } from 'react-bootstrap';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Header from '../../components/common/Header';
@@ -6,6 +6,7 @@ import InternalSidebar from '../../components/common/InternalSidebar';
 import { orderService } from '../../api/orderService';
 import { getStatusLabel, getStageTypeName, getButtonForStage, getStatusVariant, getQaOrderStatusFromStages, getQaStageStatusLabel } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 const QaOrderDetail = () => {
   const navigate = useNavigate();
@@ -14,77 +15,92 @@ const QaOrderDetail = () => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Fetch order using useCallback for WebSocket refresh
+  const fetchOrder = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await orderService.getOrderById(orderId);
+
+      // Get current QA userId
+      const qcUserId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
+
+      // Backend enrichProductionOrderDto returns stages in data.stages
+      // Filter và map chỉ các stages được assign cho QA này
+      const stages = (data.stages || [])
+        .filter(stage => {
+          // Chỉ lấy stages được assign cho QA này
+          return stage.qcAssigneeId === Number(qcUserId) ||
+            stage.qcAssignee?.id === Number(qcUserId);
+        })
+        .map(stage => {
+          // Simple status mapping for QA "Xem kế hoạch" page
+          const execStatus = (stage.status === 'PAUSED') ? 'PAUSED' : (stage.executionStatus || stage.status);
+          const statusInfo = getQaStageStatusLabel(execStatus);
+          const statusLabel = statusInfo.label;
+          const statusVariant = statusInfo.variant;
+
+          return {
+            id: stage.id,
+            code: stage.stageType,
+            name: getStageTypeName(stage.stageType) || stage.stageType,
+            assignee: stage.assignedLeader?.fullName ||
+              stage.assigneeName ||
+              (stage.stageType === 'DYEING' || stage.stageType === 'NHUOM' ? 'Production Manager' : 'Chưa phân công'),
+            status: execStatus,
+            statusLabel: statusLabel,
+            statusVariant: statusVariant,
+            progress: stage.progressPercent || 0,
+            qcAssigneeId: stage.qcAssigneeId || stage.qcAssignee?.id
+          };
+        });
+
+      // Lấy token từ stage đầu tiên (hoặc bất kỳ stage nào có token)
+      // Lưu ý: data.stages chứa TẤT CẢ stages, không chỉ của QA này
+      const firstStageWithToken = (data.stages || []).find(s => s.qrToken);
+      const qrToken = firstStageWithToken ? firstStageWithToken.qrToken : null;
+
+      // Use getQaOrderStatusFromStages for QA-specific header status
+      const orderStatusResult = getQaOrderStatusFromStages(data);
+
+      // Map backend data to match UI structure
+      const mappedOrder = {
+        id: data.id || orderId,
+        lotCode: data.lotCode || data.poNumber || orderId,
+        productName: data.productName || data.contract?.contractNumber || 'N/A',
+        size: data.size || '-',
+        quantity: data.totalQuantity || 0,
+        expectedStartDate: data.plannedStartDate || data.expectedStartDate,
+        expectedFinishDate: data.plannedEndDate || data.expectedFinishDate,
+        statusLabel: orderStatusResult.label,
+        statusVariant: orderStatusResult.variant,
+        stages: stages,
+        qrToken: qrToken // Add token to order object
+      };
+      setOrder(mappedOrder);
+    } catch (error) {
+      console.error('Error fetching order:', error);
+      toast.error('Không thể tải thông tin đơn hàng');
+    } finally {
+      setLoading(false);
+    }
+  }, [orderId]);
+
+  // WebSocket subscription for real-time updates
+  const { subscribe } = useWebSocketContext();
   useEffect(() => {
-    const fetchOrder = async () => {
-      try {
-        setLoading(true);
-        const data = await orderService.getOrderById(orderId);
-
-        // Get current QA userId
-        const qcUserId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
-
-        // Backend enrichProductionOrderDto returns stages in data.stages
-        // Filter và map chỉ các stages được assign cho QA này
-        const stages = (data.stages || [])
-          .filter(stage => {
-            // Chỉ lấy stages được assign cho QA này
-            return stage.qcAssigneeId === Number(qcUserId) ||
-              stage.qcAssignee?.id === Number(qcUserId);
-          })
-          .map(stage => {
-            // Simple status mapping for QA "Xem kế hoạch" page
-            const execStatus = (stage.status === 'PAUSED') ? 'PAUSED' : (stage.executionStatus || stage.status);
-            const statusInfo = getQaStageStatusLabel(execStatus);
-            const statusLabel = statusInfo.label;
-            const statusVariant = statusInfo.variant;
-
-            return {
-              id: stage.id,
-              code: stage.stageType,
-              name: getStageTypeName(stage.stageType) || stage.stageType,
-              assignee: stage.assignedLeader?.fullName ||
-                stage.assigneeName ||
-                (stage.stageType === 'DYEING' || stage.stageType === 'NHUOM' ? 'Production Manager' : 'Chưa phân công'),
-              status: execStatus,
-              statusLabel: statusLabel,
-              statusVariant: statusVariant,
-              progress: stage.progressPercent || 0,
-              qcAssigneeId: stage.qcAssigneeId || stage.qcAssignee?.id
-            };
-          });
-
-        // Lấy token từ stage đầu tiên (hoặc bất kỳ stage nào có token)
-        // Lưu ý: data.stages chứa TẤT CẢ stages, không chỉ của QA này
-        const firstStageWithToken = (data.stages || []).find(s => s.qrToken);
-        const qrToken = firstStageWithToken ? firstStageWithToken.qrToken : null;
-
-        // Use getQaOrderStatusFromStages for QA-specific header status
-        const orderStatusResult = getQaOrderStatusFromStages(data);
-
-        // Map backend data to match UI structure
-        const mappedOrder = {
-          id: data.id || orderId,
-          lotCode: data.lotCode || data.poNumber || orderId,
-          productName: data.productName || data.contract?.contractNumber || 'N/A',
-          size: data.size || '-',
-          quantity: data.totalQuantity || 0,
-          expectedStartDate: data.plannedStartDate || data.expectedStartDate,
-          expectedFinishDate: data.plannedEndDate || data.expectedFinishDate,
-          statusLabel: orderStatusResult.label,
-          statusVariant: orderStatusResult.variant,
-          stages: stages,
-          qrToken: qrToken // Add token to order object
-        };
-        setOrder(mappedOrder);
-      } catch (error) {
-        console.error('Error fetching order:', error);
-        toast.error('Không thể tải thông tin đơn hàng');
-      } finally {
-        setLoading(false);
+    const unsubscribe = subscribe('/topic/updates', (update) => {
+      if (['PRODUCTION_ORDER', 'PRODUCTION_STAGE', 'QUALITY_ISSUE'].includes(update.entity)) {
+        console.log('[QaOrderDetail] Received update, refreshing...', update);
+        fetchOrder();
       }
-    };
+    });
+    return () => unsubscribe();
+  }, [subscribe, fetchOrder]);
+
+  // Initial fetch and refresh on navigation
+  useEffect(() => {
     fetchOrder();
-  }, [orderId, location.state?.refreshKey]); // refreshKey from navigation state forces data refresh
+  }, [fetchOrder, location.state?.refreshKey]); // refreshKey from navigation state forces data refresh
 
   const handleBack = () => {
     navigate('/qa/orders');

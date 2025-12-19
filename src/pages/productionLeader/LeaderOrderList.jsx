@@ -15,6 +15,7 @@ import DatePicker, { registerLocale } from 'react-datepicker';
 import { vi } from 'date-fns/locale/vi';
 import 'react-datepicker/dist/react-datepicker.css';
 import { parseDateString, formatDateForBackend } from '../../utils/validators';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 registerLocale('vi', vi);
 
@@ -126,17 +127,19 @@ const LeaderOrderList = () => {
     fetchOrders();
   }, [userId, refreshTrigger]);
 
-  // Auto-refresh when page gains focus (user switches tabs)
-  // This ensures Leader sees latest status after QA passes on another tab
-  useEffect(() => {
-    const handleFocus = () => {
-      console.log('[LeaderOrderList] Window focused, triggering refetch...');
-      setRefreshTrigger(prev => prev + 1);
-    };
 
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, []);
+
+  // WebSocket subscription for real-time updates
+  const { subscribe } = useWebSocketContext();
+  useEffect(() => {
+    const unsubscribe = subscribe('/topic/updates', (update) => {
+      if (['PRODUCTION_ORDER', 'PRODUCTION_STAGE', 'QUALITY_ISSUE'].includes(update.entity)) {
+        console.log('[LeaderOrderList] Received update, refreshing...', update);
+        setRefreshTrigger(prev => prev + 1);
+      }
+    });
+    return () => unsubscribe();
+  }, [subscribe]);
 
   const filteredOrders = useMemo(() => {
     return orders.filter((o) => {
@@ -481,6 +484,9 @@ const OrderTable = ({ orders, navigate, isRework = false, executeStartRework, se
         const comparison = String(aValue).localeCompare(String(bValue), 'vi');
         return sortDirection === 'asc' ? comparison : -comparison;
       });
+    } else {
+      // Default: sort by ID descending (newest first)
+      sorted.sort((a, b) => (b.id || 0) - (a.id || 0));
     }
 
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;

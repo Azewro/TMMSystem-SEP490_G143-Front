@@ -8,6 +8,7 @@ import InternalSidebar from '../../components/common/InternalSidebar';
 import { machineService } from '../../api/machineService';
 import CreateMachineModal from '../../components/modals/CreateMachineModal';
 import toast from 'react-hot-toast';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 const MachineManagement = () => {
   const { user: currentUser } = useAuth();
@@ -37,6 +38,18 @@ const MachineManagement = () => {
   useEffect(() => {
     loadMachines();
   }, [currentPage, searchQuery, typeFilter, statusFilter]);
+
+  // WebSocket subscription for real-time updates
+  const { subscribe } = useWebSocketContext();
+  useEffect(() => {
+    const unsubscribe = subscribe('/topic/updates', (update) => {
+      if (update.entity === 'MACHINE') {
+        console.log('[MachineManagement] Received update, refreshing...', update);
+        loadMachines();
+      }
+    });
+    return () => unsubscribe();
+  }, [subscribe, currentPage, searchQuery, typeFilter, statusFilter]);
 
   const loadMachines = async () => {
     setLoading(true);

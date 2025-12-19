@@ -12,6 +12,7 @@ import DatePicker, { registerLocale } from 'react-datepicker';
 import { vi } from 'date-fns/locale/vi';
 import 'react-datepicker/dist/react-datepicker.css';
 import { parseDateString, formatDateForBackend } from '../../utils/validators';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 registerLocale('vi', vi);
 
@@ -68,6 +69,18 @@ const ProductionFiberRequests = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // WebSocket subscription for real-time updates
+  const { subscribe } = useWebSocketContext();
+  useEffect(() => {
+    const unsubscribe = subscribe('/topic/updates', (update) => {
+      if (update.entity === 'MATERIAL_REQUEST') {
+        console.log('[ProductionFiberRequests] Received update, refreshing...', update);
+        fetchData();
+      }
+    });
+    return () => unsubscribe();
+  }, [subscribe]);
 
   // Status badge config
   const getStatusBadge = (status) => {

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Container, Card, Table, Button, Badge, Form, InputGroup, Spinner, Row, Col, Tab, Tabs } from 'react-bootstrap';
 import { FaSearch, FaSortUp, FaSortDown, FaSort } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
@@ -12,6 +12,7 @@ import DatePicker, { registerLocale } from 'react-datepicker';
 import { vi } from 'date-fns/locale/vi';
 import 'react-datepicker/dist/react-datepicker.css';
 import { parseDateString, formatDateForBackend } from '../../utils/validators';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 registerLocale('vi', vi);
 
@@ -56,62 +57,76 @@ const QaOrderList = () => {
       : <FaSortDown className="ms-1 text-primary" />;
   };
 
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        setLoading(true);
-        const data = await productionService.getQaOrders(qcUserId);
+  // Fetch orders using useCallback for WebSocket refresh
+  const fetchOrders = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await productionService.getQaOrders(qcUserId);
 
-        if (!data || data.length === 0) {
-          setOrders([]);
-          return;
-        }
-
-        // Map backend data to match UI structure
-        const mappedData = data.map(order => {
-          // Use getQaOrderStatusFromStages for QA-specific order status per diagram
-          const statusResult = getQaOrderStatusFromStages(order);
-
-          // Find the stage assigned to this QA for button logic
-          const qaStage = (order.stages || []).find(s =>
-            s.qcAssigneeId === Number(qcUserId) ||
-            s.qcAssignee?.id === Number(qcUserId)
-          );
-
-
-          return {
-            id: order.id,
-            lotCode: order.lotCode || order.poNumber || order.id,
-            poNumber: order.poNumber, // Keep original poNumber for rework filtering
-            productName: order.productName || order.contract?.contractNumber || 'N/A',
-            size: order.size || '-',
-            quantity: order.totalQuantity || 0,
-            expectedStartDate: order.plannedStartDate || order.expectedStartDate,
-            expectedFinishDate: order.plannedEndDate || order.expectedFinishDate,
-            status: order.executionStatus,
-            statusLabel: statusResult.label,
-            statusVariant: statusResult.variant,
-            qaStage: qaStage, // Store QA stage for button logic
-            stages: order.stages || [], // FIX: Include stages for button logic
-            // Get leader name from first stage
-            leaderName: order.stages?.[0]?.assignedLeader?.fullName || order.stages?.[0]?.assigneeName || 'Chưa phân công'
-          };
-        });
-        setOrders(mappedData);
-      } catch (error) {
-        console.error('Error fetching QA orders:', error);
-        toast.error('Không thể tải danh sách đơn hàng');
-      } finally {
-        setLoading(false);
+      if (!data || data.length === 0) {
+        setOrders([]);
+        return;
       }
-    };
+
+      // Map backend data to match UI structure
+      const mappedData = data.map(order => {
+        // Use getQaOrderStatusFromStages for QA-specific order status per diagram
+        const statusResult = getQaOrderStatusFromStages(order);
+
+        // Find the stage assigned to this QA for button logic
+        const qaStage = (order.stages || []).find(s =>
+          s.qcAssigneeId === Number(qcUserId) ||
+          s.qcAssignee?.id === Number(qcUserId)
+        );
+
+        return {
+          id: order.id,
+          lotCode: order.lotCode || order.poNumber || order.id,
+          poNumber: order.poNumber, // Keep original poNumber for rework filtering
+          productName: order.productName || order.contract?.contractNumber || 'N/A',
+          size: order.size || '-',
+          quantity: order.totalQuantity || 0,
+          expectedStartDate: order.plannedStartDate || order.expectedStartDate,
+          expectedFinishDate: order.plannedEndDate || order.expectedFinishDate,
+          status: order.executionStatus,
+          statusLabel: statusResult.label,
+          statusVariant: statusResult.variant,
+          qaStage: qaStage, // Store QA stage for button logic
+          stages: order.stages || [], // FIX: Include stages for button logic
+          // Get leader name from first stage
+          leaderName: order.stages?.[0]?.assignedLeader?.fullName || order.stages?.[0]?.assigneeName || 'Chưa phân công'
+        };
+      });
+      setOrders(mappedData);
+    } catch (error) {
+      console.error('Error fetching QA orders:', error);
+      toast.error('Không thể tải danh sách đơn hàng');
+    } finally {
+      setLoading(false);
+    }
+  }, [qcUserId]);
+
+  // WebSocket subscription for real-time updates
+  const { subscribe } = useWebSocketContext();
+  useEffect(() => {
+    const unsubscribe = subscribe('/topic/updates', (update) => {
+      if (['PRODUCTION_ORDER', 'PRODUCTION_STAGE', 'QUALITY_ISSUE'].includes(update.entity)) {
+        console.log('[QaOrderList] Received update, refreshing...', update);
+        fetchOrders();
+      }
+    });
+    return () => unsubscribe();
+  }, [subscribe, fetchOrders]);
+
+  // Initial fetch
+  useEffect(() => {
     if (qcUserId) {
       fetchOrders();
     } else {
       console.warn('QC User ID not found');
       setLoading(false);
     }
-  }, [qcUserId]);
+  }, [qcUserId, fetchOrders]);
 
   // Reset page when filters or tab change
   useEffect(() => {
@@ -214,6 +229,9 @@ const QaOrderList = () => {
         const comparison = String(aValue).localeCompare(String(bValue), 'vi');
         return sortDirection === 'asc' ? comparison : -comparison;
       });
+    } else {
+      // Default: sort by ID descending (newest first)
+      sorted.sort((a, b) => (b.id || 0) - (a.id || 0));
     }
 
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;

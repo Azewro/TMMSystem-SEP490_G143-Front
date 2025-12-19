@@ -9,6 +9,7 @@ import { orderService } from '../../api/orderService';
 import { getStatusLabel, getStageTypeName, getStatusVariant } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
 import { API_BASE_URL } from '../../utils/constants';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 // Mapping checkpoint names from English to Vietnamese
 const CHECKPOINT_NAME_MAP = {
@@ -402,6 +403,18 @@ const StageProgressDetail = () => {
 
     return () => clearInterval(intervalId);
   }, [stageId]);
+
+  // WebSocket subscription for real-time updates
+  const { subscribe } = useWebSocketContext();
+  useEffect(() => {
+    const unsubscribe = subscribe('/topic/updates', (update) => {
+      if (['PRODUCTION_STAGE', 'QUALITY_ISSUE'].includes(update.entity)) {
+        console.log('[StageProgressDetail] Received update, refreshing...', update);
+        setRefreshKey(prev => prev + 1);
+      }
+    });
+    return () => unsubscribe();
+  }, [subscribe]);
 
   const handleBack = () => {
     if (stageData?.productionOrderId) {

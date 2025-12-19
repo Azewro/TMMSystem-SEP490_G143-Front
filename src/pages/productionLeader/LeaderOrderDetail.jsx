@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Container, Card, Table, Button, Badge, Spinner } from 'react-bootstrap';
 import { useNavigate, useParams } from 'react-router-dom';
 import Header from '../../components/common/Header';
@@ -7,6 +7,7 @@ import { productionService } from '../../api/productionService';
 import { executionService } from '../../api/executionService';
 import { getStatusLabel, getStageTypeName, getButtonForStage, getStatusVariant, getLeaderOrderStatusFromStages, getLeaderStageStatusLabel } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 const LeaderOrderDetail = () => {
   const navigate = useNavigate();
@@ -113,6 +114,28 @@ const LeaderOrderDetail = () => {
     };
     fetchOrder();
   }, [orderId, userId]);
+
+  // WebSocket subscription for real-time updates
+  const { subscribe } = useWebSocketContext();
+  useEffect(() => {
+    const unsubscribe = subscribe('/topic/updates', (update) => {
+      if (['PRODUCTION_ORDER', 'PRODUCTION_STAGE', 'QUALITY_ISSUE'].includes(update.entity)) {
+        console.log('[LeaderOrderDetail] Received update, refreshing...', update);
+        // Trigger re-fetch by updating state
+        const fetchData = async () => {
+          try {
+            const data = await productionService.getLeaderOrderDetail(orderId, userId);
+            // Re-map data (simplified - could extract to separate function)
+            setOrder(prev => prev ? { ...prev, ...data } : null);
+          } catch (err) {
+            console.error('WebSocket refresh error:', err);
+          }
+        };
+        fetchData();
+      }
+    });
+    return () => unsubscribe();
+  }, [subscribe, orderId, userId]);
 
   const handleBack = () => {
     navigate('/leader/orders');

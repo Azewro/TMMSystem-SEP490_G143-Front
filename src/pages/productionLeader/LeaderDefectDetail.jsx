@@ -4,6 +4,7 @@ import { Container, Card, Row, Col, Badge, Button, Alert, Spinner } from 'react-
 import Header from '../../components/common/Header';
 import InternalSidebar from '../../components/common/InternalSidebar';
 import { productionService } from '../../api/productionService';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 const severityConfig = {
   MINOR: { label: 'Lỗi nhẹ', variant: 'warning' },
@@ -21,6 +22,18 @@ const LeaderDefectDetail = () => {
   useEffect(() => {
     fetchDefectDetail();
   }, [defectId]);
+
+  // WebSocket subscription for real-time updates
+  const { subscribe } = useWebSocketContext();
+  useEffect(() => {
+    const unsubscribe = subscribe('/topic/updates', (update) => {
+      if (update.entity === 'QUALITY_ISSUE') {
+        console.log('[LeaderDefectDetail] Received update, refreshing...', update);
+        fetchDefectDetail();
+      }
+    });
+    return () => unsubscribe();
+  }, [subscribe]);
 
   const fetchDefectDetail = async () => {
     try {

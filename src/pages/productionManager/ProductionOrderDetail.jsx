@@ -7,6 +7,7 @@ import { productionService } from '../../api/productionService';
 import { orderService } from '../../api/orderService';
 import { getStatusLabel, getStageTypeName, getStatusVariant, getProductionOrderStatusFromStages, getPMStageStatusLabel } from '../../utils/statusMapper';
 import toast from 'react-hot-toast';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 const ProductionOrderDetail = () => {
   const navigate = useNavigate();
@@ -17,6 +18,18 @@ const ProductionOrderDetail = () => {
   useEffect(() => {
     fetchOrder();
   }, [orderId]);
+
+  // WebSocket subscription for real-time updates
+  const { subscribe } = useWebSocketContext();
+  useEffect(() => {
+    const unsubscribe = subscribe('/topic/updates', (update) => {
+      if (['PRODUCTION_ORDER', 'PRODUCTION_STAGE'].includes(update.entity)) {
+        console.log('[ProductionOrderDetail] Received update, refreshing...', update);
+        fetchOrder();
+      }
+    });
+    return () => unsubscribe();
+  }, [subscribe]);
 
   const fetchOrder = async () => {
     try {

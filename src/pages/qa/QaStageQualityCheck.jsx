@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 import { getStageTypeName, getQaStageStatusLabel } from '../../utils/statusMapper';
 import { API_BASE_URL } from '../../utils/constants';
 import CameraCapture from '../../components/common/CameraCapture';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 const DEFAULT_CRITERIA = {
   CUONG_MAC: [
@@ -286,6 +287,19 @@ const QaStageQualityCheck = () => {
     fetchData();
   }, [orderId, stageCode, userId]);
 
+  // WebSocket subscription for real-time updates
+  const { subscribe } = useWebSocketContext();
+  useEffect(() => {
+    const unsubscribe = subscribe('/topic/updates', (update) => {
+      if (['QUALITY_ISSUE', 'PRODUCTION_STAGE'].includes(update.entity)) {
+        console.log('[QaStageQualityCheck] Received update for stage...', update);
+        // Note: Don't auto-refresh forms to avoid losing user input
+        // Just log for now - user can manually refresh if needed
+      }
+    });
+    return () => unsubscribe();
+  }, [subscribe]);
+
   const buildFallbackCheckpoints = (stageType) => {
     if (!stageType) return [];
     const key = stageType.toUpperCase();
@@ -486,7 +500,7 @@ const QaStageQualityCheck = () => {
       // Special toast for PACKAGING stage passing QC
       if (overallResult === 'PASS' && (stage?.stageType === 'PACKAGING' || stage?.stageType === 'DONG_GOI')) {
         setTimeout(() => {
-          toast.success('Công đoạn đóng gói đạt. Thông báo kho đến tiếp nhận.', { duration: 5000 });
+          toast.success('Công đoạn kiểm tra chất lượng đóng gói đã hoàn tất. Đề nghị bộ phận Kho tiếp nhận thông tin và triển khai các bước tiếp theo theo quy định.', { duration: 5000 });
         }, 500);
       }
 

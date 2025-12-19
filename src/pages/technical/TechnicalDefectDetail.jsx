@@ -7,6 +7,7 @@ import api from '../../api/apiConfig';
 import { toast } from 'react-hot-toast';
 import { API_BASE_URL } from '../../utils/constants';
 import { getStageTypeName } from '../../utils/statusMapper';
+import { useWebSocketContext } from '../../context/WebSocketContext';
 
 const severityStyles = {
   minor: { label: 'Lỗi nhẹ', variant: 'warning' },
@@ -178,6 +179,21 @@ const TechnicalDefectDetail = () => {
     fetchDefect();
     fetchMaterials();
   }, [defectId]);
+
+  // WebSocket subscription for real-time updates
+  const { subscribe } = useWebSocketContext();
+  useEffect(() => {
+    const unsubscribe = subscribe('/topic/updates', (update) => {
+      if (update.entity === 'QUALITY_ISSUE') {
+        console.log('[TechnicalDefectDetail] Received update, refreshing...', update);
+        // Re-fetch defect data
+        api.get(`/v1/production/defects/${defectId}`)
+          .then(response => setDefect(response.data))
+          .catch(err => console.error('WebSocket refresh error:', err));
+      }
+    });
+    return () => unsubscribe();
+  }, [subscribe, defectId]);
 
   const handleQuantityChange = (materialId, value) => {
     // Allow empty value (clearing input)
