@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Container, Card, Table, Button, Badge, Spinner } from 'react-bootstrap';
 import { useNavigate, useParams } from 'react-router-dom';
 import Header from '../../components/common/Header';
@@ -17,6 +17,7 @@ const LeaderOrderDetail = () => {
   const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const isMountedRef = useRef(true); // Guard for async operations during unmount
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -107,12 +108,20 @@ const LeaderOrderDetail = () => {
         setOrder(mappedOrder);
       } catch (error) {
         console.error('Error fetching order:', error);
-        toast.error('Không thể tải thông tin đơn hàng');
+        // Only show error toast if component is still mounted
+        if (isMountedRef.current) {
+          toast.error('Không thể tải thông tin đơn hàng');
+        }
       } finally {
-        setLoading(false);
+        if (isMountedRef.current) {
+          setLoading(false);
+        }
       }
     };
     fetchOrder();
+    return () => {
+      isMountedRef.current = false; // Cleanup on unmount
+    };
   }, [orderId, userId]);
 
   // WebSocket subscription for real-time updates

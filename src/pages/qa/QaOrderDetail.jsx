@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Container, Card, Table, Button, Badge, Spinner } from 'react-bootstrap';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Header from '../../components/common/Header';
@@ -14,6 +14,7 @@ const QaOrderDetail = () => {
   const { orderId } = useParams();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const isMountedRef = useRef(true); // Guard for async operations during unmount
 
   // Fetch order using useCallback for WebSocket refresh
   const fetchOrder = useCallback(async () => {
@@ -79,9 +80,14 @@ const QaOrderDetail = () => {
       setOrder(mappedOrder);
     } catch (error) {
       console.error('Error fetching order:', error);
-      toast.error('Không thể tải thông tin đơn hàng');
+      // Only show error toast if component is still mounted
+      if (isMountedRef.current) {
+        toast.error('Không thể tải thông tin đơn hàng');
+      }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [orderId]);
 
@@ -97,9 +103,13 @@ const QaOrderDetail = () => {
     return () => unsubscribe();
   }, [subscribe, fetchOrder]);
 
-  // Initial fetch and refresh on navigation
+  // Initial fetch and cleanup on unmount
   useEffect(() => {
+    isMountedRef.current = true;
     fetchOrder();
+    return () => {
+      isMountedRef.current = false; // Cleanup: prevent state updates after unmount
+    };
   }, [fetchOrder, location.state?.refreshKey]); // refreshKey from navigation state forces data refresh
 
   const handleBack = () => {
