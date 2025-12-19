@@ -439,6 +439,7 @@ const LeaderStageProgress = () => {
               <Button variant="dark" onClick={handleUpdateProgress} disabled={isPending || isPaused || isUpdating}>
                 {isUpdating ? <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" /> : 'Cập nhật'}
               </Button>
+              {/* Hidden buttons - kept for future use
               <Button
                 variant="outline-danger"
                 onClick={() => {
@@ -450,22 +451,20 @@ const LeaderStageProgress = () => {
               >
                 Tạm dừng
               </Button>
-              {
-                // Add "Tạm dừng và sửa lỗi" button specifically
-                !isRework && (
-                  <Button
-                    variant="outline-warning"
-                    onClick={() => {
-                      setPauseReason('REWORK');
-                      setPauseNotes('Tạm dừng để sửa lỗi phát sinh');
-                      setShowPauseModal(true);
-                    }}
-                    disabled={isPending || isPaused}
-                  >
-                    Tạm dừng & Sửa lỗi
-                  </Button>
-                )
-              }
+              {!isRework && (
+                <Button
+                  variant="outline-warning"
+                  onClick={() => {
+                    setPauseReason('REWORK');
+                    setPauseNotes('Tạm dừng để sửa lỗi phát sinh');
+                    setShowPauseModal(true);
+                  }}
+                  disabled={isPending || isPaused}
+                >
+                  Tạm dừng & Sửa lỗi
+                </Button>
+              )}
+              */}
             </div>
           </Card.Body>
         </Card>
