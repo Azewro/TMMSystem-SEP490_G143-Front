@@ -43,7 +43,7 @@ const LeaderOrderList = () => {
       try {
         setLoading(true);
         if (!userId) {
-          toast.error('Không tìm thấy thông tin người dùng');
+          console.warn('[LeaderOrderList] User ID not found');
           setLoading(false);
           return;
         }
@@ -140,6 +140,16 @@ const LeaderOrderList = () => {
     });
     return () => unsubscribe();
   }, [subscribe]);
+
+  // Window focus refetch - refresh when user switches back to tab
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log('[LeaderOrderList] Window focused, refreshing...');
+      setRefreshTrigger(prev => prev + 1);
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
 
   const filteredOrders = useMemo(() => {
     return orders.filter((o) => {

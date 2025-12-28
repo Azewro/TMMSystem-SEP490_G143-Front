@@ -233,6 +233,16 @@ const QaStageCheckResult = () => {
     return () => unsubscribe();
   }, [subscribe]);
 
+  // Window focus refetch - refresh when user switches back to tab
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log('[QaStageCheckResult] Window focused, refreshing...');
+      setLoading(true);
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
+
   if (loading) {
     return (
       <div className="d-flex justify-content-center align-items-center vh-100">

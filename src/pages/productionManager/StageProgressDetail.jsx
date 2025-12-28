@@ -416,6 +416,16 @@ const StageProgressDetail = () => {
     return () => unsubscribe();
   }, [subscribe]);
 
+  // Window focus refetch - refresh when user switches back to tab
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log('[StageProgressDetail] Window focused, refreshing...');
+      setRefreshKey(prev => prev + 1);
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
+
   const handleBack = () => {
     if (stageData?.productionOrderId) {
       navigate(`/production/orders/${stageData.productionOrderId}`);

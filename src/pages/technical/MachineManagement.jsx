@@ -51,6 +51,16 @@ const MachineManagement = () => {
     return () => unsubscribe();
   }, [subscribe, currentPage, searchQuery, typeFilter, statusFilter]);
 
+  // Window focus refetch - refresh when user switches back to tab
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log('[MachineManagement] Window focused, refreshing...');
+      loadMachines();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [currentPage, searchQuery, typeFilter, statusFilter]);
+
   const loadMachines = async () => {
     setLoading(true);
     setError('');

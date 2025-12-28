@@ -127,6 +127,16 @@ const MaterialStockManagement = () => {
     return () => unsubscribe();
   }, [subscribe, fetchMaterialStocks]);
 
+  // Window focus refetch - refresh when user switches back to tab
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log('[MaterialStockManagement] Window focused, refreshing...');
+      fetchMaterialStocks();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [fetchMaterialStocks]);
+
   useEffect(() => {
     // Reset to page 1 when filters change
     setCurrentPage(1);

@@ -31,6 +31,16 @@ const ProductionOrderDetail = () => {
     return () => unsubscribe();
   }, [subscribe]);
 
+  // Window focus refetch - refresh when user switches back to tab
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log('[ProductionOrderDetail] Window focused, refreshing...');
+      fetchOrder();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
+
   const fetchOrder = async () => {
     try {
       setLoading(true);
@@ -79,7 +89,7 @@ const ProductionOrderDetail = () => {
       setOrder(mappedOrder);
     } catch (error) {
       console.error('Error fetching order:', error);
-      toast.error('Không thể tải thông tin đơn hàng');
+      // Silent fail - already logged to console
     } finally {
       setLoading(false);
     }

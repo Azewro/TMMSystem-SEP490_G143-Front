@@ -195,6 +195,18 @@ const TechnicalDefectDetail = () => {
     return () => unsubscribe();
   }, [subscribe, defectId]);
 
+  // Window focus refetch - refresh when user switches back to tab
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log('[TechnicalDefectDetail] Window focused, refreshing...');
+      api.get(`/v1/production/defects/${defectId}`)
+        .then(response => setDefect(response.data))
+        .catch(err => console.error('Window focus refresh error:', err));
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [defectId]);
+
   const handleQuantityChange = (materialId, value) => {
     // Allow empty value (clearing input)
     if (value === '') {
@@ -223,7 +235,7 @@ const TechnicalDefectDetail = () => {
     try {
       const userId = parseInt(localStorage.getItem('userId') || sessionStorage.getItem('userId'));
       if (!userId) {
-        toast.error("Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.");
+        console.warn('[TechnicalDefectDetail] User ID not found');
         return;
       }
 

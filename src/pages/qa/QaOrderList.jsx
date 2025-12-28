@@ -118,6 +118,16 @@ const QaOrderList = () => {
     return () => unsubscribe();
   }, [subscribe, fetchOrders]);
 
+  // Window focus refetch - refresh when user switches back to tab
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log('[QaOrderList] Window focused, refreshing...');
+      fetchOrders();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [fetchOrders]);
+
   // Initial fetch
   useEffect(() => {
     if (qcUserId) {

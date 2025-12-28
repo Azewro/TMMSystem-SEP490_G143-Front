@@ -77,6 +77,18 @@ const MachineDetail = () => {
         return () => unsubscribe();
     }, [subscribe, id]);
 
+    // Window focus refetch - refresh when user switches back to tab
+    useEffect(() => {
+        const handleFocus = () => {
+            console.log('[MachineDetail] Window focused, refreshing...');
+            machineService.getMachine(id)
+                .then(data => setMachine(data))
+                .catch(err => console.error('Window focus refresh error:', err));
+        };
+        window.addEventListener('focus', handleFocus);
+        return () => window.removeEventListener('focus', handleFocus);
+    }, [id]);
+
     if (loading && !machine) {
         return (
             <Container className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>

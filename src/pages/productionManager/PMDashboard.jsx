@@ -52,6 +52,16 @@ const PMDashboard = () => {
         return () => unsubscribe();
     }, [subscribe]);
 
+    // Window focus refetch - refresh when user switches back to tab
+    useEffect(() => {
+        const handleFocus = () => {
+            console.log('[PMDashboard] Window focused, refreshing...');
+            dashboardService.getPMDashboard().then(setData).catch(console.error);
+        };
+        window.addEventListener('focus', handleFocus);
+        return () => window.removeEventListener('focus', handleFocus);
+    }, []);
+
     // Stage type Vietnamese mapping
     const stageTypeNames = {
         'WARPING': 'Cuồng mắc',

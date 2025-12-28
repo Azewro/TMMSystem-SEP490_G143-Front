@@ -112,6 +112,16 @@ const TechnicalDefectList = () => {
     return () => unsubscribe();
   }, [subscribe]);
 
+  // Window focus refetch - refresh when user switches back to tab
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log('[TechnicalDefectList] Window focused, refreshing...');
+      fetchData();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
+
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
